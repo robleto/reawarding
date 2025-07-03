@@ -1,3 +1,5 @@
+// @ts-nocheck
+// This file runs in Deno runtime, not Node.js
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 // Define the TMDB API base URL
