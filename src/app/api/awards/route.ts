@@ -26,7 +26,7 @@ export async function GET(request: Request) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (error) {
+            } catch {
               // Ignore cookie setting errors in route handlers
             }
           },
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (error) {
+            } catch {
               // Ignore cookie setting errors in route handlers
             }
           },

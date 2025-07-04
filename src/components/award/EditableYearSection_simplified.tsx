@@ -1,27 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
 import { Edit3, Save, X, AlertCircle, RotateCcw } from "lucide-react";
 import MovieCard from "./MovieCard";
 import WinnerCard from "./WinnerCard";
 import MovieDetailModal from "../movie/MovieDetailModal";
-
-interface Movie {
-  id: string;
-  title: string;
-  thumb_url: string;
-  poster_url: string;
-  ranking: number;
-  release_year?: number;
-  created_at?: string;
-  rankings?: any[];
-}
-
-interface AwardNomination {
-  nominee_ids: number[];
-  winner_id: number | null;
-}
+import type { Movie } from "@/types/types";
 
 interface EditableYearSectionProps {
   year: string;
@@ -40,7 +25,6 @@ export default function EditableYearSection({
   const [isEditing, setIsEditing] = useState(false);
   const [nominees, setNominees] = useState<Movie[]>([]);
   const [selectedWinner, setSelectedWinner] = useState<Movie | null>(null);
-  const [availableMovies, setAvailableMovies] = useState<Movie[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingNominations, setLoadingNominations] = useState(false);
@@ -52,22 +36,7 @@ export default function EditableYearSection({
   const [currentNominees, setCurrentNominees] = useState<Movie[]>(movies);
   const [currentWinner, setCurrentWinner] = useState<Movie | null>(winner || null);
 
-  // Load custom nominations on component mount
-  useEffect(() => {
-    if (user) {
-      loadExistingNominations();
-    }
-  }, [user, year]);
-
-  // Update current display when props change
-  useEffect(() => {
-    if (!hasCustomNominations) {
-      setCurrentNominees(movies);
-      setCurrentWinner(winner || null);
-    }
-  }, [movies, winner, hasCustomNominations]);
-
-  const loadExistingNominations = async () => {
+  const loadExistingNominations = useCallback(async () => {
     setLoadingNominations(true);
     try {
       const response = await fetch(`/api/awards?year=${year}`);
@@ -91,10 +60,6 @@ export default function EditableYearSection({
           // Set edit state (used when entering edit mode)
           setNominees(nomineeMovies);
           setSelectedWinner(winnerMovie);
-          
-          // Set available movies (excluding current nominees)
-          const nomineeIds = nomineeMovies.map(m => m.id);
-          setAvailableMovies(allMoviesForYear.filter(m => !nomineeIds.includes(m.id)));
         } else {
           // No custom nominations - use defaults
           setHasCustomNominations(false);
@@ -110,7 +75,22 @@ export default function EditableYearSection({
     } finally {
       setLoadingNominations(false);
     }
-  };
+  }, [year, allMoviesForYear, movies, winner]);
+
+  // Load custom nominations on component mount
+  useEffect(() => {
+    if (user) {
+      loadExistingNominations();
+    }
+  }, [user, loadExistingNominations]);
+
+  // Update current display when props change
+  useEffect(() => {
+    if (!hasCustomNominations) {
+      setCurrentNominees(movies);
+      setCurrentWinner(winner || null);
+    }
+  }, [movies, winner, hasCustomNominations]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -136,7 +116,7 @@ export default function EditableYearSection({
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
-        } catch (jsonError) {
+        } catch {
           errorMessage = response.statusText || errorMessage;
         }
         throw new Error(errorMessage);
@@ -176,10 +156,6 @@ export default function EditableYearSection({
     // Initialize edit state with current display
     setNominees(currentNominees);
     setSelectedWinner(currentWinner);
-    
-    // Set available movies (excluding current nominees)
-    const nomineeIds = currentNominees.map(m => m.id);
-    setAvailableMovies(allMoviesForYear.filter(m => !nomineeIds.includes(m.id)));
   };
 
   const handleCancel = () => {
@@ -187,17 +163,12 @@ export default function EditableYearSection({
     setError(null);
     setNominees([]);
     setSelectedWinner(null);
-    setAvailableMovies([]);
   };
 
   const handleResetToDefault = () => {
     // Reset to default nominees and winner
     setNominees(movies);
     setSelectedWinner(winner || null);
-    
-    // Update available movies
-    const nomineeIds = movies.map(m => m.id);
-    setAvailableMovies(allMoviesForYear.filter(m => !nomineeIds.includes(m.id)));
     
     setError(null);
   };
@@ -274,7 +245,12 @@ export default function EditableYearSection({
             <span className="text-gold">👑</span>
             Winner
           </h3>
-          <WinnerCard movie={currentWinner} onClick={() => handleOpenModal(currentWinner)} />
+          <WinnerCard 
+            title={currentWinner.title}
+            poster_url={currentWinner.poster_url}
+            rating={currentWinner.rankings?.[0]?.ranking || 0}
+            onClick={() => handleOpenModal(currentWinner)} 
+          />
         </div>
       )}
 
@@ -287,7 +263,9 @@ export default function EditableYearSection({
           {currentNominees.map((movie) => (
             <MovieCard
               key={movie.id}
-              movie={movie}
+              title={movie.title}
+              imageUrl={movie.thumb_url}
+              rating={movie.rankings?.[0]?.ranking || 0}
               onClick={() => handleOpenModal(movie)}
             />
           ))}

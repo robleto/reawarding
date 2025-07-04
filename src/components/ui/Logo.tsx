@@ -28,8 +28,8 @@ export function Logo({ size = 'md', className = '', showText = true }: LogoProps
     lg: 'text-6xl'
   };
 
-  // Try different extensions for oscarworthy-icon
-  const logoSrc = '/oscarworthy-icon.png'; // Change extension if needed (.svg, .jpg, .jpeg, etc.)
+  // Use the existing logo file
+  const logoSrc = '/logo.svg';
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>

@@ -67,7 +67,7 @@ export default function ResetPasswordPage() {
           router.push('/rankings');
         }, 2000);
       }
-    } catch (error) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -90,7 +90,7 @@ export default function ResetPasswordPage() {
             </h1>
             
             <p className="text-gray-600 mb-6">
-              Your password has been successfully updated. You'll be redirected to your dashboard in a moment.
+              Your password has been successfully updated. You&apos;ll be redirected to your dashboard in a moment.
             </p>
 
             <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
@@ -118,7 +118,7 @@ export default function ResetPasswordPage() {
               Choose a new password
             </h3>
             <p className="text-gray-600 text-sm">
-              Please enter a strong password that you haven't used before.
+              Please enter a strong password that you haven&apos;t used before.
             </p>
           </div>
 

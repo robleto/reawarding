@@ -7,7 +7,7 @@ import type { Movie } from "@/types/types";
 import { Trophy, Save, Share2, Crown } from "lucide-react";
 
 export default function NomineesPage() {
-  const { movies, loading, user, isGuest } = useMovieDataWithGuest();
+  const { movies, loading, isGuest } = useMovieDataWithGuest();
   const [selectedNominees, setSelectedNominees] = useState<Movie[]>([]);
   const [winner, setWinner] = useState<Movie | undefined>();
 
