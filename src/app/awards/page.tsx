@@ -1,12 +1,12 @@
-import YearSection from "@/components/award/YearSection";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import EditableYearSection from "@/components/award/EditableYearSection";
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@/types/supabase"; // if you're using Supabase types
 
 interface DisplayMovie {
 	id: string;
 	title: string;
-	release_year: string;
+	release_year: number;
 	thumb_url: string;
 	poster_url: string;
 	ranking: number;
@@ -16,10 +16,31 @@ interface YearData {
 	year: string;
 	winner: DisplayMovie;
 	nominees: DisplayMovie[];
+	allMovies: DisplayMovie[]; // All movies for the year
 }
 
 export default async function AwardsPage() {
-	const supabase = createServerComponentClient<Database>({ cookies });
+	const cookieStore = await cookies();
+	const supabase = createServerClient<Database>(
+		process.env.NEXT_PUBLIC_SUPABASE_URL!,
+		process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+		{
+			cookies: {
+				getAll() {
+					return cookieStore.getAll();
+				},
+				setAll(cookiesToSet) {
+					try {
+						cookiesToSet.forEach(({ name, value, options }) => {
+							cookieStore.set(name, value, options);
+						});
+					} catch (error) {
+						// Ignore cookie setting errors in server components
+					}
+				},
+			},
+		}
+	);
 
 	const { data: movies, error } = await supabase
 		.from("movies")
@@ -55,11 +76,20 @@ export default async function AwardsPage() {
 		.map(([year, movies]) => {
 			// Sort by ranking DESC
 			const sorted = [...movies].sort((a, b) => b.ranking - a.ranking);
+			
+			// Default nominees: top 10 movies ranked 7 or above
+			const defaultNominees = sorted
+				.filter(movie => movie.ranking >= 7)
+				.slice(0, 10);
+			
+			// Default winner: highest ranked among nominees (or highest overall if no 7+ movies)
+			const defaultWinner = defaultNominees.length > 0 ? defaultNominees[0] : sorted[0];
 
 			return {
 				year,
-				winner: sorted[0], // ⬅️ Highest ranked
-				nominees: sorted.slice(0, 10), // ⬅️ Top 10
+				winner: defaultWinner,
+				nominees: defaultNominees,
+				allMovies: sorted, // ⬅️ All movies for this year
 			};
 		})
 		.sort((a, b) => Number(b.year) - Number(a.year)); // Year DESC
@@ -68,11 +98,12 @@ export default async function AwardsPage() {
 		<div className="p-6 mx-auto">
 			<main className="flex-1 mt-8 space-y-20">
 				{formattedYears.map((yearData) => (
-					<YearSection
+					<EditableYearSection
 						key={yearData.year}
 						year={yearData.year}
 						winner={yearData.winner}
 						movies={yearData.nominees}
+						allMoviesForYear={yearData.allMovies}
 					/>
 				))}
 			</main>

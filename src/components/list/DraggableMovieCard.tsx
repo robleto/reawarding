@@ -3,9 +3,27 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
-import { Eye, EyeOff, GripVertical, X } from "lucide-react";
+import { Eye, EyeOff, GripVertical, X, Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
+
+// Fallback component for missing poster images
+const DraggablePosterFallback = ({ 
+  title, 
+  className = "" 
+}: { 
+  title: string; 
+  className?: string; 
+}) => (
+  <div className={`flex items-center justify-center bg-gray-100 text-gray-400 aspect-[2/3] ${className}`}>
+    <div className="text-center px-4">
+      <Film className="w-12 h-12 mx-auto mb-2" />
+      <div className="text-sm font-medium text-center leading-tight">
+        {title}
+      </div>
+    </div>
+  </div>
+);
 
 type Props = {
   item: {
@@ -49,6 +67,9 @@ export default function DraggableMovieCard({
 
   const ratingStyle = getRatingStyle(item.score ?? 0);
 
+  // Check if poster image exists and is valid
+  const hasValidPoster = item.movie.poster_url && item.movie.poster_url.trim() !== '' && !item.movie.poster_url.includes('placeholder');
+
   if (viewMode === "grid") {
     return (
       <div
@@ -79,14 +100,28 @@ export default function DraggableMovieCard({
           </button>
         )}
 
-        <Image
-          src={item.movie.poster_url}
-          alt={item.movie.title}
-          width={300}
-          height={450}
-          className="w-full h-auto rounded-t-xl"
-          unoptimized
-        />
+        {hasValidPoster ? (
+          <Image
+            src={item.movie.poster_url}
+            alt={item.movie.title}
+            width={300}
+            height={450}
+            className="w-full h-auto rounded-t-xl"
+            unoptimized
+            onError={(e) => {
+              // Hide broken image and show fallback
+              e.currentTarget.style.display = 'none';
+              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+              if (fallback) fallback.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        {!hasValidPoster && (
+          <DraggablePosterFallback
+            title={item.movie.title}
+            className="w-full rounded-t-xl"
+          />
+        )}
 
         <div className="flex flex-col justify-between flex-grow h-full px-3 py-2 min-h-[7rem]">
           <div>

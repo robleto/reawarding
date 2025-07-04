@@ -5,13 +5,17 @@ interface MovieCardProps {
 	title: string;
 	imageUrl: string;
 	rating: number;
+	onClick?: () => void;
 }
 
-export default function MovieCard({ title, imageUrl, rating }: MovieCardProps) {
+export default function MovieCard({ title, imageUrl, rating, onClick }: MovieCardProps) {
 	const { text, background } = getRatingStyle(rating);
 
 	return (
-		<article className="w-full">
+		<article 
+			className={`w-full ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
+			onClick={onClick}
+		>
 			<div
 				className="relative bg-cover rounded-lg shadow-sm aspect-video"
 				style={{ backgroundImage: `url(${imageUrl})` }}

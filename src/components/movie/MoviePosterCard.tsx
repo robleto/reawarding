@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
 
@@ -12,25 +12,76 @@ type Props = {
   ranking: number | null;
   seenIt: boolean;
   onUpdate: (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+  onClick?: () => void;
 };
 
 const RANKING_OPTIONS = Array.from({ length: 10 }, (_, i) => 10 - i);
 
-export default function MoviePosterCard({ movie, currentUserId, onUpdate, ranking, seenIt }: Props) {
+// Fallback component for missing poster images
+const PosterFallback = ({ 
+  title, 
+  className = "" 
+}: { 
+  title: string; 
+  className?: string; 
+}) => (
+  <div 
+    className={`flex items-center justify-center bg-gray-100 text-gray-400 aspect-[2/3] ${className}`}
+  >
+    <div className="text-center px-4">
+      <Film className="w-12 h-12 mx-auto mb-2" />
+      <div className="text-sm font-medium text-center leading-tight">
+        {title}
+      </div>
+    </div>
+  </div>
+);
+
+export default function MoviePosterCard({ movie, currentUserId, onUpdate, ranking, seenIt, onClick }: Props) {
   const [showDropdown, setShowDropdown] = useState(false);
 
   const style = getRatingStyle(ranking ?? 0);
 
+  // Check if poster image exists and is valid
+  const hasValidPoster = movie.poster_url && movie.poster_url.trim() !== '' && !movie.poster_url.includes('placeholder');
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Don't trigger onClick if user is clicking on interactive elements
+    if (e.target instanceof HTMLElement) {
+      const isInteractiveElement = e.target.closest('button, select, input, a');
+      if (!isInteractiveElement && onClick) {
+        onClick();
+      }
+    }
+  };
+
   return (
-		<div className="relative flex flex-col overflow-visible transition bg-white shadow hover:shadow-lg rounded-xl">
-			<Image
-				src={movie.poster_url}
-				alt={movie.title}
-				width={300}
-				height={450}
-				className="w-full h-auto rounded-t-xl"
-				unoptimized
-			/>
+		<div 
+			className={`relative flex flex-col overflow-visible transition bg-white shadow hover:shadow-lg rounded-xl ${onClick ? 'cursor-pointer' : ''}`}
+			onClick={handleClick}
+		>
+			{hasValidPoster ? (
+				<Image
+					src={movie.poster_url}
+					alt={movie.title}
+					width={300}
+					height={450}
+					className="w-full h-auto rounded-t-xl"
+					unoptimized
+					onError={(e) => {
+						// Hide broken image and show fallback
+						e.currentTarget.style.display = 'none';
+						const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+						if (fallback) fallback.style.display = 'flex';
+					}}
+				/>
+			) : null}
+			{!hasValidPoster && (
+				<PosterFallback
+					title={movie.title}
+					className="w-full rounded-t-xl"
+				/>
+			)}
 
 			<div className="flex flex-col justify-between flex-grow h-full px-3 py-2 min-h-[7rem]">
 				<div>

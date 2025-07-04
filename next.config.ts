@@ -1,8 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['assets.fanart.tv', 'image.tmdb.org'],
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'assets.fanart.tv', // Movie assets
+      },
+      {
+        protocol: 'https',
+        hostname: 'image.tmdb.org', // TMDB images
+      },
       {
         protocol: 'https',
         hostname: 'avatars.githubusercontent.com', // GitHub avatars

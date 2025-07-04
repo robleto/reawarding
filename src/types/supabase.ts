@@ -9,6 +9,37 @@ export type Json =
 export interface Database {
 	public: {
 		Tables: {
+			profiles: {
+				Row: {
+					id: string;
+					username: string;
+					full_name: string | null;
+					avatar_url: string | null;
+					bio: string | null;
+					created_at: string;
+					updated_at: string;
+				};
+				Insert: {
+					id: string;
+					username: string;
+					full_name?: string | null;
+					avatar_url?: string | null;
+					bio?: string | null;
+					created_at?: string;
+					updated_at?: string;
+				};
+				Update: Partial<
+					Database["public"]["Tables"]["profiles"]["Insert"]
+				>;
+				Relationships: [
+					{
+						foreignKeyName: "profiles_id_fkey";
+						columns: ["id"];
+						referencedRelation: "users";
+						referencedColumns: ["id"];
+					},
+				];
+			};
 			movies: {
 				Row: {
 					id: number;
@@ -123,6 +154,37 @@ export interface Database {
 						foreignKeyName: "movie_list_items_movie_id_fkey";
 						columns: ["movie_id"];
 						referencedRelation: "movies";
+						referencedColumns: ["id"];
+					},
+				];
+			};
+			award_nominations: {
+				Row: {
+					id: string;
+					user_id: string;
+					year: string;
+					nominee_ids: number[];
+					winner_id: number | null;
+					created_at?: string;
+					updated_at?: string;
+				};
+				Insert: {
+					id?: string;
+					user_id: string;
+					year: string;
+					nominee_ids: number[];
+					winner_id?: number | null;
+					created_at?: string;
+					updated_at?: string;
+				};
+				Update: Partial<
+					Database["public"]["Tables"]["award_nominations"]["Insert"]
+				>;
+				Relationships: [
+					{
+						foreignKeyName: "award_nominations_user_id_fkey";
+						columns: ["user_id"];
+						referencedRelation: "users";
 						referencedColumns: ["id"];
 					},
 				];

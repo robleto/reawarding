@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
+import useGuestRankingStore from "@/hooks/useGuestRankingStore";
 
 export type SortKey = "title" | "release_year" | "ranking";
 export type GroupKey = "release_year" | "ranking" | "none";
@@ -107,70 +108,129 @@ export function sortByRecent(movies: Movie[]) {
 	});
 }
 
-export function useMovieData() {
+// New hook that supports both authenticated and guest users
+export function useMovieDataWithGuest() {
 	const [movies, setMovies] = useState<Movie[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [hasMounted, setHasMounted] = useState(false);
 	const supabase = useSupabaseClient<Database>();
 	const user = useUser();
+	const guestStore = useGuestRankingStore();
 	const userId = user?.id;
+	const isGuest = !user;
 
 	useEffect(() => {
-		// Don't proceed if user is not authenticated or userId is not available
-		if (!user || !userId) {
-			setLoading(false);
-			setMovies([]);
-			return;
-		}
-		
+		setHasMounted(true);
+	}, []);
+
+	useEffect(() => {
 		async function fetchData() {
 			setLoading(true);
-			const { data, error } = await supabase
-				.from("movies")
-				.select(
-					`*,
-					rankings!left (
-						id,
-						seen_it,
-						ranking,
-						user_id
-					)`
-				)
-				.eq("rankings.user_id", userId)
-				.range(0, 2999);
+			
+			if (isGuest) {
+				// For guests, fetch movies without user-specific rankings
+				const { data, error } = await supabase
+					.from("movies")
+					.select("*")
+					.range(0, 2999);
 
-			if (error) {
-				console.error("Fetch error:", error.message);
-				setMovies([]);
-			} else {
-				const enriched: Movie[] = data.map((movie) => {
-					// Safely filter rankings to only include ones for the current user
-					const userRankings = Array.isArray(movie.rankings) 
-						? movie.rankings.filter((r: any) => r && r.user_id === userId)
-						: [];
+				if (error) {
+					console.error("Fetch error:", error.message);
+					setMovies([]);
+				} else {
+					// Apply guest data from Zustand store
+					const moviesWithGuestData = data.map(movie => {
+						const guestRanking = guestStore.getRanking(movie.id);
+						return {
+							...movie,
+							rankings: guestRanking ? [{
+								id: `guest_${movie.id}`,
+								user_id: 'guest',
+								ranking: guestRanking.ranking || 0,
+								seen_it: guestRanking.seenIt,
+							}] : [],
+							thumb_url: movie.thumb_url ?? "",
+						} as Movie;
+					});
 					
-					return {
-						...movie,
-						rankings: userRankings,
-						thumb_url: movie.thumb_url ?? "",
-					} as Movie;
-				});
-				setMovies(enriched);
+					setMovies(moviesWithGuestData);
+				}
+			} else if (userId) {
+				// For authenticated users, fetch with their rankings
+				const { data, error } = await supabase
+					.from("movies")
+					.select(
+						`*,
+						rankings!left (
+							id,
+							seen_it,
+							ranking,
+							user_id
+						)`
+					)
+					.eq("rankings.user_id", userId)
+					.range(0, 2999);
+
+				if (error) {
+					console.error("Fetch error:", error.message);
+					setMovies([]);
+				} else {
+					const enriched: Movie[] = data.map((movie) => {
+						const userRankings = Array.isArray(movie.rankings) 
+							? movie.rankings.filter((r: any) => r && r.user_id === userId)
+							: [];
+						
+						return {
+							...movie,
+							rankings: userRankings,
+							thumb_url: movie.thumb_url ?? "",
+						} as Movie;
+					});
+					setMovies(enriched);
+				}
 			}
 			setLoading(false);
 		}
+		
 		fetchData();
-	}, [userId, supabase, user]);
+	}, [userId, supabase, user, isGuest]);
 
 	const updateMovieRanking = async (
 		movieId: number,
 		updates: { seen_it?: boolean; ranking?: number | null }
 	) => {
+		if (isGuest) {
+			// For guests, update Zustand store
+			guestStore.updateRanking(movieId, updates);
+			
+			// Update local state immediately for better UX
+			setMovies((prevMovies) =>
+				prevMovies.map((m) => {
+					if (m.id === movieId) {
+						const guestRanking = guestStore.getRanking(movieId);
+						if (guestRanking) {
+							return {
+								...m,
+								rankings: [{
+									id: `guest_${movieId}`,
+									user_id: 'guest',
+									ranking: guestRanking.ranking || 0,
+									seen_it: guestRanking.seenIt,
+								}],
+							};
+						}
+					}
+					return m;
+				})
+			);
+			return;
+		}
+
+		// For authenticated users, use the existing logic
 		const movie = movies.find((m) => m.id === movieId);
 		const existing = movie?.rankings?.[0];
 
-		// Handle null ranking - if ranking is explicitly null, we want to delete the ranking
 		if (updates.ranking === null) {
-			// If there's an existing ranking record, delete it
 			if (existing?.id) {
 				const { error } = await supabase
 					.from("rankings")
@@ -183,7 +243,6 @@ export function useMovieData() {
 				}
 			}
 
-			// Update local state to remove the ranking
 			setMovies((prevMovies) =>
 				prevMovies.map((m) => {
 					if (m.id === movieId) {
@@ -197,7 +256,7 @@ export function useMovieData() {
 
 		const payload = {
 			...(existing?.id ? { id: existing.id } : {}),
-			user_id: userId,
+			user_id: userId!,
 			movie_id: movieId,
 			seen_it: updates.seen_it ?? existing?.seen_it ?? false,
 			ranking: updates.ranking ?? existing?.ranking ?? 0,
@@ -212,13 +271,11 @@ export function useMovieData() {
 			return;
 		}
 
-		// Update local state immediately
 		setMovies((prevMovies) =>
 			prevMovies.map((m) => {
 				if (m.id === movieId) {
 					const updatedRankings = [...m.rankings];
 					if (updatedRankings.length === 0) {
-						// Create new ranking if none exists
 						updatedRankings.push({
 							id: crypto.randomUUID(),
 							user_id: userId!,
@@ -226,7 +283,6 @@ export function useMovieData() {
 							ranking: updates.ranking ?? 0,
 						});
 					} else {
-						// Update existing ranking
 						updatedRankings[0] = {
 							...updatedRankings[0],
 							seen_it: updates.seen_it ?? updatedRankings[0].seen_it,
@@ -240,7 +296,15 @@ export function useMovieData() {
 		);
 	};
 
-	return { movies, loading, user, userId: userId ?? "", updateMovieRanking };
+	return { 
+		movies, 
+		loading, 
+		user, 
+		userId: userId ?? "", 
+		updateMovieRanking,
+		isGuest,
+		hasMounted
+	};
 }
 
 export function useViewMode(defaultMode: "grid" | "list" = "grid") {

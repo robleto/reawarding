@@ -1,30 +1,32 @@
 "use client";
 
+import { useState } from "react";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieRowCard from "@/components/movie/MovieRowCard";
+import MovieDetailModal from "@/components/movie/MovieDetailModal";
+import type { Movie } from "@/types/types";
 
 import {
-	useMovieData,
+	useMovieDataWithGuest,
 	useViewMode,
 	useMovieFilters,
 	SORT_OPTIONS,
 	GROUP_OPTIONS,
 	type SortKey,
 	type GroupKey,
-	type SortOrder,
 } from "@/utils/sharedMovieUtils";
 
 import Loader from "@/components/ui/Loading";
-import { useState } from "react";
 
 export const dynamic = "force-dynamic";
 
 export default function FilmsPage() {
-	const { movies, loading, user, userId, updateMovieRanking } = useMovieData();
+	const { movies, loading, user, userId, updateMovieRanking } = useMovieDataWithGuest();
 	const [viewMode, setViewMode] = useViewMode("grid");
+	const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+	const [isModalOpen, setIsModalOpen] = useState(false);
 	
 	const {
-		hasMounted,
 		sortBy,
 		sortOrder,
 		groupBy,
@@ -39,6 +41,16 @@ export default function FilmsPage() {
 		uniqueYears,
 		uniqueRanks,
 	} = useMovieFilters(movies);
+
+	const handleOpenModal = (movie: Movie) => {
+		setSelectedMovie(movie);
+		setIsModalOpen(true);
+	};
+
+	const handleCloseModal = () => {
+		setSelectedMovie(null);
+		setIsModalOpen(false);
+	};
 
 	if (!user) {
 		return (
@@ -231,13 +243,14 @@ export default function FilmsPage() {
 										ranking={r?.ranking ?? null}
 										seenIt={r?.seen_it ?? false}
 										onUpdate={updateMovieRanking}
+										onClick={() => handleOpenModal(movie)}
 									/>
 								);
 							})}
 						</div>
 					) : (
-						<div className="flex flex-col divide-y">
-							{movies.map((movie) => {
+						<div className="flex flex-col">
+							{movies.map((movie, index) => {
 								const r = movie.rankings?.[0];
 								return (
 									<MovieRowCard
@@ -246,7 +259,9 @@ export default function FilmsPage() {
 										currentUserId={userId}
 										ranking={r?.ranking ?? null}
 										seenIt={r?.seen_it ?? false}
+										isLast={index === movies.length - 1}
 										onUpdate={updateMovieRanking}
+										onClick={() => handleOpenModal(movie)}
 									/>
 								);
 							})}
@@ -254,6 +269,17 @@ export default function FilmsPage() {
 					)}
 				</div>
 			))}
+
+			{/* Movie Detail Modal */}
+			{selectedMovie && (
+				<MovieDetailModal
+					movie={selectedMovie}
+					isOpen={isModalOpen}
+					onClose={handleCloseModal}
+					initialRanking={selectedMovie.rankings?.[0]?.ranking ?? null}
+					initialSeenIt={selectedMovie.rankings?.[0]?.seen_it ?? false}
+				/>
+			)}
 		</div>
 	);
 }
