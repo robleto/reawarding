@@ -20,7 +20,6 @@ interface SelectableMovieItemProps {
 
 // Fallback component for missing images
 const SelectableFallback = ({ 
-  title, 
   className = "" 
 }: { 
   title: string; 

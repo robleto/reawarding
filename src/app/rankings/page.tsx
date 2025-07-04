@@ -18,14 +18,13 @@ import {
   GROUP_OPTIONS,
   SortKey,
   GroupKey,
-  SortOrder,
 } from "@/utils/sharedMovieUtils";
 import { useSavePromptBanner } from "@/hooks/useSavePromptBanner";
 
 export const dynamic = "force-dynamic";
 
 export default function RankingsPage() {
-  const { movies, loading, user, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
+  const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
   const [viewMode, setViewMode] = useViewMode("list");
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");

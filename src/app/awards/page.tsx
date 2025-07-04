@@ -31,12 +31,11 @@ export default async function AwardsPage() {
 				},
 				setAll(cookiesToSet) {
 					try {
-						cookiesToSet.forEach(({ name, value, options }) => {
-							cookieStore.set(name, value, options);
-						});
-					} catch (error) {
-						// Ignore cookie setting errors in server components
-					}
+						cookiesToSet.forEach(({ name, value, options }) => {						cookieStore.set(name, value, options);
+					});
+				} catch {
+					// Ignore cookie setting errors in server components
+				}
 				},
 			},
 		}

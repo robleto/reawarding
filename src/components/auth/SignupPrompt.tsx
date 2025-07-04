@@ -50,7 +50,7 @@ export default function SignupPrompt({ onSignupClick, onDismiss }: SignupPromptP
         </div>
         
         <p className="text-sm text-white/90 mb-3">
-          You've rated {interactionCount} movie{interactionCount !== 1 ? "s" : ""}! 
+          You&apos;ve rated {interactionCount} movie{interactionCount !== 1 ? "s" : ""}! 
           Create a free account to save your picks and discover more features.
         </p>
 

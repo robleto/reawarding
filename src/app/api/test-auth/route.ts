@@ -19,7 +19,7 @@ export async function GET() {
               cookiesToSet.forEach(({ name, value, options }) => {
                 cookieStore.set(name, value, options);
               });
-            } catch (error) {
+            } catch {
               // Ignore cookie setting errors in route handlers
             }
           },

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabaseClient';
 import { User, Save, Check, X } from 'lucide-react';
-import type { Database } from '@/types/supabase';
 
 const supabase = createClient();
 

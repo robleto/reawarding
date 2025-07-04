@@ -23,7 +23,6 @@ interface DraggableNomineeCardProps {
 
 // Fallback component for missing images
 const NomineeFallback = ({ 
-  title, 
   className = "" 
 }: { 
   title: string; 

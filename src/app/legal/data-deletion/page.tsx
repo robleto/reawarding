@@ -21,7 +21,7 @@ export default function DataDeletionPage() {
             <ul className="list-disc list-inside text-gray-700 mb-6 space-y-2">
               <li>Your profile information (username, full name, bio, avatar)</li>
               <li>All movie ratings and rankings</li>
-              <li>All movie lists you've created</li>
+              <li>All movie lists you&apos;ve created</li>
               <li>All comments and reviews</li>
               <li>Account credentials and login information</li>
               <li>Usage analytics tied to your account</li>
@@ -44,7 +44,7 @@ export default function DataDeletionPage() {
             <div className="bg-blue-50 p-4 rounded-lg mb-6">
               <p className="text-blue-800 font-medium mb-2">Coming Soon:</p>
               <p className="text-blue-700">
-                We're currently developing an in-app account deletion feature. This will be available in your account settings page.
+                We&apos;re currently developing an in-app account deletion feature. This will be available in your account settings page.
               </p>
             </div>
 
@@ -61,7 +61,7 @@ export default function DataDeletionPage() {
               <ul className="list-disc list-inside text-gray-700 mt-2 space-y-1">
                 <li>Your username</li>
                 <li>The email address associated with your account</li>
-                <li>Subject line: "Account Deletion Request"</li>
+                <li>Subject line: &quot;Account Deletion Request&quot;</li>
                 <li>A brief confirmation that you want to delete your account</li>
               </ul>
             </div>
@@ -92,18 +92,18 @@ export default function DataDeletionPage() {
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-6 space-y-2">
               <li>Downloading your data (contact us for a data export)</li>
-              <li>Saving any important lists or ratings you've created</li>
+              <li>Saving any important lists or ratings you&apos;ve created</li>
               <li>This action cannot be reversed</li>
-              <li>You'll need to create a new account if you want to use the service again</li>
+              <li>You&apos;ll need to create a new account if you want to use the service again</li>
             </ul>
 
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Data Export Request</h2>
             <p className="text-gray-700 mb-6">
-              If you'd like a copy of your data before deletion, email us at{' '}
+              If you&apos;d like a copy of your data before deletion, email us at{' '}
               <a href="mailto:export@oscarworthy.com" className="text-blue-600 hover:text-blue-700">
                 export@oscarworthy.com
               </a>{' '}
-              with the subject line "Data Export Request". We'll provide your data in a portable format within 30 days.
+              with the subject line &quot;Data Export Request&quot;. We&apos;ll provide your data in a portable format within 30 days.
             </p>
 
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Questions or Concerns</h2>

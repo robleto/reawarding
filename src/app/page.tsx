@@ -133,7 +133,7 @@ export default function HomePage() {
 				) : (
 					<div className="text-center py-8 text-gray-500">
 						<Film className="w-12 h-12 mx-auto mb-2 text-gray-400" />
-						<p>You've seen all the movies! Check back for new releases.</p>
+						<p>You&apos;ve seen all the movies! Check back for new releases.</p>
 					</div>
 				)}
 			</section>

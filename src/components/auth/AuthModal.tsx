@@ -121,7 +121,7 @@ export default function AuthModal({
           await handleSuccessfulAuth(data.user.id, false);
         }
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred");
     } finally {
       setLoading(false);
@@ -148,7 +148,7 @@ export default function AuthModal({
         setError(error.message);
       }
       // Note: OAuth success will be handled by the auth state change listener
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred");
     } finally {
       setLoading(false);
@@ -263,7 +263,7 @@ export default function AuthModal({
         <div className="mt-4 text-center text-sm text-gray-600">
           {mode === "login" ? (
             <>
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <button
                 onClick={() => onModeChange("signup")}
                 className="text-blue-600 hover:text-blue-700 font-medium"

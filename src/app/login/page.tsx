@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { createClient } from '@/utils/supabaseClient';
 import { Github, Mail, Chrome, Eye, EyeOff, User, Lock, Facebook } from 'lucide-react';
-import type { Database } from '@/types/supabase';
 import { Logo } from '@/components/ui/Logo';
 
 const supabase = createClient();
@@ -93,7 +92,7 @@ export default function LoginPage() {
           window.location.href = '/rankings';
         }
       }
-    } catch (error) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(null);
