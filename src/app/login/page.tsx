@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/utils/supabaseClient';
-import { Github, Mail, Chrome, Apple, Eye, EyeOff, User, Lock, Facebook } from 'lucide-react';
+import { Github, Mail, Chrome, Eye, EyeOff, User, Lock, Facebook } from 'lucide-react';
 import type { Database } from '@/types/supabase';
 import { Logo } from '@/components/ui/Logo';
 
@@ -63,7 +63,7 @@ export default function LoginPage() {
     
     try {
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {

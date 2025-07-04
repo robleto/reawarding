@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import type { Database } from "@/types/supabase";
+import Link from "next/link";
 import type { Movie } from "@/types/types";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieRowCard from "@/components/movie/MovieRowCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import Loader from "@/components/ui/Loading";
 import GuestDataBanner from "@/components/auth/GuestDataBanner";
-import SignupPrompt from "@/components/auth/SignupPrompt";
 import SavePromptBanner from "@/components/auth/SavePromptBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import {
@@ -101,12 +100,12 @@ export default function RankingsPage() {
             Rate some movies to see them appear here! Head to the homepage or browse films to get started.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a 
+            <Link 
               href="/"
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               Start Rating Movies
-            </a>
+            </Link>
             <button
               onClick={handleSignupClick}
               className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
@@ -135,12 +134,12 @@ export default function RankingsPage() {
           <p className="text-gray-600 mb-6 max-w-md mx-auto">
             Rate some movies to see them appear here! Head to the homepage or browse films to get started.
           </p>
-          <a 
+          <Link 
             href="/"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
           >
             Start Rating Movies
-          </a>
+          </Link>
         </div>
       </div>
     );

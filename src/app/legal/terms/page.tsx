@@ -11,7 +11,7 @@ export default function TermsOfServicePage() {
           <div className="prose prose-lg max-w-none">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. Acceptance of Terms</h2>
             <p className="text-gray-700 mb-6">
-              By accessing and using Oscar Worthy ("the Service"), you accept and agree to be bound by the terms and provision of this agreement.
+              By accessing and using Oscar Worthy (&quot;the Service&quot;), you accept and agree to be bound by the terms and provision of this agreement.
             </p>
 
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">2. Description of Service</h2>
@@ -65,7 +65,7 @@ export default function TermsOfServicePage() {
 
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">8. Disclaimer</h2>
             <p className="text-gray-700 mb-6">
-              The Service is provided "as is" without warranty of any kind. We do not guarantee that the Service will be uninterrupted or error-free.
+              The Service is provided &quot;as is&quot; without warranty of any kind. We do not guarantee that the Service will be uninterrupted or error-free.
             </p>
 
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">9. Limitation of Liability</h2>

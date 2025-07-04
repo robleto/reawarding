@@ -2,8 +2,9 @@
 
 import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { User, LogOut, List, Settings } from 'lucide-react';
+import { LogOut, List } from 'lucide-react';
 import type { Database } from '@/types/supabase';
 
 interface UserMenuProps {
@@ -28,26 +29,26 @@ export function UserMenu({ onLoginClick, onSignupClick }: UserMenuProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+      } else {
+        setProfile(data);
+      }
+    };
+
     if (user) {
       fetchProfile();
     }
-  }, [user]);
-
-  const fetchProfile = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (error) {
-      console.error('Error fetching profile:', error);
-    } else {
-      setProfile(data);
-    }
-  };
+  }, [user, supabase]);
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -111,14 +112,14 @@ export function UserMenu({ onLoginClick, onSignupClick }: UserMenuProps) {
               )}
             </div>
             
-            <a
+            <Link
               href="/lists"
               className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
               onClick={() => setOpen(false)}
             >
               <List className="w-4 h-4" />
               My Lists
-            </a>
+            </Link>
             
             <button
               onClick={handleSignOut}
