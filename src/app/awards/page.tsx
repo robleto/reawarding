@@ -48,7 +48,7 @@ export default async function AwardsPage() {
 
 	if (error || !movies) {
 		return (
-			<div className="p-6 text-red-600">Failed to load movie data.</div>
+			<div className="p-6 text-red-600 dark:text-red-400">Failed to load movie data.</div>
 		);
 	}
 

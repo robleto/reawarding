@@ -54,7 +54,7 @@ export default function FilmsPage() {
 
 	if (!user) {
 		return (
-			<div className="flex flex-col items-center justify-center h-48 text-gray-500">
+			<div className="flex flex-col items-center justify-center h-48 text-gray-500 dark:text-gray-400">
 				Please sign in to view your films.
 			</div>
 		);
@@ -68,7 +68,7 @@ export default function FilmsPage() {
 	return (
 		<div className="max-w-screen-xl px-6 py-10 mx-auto">
 			<div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
-				<div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-700">
+				<div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-700 dark:text-gray-300">
 					<div className="flex items-center gap-2">
 						<label htmlFor="group-select">Group by</label>
 						<select
@@ -77,7 +77,7 @@ export default function FilmsPage() {
 							onChange={(e) =>
 								setGroupBy(e.target.value as GroupKey)
 							}
-							className="border border-gray-300 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+							className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
 						>
 							{GROUP_OPTIONS.map((opt) => (
 								<option key={opt.value} value={opt.value}>
@@ -95,7 +95,7 @@ export default function FilmsPage() {
 							onChange={(e) =>
 								setSortBy(e.target.value as SortKey)
 							}
-							className="border border-gray-300 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+							className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
 						>
 							{SORT_OPTIONS.map((opt) => (
 								<option key={opt.value} value={opt.value}>
@@ -111,7 +111,7 @@ export default function FilmsPage() {
 								)
 							}
 							aria-label="Toggle sort order"
-							className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors"
+							className="px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
 							title={`Sort ${
 								sortOrder === "asc" ? "Descending" : "Ascending"
 							}`}
@@ -133,7 +133,7 @@ export default function FilmsPage() {
 							onChange={(e) =>
 								setFilterType(e.target.value as "none" | "year" | "rank")
 							}
-							className="border border-gray-300 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+							className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
 						>
 							<option value="none">None</option>
 							<option value="year">Year</option>
@@ -144,7 +144,7 @@ export default function FilmsPage() {
 							<select
 								value={filterValue}
 								onChange={(e) => setFilterValue(e.target.value)}
-								className="border border-gray-300 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+								className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
 							>
 								<option value="all">All Years</option>
 								{uniqueYears.map((year) => (
@@ -159,7 +159,7 @@ export default function FilmsPage() {
 							<select
 								value={filterValue}
 								onChange={(e) => setFilterValue(e.target.value)}
-								className="border border-gray-300 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+								className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
 							>
 								<option value="all">All Rankings</option>
 								{uniqueRanks.map((rank) => (
@@ -177,9 +177,9 @@ export default function FilmsPage() {
 						onClick={() => setViewMode("list")}
 						className={`p-2 rounded-full border ${
 							viewMode === "list"
-								? "bg-blue-100 text-blue-600 border-blue-300"
-								: "text-gray-400"
-						}`}
+								? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600"
+								: "text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600"
+						} hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
 						aria-label="List view"
 					>
 						<svg
@@ -201,9 +201,9 @@ export default function FilmsPage() {
 						onClick={() => setViewMode("grid")}
 						className={`p-2 rounded-full border ${
 							viewMode === "grid"
-								? "bg-blue-100 text-blue-600 border-blue-300"
-								: "text-gray-400"
-						}`}
+								? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600"
+								: "text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600"
+						} hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
 						aria-label="Grid view"
 					>
 						<svg
@@ -227,7 +227,7 @@ export default function FilmsPage() {
 			{groupedMovies.map(({ key, movies }: { key: string; movies: import("@/types/types").Movie[] }) => (
 				<div key={key} className="mb-10">
 					{groupBy !== "none" && (
-						<h2 className="mb-4 text-xl font-bold text-gray-800">
+						<h2 className="mb-4 text-xl font-bold text-gray-800 dark:text-gray-200">
 							{key}
 						</h2>
 					)}

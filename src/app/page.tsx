@@ -36,8 +36,8 @@ export default function HomePage() {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
 				<div className="text-center">
-					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-					<p className="text-gray-600">Loading amazing movies...</p>
+					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+					<p className="text-gray-600 dark:text-gray-300">Loading amazing movies...</p>
 				</div>
 			</div>
 		);
@@ -50,17 +50,17 @@ export default function HomePage() {
 		<div className="px-4 py-8">
 			{/* Guest Welcome Section */}
 			{isGuest && (
-				<div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6 mb-8">
+				<div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-8">
 					<div className="text-center max-w-2xl mx-auto">
 						<div className="flex justify-center gap-2 mb-4">
-							<Trophy className="w-8 h-8 text-yellow-500" />
-							<Star className="w-8 h-8 text-blue-500" />
-							<Film className="w-8 h-8 text-purple-500" />
+							<Trophy className="w-8 h-8 text-yellow-500 dark:text-yellow-400" />
+							<Star className="w-8 h-8 text-blue-500 dark:text-blue-400" />
+							<Film className="w-8 h-8 text-purple-500 dark:text-purple-400" />
 						</div>
-						<h2 className="text-2xl font-bold text-gray-900 mb-2">
+						<h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
 							Welcome to OscarWorthy!
 						</h2>
-						<p className="text-gray-600 mb-4">
+						<p className="text-gray-600 dark:text-gray-300 mb-4">
 							Discover and rate the best movies of the year. Start by exploring our collection 
 							and rating your favorites - no sign-up required to get started!
 						</p>
@@ -71,13 +71,13 @@ export default function HomePage() {
 										behavior: 'smooth' 
 									});
 								}}
-								className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+								className="px-6 py-3 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors font-medium"
 							>
 								Start Rating Movies
 							</button>
 							<button
 								onClick={handleSignupClick}
-								className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+								className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
 							>
 								Sign Up to Save Progress
 							</button>
@@ -98,10 +98,10 @@ export default function HomePage() {
 			{/* Authenticated User Welcome */}
 			{!isGuest && (
 				<div className="text-center mb-8">
-					<h2 className="text-2xl font-bold text-gray-900 mb-2">
+					<h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
 						Welcome back, {user?.email?.split('@')[0]}!
 					</h2>
-					<p className="text-gray-600">
+					<p className="text-gray-600 dark:text-gray-300">
 						Continue rating movies and building your perfect Best Picture collection.
 					</p>
 				</div>
@@ -112,7 +112,7 @@ export default function HomePage() {
 
 			{/* Start Watching Section */}
 			<section id="movies-section">
-				<h2 className="mb-4 text-xl font-bold">For Your Consideration</h2>
+				<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">For Your Consideration</h2>
 				{unseen.length > 0 ? (
 					<div className="flex gap-4 pb-4 overflow-x-auto">
 						{unseen.map((movie) => {
@@ -131,8 +131,8 @@ export default function HomePage() {
 						})}
 					</div>
 				) : (
-					<div className="text-center py-8 text-gray-500">
-						<Film className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+					<div className="text-center py-8 text-gray-500 dark:text-gray-400">
+						<Film className="w-12 h-12 mx-auto mb-2 text-gray-400 dark:text-gray-500" />
 						<p>You&apos;ve seen all the movies! Check back for new releases.</p>
 					</div>
 				)}
@@ -140,7 +140,7 @@ export default function HomePage() {
 
 			{/* Current Best Picture */}
 			<section className="px-6 py-8">
-				<h2 className="mb-4 text-xl font-bold">
+				<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
 					🏆 Best Picture of {currentYear}
 				</h2>
 				<YearReview

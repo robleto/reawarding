@@ -21,8 +21,8 @@ const WinnerPosterFallback = ({
   const { background, text } = getRatingStyle(rating);
   
   return (
-    <div className="relative w-full aspect-[2/3] my-4 mx-auto rounded-xl overflow-hidden shadow-lg bg-gray-100 flex items-center justify-center">
-      <div className="text-center px-4 text-gray-400">
+    <div className="relative w-full aspect-[2/3] my-4 mx-auto rounded-xl overflow-hidden shadow-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+      <div className="text-center px-4 text-gray-400 dark:text-gray-500">
         <Film className="w-16 h-16 mx-auto mb-2" />
         <div className="text-sm font-medium text-center leading-tight">
           {title}
@@ -59,12 +59,12 @@ export default function WinnerCard({
 			{/* Header with trophy and title */}
 			<div className="inline-flex items-center justify-center gap-2">
 				<span className="text-xl">🏆</span>
-				<h3 className="text-2xl font-bold text-[#cb8601]">Winner</h3>
+				<h3 className="text-2xl font-bold text-[#cb8601] dark:text-yellow-400">Winner</h3>
 			</div>
 
 			{/* Poster image */}
 			{hasValidPoster ? (
-				<div className="relative w-full aspect-[2/3] my-4 mx-auto rounded-xl overflow-hidden shadow-lg">
+				<div className="relative w-full aspect-[2/3] my-4 mx-auto rounded-xl overflow-hidden shadow-lg dark:shadow-gray-600">
 					<Image
 						src={poster_url}
 						alt={title}
@@ -96,7 +96,7 @@ export default function WinnerCard({
 			)}
 
 			{/* Movie title */}
-			<h4 className="mt-3 text-xl font-semibold text-[#1a3448]">
+			<h4 className="mt-3 text-xl font-semibold text-[#1a3448] dark:text-white">
 				{title}
 			</h4>
 		</article>

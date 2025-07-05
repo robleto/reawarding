@@ -26,7 +26,7 @@ const PosterFallback = ({
   className?: string; 
 }) => (
   <div 
-    className={`flex items-center justify-center bg-gray-100 text-gray-400 aspect-[2/3] ${className}`}
+    className={`flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 aspect-[2/3] ${className}`}
   >
     <div className="text-center px-4">
       <Film className="w-12 h-12 mx-auto mb-2" />
@@ -57,7 +57,7 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
 
   return (
 		<div 
-			className={`relative flex flex-col overflow-visible transition bg-white shadow hover:shadow-lg rounded-xl ${onClick ? 'cursor-pointer' : ''}`}
+			className={`relative flex flex-col overflow-visible transition bg-white dark:bg-gray-800 shadow hover:shadow-lg dark:shadow-gray-800 rounded-xl ${onClick ? 'cursor-pointer' : ''}`}
 			onClick={handleClick}
 		>
 			{hasValidPoster ? (
@@ -85,10 +85,10 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
 
 			<div className="flex flex-col justify-between flex-grow h-full px-3 py-2 min-h-[7rem]">
 				<div>
-					<h3 className="text-sm font-semibold leading-tight line-clamp-2 ">
+					<h3 className="text-sm font-semibold leading-tight line-clamp-2 text-gray-900 dark:text-white">
 						{movie.title}
 					</h3>
-					<p className="text-xs text-gray-600">
+					<p className="text-xs text-gray-600 dark:text-gray-400">
 						{movie.release_year}
 					</p>
 				</div>
@@ -102,13 +102,13 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
 					>
 						{seenIt ? (
 							<>
-								<Eye className="w-4 h-4 text-blue-600" />
-								<span className="text-blue-600">Seen It</span>
+								<Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+								<span className="text-blue-600 dark:text-blue-400">Seen It</span>
 							</>
 						) : (
 							<>
-								<EyeOff className="w-4 h-4 text-gray-400" />
-								<span className="text-gray-400">Unseen</span>
+								<EyeOff className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+								<span className="text-gray-400 dark:text-gray-500">Unseen</span>
 							</>
 						)}
 					</button>
@@ -126,7 +126,7 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
 						</button>
 
 						{showDropdown && (
-							<div className="absolute right-0 z-50 w-10 mb-1 overflow-y-auto bg-white rounded shadow-lg bottom-full max-h-60">
+							<div className="absolute right-0 z-50 w-10 mb-1 overflow-y-auto bg-white dark:bg-gray-800 rounded shadow-lg dark:shadow-gray-700 bottom-full max-h-60">
 								{/* Clear ranking option */}
 								<div
 									onClick={() => {
@@ -135,7 +135,7 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
 										});
 										setShowDropdown(false);
 									}}
-									className="mx-2 my-2 text-sm font-semibold text-center cursor-pointer hover:bg-gray-100 text-gray-500 border border-gray-300 rounded"
+									className="mx-2 my-2 text-sm font-semibold text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded"
 								>
 									-
 								</div>

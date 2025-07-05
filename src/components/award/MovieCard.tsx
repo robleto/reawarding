@@ -17,7 +17,7 @@ export default function MovieCard({ title, imageUrl, rating, onClick }: MovieCar
 			onClick={onClick}
 		>
 			<div
-				className="relative bg-cover rounded-lg shadow-sm aspect-video"
+				className="relative bg-cover rounded-lg shadow-sm dark:shadow-gray-600 aspect-video"
 				style={{ backgroundImage: `url(${imageUrl})` }}
 			>
 				<div
@@ -27,7 +27,7 @@ export default function MovieCard({ title, imageUrl, rating, onClick }: MovieCar
 					{rating}
 				</div>
 			</div>
-			<h4 className="mt-2 text-sm font-semibold text-black truncate">
+			<h4 className="mt-2 text-sm font-semibold text-black dark:text-white truncate">
 				{title}
 			</h4>
 		</article>

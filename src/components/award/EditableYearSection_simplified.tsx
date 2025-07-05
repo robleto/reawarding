@@ -185,9 +185,9 @@ export default function EditableYearSection({
   }
 
   return (
-    <div className="bg-charcoal/50 backdrop-blur-sm rounded-lg p-6 mb-8">
+    <div className="bg-charcoal/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg p-6 mb-8 border border-gray-200/20 dark:border-gray-700/20 transition-colors duration-300">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gold">{year} - Best Picture</h2>
+        <h2 className="text-2xl font-bold text-gold dark:text-gold">{year} - Best Picture</h2>
         {user && (
           <div className="flex items-center gap-2">
             {!isEditing && hasCustomNominations && (
@@ -232,17 +232,17 @@ export default function EditableYearSection({
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded-lg flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-red-400" />
-          <span className="text-red-200">{error}</span>
+        <div className="mb-4 p-3 bg-red-900/50 dark:bg-red-900/70 border border-red-500 dark:border-red-400 rounded-lg flex items-center gap-2 transition-colors duration-300">
+          <AlertCircle className="w-5 h-5 text-red-400 dark:text-red-300" />
+          <span className="text-red-200 dark:text-red-100">{error}</span>
         </div>
       )}
 
       {/* Winner Display */}
       {currentWinner && (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gold mb-3 flex items-center gap-2">
-            <span className="text-gold">👑</span>
+          <h3 className="text-lg font-semibold text-gold dark:text-gold mb-3 flex items-center gap-2">
+            <span className="text-gold dark:text-gold">👑</span>
             Winner
           </h3>
           <WinnerCard 
@@ -256,7 +256,7 @@ export default function EditableYearSection({
 
       {/* Nominees Display */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gold mb-3">
+        <h3 className="text-lg font-semibold text-gold dark:text-gold mb-3">
           Nominees ({currentNominees.length})
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -274,17 +274,17 @@ export default function EditableYearSection({
 
       {/* Edit Mode - simplified without drag and drop for now */}
       {isEditing && (
-        <div className="border-t border-gray-600 pt-6">
+        <div className="border-t border-gray-600 dark:border-gray-700 pt-6 transition-colors duration-300">
           <div className="mb-4">
             <button
               onClick={handleResetToDefault}
-              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
             >
               <RotateCcw className="w-4 h-4" />
               Reset to Default
             </button>
           </div>
-          <div className="text-center text-gray-400">
+          <div className="text-center text-gray-400 dark:text-gray-500">
             Edit mode simplified - Drag and drop functionality temporarily disabled due to import issues
           </div>
         </div>
