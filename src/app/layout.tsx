@@ -5,8 +5,19 @@ import { cookies } from 'next/headers';
 import type { Database } from '@/types/supabase';
 import HeaderNav from '@/components/layout/HeaderNav';
 import Footer from '@/components/layout/Footer';
-import { ScrollGlow } from '@/components/ui/ScrollGlow';
 import { NetflixGlow } from '@/components/ui/NetflixGlow';
+import { Inter, Unbounded } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'] });
+const unbounded = Unbounded({ 
+  subsets: ['latin'],
+  variable: '--font-unbounded',
+});
+
+export const metadata = {
+  title: 'OscarWorthy',
+  description: 'Track and predict Oscar winners',
+};
 
 export default async function RootLayout({
   children,
@@ -39,29 +50,9 @@ export default async function RootLayout({
   } = await supabase.auth.getSession();
 
   return (
-    <html lang="en">
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Set initial theme immediately - default to dark
-              const theme = localStorage.getItem('theme');
-              if (theme === 'light') {
-                document.documentElement.classList.remove('dark');
-              } else {
-                // Default to dark mode
-                document.documentElement.classList.add('dark');
-                if (!theme) {
-                  localStorage.setItem('theme', 'dark');
-                }
-              }
-            `
-          }}
-        />
-      </head>
-      <body className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+    <html lang="en" suppressHydrationWarning>
+      <body className={`min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300 ${inter.className} ${unbounded.variable}`}>
         <NetflixGlow />
-        <ScrollGlow />
         <Providers initialSession={session}>
           <div className="relative z-10">
             <HeaderNav />

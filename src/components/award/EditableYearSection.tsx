@@ -110,6 +110,10 @@ export default function EditableYearSection({
         }
       } else {
         console.warn('Failed to load nominations:', response.status, response.statusText);
+        // For 503 errors (service unavailable), it's likely a database table issue
+        if (response.status === 503) {
+          console.info('Award nominations feature not yet available');
+        }
       }
     } catch (error) {
       console.error('Error loading nominations:', error);
@@ -213,6 +217,12 @@ export default function EditableYearSection({
           // If response is not JSON, use status text
           errorMessage = response.statusText || errorMessage;
         }
+        
+        // Special handling for 503 errors
+        if (response.status === 503) {
+          errorMessage = 'Award nominations feature is currently unavailable. Please try again later.';
+        }
+        
         throw new Error(errorMessage);
       }
 
@@ -293,16 +303,16 @@ export default function EditableYearSection({
           {year}
         </h2>
         <div className="top-0 bottom-0 flex-col items-center hidden md:absolute md:flex left-4">
-          <div className="w-5 h-5 mt-2 rounded-full bg-[#A0A0A0] border-2 border-[#F4F4F4]" />
-          <div className="w-[2px] flex-1 bg-[#bebebe]" />
+          <div className="w-5 h-5 mt-2 rounded-full bg-gray-400 border-2 border-gray-100 dark:bg-gray-700 dark:border-gray-900" />
+          <div className="w-[2px] flex-1 bg-gray-300 dark:bg-gray-700" />
         </div>
 
         {/* Spacer to account for timeline offset */}
         <div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
 
         {/* Content block */}
-        <div className="flex flex-col w-full bg-white rounded-xl shadow-md border border-[#d6d6d3] p-6 mb-24">
-          
+        <div className="flex flex-col w-full bg-white rounded-xl shadow-md dark:bg-gray-800 shadow hover:shadow-lg dark:shadow-gray-800 p-6 mb-24">
+
           {/* Edit/Save Controls */}
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-2">
@@ -396,7 +406,7 @@ export default function EditableYearSection({
               </div>
 
               {/* Divider */}
-              <div className="hidden md:block w-px bg-[#d6d6d3]" />
+			<div className="hidden md:block w-px bg-gray-200 dark:bg-gray-700" />
 
               {/* Nominees */}
               <div className="w-full md:w-2/3">
@@ -407,15 +417,17 @@ export default function EditableYearSection({
                   </h3>
                 </div>
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                  {displayNominees.map((movie) => (
-                    <MovieCard
-                      key={movie.id}
-                      title={movie.title}
-                      imageUrl={movie.thumb_url}
-                      rating={movie.ranking}
-                      onClick={() => handleOpenModal(movie)}
-                    />
-                  ))}
+                {[...displayNominees]
+                    .sort((a, b) => a.title.localeCompare(b.title))
+                    .map((movie) => (
+                        <MovieCard
+                            key={movie.id}
+                            title={movie.title}
+                            imageUrl={movie.thumb_url}
+                            rating={movie.ranking}
+                            onClick={() => handleOpenModal(movie)}
+                        />
+                ))}
                 </div>
               </div>
             </div>

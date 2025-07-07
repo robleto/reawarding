@@ -24,6 +24,26 @@ const nextConfig = {
       },
     ],
   },
+  webpack: (config: any, { isServer }: { isServer: boolean }) => {
+    // Handle Node.js modules that shouldn't be bundled for the browser
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        os: false,
+      };
+    }
+    return config;
+  },
+  turbo: {
+    resolveAlias: {
+      // Handle Node.js modules for Turbopack
+      fs: false,
+      path: false,
+      os: false,
+    },
+  },
   // ...add other config here if needed
 };
 

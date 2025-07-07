@@ -51,6 +51,14 @@ export async function GET(request: Request) {
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
       console.error('Database error:', error);
+      
+      // Check if it's a table not found error
+      if (error.code === '42P01') {
+        return NextResponse.json({ 
+          error: 'Award nominations feature not yet available. Please check back later.' 
+        }, { status: 503 });
+      }
+      
       throw error;
     }
 
@@ -128,6 +136,14 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('Supabase upsert error:', error);
+      
+      // Check if it's a table not found error
+      if (error.code === '42P01') {
+        return NextResponse.json({ 
+          error: 'Award nominations feature not yet available. Database table needs to be created.' 
+        }, { status: 503 });
+      }
+      
       throw error;
     }
 

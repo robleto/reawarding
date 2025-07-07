@@ -64,7 +64,7 @@ export default function WinnerCard({
 
 			{/* Poster image */}
 			{hasValidPoster ? (
-				<div className="relative w-full aspect-[2/3] my-4 mx-auto rounded-xl overflow-hidden shadow-lg dark:shadow-gray-600">
+				<div className="relative w-full aspect-[2/3] my-4 mx-auto rounded-xl overflow-hidden shadow-lg dark:shadow-gray-800">
 					<Image
 						src={poster_url}
 						alt={title}

@@ -1,11 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Netflix-style gradient container */
+#gradient-container {
+  position: fixed;
+  top: 1px;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.gradient {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  transition: opacity 1s ease;
+  opacity: 0;
+  mix-blend-mode: normal;
 }
 
 /* Custom dark mode enhancements */
@@ -21,4 +40,11 @@ body {
   .dark-glass {
     @apply bg-gray-800/40 backdrop-blur-md border-gray-600/20;
   }
+
+  /* Unbounded font utility classes */
+  .font-unbounded {
+    font-family: var(--font-unbounded), 'Unbounded', sans-serif;
+  }
 }
+
+

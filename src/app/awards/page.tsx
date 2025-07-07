@@ -95,7 +95,7 @@ export default async function AwardsPage() {
 
 	return (
 		<div className="p-6 mx-auto">
-			<main className="flex-1 mt-8 space-y-20">
+			<main className="flex-1 ">
 				{formattedYears.map((yearData) => (
 					<EditableYearSection
 						key={yearData.year}
