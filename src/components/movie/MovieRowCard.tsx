@@ -58,7 +58,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
 
   return (
     <div 
-      className={`px-4 py-3 hover:bg-gray-50 ${!isLast ? 'border-b' : ''} ${onClick ? 'cursor-pointer' : ''}`}
+      className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 ${!isLast ? 'border-b dark:border-gray-700' : ''} ${onClick ? 'cursor-pointer' : ''} bg-white dark:bg-gray-900`}
       onClick={handleClick}
     >
       {/* Desktop Layout */}
@@ -91,8 +91,8 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
 
         {/* Details */}
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900">{movie.title}</h3>
-          <div className="text-sm text-gray-600">{movie.release_year}</div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{movie.title}</h3>
+          <div className="text-sm text-gray-600 dark:text-gray-400">{movie.release_year}</div>
         </div>
 
         {/* Seen It */}
@@ -102,13 +102,13 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
         >
           {seenIt ? (
             <>
-              <Eye className="w-4 h-4 text-blue-600" />
-              <span className="text-blue-600">Watched</span>
+              <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-blue-600 dark:text-blue-400">Watched</span>
             </>
           ) : (
             <>
-              <EyeOff className="w-4 h-4 text-gray-400" />
-              <span className="text-gray-400">Unseen</span>
+              <EyeOff className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+              <span className="text-gray-400 dark:text-gray-500">Unseen</span>
             </>
           )}
         </button>
@@ -123,10 +123,10 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
                 ranking: value === "" ? null : parseInt(value) 
               });
             }}
-            className="px-2 py-1 text-sm font-bold rounded shadow-sm"
+            className="px-2 py-1 text-sm font-bold rounded shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600"
             style={{ backgroundColor: style.background, color: style.text }}
           >
-            <option value="">–</option>
+            <option value="" className="dark:bg-gray-800 dark:text-white">–</option>
             {Array.from({ length: 10 }, (_, i) => 10 - i).map((num) => {
               const optStyle = getRatingStyle(num);
               return (
@@ -134,6 +134,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
                   key={num}
                   value={num}
                   style={{ backgroundColor: optStyle.background, color: optStyle.text }}
+                  className="dark:bg-gray-800 dark:text-white"
                 >
                   {num}
                 </option>
@@ -177,8 +178,8 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
           {/* Details - Fill remaining space */}
           <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
             <div>
-              <h3 className="text-base font-semibold text-gray-900 truncate">{movie.title}</h3>
-              <div className="text-sm text-gray-600">{movie.release_year}</div>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate">{movie.title}</h3>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{movie.release_year}</div>
             </div>
             
             {/* Controls Row - At bottom */}
@@ -190,13 +191,13 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
               >
                 {seenIt ? (
                   <>
-                    <Eye className="w-4 h-4 text-blue-600" />
-                    <span className="text-blue-600">Watched</span>
+                    <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-blue-600 dark:text-blue-400">Watched</span>
                   </>
                 ) : (
                   <>
-                    <EyeOff className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-400">Unseen</span>
+                    <EyeOff className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                    <span className="text-gray-400 dark:text-gray-500">Unseen</span>
                   </>
                 )}
               </button>
@@ -211,17 +212,15 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
                       ranking: value === "" ? null : parseInt(value) 
                     });
                   }}
-                  className="px-2 py-1 text-sm font-bold rounded shadow-sm"
-                  style={{ backgroundColor: style.background, color: style.text }}
+                  className="px-2 py-1 text-sm font-bold rounded shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600"
                 >
-                  <option value="">–</option>
+                  <option value="" className="dark:bg-gray-800 dark:text-white">–</option>
                   {Array.from({ length: 10 }, (_, i) => 10 - i).map((num) => {
-                    const optStyle = getRatingStyle(num);
                     return (
                       <option
                         key={num}
                         value={num}
-                        style={{ backgroundColor: optStyle.background, color: optStyle.text }}
+                        className="dark:bg-gray-800 dark:text-white"
                       >
                         {num}
                       </option>

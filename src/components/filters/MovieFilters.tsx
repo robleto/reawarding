@@ -46,18 +46,18 @@ export default function MovieFilters({
 }: MovieFiltersProps) {
   return (
     <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
-      <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-700">
+      <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-700 dark:text-gray-300">
         {/* Group by */}
         <div className="flex items-center gap-2">
-          <label htmlFor="group-select">Group by</label>
+          <label htmlFor="group-select" className="dark:text-gray-300">Group by</label>
           <select
             id="group-select"
             value={groupBy}
             onChange={(e) => setGroupBy(e.target.value as GroupKey)}
-            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
           >
             {GROUP_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
+              <option key={opt.value} value={opt.value} className="dark:bg-gray-800 dark:text-white">
                 {opt.label}
               </option>
             ))}
@@ -66,57 +66,51 @@ export default function MovieFilters({
 
         {/* Sort by */}
         <div className="flex items-center gap-2">
-          <label htmlFor="sort-select">Sort by</label>
+          <label htmlFor="sort-select" className="dark:text-gray-300">Sort by</label>
           <select
             id="sort-select"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortKey)}
-            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
           >
             {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
+              <option key={opt.value} value={opt.value} className="dark:bg-gray-800 dark:text-white">
                 {opt.label}
               </option>
             ))}
           </select>
-
           <button
             onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-            aria-label="Toggle sort order"
-            className="px-3 py-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors"
+            className="px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
           >
-            {sortOrder === "asc" ? (
-              <span className="text-xl">▲</span>
-            ) : (
-              <span className="text-xl">▼</span>
-            )}
+            {sortOrder === "asc" ? "▲" : "▼"}
           </button>
         </div>
 
-        {/* Filter controls */}
+        {/* Filter Controls */}
         <div className="flex items-center gap-2">
-          <label htmlFor="filter-type-select">Filter by</label>
+          <label htmlFor="filter-type-select" className="dark:text-gray-300">Filter by</label>
           <select
             id="filter-type-select"
             value={filterType}
             onChange={(e) => setFilterType(e.target.value as "none" | "year" | "rank")}
-            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
           >
-            <option value="none">None</option>
-            <option value="year">Year</option>
-            <option value="rank">Ranking</option>
+            <option value="none" className="dark:bg-gray-800 dark:text-white">None</option>
+            <option value="year" className="dark:bg-gray-800 dark:text-white">Year</option>
+            <option value="rank" className="dark:bg-gray-800 dark:text-white">Ranking</option>
           </select>
 
           {filterType === "year" && (
             <select
               value={filterValue}
               onChange={(e) => setFilterValue(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
             >
-              <option value="all">All Years</option>
+              <option value="all" className="dark:bg-gray-800 dark:text-white">All Years</option>
               {uniqueYears.map((year) => (
-                <option key={year} value={year}>
+                <option key={year} value={year} className="dark:bg-gray-800 dark:text-white">
                   {year}
                 </option>
               ))}
@@ -127,11 +121,11 @@ export default function MovieFilters({
             <select
               value={filterValue}
               onChange={(e) => setFilterValue(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
             >
-              <option value="all">All Rankings</option>
+              <option value="all" className="dark:bg-gray-800 dark:text-white">All Rankings</option>
               {uniqueRanks.map((rank) => (
-                <option key={rank} value={rank}>
+                <option key={rank} value={rank} className="dark:bg-gray-800 dark:text-white">
                   {rank}
                 </option>
               ))}
@@ -140,22 +134,28 @@ export default function MovieFilters({
         </div>
       </div>
 
-      {/* View mode toggle */}
       <div className="flex items-center gap-2">
         <button
           onClick={() => setViewMode("list")}
           className={`p-2 rounded-full border ${
             viewMode === "list"
-              ? "border-blue-500 bg-blue-50 text-blue-600"
-              : "border-gray-300 text-gray-600 hover:bg-gray-100"
-          } transition-colors`}
-          title="List view"
+              ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600"
+              : "text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600"
+          } hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
+          aria-label="List view"
         >
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
             <path
-              fillRule="evenodd"
-              d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
-              clipRule="evenodd"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
             />
           </svg>
         </button>
@@ -163,13 +163,24 @@ export default function MovieFilters({
           onClick={() => setViewMode("grid")}
           className={`p-2 rounded-full border ${
             viewMode === "grid"
-              ? "border-blue-500 bg-blue-50 text-blue-600"
-              : "border-gray-300 text-gray-600 hover:bg-gray-100"
-          } transition-colors`}
-          title="Grid view"
+              ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600"
+              : "text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600"
+          } hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
+          aria-label="Grid view"
         >
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h6v6H4V6zm0 8h6v6H4v-6zm10-8h6v6h-6V6zm0 8h6v6h-6v-6z"
+            />
           </svg>
         </button>
       </div>

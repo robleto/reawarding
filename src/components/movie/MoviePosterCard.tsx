@@ -129,10 +129,9 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
 							<div className="absolute right-0 z-50 w-10 mb-1 overflow-y-auto bg-white dark:bg-gray-800 rounded shadow-lg dark:shadow-gray-700 bottom-full max-h-60">
 								{/* Clear ranking option */}
 								<div
-									onClick={() => {
-										onUpdate(movie.id, {
-											ranking: null,
-										});
+									onClick={e => {
+										e.stopPropagation();
+										onUpdate(movie.id, { ranking: null });
 										setShowDropdown(false);
 									}}
 									className="mx-2 my-2 text-sm font-semibold text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded"
@@ -144,16 +143,14 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
 									return (
 										<div
 											key={num}
-											onClick={() => {
-												onUpdate(movie.id, {
-													ranking: num,
-												});
+											onClick={e => {
+												e.stopPropagation();
+												onUpdate(movie.id, { ranking: num });
 												setShowDropdown(false);
 											}}
 											className="mx-2 my-2 text-sm font-semibold text-center cursor-pointer hover:brightness-110"
 											style={{
-												backgroundColor:
-													optionStyle.background,
+												backgroundColor: optionStyle.background,
 												color: optionStyle.text,
 											}}
 										>
