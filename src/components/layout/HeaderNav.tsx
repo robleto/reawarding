@@ -36,6 +36,7 @@ export default function HeaderNav() {
 
 	return (
 		<>
+<<<<<<< HEAD
 			<header className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
 				hasScrolled 
 					? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-sm dark:shadow-gray-800/50 border-b border-gray-200 dark:border-gray-700' 
@@ -74,10 +75,48 @@ export default function HeaderNav() {
 									})}
 									<li>
 										<UserMenu onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
+=======
+			<header className={`fixed top-0 left-0 right-0 z-50 w-full border-b border-gray-200 dark:border-gray-700 transition-all duration-300 ${
+				hasScrolled 
+					? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-sm dark:shadow-gray-800/50' 
+					: 'bg-transparent'
+			}`}>
+				<div className="relative z-10 flex items-end justify-between max-w-screen-xl px-6 py-3 mx-auto">
+					{/* Logo & Title */}
+					<Link href="/" className="flex items-center">
+						<Logo size="sm" showText={false} />
+						<h1 className="ml-2 text-lg uppercase font-bold font-['Unbounded'] text-[#1c3728] dark:text-gold font-inter tracking-widest transition-colors duration-300">
+							OscarWorthy
+						</h1>
+					</Link>
+
+					<div className="flex items-center gap-4">
+						{/* Navigation */}
+						<nav className="hidden md:block">
+							<ul className="flex items-end gap-10 font-semibold text-md font-inter">
+							{navItems.map((item) => {
+								const isActive =
+									pathname === item.match ||
+									(item.match === "/" && pathname === "");
+
+								return (
+									<li key={item.href} className="relative pb-2">
+										<Link
+											href={item.href}
+											className={`relative ${
+												isActive
+													? "text-gold dark:text-gold after:content-[''] after:absolute after:top-[calc(100%+12px)] after:left-1/2 after:-translate-x-1/2 after:border-l-[12px] after:border-r-[12px] after:border-b-[12px] after:border-l-transparent after:border-r-transparent after:border-b-gold after:border-t-0"
+													: "text-black dark:text-gray-300"
+											} hover:text-gold dark:hover:text-gold transition-colors duration-200`}
+										>
+											{item.label}
+										</Link>
+>>>>>>> 6b7e965 (Enhance dark mode support and UI improvements across components)
 									</li>
 								</ul>
 							</nav>
 
+<<<<<<< HEAD
 							{/* Dark Mode Toggle */}
 							{/* <div className="hidden md:block">
 								<DarkModeToggle />
@@ -102,12 +141,40 @@ export default function HeaderNav() {
 					{mobileMenuOpen && (
 						<div className="md:hidden mt-4 pb-4 border-t border-gray-200 dark:border-gray-700">
 							<div className="flex flex-col space-y-4 pt-4">
+=======
+					{/* Dark Mode Toggle */}
+					<div className="hidden md:block">
+						<DarkModeToggle />
+					</div>
+
+					{/* Mobile Menu Button */}
+					<button
+						onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+						className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+						aria-label="Toggle mobile menu"
+					>
+						{mobileMenuOpen ? (
+							<X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+						) : (
+							<Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+						)}
+					</button>
+					</div>
+				</div>
+
+				{/* Mobile Menu */}
+				{mobileMenuOpen && (
+					<div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-800/50 transition-colors duration-300">
+						<nav className="px-6 py-4">
+							<ul className="space-y-3">
+>>>>>>> 6b7e965 (Enhance dark mode support and UI improvements across components)
 								{navItems.map((item) => {
 									const isActive =
 										pathname === item.match ||
 										(item.match === "/" && pathname === "");
 
 									return (
+<<<<<<< HEAD
 										<Link
 											key={item.href}
 											href={item.href}
@@ -130,6 +197,33 @@ export default function HeaderNav() {
 						</div>
 					)}
 				</div>
+=======
+										<li key={item.href}>
+											<Link
+												href={item.href}
+												className={`block py-2 px-3 rounded-md font-medium transition-colors ${
+													isActive
+														? "text-gold dark:text-gold bg-yellow-50 dark:bg-gold/10"
+														: "text-gray-700 dark:text-gray-300 hover:text-gold dark:hover:text-gold hover:bg-gray-50 dark:hover:bg-gray-800"
+												}`}
+												onClick={() => setMobileMenuOpen(false)}
+											>
+												{item.label}
+											</Link>
+										</li>
+									);
+								})}
+								<li className="pt-2 border-t border-gray-200 dark:border-gray-700">
+									<UserMenu onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
+								</li>
+								<li className="pt-2">
+									<DarkModeToggle />
+								</li>
+							</ul>
+						</nav>
+					</div>
+				)}
+>>>>>>> 6b7e965 (Enhance dark mode support and UI improvements across components)
 			</header>
 
 			{/* Auth Modal */}

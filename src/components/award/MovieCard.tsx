@@ -17,7 +17,11 @@ export default function MovieCard({ title, imageUrl, rating, onClick }: MovieCar
 			onClick={onClick}
 		>
 			<div
+<<<<<<< HEAD
 				className="relative bg-cover rounded-lg shadow-sm dark:shadow-gray-800 aspect-video"
+=======
+				className="relative bg-cover rounded-lg shadow-sm dark:shadow-gray-600 aspect-video"
+>>>>>>> 6b7e965 (Enhance dark mode support and UI improvements across components)
 				style={{ backgroundImage: `url(${imageUrl})` }}
 			>
 				<div
