@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { Eye, EyeOff, Film } from "lucide-react";
+import { Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
+import RankingDropdown from "@/components/movie/RankingDropdown";
+import SeenItButton from "@/components/movie/SeenItButton";
 
 type Props = {
   movie: Movie;
@@ -68,9 +70,9 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
           <Image
             src={movie.thumb_url}
             alt={movie.title}
-            width={200}
-            height={150}
-            className="rounded shadow"
+            width={100}
+            height={75}
+            className="rounded-md"
             unoptimized
             onError={(e) => {
               // Hide broken image and show fallback
@@ -82,8 +84,8 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
         ) : null}
         {!hasValidImage && (
           <ImageFallback
-            width={200}
-            height={150}
+            width={100}
+            height={75}
             title={movie.title}
             className="rounded shadow"
           />
@@ -91,57 +93,22 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
 
         {/* Details */}
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{movie.title}</h3>
+          <h3 className="text-md font-semibold text-gray-900 dark:text-white">{movie.title}</h3>
           <div className="text-sm text-gray-600 dark:text-gray-400">{movie.release_year}</div>
         </div>
 
         {/* Seen It */}
-        <button
+        <SeenItButton
+          seenIt={seenIt}
           onClick={() => onUpdate(movie.id, { seen_it: !seenIt })}
-          className="flex items-center gap-1 text-sm font-medium"
-        >
-          {seenIt ? (
-            <>
-              <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-blue-600 dark:text-blue-400">Watched</span>
-            </>
-          ) : (
-            <>
-              <EyeOff className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-              <span className="text-gray-400 dark:text-gray-500">Unseen</span>
-            </>
-          )}
-        </button>
+          watchedLabel="Seen It"
+        />
 
         {/* Ranking Dropdown */}
-        <div className="relative">
-          <select
-            value={ranking ?? ""}
-            onChange={(e) => {
-              const value = e.target.value;
-              onUpdate(movie.id, { 
-                ranking: value === "" ? null : parseInt(value) 
-              });
-            }}
-            className="px-2 py-1 text-sm font-bold rounded shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600"
-            style={{ backgroundColor: style.background, color: style.text }}
-          >
-            <option value="" className="dark:bg-gray-800 dark:text-white">–</option>
-            {Array.from({ length: 10 }, (_, i) => 10 - i).map((num) => {
-              const optStyle = getRatingStyle(num);
-              return (
-                <option
-                  key={num}
-                  value={num}
-                  style={{ backgroundColor: optStyle.background, color: optStyle.text }}
-                  className="dark:bg-gray-800 dark:text-white"
-                >
-                  {num}
-                </option>
-              );
-            })}
-          </select>
-        </div>
+        <RankingDropdown
+          ranking={ranking}
+          onChange={(value) => onUpdate(movie.id, { ranking: value })}
+        />
       </div>
 
       {/* Mobile Layout */}
@@ -185,49 +152,17 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
             {/* Controls Row - At bottom */}
             <div className="flex items-center justify-between gap-3 mt-2">
               {/* Seen It */}
-              <button
+              <SeenItButton
+                seenIt={seenIt}
                 onClick={() => onUpdate(movie.id, { seen_it: !seenIt })}
-                className="flex items-center gap-1 text-sm font-medium"
-              >
-                {seenIt ? (
-                  <>
-                    <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span className="text-blue-600 dark:text-blue-400">Watched</span>
-                  </>
-                ) : (
-                  <>
-                    <EyeOff className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                    <span className="text-gray-400 dark:text-gray-500">Unseen</span>
-                  </>
-                )}
-              </button>
+                watchedLabel="Watched"
+              />
 
               {/* Ranking Dropdown */}
-              <div className="relative">
-                <select
-                  value={ranking ?? ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    onUpdate(movie.id, { 
-                      ranking: value === "" ? null : parseInt(value) 
-                    });
-                  }}
-                  className="px-2 py-1 text-sm font-bold rounded shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600"
-                >
-                  <option value="" className="dark:bg-gray-800 dark:text-white">–</option>
-                  {Array.from({ length: 10 }, (_, i) => 10 - i).map((num) => {
-                    return (
-                      <option
-                        key={num}
-                        value={num}
-                        className="dark:bg-gray-800 dark:text-white"
-                      >
-                        {num}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
+              <RankingDropdown
+                ranking={ranking}
+                onChange={(value) => onUpdate(movie.id, { ranking: value })}
+              />
             </div>
           </div>
         </div>

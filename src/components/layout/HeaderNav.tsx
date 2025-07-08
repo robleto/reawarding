@@ -36,37 +36,39 @@ export default function HeaderNav() {
 
 	return (
 		<>
-
 			<header className={`fixed top-0 left-0 right-0 z-50 w-full border-b border-gray-200 dark:border-gray-700 transition-all duration-300 ${
 				hasScrolled 
 					? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-sm dark:shadow-gray-800/50' 
 					: 'bg-transparent'
 			}`}>
-				<div className="relative z-10 flex items-end justify-between max-w-screen-xl px-6 py-3 mx-auto">
+				<div className="relative z-10 flex items-center justify-between max-w-screen-xl px-6 py-3 mx-auto gap-x-6">
 					{/* Logo & Title */}
-					<Link href="/" className="flex items-center">
-						<Logo size="sm" showText={false} />
-						<h1 className="ml-2 text-lg uppercase font-bold font-['Unbounded'] text-[#1c3728] dark:text-gold font-inter tracking-widest transition-colors duration-300">
-							OscarWorthy
-						</h1>
-					</Link>
+					<div className="flex items-center flex-shrink-0">
+						<Link href="/" className="flex items-center">
+							<Logo size="sm" showText={false} />
+							<h1 className="ml-2 text-md uppercase font-bold font-['Unbounded'] text-[#1c3728] dark:text-gold font-inter tracking-widest transition-colors duration-300">
+								OscarWorthy
+							</h1>
+						</Link>
+					</div>
 
-					<div className="flex items-center gap-4">
+					{/* Navigation and Controls */}
+					<div className="flex flex-1 items-center justify-between min-w-0">
 						{/* Navigation */}
-						<nav className="hidden md:block">
-							<ul className="flex items-end gap-10 font-semibold text-md font-inter">
+						<nav className="hidden md:block min-w-0">
+							<ul className="flex items-center gap-6 font-medium text-sm font-inter">
 								{navItems.map((item) => {
 									const isActive =
 										pathname === item.match ||
 										(item.match === "/" && pathname === "");
 
 									return (
-										<li key={item.href} className="relative pb-2">
+										<li key={item.href}>
 											<Link
 												href={item.href}
 												className={`relative ${
 													isActive
-														? "text-gold dark:text-gold after:content-[''] after:absolute after:top-[calc(100%+12px)] after:left-1/2 after:-translate-x-1/2 after:border-l-[12px] after:border-r-[12px] after:border-b-[12px] after:border-l-transparent after:border-r-transparent after:border-b-gold after:border-t-0"
+														? "text-gold dark:text-gold hover:border-b-gold"
 														: "text-black dark:text-gray-300"
 												} hover:text-gold dark:hover:text-gold transition-colors duration-200`}
 											>
@@ -78,23 +80,25 @@ export default function HeaderNav() {
 							</ul>
 						</nav>
 
-					{/* Dark Mode Toggle */}
-					<div className="hidden md:block">
-						<DarkModeToggle />
-					</div>
-
-					{/* Mobile Menu Button */}
-					<button
-						onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-						className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-						aria-label="Toggle mobile menu"
-					>
-						{mobileMenuOpen ? (
-							<X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-						) : (
-							<Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-						)}
-					</button>
+						{/* Controls: UserMenu and DarkModeToggle */}
+						<div className="flex items-center gap-4 flex-shrink-0">
+							<UserMenu onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
+							<div className="hidden md:block">
+								<DarkModeToggle />
+							</div>
+							{/* Mobile Menu Button */}
+							<button
+								onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+								className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+								aria-label="Toggle mobile menu"
+							>
+								{mobileMenuOpen ? (
+									<X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+								) : (
+									<Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+								)}
+							</button>
+						</div>
 					</div>
 				</div>
 
@@ -136,7 +140,6 @@ export default function HeaderNav() {
 				)}
 			</header>
 
-			{/* Auth Modal */}
 			<AuthModalManager
 				isOpen={showAuthModal}
 				onClose={() => setShowAuthModal(false)}

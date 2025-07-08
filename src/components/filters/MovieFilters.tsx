@@ -54,10 +54,10 @@ export default function MovieFilters({
             id="group-select"
             value={groupBy}
             onChange={(e) => setGroupBy(e.target.value as GroupKey)}
-            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:text-white"
           >
             {GROUP_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value} className="dark:bg-gray-800 dark:text-white">
+              <option key={opt.value} value={opt.value} className="dark:bg-gray-900 dark:text-white">
                 {opt.label}
               </option>
             ))}
@@ -71,17 +71,17 @@ export default function MovieFilters({
             id="sort-select"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortKey)}
-            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:text-white"
           >
             {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value} className="dark:bg-gray-800 dark:text-white">
+              <option key={opt.value} value={opt.value} className="dark:bg-gray-900 dark:text-white">
                 {opt.label}
               </option>
             ))}
           </select>
           <button
             onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-            className="px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-900 dark:hover:bg-gray-800 transition-colors"
             title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
           >
             {sortOrder === "asc" ? "▲" : "▼"}
@@ -95,22 +95,22 @@ export default function MovieFilters({
             id="filter-type-select"
             value={filterType}
             onChange={(e) => setFilterType(e.target.value as "none" | "year" | "rank")}
-            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:text-white"
           >
-            <option value="none" className="dark:bg-gray-800 dark:text-white">None</option>
-            <option value="year" className="dark:bg-gray-800 dark:text-white">Year</option>
-            <option value="rank" className="dark:bg-gray-800 dark:text-white">Ranking</option>
+            <option value="none" className="dark:bg-gray-900 dark:text-white">None</option>
+            <option value="year" className="dark:bg-gray-900 dark:text-white">Year</option>
+            <option value="rank" className="dark:bg-gray-900 dark:text-white">Ranking</option>
           </select>
 
           {filterType === "year" && (
             <select
               value={filterValue}
               onChange={(e) => setFilterValue(e.target.value)}
-              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:text-white"
             >
-              <option value="all" className="dark:bg-gray-800 dark:text-white">All Years</option>
+              <option value="all" className="dark:bg-gray-900 dark:text-white">All Years</option>
               {uniqueYears.map((year) => (
-                <option key={year} value={year} className="dark:bg-gray-800 dark:text-white">
+                <option key={year} value={year} className="dark:bg-gray-900 dark:text-white">
                   {year}
                 </option>
               ))}
@@ -121,11 +121,11 @@ export default function MovieFilters({
             <select
               value={filterValue}
               onChange={(e) => setFilterValue(e.target.value)}
-              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:text-white"
             >
-              <option value="all" className="dark:bg-gray-800 dark:text-white">All Rankings</option>
+              <option value="all" className="dark:bg-gray-900 dark:text-white">All Rankings</option>
               {uniqueRanks.map((rank) => (
-                <option key={rank} value={rank} className="dark:bg-gray-800 dark:text-white">
+                <option key={rank} value={rank} className="dark:bg-gray-900 dark:text-white">
                   {rank}
                 </option>
               ))}
