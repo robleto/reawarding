@@ -53,8 +53,6 @@ export default function FilmsPage() {
 		setIsModalOpen(false);
 	};
 
-<<<<<<< HEAD
-=======
 	if (!user) {
 		return (
 			<div className="flex flex-col items-center justify-center h-48 text-gray-500 dark:text-gray-400">
@@ -64,14 +62,13 @@ export default function FilmsPage() {
 	}
 
 
->>>>>>> 2122713 (feat: Enhance dark mode support and UI elements)
 	if (loading) {
 		return <Loader message="Loading films..." />;
 	}
 
 	return (
 		<div className="max-w-screen-xl px-6 py-10 mx-auto">
-<<<<<<< HEAD
+
 			<MovieFilters
 				viewMode={viewMode}
 				setViewMode={setViewMode}
@@ -88,7 +85,7 @@ export default function FilmsPage() {
 				uniqueYears={uniqueYears}
 				uniqueRanks={uniqueRanks}
 			/>
-=======
+
 			<div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
 				<div className="flex flex-wrap items-center gap-4 text-sm font-medium text-gray-700 dark:text-gray-300">
 					<div className="flex items-center gap-2">
@@ -245,22 +242,15 @@ export default function FilmsPage() {
 					</button>
 				</div>
 			</div>
->>>>>>> 2122713 (feat: Enhance dark mode support and UI elements)
 
 			{groupedMovies.map(({ key, movies }: { key: string; movies: import("@/types/types").Movie[] }) => (
 				<div key={key} className="mb-10">
 					{groupBy !== "none" && (
-<<<<<<< HEAD
             <h2
               className="mb-6 text-4xl font-unbounded font-regular text-gray-800 dark:text-gray-100 tracking-wider"
             >
               {key}
             </h2>
-=======
-						<h2 className="mb-4 text-xl font-bold text-gray-800 dark:text-gray-200">
-							{key}
-						</h2>
->>>>>>> 2122713 (feat: Enhance dark mode support and UI elements)
 					)}
 					{viewMode === "grid" ? (
 						<div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-5">
