@@ -46,8 +46,9 @@ export default async function RootLayout({
     }
   );
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: authError
+  } = await supabase.auth.getUser();
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -72,7 +73,7 @@ export default async function RootLayout({
       </head>
       <body className={`min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300 ${inter.className} ${unbounded.variable}`}>
         <NetflixGlow />
-        <Providers initialSession={session}>
+        <Providers initialUser={user}>
           <div className="relative z-10">
             <HeaderNav />
             <main className="flex-1 pt-20">

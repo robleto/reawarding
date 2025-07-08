@@ -33,7 +33,7 @@ export function Logo({ size = 'md', className = '', showText = true, imageClassN
   const logoSrc = '/Oscarworthy-logomark.svg';
 
   return ( 
-    <a href="/" className={`flex items-center gap-1 ${className}`} aria-label="Oscar Worthy Home">
+    <div className={`flex items-center gap-1 ${className}`} aria-label="Oscar Worthy Home">
       {/* Oscar Worthy Logo with fallback */}
       {!imageError ? (
       <Image
@@ -58,7 +58,7 @@ export function Logo({ size = 'md', className = '', showText = true, imageClassN
         Oscarworthy
       </h1>
       )}
-    </a>
+    </div>
   );
 }
 

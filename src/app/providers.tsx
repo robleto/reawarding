@@ -5,11 +5,11 @@ import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { ToastProvider } from '@/components/providers/ToastProvider';
 import type { Database } from '@/types/supabase';
-import { Session } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 
 interface ProvidersProps {
   children: React.ReactNode;
-  initialSession: Session | null;
+  initialUser: User | null;
 }
 
 const supabase = createClient<Database>(
@@ -17,9 +17,9 @@ const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export function Providers({ children, initialSession }: ProvidersProps) {
+export function Providers({ children, initialUser }: ProvidersProps) {
   return (
-    <SessionContextProvider supabaseClient={supabase} initialSession={initialSession}>
+    <SessionContextProvider supabaseClient={supabase} initialSession={null}>
       <ThemeProvider>
         <ToastProvider>
           {children}

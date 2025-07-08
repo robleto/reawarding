@@ -23,17 +23,7 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Test if award_nominations table exists
-    const { data: tableData, error: tableError } = await supabase
-      .from('award_nominations')
-      .select('count')
-      .limit(1);
-
-    return NextResponse.json({ 
-      success: true, 
-      movies_test: data,
-      award_nominations_test: tableError ? { error: tableError.message } : tableData
-    });
+    return NextResponse.json({ success: true, movies_test: data });
   } catch (error) {
     console.error('Test API error:', error);
     return NextResponse.json({ 

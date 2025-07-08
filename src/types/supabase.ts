@@ -158,37 +158,6 @@ export interface Database {
 					},
 				];
 			};
-			award_nominations: {
-				Row: {
-					id: string;
-					user_id: string;
-					year: string;
-					nominee_ids: number[];
-					winner_id: number | null;
-					created_at?: string;
-					updated_at?: string;
-				};
-				Insert: {
-					id?: string;
-					user_id: string;
-					year: string;
-					nominee_ids: number[];
-					winner_id?: number | null;
-					created_at?: string;
-					updated_at?: string;
-				};
-				Update: Partial<
-					Database["public"]["Tables"]["award_nominations"]["Insert"]
-				>;
-				Relationships: [
-					{
-						foreignKeyName: "award_nominations_user_id_fkey";
-						columns: ["user_id"];
-						referencedRelation: "users";
-						referencedColumns: ["id"];
-					},
-				];
-			};
 		};
 		Views: object;
 		Functions: object;

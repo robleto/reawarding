@@ -85,29 +85,6 @@ Saves award nominations for a user and year.
 - Winner must be among nominees
 - User must be authenticated
 
-## Database Schema
-
-### award_nominations Table
-```sql
-CREATE TABLE award_nominations (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    year TEXT NOT NULL,
-    nominee_ids INTEGER[] NOT NULL DEFAULT '{}',
-    winner_id INTEGER NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(user_id, year)
-);
-```
-
-**Key Features**:
-- Row Level Security (RLS) enabled
-- Unique constraint on user_id + year
-- Array field for nominee IDs
-- Separate winner_id field
-- Automatic timestamps
-
 ## User Experience Flow
 
 ### Read Mode
