@@ -311,7 +311,7 @@ export default function EditableYearSection({
         <div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
 
         {/* Content block */}
-        <div className="flex flex-col w-full bg-white rounded-xl shadow-md dark:bg-gray-800 shadow hover:shadow-lg dark:shadow-gray-800 p-6 mb-24">
+        <div className={`flex flex-col w-full bg-white rounded-xl shadow-md dark:year-card-dark hover:shadow-lg dark:shadow-gray-950 p-6 mb-24${isEditing ? " dark:bg-gray-700" : " dark:bg-gray-900"}`}>
 
           {/* Edit/Save Controls */}
           <div className="flex justify-between items-center mb-6">
@@ -320,17 +320,17 @@ export default function EditableYearSection({
                 Best Picture {year}
               </h3>
               {isEditing && (
-                <span className="text-sm text-blue-600 font-medium">
+                <span className="text-xs text-blue-600 dark:text-blue-300 uppercase dark:bg-gray-950 font-medium">
                   (Editing Mode)
                 </span>
               )}
               {!isEditing && hasCustomNominations && (
-                <span className="text-xs text-green-600 font-medium px-2 py-1 bg-green-50 rounded">
+                <span className="text-xs text-green-600 dark:bg-gray-950 font-medium px-2 py-1 bg-green-50 rounded">
                   Custom Selection
                 </span>
               )}
               {!isEditing && !hasCustomNominations && (
-                <span className="text-xs text-gray-500 font-medium px-2 py-1 bg-gray-50 rounded">
+                <span className="text-xs text-gray-500 dark:bg-gray-950 font-medium px-2 py-1 bg-gray-50 rounded">
                   Default (Top 10 • Ranked 7+)
                 </span>
               )}
@@ -341,7 +341,7 @@ export default function EditableYearSection({
                 {!isEditing ? (
                   <button
                     onClick={handleStartEditing}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-blue-600 dark:text-gray-500 dark:border-gray-600 bg-blue-50 dark:bg-gray-800 rounded-lg hover:bg-blue-100 transition-colors"
                   >
                     <Edit3 className="w-4 h-4" />
                     Edit

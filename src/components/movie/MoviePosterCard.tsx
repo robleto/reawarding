@@ -66,7 +66,7 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
 
   return (
     <div
-      className={`relative flex flex-col overflow-visible transition bg-white dark:bg-gray-800 shadow hover:shadow-lg dark:shadow-gray-800 rounded-xl ${onClick ? 'cursor-pointer' : ''}`}
+      className={`relative flex flex-col overflow-visible border  border-gray-200 dark:border-gray-600 border-1 hover:dark:border-gray-300 transition bg-white dark:bg-gray-800 shadow hover:shadow-lg dark:shadow-gray-800 rounded-lg ${onClick ? 'cursor-pointer' : ''}`}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => { setIsHovered(false); setShowDropdown(false); }}
@@ -75,22 +75,22 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
         <Image
           src={movie.poster_url}
           alt={movie.title}
-          width={300}
-          height={450}
-          className="w-full h-auto rounded-t-xl"
+          width={210}
+          height={325}
+          className="w-full h-auto rounded-lg object-cover"
           unoptimized
           onError={() => setImageError(true)}
         />
       ) : (
-        <PosterFallback title={movie.title} className="w-full h-full rounded-t-lg" />
+        <PosterFallback title={movie.title} className="w-full h-full rounded-lg" />
       )}
       {/* Overlay on hover */}
       <div
-        className={`movie-poster-overlay absolute left-0 right-0 bottom-0 flex flex-col items-center justify-end w-full transition-opacity duration-200 ${isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'} z-20`}
-        style={{ minHeight: '30%', background: 'linear-gradient(to top, rgba(24,24,27,0.92) 80%, rgba(24,24,27,0.0) 100%)' }}
+        className={`movie-poster-overlay absolute rounded-b-lg left-0 right-0 bottom-0 flex flex-col items-center justify-end w-full transition-opacity duration-200 ${isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'} z-20`}
+        style={{ minHeight: '25%', background: 'linear-gradient(to top, rgba(24,24,27,0.92) 80%, rgba(24,24,27,0.0) 100%)' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between w-full px-3 py-2 gap-2">
+        <div className="flex items-center justify-between rounded-b-lg w-full px-3 py-2 gap-2">
           {/* Seen It Button */}
           <SeenItButton
             seenIt={seenIt}

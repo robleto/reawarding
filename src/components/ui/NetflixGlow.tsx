@@ -69,36 +69,22 @@ export function NetflixGlow() {
   }, [currentColorIndex]);
 
   return (
-    <>
-      {/* Main glow element */}
-      <div
-        id="netflix-glow"
-        className="fixed top-0 right-0 w-96 h-96 rounded-full opacity-20 dark:opacity-30 blur-3xl pointer-events-none z-0"
-        style={{
-          background: `radial-gradient(circle, ${colors[currentColorIndex]} 0%, transparent 70%)`,
-          transform: 'translate(50%, -50%)',
-        }}
-      />
-      
-      {/* Secondary smaller glow for depth */}
-      <div
-        className="fixed top-20 right-20 w-48 h-48 rounded-full opacity-10 dark:opacity-20 blur-2xl pointer-events-none z-0"
-        style={{
-          background: `radial-gradient(circle, ${colors[(currentColorIndex + 1) % colors.length]} 0%, transparent 70%)`,
-          transform: 'translate(25%, -25%)',
-          transition: 'background-color 0.8s ease',
-        }}
-      />
-      
-      {/* Mobile-optimized smaller glow */}
-      <div
-        className="fixed top-0 right-0 w-48 h-48 rounded-full opacity-15 dark:opacity-25 blur-2xl pointer-events-none z-0 md:hidden"
-        style={{
-          background: `radial-gradient(circle, ${colors[currentColorIndex]} 0%, transparent 70%)`,
-          transform: 'translate(25%, -25%)',
-          transition: 'background-color 0.8s ease',
-        }}
-      />
-    </>
+    <div
+      id="gradient-container"
+      className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none"
+    >
+      {colors.map((color, index) => (
+        <div
+          key={index}
+          ref={el => { gradientRefs.current[index] = el; }}
+          className="gradient absolute w-full h-full transition-opacity duration-1000 ease-out"
+          style={{
+            background: `linear-gradient(226.67deg, ${color} -38.52%, ${color}00 50.26%)`,
+            opacity: index === currentColorIndex ? 1 : 0,
+            mixBlendMode: 'normal',
+          }}
+        />
+      ))}
+    </div>
   );
 }

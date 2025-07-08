@@ -76,7 +76,7 @@ export default async function RootLayout({
         <Providers initialUser={user}>
           <div className="relative z-10">
             <HeaderNav />
-            <main className="flex-1 pt-20">
+            <main className="flex-1 pt-8 pb-8 px-0 sm:px-6 lg:px-0 max-w-screen-xl mx-auto">
               {children}
             </main>
             <Footer />

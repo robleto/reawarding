@@ -13,6 +13,7 @@ type Props = {
   ranking: number | null;
   seenIt: boolean;
   isLast?: boolean;
+  index?: number;
   onUpdate: (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => void;
   onClick?: () => void;
 };
@@ -42,7 +43,7 @@ const ImageFallback = ({
   </div>
 );
 
-export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, seenIt, isLast = false, onClick }: Props) {
+export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, seenIt, isLast = false, onClick, index }: Props) {
   const style = getRatingStyle(ranking ?? 0);
 
   // Check if image exists and is valid
@@ -58,13 +59,22 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
     }
   };
 
+
   return (
     <div 
-      className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 ${!isLast ? 'border-b dark:border-gray-700' : ''} ${onClick ? 'cursor-pointer' : ''} bg-white dark:bg-gray-900`}
+      className={`px-4 py-0 rounded-lg mb-1 hover:bg-gray-50  dark:hover:bg-gray-800 dark:bg-gray-900  ${onClick ? 'cursor-pointer' : ''}`}
       onClick={handleClick}
+      data-testid="movie-row-card"
     >
       {/* Desktop Layout */}
       <div className="hidden md:flex items-center justify-between gap-4">
+
+        {/* Ranking Dropdown */}
+        <RankingDropdown
+          ranking={ranking}
+          onChange={(value) => onUpdate(movie.id, { ranking: value })}
+        />
+
         {/* Poster */}
         {hasValidImage ? (
           <Image
@@ -72,7 +82,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
             alt={movie.title}
             width={100}
             height={75}
-            className="rounded-md"
+            className="rounded-lg"
             unoptimized
             onError={(e) => {
               // Hide broken image and show fallback
@@ -87,7 +97,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
             width={100}
             height={75}
             title={movie.title}
-            className="rounded shadow"
+            className="rounded-lg shadow"
           />
         )}
 
@@ -104,16 +114,17 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
           watchedLabel="Seen It"
         />
 
-        {/* Ranking Dropdown */}
-        <RankingDropdown
-          ranking={ranking}
-          onChange={(value) => onUpdate(movie.id, { ranking: value })}
-        />
       </div>
 
       {/* Mobile Layout */}
       <div className="md:hidden">
         <div className="flex items-stretch gap-3 min-h-[90px]">
+          {/* Row Number */}
+          {typeof index === 'number' && (
+            <div className="w-6 flex items-center justify-end text-xs font-bold text-gray-400 dark:text-gray-500 select-none pr-1">
+              {index + 1}
+            </div>
+          )}
           {/* Poster - Full height with proper aspect ratio (wider than taller like Netflix) */}
           <div className="flex-shrink-0">
             {hasValidImage ? (

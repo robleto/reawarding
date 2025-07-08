@@ -1,9 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 /* Tailwind CSS is processing this file; @tailwind directives are active below */
 
 body {
@@ -31,9 +31,10 @@ body {
 
 /* Custom dark mode enhancements */
 .year-card-dark {
-  background-image: linear-gradient(to bottom right, rgba(31, 41, 55, 0.6), rgba(17, 24, 39, 0.6));
+  background: linear-gradient(to bottom right, rgba(31, 41, 55, 0.6), rgba(17, 24, 39, 0.6));
+  border: 1px solid rgba(75, 85, 99, 0.2);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
-  border-color: rgba(75, 85, 99, 0.3);
 }
 
 .year-card-dark:hover {

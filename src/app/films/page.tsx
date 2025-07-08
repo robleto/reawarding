@@ -96,7 +96,7 @@ export default function FilmsPage() {
             </h2>
 					)}
 					{viewMode === "grid" ? (
-						<div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-5">
+						<div className="grid grid-cols-2 gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
 							{movies.map((movie) => {
 								const r = movie.rankings?.[0];
 								return (
@@ -126,6 +126,7 @@ export default function FilmsPage() {
 										isLast={index === movies.length - 1}
 										onUpdate={updateMovieRanking}
 										onClick={() => handleOpenModal(movie)}
+										index={index}
 									/>
 								);
 							})}

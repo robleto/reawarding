@@ -7,7 +7,6 @@ import { Menu, X } from "lucide-react";
 import { UserMenu } from "@/components/layout/UserMenu";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import { Logo } from "@/components/ui/Logo";
-import { DarkModeToggle } from "@/components/ui/DarkModeToggle";
 import { useScrollBackground } from "@/hooks/useScrollBackground";
 
 export default function HeaderNav() {
@@ -80,12 +79,9 @@ export default function HeaderNav() {
 							</ul>
 						</nav>
 
-						{/* Controls: UserMenu and DarkModeToggle */}
+						{/* Controls: UserMenu */}
 						<div className="flex items-center gap-4 flex-shrink-0">
 							<UserMenu onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
-							<div className="hidden md:block">
-								<DarkModeToggle />
-							</div>
 							{/* Mobile Menu Button */}
 							<button
 								onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -130,9 +126,6 @@ export default function HeaderNav() {
 								})}
 								<li className="pt-2 border-t border-gray-200 dark:border-gray-700">
 									<UserMenu onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
-								</li>
-								<li className="pt-2">
-									<DarkModeToggle />
 								</li>
 							</ul>
 						</nav>
