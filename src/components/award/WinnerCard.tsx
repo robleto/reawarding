@@ -64,11 +64,7 @@ export default function WinnerCard({
 
 			{/* Poster image */}
 			{hasValidPoster ? (
-<<<<<<< HEAD
-				<div className="relative w-full aspect-[2/3] my-4 mx-auto rounded-xl overflow-hidden shadow-lg dark:shadow-gray-800">
-=======
 				<div className="relative w-full aspect-[2/3] my-4 mx-auto rounded-xl overflow-hidden shadow-lg dark:shadow-gray-600">
->>>>>>> 6b7e965 (Enhance dark mode support and UI improvements across components)
 					<Image
 						src={poster_url}
 						alt={title}

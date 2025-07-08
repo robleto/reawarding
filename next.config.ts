@@ -36,14 +36,6 @@ const nextConfig = {
     }
     return config;
   },
-  turbo: {
-    resolveAlias: {
-      // Handle Node.js modules for Turbopack
-      fs: false,
-      path: false,
-      os: false,
-    },
-  },
   // ...add other config here if needed
 };
 

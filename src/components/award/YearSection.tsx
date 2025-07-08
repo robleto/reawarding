@@ -31,11 +31,7 @@ export default function YearSection({
 		<section className="w-full max-w-screen-xl px-6 py-0 mx-auto my-0 font-sans">
 			<div className="relative flex flex-col gap-6 md:flex-row md:gap-8">
 				{/* Timeline and year label */}
-<<<<<<< HEAD
-				<h2 className="md:absolute block top-0 md:top-[125px] left-0 text-3xl font-bold text-[#A0A0A0] mt-2 md:rotate-[-90deg] origin-left font-unbounded tracking-widest">
-=======
 				<h2 className="md:absolute block top-0 md:top-[125px] left-0 text-3xl font-bold text-[#A0A0A0] dark:text-[#9CA3AF] mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-widest">
->>>>>>> 6b7e965 (Enhance dark mode support and UI improvements across components)
 					{year}
 				</h2>
 				<div className="top-0 bottom-0 flex-col items-center hidden md:absolute md:flex left-4">
@@ -47,11 +43,7 @@ export default function YearSection({
 				<div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
 
 				{/* Content block */}
-<<<<<<< HEAD
-				<div className="flex flex-col overflow-visible transition bg-white dark:bg-gray-800 shadow hover:shadow-lg dark:shadow-gray-800 rounded-xl md:flex-row w-full shadow-md p-6 mb-24 gap-12">
-=======
 				<div className="flex flex-col md:flex-row w-full bg-white dark:year-card-dark rounded-xl shadow-md dark:shadow-gray-900/50 border border-[#d6d6d3] dark:border-gray-600/50 p-6 mb-24 gap-12 transition-all duration-300 hover:shadow-lg dark:hover:shadow-gray-900/60">
->>>>>>> 6b7e965 (Enhance dark mode support and UI improvements across components)
 					{/* Winner */}
 					<div className="w-full md:w-1/3">
 						<div className="inline-flex items-center justify-center gap-2 mb-4">
@@ -67,35 +59,23 @@ export default function YearSection({
 								rating={winner.ranking}
 							/>
 						) : (
-<<<<<<< HEAD
-							<div className="text-center py-8">
-								<p className="text-gray-500 dark:text-gray-400">
-									No winner selected
-								</p>
-=======
 							<div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
 								No Best Picture selected yet.
->>>>>>> 6b7e965 (Enhance dark mode support and UI improvements across components)
 							</div>
 						)}
 					</div>
 
-<<<<<<< HEAD
-					<div className="hidden md:block w-px bg-gray-200 dark:bg-gray-700" />
-=======
+
 					{/* Divider */}
 					<div className="hidden md:block w-px bg-[#d6d6d3] dark:bg-gray-600/50" />
->>>>>>> 6b7e965 (Enhance dark mode support and UI improvements across components)
 
 					{/* Nominees */}
 					<div className="w-full md:w-2/3">
 						<div className="flex items-center gap-2 mb-4">
 							<span className="text-xl">✉️</span>
-<<<<<<< HEAD
-							<h3 className="text-2xl font-bold text-[#7e7e7e] dark:text-gray-200 font-unbounded">
-=======
+
 							<h3 className="text-2xl font-bold text-[#7e7e7e] dark:text-gray-200">
->>>>>>> 6b7e965 (Enhance dark mode support and UI improvements across components)
+
 								Nominees
 							</h3>
 						</div>

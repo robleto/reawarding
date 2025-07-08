@@ -1,9 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-<<<<<<< HEAD
-@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Tailwind CSS is processing this file; @tailwind directives are active below */
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
@@ -29,47 +30,19 @@ body {
 }
 
 /* Custom dark mode enhancements */
-@layer components {
-  .year-card-dark {
-    @apply bg-gradient-to-br from-gray-800/60 to-gray-900/60 backdrop-blur-sm border-gray-600/30;
-  }
-  
-  .year-card-dark:hover {
-    @apply from-gray-700/70 to-gray-800/70 border-gray-500/40;
-  }
-  
-  .dark-glass {
-    @apply bg-gray-800/40 backdrop-blur-md border-gray-600/20;
-  }
-
-  /* Unbounded font utility classes */
-  .font-unbounded {
-    font-family: var(--font-unbounded), 'Unbounded', sans-serif;
-  }
+.year-card-dark {
+  background-image: linear-gradient(to bottom right, rgba(31, 41, 55, 0.6), rgba(17, 24, 39, 0.6));
+  backdrop-filter: blur(4px);
+  border-color: rgba(75, 85, 99, 0.3);
 }
 
-
-=======
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-body {
-  font-family: 'Inter', system-ui, sans-serif;
+.year-card-dark:hover {
+  background-image: linear-gradient(to bottom right, rgba(55, 65, 81, 0.7), rgba(31, 41, 55, 0.7));
+  border-color: rgba(107, 114, 128, 0.4);
 }
 
-/* Custom dark mode enhancements */
-@layer components {
-  .year-card-dark {
-    @apply bg-gradient-to-br from-gray-800/60 to-gray-900/60 backdrop-blur-sm border-gray-600/30;
-  }
-  
-  .year-card-dark:hover {
-    @apply from-gray-700/70 to-gray-800/70 border-gray-500/40;
-  }
-  
-  .dark-glass {
-    @apply bg-gray-800/40 backdrop-blur-md border-gray-600/20;
-  }
+.dark-glass {
+  background-color: rgba(31, 41, 55, 0.4);
+  backdrop-filter: blur(8px);
+  border-color: rgba(75, 85, 99, 0.2);
 }
->>>>>>> 2122713 (feat: Enhance dark mode support and UI elements)
