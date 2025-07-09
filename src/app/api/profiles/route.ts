@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabaseClient';
+import { supabase } from '@/lib/supabaseBrowser';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,8 +8,6 @@ export async function POST(request: NextRequest) {
     if (!username) {
       return NextResponse.json({ error: 'Username is required' }, { status: 400 });
     }
-
-    const supabase = createClient();
     
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -65,8 +63,6 @@ export async function GET(request: NextRequest) {
     if (!username) {
       return NextResponse.json({ error: 'Username is required' }, { status: 400 });
     }
-
-    const supabase = createClient();
     
     // Check if username is available
     const { data: existingProfile, error: checkError } = await supabase

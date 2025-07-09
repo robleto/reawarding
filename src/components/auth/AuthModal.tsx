@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
 import { X, Github, Mail, Eye, EyeOff } from "lucide-react";
 import type { Database } from "@/types/supabase";
 import { useGuestRankingStoreWithMigration } from "@/hooks/useGuestRankingStore";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
+import { supabase } from "@/lib/supabaseBrowser";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -29,8 +29,6 @@ export default function AuthModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [migratingData, setMigratingData] = useState(false);
-  
-  const supabase = useSupabaseClient<Database>();
   const router = useRouter();
   const guestStore = useGuestRankingStoreWithMigration();
   const { showToast } = useGlobalToast();
@@ -94,17 +92,15 @@ export default function AuthModal({
             emailRedirectTo: redirectTo,
           },
         });
-
         if (error) {
           setError(error.message);
           showToast(error.message, "error");
+          setLoading(false);
+          return;
         } else if (data.user) {
-          // For signup, we need to handle the user creation
           if (data.user.email_confirmed_at) {
-            // User is already confirmed (instant confirmation)
             await handleSuccessfulAuth(data.user.id, true);
           } else {
-            // User needs to confirm email
             const confirmMessage = "Please check your email to confirm your account!";
             setError(confirmMessage);
             showToast(confirmMessage, "info");
@@ -119,17 +115,20 @@ export default function AuthModal({
           email,
           password,
         });
-
         if (error) {
           setError(error.message);
           showToast(error.message, "error");
+          setLoading(false);
+          return;
         } else if (data.user) {
           await handleSuccessfulAuth(data.user.id, false);
           showToast("Welcome back!", "success");
+        } else {
+          setError("No user returned from Supabase");
         }
       }
-    } catch {
-      const errorMessage = "An unexpected error occurred";
+    } catch (err) {
+      const errorMessage = "An unexpected error occurred: " + (err instanceof Error ? err.message : String(err));
       setError(errorMessage);
       showToast(errorMessage, "error");
     } finally {
@@ -141,29 +140,23 @@ export default function AuthModal({
     setLoading(true);
     setError(null);
 
-    try {
-      const redirectTo = typeof window !== "undefined"
-        ? `${window.location.origin}/rankings`
-        : undefined;
+    const redirectTo = typeof window !== "undefined"
+      ? `${window.location.origin}/rankings`
+      : undefined;
 
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "github",
-        options: {
-          redirectTo,
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-        showToast(error.message, "error");
-      }
-      // Note: OAuth success will be handled by the auth state change listener
-    } catch {
-      const errorMessage = "An unexpected error occurred";
-      setError(errorMessage);
-      showToast(errorMessage, "error");
-    } finally {
+    // Try Supabase redirect, fallback to manual redirect if url is returned
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo,
+      },
+    });
+    console.log('OAuth result:', { data, error });
+    if (error) {
+      setError(error.message);
       setLoading(false);
+    } else if (data?.url) {
+      window.location.href = data.url;
     }
   };
 

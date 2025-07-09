@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useUser } from "@supabase/auth-helpers-react";
+import { supabase } from '@/lib/supabaseBrowser';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Edit3, Save, X, AlertCircle, RotateCcw } from "lucide-react";
@@ -34,13 +34,32 @@ interface EditableYearSectionProps {
   allMoviesForYear: Movie[]; // All movies for this year that user has ranked
 }
 
+import type { User } from '@supabase/supabase-js';
+
+function useSupabaseUser() {
+  const [user, setUser] = useState<User | null>(null);
+  useEffect(() => {
+    const getUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        setUser(null);
+      } else {
+        setUser(data.user);
+      }
+    };
+    getUser();
+  }, []);
+  return user;
+}
+
 export default function EditableYearSection({
   year,
   movies,
   winner,
   allMoviesForYear,
 }: EditableYearSectionProps) {
-  const user = useUser();
+  const user = useSupabaseUser();
+  console.log('EditableYearSection user:', user);
   const [isEditing, setIsEditing] = useState(false);
   const [nominees, setNominees] = useState<Movie[]>([]);
   const [selectedWinner, setSelectedWinner] = useState<Movie | null>(null);
@@ -66,13 +85,13 @@ export default function EditableYearSection({
     }
   }, [user, year]);
 
-  // Update current display when props change
-  useEffect(() => {
-    if (!hasCustomNominations) {
-      setCurrentNominees(movies);
-      setCurrentWinner(winner || null);
-    }
-  }, [movies, winner, hasCustomNominations]);
+  // Remove this effect to prevent overwriting currentNominees/currentWinner after nominations load
+  // useEffect(() => {
+  //   if (!hasCustomNominations) {
+  //     setCurrentNominees(movies);
+  //     setCurrentWinner(winner || null);
+  //   }
+  // }, [movies, winner, hasCustomNominations]);
 
   const loadExistingNominations = async () => {
     setLoadingNominations(true);
@@ -80,26 +99,19 @@ export default function EditableYearSection({
       const response = await fetch(`/api/awards?year=${year}`);
       if (response.ok) {
         const data = await response.json();
-        if (data.nominations) {
+        if (data.nominations && data.nominations.nominee_ids && data.nominations.nominee_ids.length > 0) {
           // User has custom nominations - use them for display
           const nomineeMovies = data.nominations.nominee_ids
-            .map((id: number) => allMoviesForYear.find(m => Number(m.id) === id))
+            .map((id: string) => allMoviesForYear.find(m => m.id === id))
             .filter(Boolean) as Movie[];
-          
           const winnerMovie = data.nominations.winner_id 
-            ? nomineeMovies.find(m => Number(m.id) === data.nominations.winner_id) || null
+            ? nomineeMovies.find(m => m.id === data.nominations.winner_id) || null
             : null;
-          
-          // Update current display to show custom nominations
           setCurrentNominees(nomineeMovies);
           setCurrentWinner(winnerMovie);
           setHasCustomNominations(true);
-          
-          // Set edit state (used when entering edit mode)
           setNominees(nomineeMovies);
           setSelectedWinner(winnerMovie);
-          
-          // Set available movies (excluding current nominees)
           const nomineeIds = nomineeMovies.map(m => m.id);
           setAvailableMovies(allMoviesForYear.filter(m => !nomineeIds.includes(m.id)));
         } else {
@@ -107,6 +119,10 @@ export default function EditableYearSection({
           setHasCustomNominations(false);
           setCurrentNominees(movies);
           setCurrentWinner(winner || null);
+          setNominees(movies);
+          setSelectedWinner(winner || null);
+          const nomineeIds = movies.map(m => m.id);
+          setAvailableMovies(allMoviesForYear.filter(m => !nomineeIds.includes(m.id)));
         }
       } else {
         console.warn('Failed to load nominations:', response.status, response.statusText);
@@ -203,26 +219,25 @@ export default function EditableYearSection({
         },
         body: JSON.stringify({
           year,
-          nominee_ids: nominees.map(m => Number(m.id)),
-          winner_id: selectedWinner ? Number(selectedWinner.id) : null,
+          nominee_ids: nominees.map(m => m.id), // UUID strings
+          winner_id: selectedWinner ? selectedWinner.id : null, // UUID string or null
         }),
       });
 
       if (!response.ok) {
         let errorMessage = 'Failed to save nominations';
+        let errorData = null;
         try {
-          const errorData = await response.json();
+          errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
         } catch (jsonError) {
-          // If response is not JSON, use status text
           errorMessage = response.statusText || errorMessage;
         }
-        
-        // Special handling for 503 errors
-        if (response.status === 503) {
-          errorMessage = 'Award nominations feature is currently unavailable. Please try again later.';
-        }
-        
+        console.error('API /api/awards error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         throw new Error(errorMessage);
       }
 
@@ -234,7 +249,6 @@ export default function EditableYearSection({
       setCurrentNominees(nominees);
       setCurrentWinner(selectedWinner);
       setHasCustomNominations(true);
-      
       setIsEditing(false);
     } catch (error) {
       console.error('Error saving nominations:', error);
@@ -244,16 +258,32 @@ export default function EditableYearSection({
     }
   };
 
-  const handleResetToDefault = () => {
-    // Reset to default nominees and winner
-    setNominees(movies);
-    setSelectedWinner(winner || null);
-    
-    // Update available movies
-    const nomineeIds = movies.map(m => m.id);
-    setAvailableMovies(allMoviesForYear.filter(m => !nomineeIds.includes(m.id)));
-    
+  const handleResetToDefault = async () => {
+    setIsSaving(true);
     setError(null);
+    try {
+      const response = await fetch(`/api/awards?year=${year}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        let errorMessage = 'Failed to reset nominations';
+        let errorData = null;
+        try {
+          errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+      // After successful delete, reload nominations (will fall back to default)
+      await loadExistingNominations();
+      setIsEditing(false);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to reset nominations');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleOpenModal = (movie: Movie) => {
@@ -267,8 +297,8 @@ export default function EditableYearSection({
   };
 
   // Display logic
-  const displayNominees = isEditing ? nominees : currentNominees;
-  const displayWinner = isEditing ? selectedWinner : currentWinner;
+  const displayNominees = loadingNominations ? [] : (isEditing ? nominees : currentNominees);
+  const displayWinner = loadingNominations ? null : (isEditing ? selectedWinner : currentWinner);
 
   // Get current ranking data for the selected movie
   const getMovieRankingData = (movie: Movie) => {
@@ -386,7 +416,11 @@ export default function EditableYearSection({
           )}
 
           {/* Content */}
-          {!isEditing ? (
+          {loadingNominations ? (
+            <div className="flex items-center justify-center py-8 text-gray-500">
+              Loading nominations...
+            </div>
+          ) : !isEditing ? (
             /* READ MODE LAYOUT */
             <div className="flex flex-col md:flex-row gap-12">
               {/* Winner */}

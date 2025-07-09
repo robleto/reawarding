@@ -81,7 +81,7 @@ export default function MovieFilters({
           </select>
           <button
             onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-            className="px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:bg-transparent dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+            className="px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-transparent dark:hover:bg-gray-800 transition-colors"
             title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
           >
             {sortOrder === "asc" ? "▲" : "▼"}

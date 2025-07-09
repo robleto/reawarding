@@ -158,6 +158,30 @@ export interface Database {
 					},
 				];
 			};
+			awards: {
+				Row: {
+					id: number;
+					user_id: string;
+					year: number;
+					nominee_ids: number[];
+					winner_id: number | null;
+					created_at: string;
+					updated_at: string;
+				};
+				Insert: {
+					id?: number;
+					user_id: string;
+					year: number;
+					nominee_ids: number[];
+					winner_id?: number | null;
+					created_at?: string;
+					updated_at?: string;
+				};
+				Update: Partial<
+					Database["public"]["Tables"]["awards"]["Insert"]
+				>;
+				Relationships: [];
+			};
 		};
 		Views: object;
 		Functions: object;

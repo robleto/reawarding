@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
 import Image from "next/image";
 import { X, Eye, EyeOff, Star, Film, Clock, Calendar, Users } from "lucide-react";
-import { createClient } from "@/utils/supabaseClient";
+import { supabase } from "@/lib/supabaseBrowser";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
 
@@ -46,7 +46,6 @@ export default function MovieDetailModal({
   const [hasValidImage, setHasValidImage] = useState(true);
   const [movieDetails, setMovieDetails] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  const supabase = createClient();
 
   // Reset state when modal opens with new movie
   useEffect(() => {

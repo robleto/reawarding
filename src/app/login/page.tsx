@@ -1,11 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/utils/supabaseClient';
+import { supabase } from "@/lib/supabaseBrowser";
 import { Github, Mail, Chrome, Eye, EyeOff, User, Lock, Facebook } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
-
-const supabase = createClient();
 
 export default function LoginPage() {
   const [loading, setLoading] = useState<string | null>(null);

@@ -1,10 +1,11 @@
 'use client';
 
-import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { LogOut, List } from 'lucide-react';
+import { useEnsureProfile } from '@/hooks/useEnsureProfile';
+import { supabase } from '@/lib/supabaseBrowser';
 import type { Database } from '@/types/supabase';
 
 interface UserMenuProps {
@@ -23,32 +24,18 @@ interface Profile {
 }
 
 export function UserMenu({ onLoginClick, onSignupClick }: UserMenuProps) {
-  const supabase = useSupabaseClient<Database>();
-  const user = useUser();
   const [open, setOpen] = useState(false);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-      } else {
-        setProfile(data);
-      }
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
     };
+    getUser();
+  }, []);
 
-    if (user) {
-      fetchProfile();
-    }
-  }, [user, supabase]);
+  const { profile, loading: profileLoading, error: profileError, created } = useEnsureProfile(user);
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -73,6 +60,13 @@ export function UserMenu({ onLoginClick, onSignupClick }: UserMenuProps) {
         </button>
       </div>
     );
+  }
+
+  if (profileLoading) {
+    return <div className="text-gray-500">Loading profile...</div>;
+  }
+  if (profileError) {
+    return <div className="text-red-500">Profile error: {profileError}</div>;
   }
 
   const displayName = profile?.full_name || profile?.username || user.email;

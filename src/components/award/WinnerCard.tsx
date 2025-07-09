@@ -85,7 +85,7 @@ export default function WinnerCard({
 
 					{/* Styled rating badge */}
 					<div
-						className="absolute px-2 py-1 text-sm font-semibold rounded-md bottom-2 right-2"
+						className="absolute px-3 py-1 text-sm font-semibold rounded-md bottom-2 right-2"
 						style={{ backgroundColor: background, color: text }}
 					>
 						{rating}

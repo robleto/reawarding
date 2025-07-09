@@ -1,8 +1,2 @@
-// src/utils/supabaseClient.ts
-import { createBrowserClient } from '@supabase/ssr';
-import type { Database } from '@/types/supabase';
-
-export const createClient = () => createBrowserClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// This file is now obsolete. All code should use the singleton supabase client from @/lib/supabaseBrowser.
+// You can safely delete this file.

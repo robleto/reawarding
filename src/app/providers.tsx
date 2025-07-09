@@ -1,6 +1,6 @@
 'use client';
 
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseBrowser';
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { ToastProvider } from '@/components/providers/ToastProvider';
@@ -11,11 +11,6 @@ interface ProvidersProps {
   children: React.ReactNode;
   initialUser: User | null;
 }
-
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export function Providers({ children, initialUser }: ProvidersProps) {
   return (

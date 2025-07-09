@@ -2,10 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabaseClient';
+import { supabase } from "@/lib/supabaseBrowser";
 import { User, Save, Check, X } from 'lucide-react';
-
-const supabase = createClient();
 
 interface Profile {
   id: string;

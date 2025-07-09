@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabaseClient';
+import { supabase } from "@/lib/supabaseBrowser";
 import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Logo } from '@/components/ui/Logo';
-
-const supabase = createClient();
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('');

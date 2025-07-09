@@ -9,7 +9,7 @@ interface MovieCardProps {
 }
 
 export default function MovieCard({ title, imageUrl, rating, onClick }: MovieCardProps) {
-	// const { text, background } = getRatingStyle(rating);
+	const { text, background } = getRatingStyle(rating);
 
 	return (
 		<article 
@@ -20,12 +20,12 @@ export default function MovieCard({ title, imageUrl, rating, onClick }: MovieCar
 				className="relative bg-cover rounded-lg shadow-sm dark:shadow-gray-600 aspect-video"
 				style={{ backgroundImage: `url(${imageUrl})` }}
 			>
-				{/* <div
-					className="absolute bottom-1 right-1 rounded px-1 py-0.5 text-xs font-semibold"
+				<div
+					className="absolute bottom-1 right-1 rounded px-2 py-0.5 text-xs font-semibold"
 					style={{ color: text, backgroundColor: background }}
 				>
 					{rating}
-				</div> */}
+				</div> 
 			</div>
 			<h4 className="mt-2 text-sm font-semibold text-black dark:text-white truncate">
 				{title}

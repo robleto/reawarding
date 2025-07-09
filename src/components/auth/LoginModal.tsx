@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
 import { X, Mail, Eye, EyeOff } from "lucide-react";
 import type { Database } from "@/types/supabase";
 import type { User } from "@supabase/auth-helpers-nextjs";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
+import { supabase } from "@/lib/supabaseBrowser";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -28,8 +28,6 @@ export default function LoginModal({
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const supabase = useSupabaseClient<Database>();
   const router = useRouter();
   const { showToast } = useGlobalToast();
 
@@ -43,19 +41,22 @@ export default function LoginModal({
         email,
         password,
       });
-
       if (error) {
         setError(error.message);
-      } else if (data.user) {
+        setLoading(false);
+        return;
+      }
+      if (data.user) {
         // Success
         showToast("Welcome back!", "success");
         onAuthSuccess?.(data.user);
         onClose();
         router.push("/rankings");
+      } else {
+        setError("No user returned from Supabase");
       }
     } catch (err) {
-      console.error('Login error:', err);
-      setError("An unexpected error occurred");
+      setError("An unexpected error occurred: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setLoading(false);
     }
@@ -65,30 +66,25 @@ export default function LoginModal({
     setLoading(true);
     setError(null);
 
-    try {
-      const redirectTo = typeof window !== "undefined"
-        ? `${window.location.origin}/rankings`
-        : undefined;
+    const redirectTo = typeof window !== "undefined"
+      ? `${window.location.origin}/rankings`
+      : undefined;
 
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo,
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-      } else {
-        // OAuth success will be handled by redirect
-        onClose();
-      }
-    } catch (err) {
-      console.error(`${provider} login error:`, err);
-      setError("An unexpected error occurred");
-    } finally {
+    // Try Supabase redirect, fallback to manual redirect if url is returned
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo,
+      },
+    });
+    console.log('OAuth result:', { data, error });
+    if (error) {
+      setError(error.message);
       setLoading(false);
+    } else if (data?.url) {
+      window.location.href = data.url;
     }
+    // No need to setLoading(false) here, as the page will redirect
   };
 
   const resetForm = () => {
