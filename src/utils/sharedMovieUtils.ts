@@ -333,6 +333,21 @@ export function useViewMode(defaultMode: "grid" | "list" = "grid") {
 
 export function useMovieFilters(movies: Movie[]) {
 	const [hasMounted, setHasMounted] = useState(false);
+	// Only persist filterType/filterValue if not 'movie'
+	const getInitialFilterType = () => {
+		if (typeof window !== "undefined") {
+			const stored = localStorage.getItem("filterType") as any;
+			return stored === "movie" ? "none" : stored || "none";
+		}
+		return "none";
+	};
+	const getInitialFilterValue = () => {
+		if (typeof window !== "undefined") {
+			const stored = localStorage.getItem("filterValue");
+			return localStorage.getItem("filterType") === "movie" ? "all" : stored || "all";
+		}
+		return "all";
+	};
 	const [sortBy, setSortBy] = useState<SortKey>(() => {
 		return (typeof window !== "undefined" && (localStorage.getItem("sortBy") as SortKey)) || "ranking";
 	});
@@ -342,25 +357,25 @@ export function useMovieFilters(movies: Movie[]) {
 	const [groupBy, setGroupBy] = useState<GroupKey>(() => {
 		return (typeof window !== "undefined" && (localStorage.getItem("groupBy") as GroupKey)) || "none";
 	});
-	const [filterType, setFilterType] = useState<"none" | "year" | "rank">(() => {
-		return (typeof window !== "undefined" && (localStorage.getItem("filterType") as any)) || "none";
-	});
-	const [filterValue, setFilterValue] = useState<string>(() => {
-		return (typeof window !== "undefined" && localStorage.getItem("filterValue")) || "all";
-	});
+	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie">(
+		getInitialFilterType
+	);
+	const [filterValue, setFilterValue] = useState<string>(getInitialFilterValue);
 
 	useEffect(() => {
 		setHasMounted(true);
 	}, []);
 
-	// Save filter state to localStorage
+	// Save filter state to localStorage, but do NOT persist movie search filter
 	useEffect(() => {
 		if (typeof window !== "undefined") {
 			localStorage.setItem("sortBy", sortBy);
 			localStorage.setItem("sortOrder", sortOrder);
 			localStorage.setItem("groupBy", groupBy);
-			localStorage.setItem("filterType", filterType);
-			localStorage.setItem("filterValue", filterValue);
+			if (filterType !== "movie") {
+				localStorage.setItem("filterType", filterType);
+				localStorage.setItem("filterValue", filterValue);
+			}
 		}
 	}, [sortBy, sortOrder, groupBy, filterType, filterValue]);
 
@@ -371,6 +386,9 @@ export function useMovieFilters(movies: Movie[]) {
 		}
 		if (filterType === "rank") {
 			return filterValue === "all" || movie.rankings?.[0]?.ranking === Number(filterValue);
+		}
+		if (filterType === "movie") {
+			return String(movie.id) === filterValue;
 		}
 		return true;
 	});

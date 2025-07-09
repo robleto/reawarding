@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "npm:cheerio@1.0.0-rc.12": "https://esm.sh/cheerio@1.0.0-rc.12"
+  }
+}
