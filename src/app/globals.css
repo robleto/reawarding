@@ -1,4 +1,12 @@
 /* Tailwind CSS is processing this file; @tailwind directives are active below */
+/*
+  The following @tailwind directives require Tailwind CSS/PostCSS processing.
+  Make sure your build tool (e.g., Next.js, Vite, Webpack) is configured to use Tailwind CSS.
+*/
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 
 @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@600&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
