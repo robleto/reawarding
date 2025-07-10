@@ -341,71 +341,7 @@ export default function EditableYearSection({
         <div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
 
         {/* Content block */}
-        <div className={`flex flex-col w-full bg-white rounded-xl shadow-md dark:year-card-dark hover:shadow-lg dark:shadow-gray-950 p-6 mb-24${isEditing ? " dark:bg-gray-700" : " dark:bg-gray-900"}`}>
-
-          {/* Edit/Save Controls */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <h3 className="text-xl font-bold text-[#7e7e7e]">
-                Best Picture {year}
-              </h3>
-              {isEditing && (
-                <span className="text-xs text-blue-600 dark:text-blue-300 uppercase dark:bg-gray-950 font-medium">
-                  (Editing Mode)
-                </span>
-              )}
-              {!isEditing && hasCustomNominations && (
-                <span className="text-xs text-green-600 dark:bg-gray-950 font-medium px-2 py-1 bg-green-50 rounded">
-                  Custom Selection
-                </span>
-              )}
-              {!isEditing && !hasCustomNominations && (
-                <span className="text-xs text-gray-500 dark:bg-gray-950 font-medium px-2 py-1 bg-gray-50 rounded">
-                  Default (Top 10 • Ranked 7+)
-                </span>
-              )}
-            </div>
-            
-            {user && (
-              <div className="flex items-center gap-2">
-                {!isEditing ? (
-                  <button
-                    onClick={handleStartEditing}
-                    className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-blue-600 dark:text-gray-500 dark:border-gray-600 bg-blue-50 dark:bg-gray-800 rounded-lg hover:bg-blue-100 transition-colors"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    Edit
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      onClick={handleResetToDefault}
-                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
-                      title="Reset to default nominees (top 10 ranked 7+)"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      Reset
-                    </button>
-                    <button
-                      onClick={handleCancelEditing}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      disabled={isSaving}
-                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors"
-                    >
-                      <Save className="w-4 h-4" />
-                      {isSaving ? 'Saving...' : 'Save'}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+        <div className={`flex flex-col w-full bg-white rounded-xl shadow-md border dark:border-[#232326]/80 dark:bg-[#1c1c1e]/60 hover:bg-[#232326]/90 hover:shadow-lg dark:shadow-gray-950 p-6 mb-24${isEditing ? " dark:bg-gray-700" : " dark:bg-[#1c1c1e]/60"}`}>
 
           {/* Error Message */}
           {error && (
@@ -425,6 +361,21 @@ export default function EditableYearSection({
             <div className="flex flex-col md:flex-row gap-12">
               {/* Winner */}
               <div className="w-full md:w-1/3">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">🏆</span>
+                    <h3 className="text-2xl font-bold text-yellow-500">Winner</h3>
+                  </div>
+                  {user && !isEditing && (
+                    <button
+                      onClick={handleStartEditing}
+                      className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-blue-600 dark:text-gray-500 dark:border-gray-600 bg-blue-50 dark:bg-gray-800 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      Edit
+                    </button>
+                  )}
+                </div>
                 {displayWinner ? (
                   <WinnerCard
                     title={displayWinner.title}
@@ -440,28 +391,41 @@ export default function EditableYearSection({
               </div>
 
               {/* Divider */}
-			<div className="hidden md:block w-px bg-gray-200 dark:bg-gray-700" />
+              <div className="hidden md:block w-px bg-gray-200 dark:bg-gray-700" />
 
               {/* Nominees */}
               <div className="w-full md:w-2/3">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xl">✉️</span>
-                  <h3 className="text-2xl font-bold text-[#7e7e7e]">
-                    Nominees
-                  </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">✉️</span>
+                    <h3 className="text-2xl font-bold text-[#7e7e7e]">
+                      Nominees
+                    </h3>
+                  </div>
+                  {/* Show custom/default label here if desired */}
+                  {!isEditing && hasCustomNominations && (
+                    <span className="text-xs text-green-600 dark:bg-gray-950 font-medium px-2 py-1 bg-green-50 rounded">
+                      Custom Selection
+                    </span>
+                  )}
+                  {!isEditing && !hasCustomNominations && (
+                    <span className="text-xs text-gray-500 dark:bg-gray-950 font-medium px-2 py-1 bg-gray-50 rounded">
+                      Default (Top 10 • Ranked 7+)
+                    </span>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                {[...displayNominees]
+                  {[...displayNominees]
                     .sort((a, b) => a.title.localeCompare(b.title))
                     .map((movie) => (
-                        <MovieCard
-                            key={movie.id}
-                            title={movie.title}
-                            imageUrl={movie.thumb_url}
-                            rating={movie.ranking}
-                            onClick={() => handleOpenModal(movie)}
-                        />
-                ))}
+                      <MovieCard
+                        key={movie.id}
+                        title={movie.title}
+                        imageUrl={movie.thumb_url}
+                        rating={movie.ranking}
+                        onClick={() => handleOpenModal(movie)}
+                      />
+                  ))}
                 </div>
               </div>
             </div>
@@ -472,21 +436,47 @@ export default function EditableYearSection({
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Nominees Section - Left 2/3 */}
                 <div className="lg:col-span-2">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-xl">✉️</span>
-                    <h3 className="text-2xl font-bold text-[#7e7e7e]">
-                      Nominees
-                    </h3>
-                    <span className="text-sm text-gray-500">
-                      ({nominees.length}/10)
-                    </span>
-                    {selectedWinner && (
-                      <span className="text-sm text-yellow-600 font-medium">
-                        • Winner: {selectedWinner.title}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">✉️</span>
+                      <h3 className="text-2xl font-bold text-[#7e7e7e]">
+                        Nominees
+                      </h3>
+                      <span className="text-sm text-gray-500">
+                        ({nominees.length}/10)
                       </span>
-                    )}
+                      {selectedWinner && (
+                        <span className="text-sm text-yellow-600 font-medium">
+                          • Winner: {selectedWinner.title}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleResetToDefault}
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
+                        title="Reset to default nominees (top 10 ranked 7+)"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        Reset
+                      </button>
+                      <button
+                        onClick={handleCancelEditing}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors"
+                      >
+                        <Save className="w-4 h-4" />
+                        {isSaving ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
                   </div>
-                  
                   {loadingNominations ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="text-gray-500">Loading nominations...</div>
@@ -543,7 +533,6 @@ export default function EditableYearSection({
                   <div className="text-sm text-gray-500 mb-3">
                     {year} • {availableMovies.length} movies
                   </div>
-                  
                   {availableMovies.length > 0 ? (
                     <div className="max-h-[500px] overflow-y-auto space-y-3 pr-2">
                       {availableMovies.map((movie) => (

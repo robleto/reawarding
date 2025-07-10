@@ -1,166 +1,243 @@
-// @ts-nocheck
-// This file runs in Deno runtime, not Node.js
-import { createClient } from 'jsr:@supabase/supabase-js@2'
-
-// Define the TMDB API base URL
-const TMDB_API_BASE_URL = 'https://api.themoviedb.org/3'
-const BATCH_SIZE = 10 // Number of movies to update in one batch
-
-Deno.serve(async (req) => {
+// Helper: Enrich a movie from TMDB/OMDb and upsert into Supabase
+async function enrichMovie(id, tmdbId, supabaseUrl, supabaseKey, tmdbApiKey, omdbApiKey) {
+  console.log(`Starting to enrich movie with TMDB ID: ${tmdbId}`);
   try {
-    // This function should be secured - check for admin authorization
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      )
+    // Fetch from TMDB (with credits, external_ids, release_dates)
+    console.log(`Fetching TMDB data for ID: ${tmdbId}`);
+    const tmdbRes = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${tmdbApiKey}&append_to_response=credits,external_ids,release_dates`);
+    if (!tmdbRes.ok) {
+      const errorText = await tmdbRes.text();
+      throw new Error(`TMDB fetch failed: ${tmdbRes.status} - ${errorText}`);
     }
-
-    // Initialize Supabase client with service role key for admin operations
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
-
-    // Get your TMDB API key from environment variables
-    const tmdbApiKey = Deno.env.get('TMDB_API_KEY')
-    
-    if (!tmdbApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'TMDB API key not configured' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      )
+    const movie = await tmdbRes.json();
+    console.log(`Successfully fetched TMDB data for: ${movie.title || tmdbId}`);
+    // Overview, runtime, genres, rating, etc.
+    const overview = movie.overview || null;
+    const runtime = movie.runtime || null;
+    const tmdb_rating = movie.vote_average || null;
+    const genres = movie.genres ? movie.genres.map((g)=>g.name) : [];
+    // Get IMDB ID from external_ids
+    let imdb_id = null;
+    if (movie.external_ids && movie.external_ids.imdb_id) {
+      imdb_id = movie.external_ids.imdb_id;
+    } else if (movie.imdb_id) {
+      // Fallback to direct imdb_id if available
+      imdb_id = movie.imdb_id;
     }
-
-    // Get movies that need updating (oldest cached_at or null cached_at)
-    const { data: moviesToUpdate, error: fetchError } = await supabaseAdmin
-      .from('movies')
-      .select('id, tmdb_id')
-      .order('cached_at', { ascending: true, nullsFirst: true })
-      .limit(BATCH_SIZE)
-
-    if (fetchError) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch movies', details: fetchError }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (!moviesToUpdate || moviesToUpdate.length === 0) {
-      return new Response(
-        JSON.stringify({ message: 'No movies to update' }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Process each movie
-    const results = await Promise.all(moviesToUpdate.map(async (movie) => {
-      try {
-        // Fetch detailed movie information from TMDB
-        const tmdbId = movie.tmdb_id
-        if (!tmdbId) {
-          return { id: movie.id, status: 'skipped', reason: 'No TMDB ID' }
-        }
-
-        const movieDetailsResponse = await fetch(
-          `${TMDB_API_BASE_URL}/movie/${tmdbId}?api_key=${tmdbApiKey}&append_to_response=credits,videos,similar,reviews`,
-          {
-            headers: {
-              'Accept': 'application/json'
-            }
-          }
-        )
-
-        if (!movieDetailsResponse.ok) {
-          return { 
-            id: movie.id, 
-            status: 'error', 
-            reason: `TMDB API error: ${movieDetailsResponse.status}` 
-          }
-        }
-
-        const movieDetails = await movieDetailsResponse.json()
-
-        // Extract relevant information
-        const director = movieDetails.credits?.crew?.find(person => person.job === 'Director')
-        const cast = movieDetails.credits?.cast?.slice(0, 10) || []
-        const genres = movieDetails.genres?.map(genre => genre.name) || []
-        const trailer = movieDetails.videos?.results?.find(video => 
-          video.type === 'Trailer' && video.site === 'YouTube'
-        )
-
-        // Prepare the data to update in the database
-        const movieData = {
-          genres,
-          runtime: movieDetails.runtime,
-          overview: movieDetails.overview,
-          vote_average: movieDetails.vote_average,
-          vote_count: movieDetails.vote_count,
-          popularity: movieDetails.popularity,
-          director: director ? {
-            id: director.id,
-            name: director.name,
-            profile_path: director.profile_path
-          } : null,
-          cast: cast.map(actor => ({
-            id: actor.id,
-            name: actor.name,
-            character: actor.character,
-            profile_path: actor.profile_path,
-            order: actor.order
-          })),
-          trailer: trailer ? {
-            key: trailer.key,
-            site: trailer.site,
-            name: trailer.name
-          } : null,
-          production_companies: movieDetails.production_companies?.map(company => ({
-            id: company.id,
-            name: company.name,
-            logo_path: company.logo_path
-          })),
-          budget: movieDetails.budget,
-          revenue: movieDetails.revenue,
-          original_language: movieDetails.original_language,
-          cached_at: new Date().toISOString()
-        }
-
-        // Update the movie in the database
-        const { error: updateError } = await supabaseAdmin
-          .from('movies')
-          .update(movieData)
-          .eq('id', movie.id)
-
-        if (updateError) {
-          return { 
-            id: movie.id, 
-            status: 'error', 
-            reason: `Database update error: ${updateError.message}` 
-          }
-        }
-
-        return { id: movie.id, status: 'updated' }
-      } catch (error) {
-        return { 
-          id: movie.id, 
-          status: 'error', 
-          reason: `Exception: ${error.message}` 
-        }
+    const title = movie.title || movie.original_title || null;
+    const release_year = movie.release_date ? parseInt(movie.release_date.slice(0, 4), 10) : null;
+    // MPAA rating (US release)
+    let mpaa_rating = null;
+    if (movie.release_dates && movie.release_dates.results) {
+      const us = movie.release_dates.results.find((r)=>r.iso_3166_1 === 'US');
+      if (us && us.release_dates && us.release_dates.length > 0) {
+        // Prefer the first non-empty certification
+        const cert = us.release_dates.find((rd)=>rd.certification && rd.certification.length > 0);
+        mpaa_rating = cert ? cert.certification : us.release_dates[0].certification || null;
       }
-    }))
-
-    return new Response(
-      JSON.stringify({ 
-        message: `Processed ${results.length} movies`,
-        results
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    )
+    }
+    // Director and cast_list
+    let director = null;
+    let cast_list = [];
+    if (movie.credits) {
+      if (movie.credits.crew) {
+        const directors = movie.credits.crew.filter((c)=>c.job === 'Director');
+        director = directors.length > 0 ? directors[0].name : null;
+      }
+      if (movie.credits.cast) {
+        cast_list = movie.credits.cast.slice(0, 5).map((c)=>c.name);
+      }
+    }
+    // IMDb/Metacritic ratings (from OMDb)
+    let imdb_rating = null;
+    let metacritic_score = null;
+    if (imdb_id && omdbApiKey) {
+      try {
+        console.log(`Fetching OMDb data for IMDB ID: ${imdb_id}`);
+        const omdbRes = await fetch(`https://www.omdbapi.com/?i=${imdb_id}&apikey=${omdbApiKey}`);
+        if (omdbRes.ok) {
+          const omdb = await omdbRes.json();
+          if (omdb.Response === "True") {
+            imdb_rating = omdb.imdbRating ? parseFloat(omdb.imdbRating) : null;
+            metacritic_score = omdb.Metascore ? parseInt(omdb.Metascore, 10) : null;
+            console.log(`Got OMDb data: IMDb rating=${imdb_rating}, Metacritic=${metacritic_score}`);
+          } else {
+            console.log(`OMDb returned error: ${omdb.Error || "Unknown error"}`);
+          }
+        } else {
+          console.log(`OMDb API request failed with status: ${omdbRes.status}`);
+        }
+      } catch (omdbError) {
+        console.error(`OMDb API error for ${imdb_id}:`, omdbError);
+      // Continue without OMDb data
+      }
+    }
+    // Prepare data for upsert (include id for primary key upsert)
+    const movieData = {
+      id,
+      tmdb_id: tmdbId,
+      imdb_id,
+      title,
+      overview,
+      runtime,
+      release_year,
+      mpaa_rating,
+      imdb_rating,
+      metacritic_score,
+      tmdb_rating,
+      genres,
+      director,
+      cast_list,
+      cached_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    console.log(`DEBUG imdb_rating for ${title}:`, imdb_rating);
+    console.log(`Upserting movie data for: ${title}`);
+    // Upsert into Supabase using id as conflict target
+    const upsertRes = await fetch(`${supabaseUrl}/rest/v1/movies?on_conflict=id`, {
+      method: "POST",
+      headers: {
+        "apikey": supabaseKey,
+        "Authorization": `Bearer ${supabaseKey}`,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates"
+      },
+      body: JSON.stringify([
+        movieData
+      ])
+    });
+    const upsertBody = await upsertRes.text();
+    console.log(`Upsert response status: ${upsertRes.status}`);
+    console.log(`Upsert response body: ${upsertBody}`);
+    if (!upsertRes.ok) {
+      throw new Error(`Supabase upsert failed: ${upsertRes.status} - ${upsertBody}`);
+    }
+    console.log(`Successfully enriched movie: ${title}`);
+    return {
+      tmdb_id: tmdbId,
+      title,
+      status: "success"
+    };
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+    console.error(`Error enriching movie ${tmdbId}:`, error);
+    throw error; // Re-throw to be handled by the caller
   }
-})
+}
+Deno.serve(async (req)=>{
+  console.log("update-movie-batch function started");
+  // NOTE: Ignore any Authorization header from the client. All Supabase API calls use the Service Role key from env.
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const tmdbApiKey = Deno.env.get("TMDB_API_KEY");
+    const omdbApiKey = Deno.env.get("OMDB_API_KEY");
+    if (!supabaseUrl || !supabaseKey || !tmdbApiKey) {
+      console.error("Missing required environment variables");
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Missing required environment variables"
+      }), {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+    }
+    // Parse batching params from request
+    let startIndex = 0;
+    let batchSize = 10;
+    let requestDelay = 300;
+    try {
+      const body = await req.json();
+      if (typeof body.startIndex === 'number') startIndex = body.startIndex;
+      if (typeof body.batchSize === 'number') batchSize = body.batchSize;
+      if (typeof body.requestDelay === 'number') requestDelay = body.requestDelay;
+    } catch  {}
+    // DEBUG: Print the movies API URL
+    // Change filter: only fetch movies where overview IS NULL (i.e., not yet TMDB-enriched)
+    const filter = 'overview.is.null';
+    const moviesApiUrl = `${supabaseUrl}/rest/v1/movies?select=id,tmdb_id,title&order=id.asc&${filter}&offset=${startIndex}&limit=${batchSize}`;
+    console.log('Movies API URL:', moviesApiUrl);
+    const moviesRes = await fetch(moviesApiUrl, {
+      headers: {
+        "apikey": supabaseKey
+      }
+    });
+    if (!moviesRes.ok) {
+      const errorText = await moviesRes.text();
+      throw new Error(`Failed to fetch movies from Supabase: ${moviesRes.status} - ${errorText}`);
+    }
+    const movies = await moviesRes.json();
+    // Get total count for hasMore (only unenriched)
+    const countRes = await fetch(`${supabaseUrl}/rest/v1/movies?select=id&${filter}`, {
+      headers: {
+        "apikey": supabaseKey
+      }
+    });
+    const allMovies = await countRes.json();
+    const totalCount = allMovies.length;
+    const hasMore = startIndex + batchSize < totalCount;
+    console.log(`Found ${movies.length} unenriched movies in this batch, total unenriched: ${totalCount}`);
+    const results = [];
+    for (const movie of movies){
+      if (!movie.tmdb_id) {
+        console.log(`Skipping movie with ID ${movie.id} - no TMDB ID`);
+        continue;
+      }
+      try {
+        console.log(`Processing movie: ${movie.title || movie.id} (TMDB ID: ${movie.tmdb_id})`);
+        // Pass movie.id (UUID) and movie.tmdb_id
+        const result = await enrichMovie(movie.id, movie.tmdb_id, supabaseUrl, supabaseKey, tmdbApiKey, omdbApiKey);
+        results.push({
+          id: movie.id,
+          tmdbId: movie.tmdb_id,
+          title: movie.title,
+          status: "success"
+        });
+      } catch (err) {
+        console.error(`Error processing movie ${movie.title || movie.id}:`, err);
+        results.push({
+          id: movie.id,
+          tmdbId: movie.tmdb_id,
+          title: movie.title,
+          status: "error",
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+      // Add delay to avoid rate limits
+      await new Promise((r)=>setTimeout(r, requestDelay));
+    }
+    console.log(`Completed processing ${results.length} movies in this batch`);
+    return new Response(JSON.stringify({
+      success: true,
+      message: `Enriched ${results.filter((r)=>r.status === "success").length} movies successfully. ${results.filter((r)=>r.status === "error").length} failed.`,
+      batchInfo: {
+        processedBatch: {
+          startIndex,
+          size: batchSize
+        },
+        nextBatch: {
+          startIndex: startIndex + batchSize,
+          size: batchSize
+        },
+        hasMore
+      },
+      results
+    }), {
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+  } catch (error) {
+    console.error("Fatal error in update-movie-batch:", error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+  }
+});

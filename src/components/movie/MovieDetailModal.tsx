@@ -329,78 +329,78 @@ export default function MovieDetailModal({
                       <div>
                         <h5 className="font-medium text-gray-800 mb-2">Overview</h5>
                         <p className="text-sm text-gray-600 leading-relaxed">
-                          {movieDetails.overview}
+                          {movieDetails.overview ?? "N/A"}
                         </p>
                       </div>
-                      
                       {/* Quick Info Grid */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-gray-500" />
                           <span className="text-sm text-gray-600">
-                            {movieDetails.runtime} min
+                            {movieDetails.runtime ?? "N/A"} min
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-gray-500" />
                           <span className="text-sm text-gray-600">
-                            {movie.release_year}
+                            {movieDetails.release_year ?? "N/A"}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-gray-500" />
                           <span className="text-sm text-gray-600">
-                            {movieDetails.rating}
+                            {movieDetails.mpaa_rating ?? "N/A"}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Star className="w-4 h-4 text-yellow-500" />
                           <span className="text-sm text-gray-600">
-                            IMDb: {movieDetails.imdb_rating}/10
+                            IMDb: {movieDetails.imdb_rating ?? "N/A"}/10
                           </span>
                         </div>
                       </div>
-                      
                       {/* Genres */}
                       <div>
                         <h5 className="font-medium text-gray-800 mb-2">Genres</h5>
                         <div className="flex flex-wrap gap-2">
-                          {movieDetails.genres.map((genre: string, index: number) => (
-                            <span
-                              key={index}
-                              className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full"
-                            >
-                              {genre}
-                            </span>
-                          ))}
+                          {Array.isArray(movieDetails.genres) && movieDetails.genres.length > 0 ? (
+                            movieDetails.genres.map((genre: string, index: number) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full"
+                              >
+                                {genre}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-sm text-gray-600">N/A</span>
+                          )}
                         </div>
                       </div>
-                      
                       {/* Director & Cast */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <h5 className="font-medium text-gray-800 mb-2">Director</h5>
-                          <p className="text-sm text-gray-600">{movieDetails.director}</p>
+                          <p className="text-sm text-gray-600">{movieDetails.director ?? "N/A"}</p>
                         </div>
                         <div>
                           <h5 className="font-medium text-gray-800 mb-2">Cast</h5>
                           <p className="text-sm text-gray-600">
-                            {movieDetails.cast.join(", ")}
+                            {Array.isArray(movieDetails.cast_list) && movieDetails.cast_list.length > 0 ? movieDetails.cast_list.join(", ") : "N/A"}
                           </p>
                         </div>
                       </div>
-                      
                       {/* Scores */}
                       <div className="grid grid-cols-2 gap-4 pt-2">
                         <div className="text-center p-3 bg-gray-50 rounded-lg">
                           <div className="text-lg font-bold text-gray-900">
-                            {movieDetails.imdb_rating}
+                            {movieDetails.imdb_rating ?? "N/A"}
                           </div>
                           <div className="text-xs text-gray-500">IMDb Rating</div>
                         </div>
                         <div className="text-center p-3 bg-gray-50 rounded-lg">
                           <div className="text-lg font-bold text-gray-900">
-                            {movieDetails.metacritic_score}
+                            {movieDetails.metacritic_score ?? "N/A"}
                           </div>
                           <div className="text-xs text-gray-500">Metacritic Score</div>
                         </div>

@@ -61,14 +61,16 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
 
 
   return (
-    <div 
-      className={`px-4 py-0 rounded-lg mb-1 hover:bg-gray-50  dark:hover:bg-gray-800 dark:bg-gray-900  ${onClick ? 'cursor-pointer' : ''}`}
+    <div
+      className={`px-4 py-3 mb-3 rounded-xl border border-[#232326]/80 bg-[#1c1c1e]/60 hover:bg-[#232326]/90 transition duration-200 shadow-sm ${
+        onClick ? 'cursor-pointer' : ''
+      } ${ranking && ranking <= 10 ? 'border-l-4 border-yellow-500' : 'border-l-4 border-transparent'}`}
       onClick={handleClick}
       data-testid="movie-row-card"
+      style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}
     >
       {/* Desktop Layout */}
       <div className="hidden md:flex items-center justify-between gap-4">
-
         {/* Ranking Dropdown */}
         <RankingDropdown
           ranking={ranking}
@@ -82,10 +84,9 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
             alt={movie.title}
             width={100}
             height={75}
-            className="rounded-lg"
+            className="rounded-md shadow-md"
             unoptimized
             onError={(e) => {
-              // Hide broken image and show fallback
               e.currentTarget.style.display = 'none';
               const fallback = e.currentTarget.nextElementSibling as HTMLElement;
               if (fallback) fallback.style.display = 'flex';
@@ -97,14 +98,14 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
             width={100}
             height={75}
             title={movie.title}
-            className="rounded-lg shadow"
+            className="rounded-md shadow-md"
           />
         )}
 
         {/* Details */}
         <div className="flex-1">
-          <h3 className="text-md font-semibold text-gray-900 dark:text-white">{movie.title}</h3>
-          <div className="text-sm text-gray-600 dark:text-gray-400">{movie.release_year}</div>
+          <h3 className="text-lg font-semibold text-white leading-snug truncate">{movie.title}</h3>
+          <p className="text-sm text-gray-400">{movie.release_year}</p>
         </div>
 
         {/* Seen It */}
@@ -113,15 +114,14 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
           onClick={() => onUpdate(movie.id, { seen_it: !seenIt })}
           watchedLabel="Seen It"
         />
-
       </div>
 
       {/* Mobile Layout */}
       <div className="md:hidden">
-        <div className="flex items-stretch gap-3 min-h-[90px]">
+        <div className="flex items-stretch gap-3 min-h-[100px]">
           {/* Row Number */}
           {typeof index === 'number' && (
-            <div className="w-6 flex items-center justify-end text-xs font-bold text-gray-400 dark:text-gray-500 select-none pr-1">
+            <div className="w-6 flex items-center justify-end text-xs font-bold text-gray-400 select-none pr-1">
               {index + 1}
             </div>
           )}
@@ -133,10 +133,9 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
                 alt={movie.title}
                 width={160}
                 height={90}
-                className="rounded shadow h-full object-cover"
+                className="rounded-md shadow-md h-full object-cover"
                 unoptimized
                 onError={(e) => {
-                  // Hide broken image and show fallback
                   e.currentTarget.style.display = 'none';
                   const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                   if (fallback) fallback.style.display = 'flex';
@@ -148,7 +147,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
                 width={160}
                 height={90}
                 title={movie.title}
-                className="rounded shadow"
+                className="rounded-md shadow-md"
               />
             )}
           </div>
@@ -156,8 +155,8 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
           {/* Details - Fill remaining space */}
           <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
             <div>
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate">{movie.title}</h3>
-              <div className="text-sm text-gray-600 dark:text-gray-400">{movie.release_year}</div>
+              <h3 className="text-lg font-semibold text-white leading-snug truncate">{movie.title}</h3>
+              <p className="text-sm text-gray-400">{movie.release_year}</p>
             </div>
             
             {/* Controls Row - At bottom */}

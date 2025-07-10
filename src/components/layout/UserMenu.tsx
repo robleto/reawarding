@@ -48,13 +48,13 @@ export function UserMenu({ onLoginClick, onSignupClick }: UserMenuProps) {
       <div className="flex items-center gap-3">
         <button
           onClick={onLoginClick}
-          className="text-sm font-medium text-gray-700 hover:text-gray-900"
+          className="text-sm font-medium text-gray-700 dark:text-white hover:text-gray-900 dark:hover:text-gold transition-colors"
         >
           Log In
         </button>
         <button
           onClick={onSignupClick}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-400 rounded-lg transition-colors shadow"
         >
           Sign Up
         </button>
