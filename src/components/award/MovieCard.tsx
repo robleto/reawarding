@@ -2,11 +2,10 @@ import React from "react";
 import Image from "next/image";
 import { Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
+import type { Movie } from "@/types/types";
 
 interface MovieCardProps {
-	title: string;
-	imageUrl: string;
-	rating: number;
+	movie: Movie;
 	onClick?: () => void;
 }
 
@@ -35,9 +34,10 @@ const ImageFallback = ({
 	</div>
 );
 
-export default function MovieCard({ title, imageUrl, rating, onClick }: MovieCardProps) {
+export default function MovieCard({ movie, onClick }: MovieCardProps) {
+	const rating = movie.rankings?.[0]?.ranking ?? 0;
 	const { text, background } = getRatingStyle(rating);
-	const hasValidImage = imageUrl && imageUrl.trim() !== '' && !imageUrl.includes('placeholder');
+	const hasValidImage = movie.thumb_url && movie.thumb_url.trim() !== '' && !movie.thumb_url.includes('placeholder');
 
 	return (
 		<article
@@ -47,8 +47,8 @@ export default function MovieCard({ title, imageUrl, rating, onClick }: MovieCar
 			<div className="relative aspect-video rounded-lg shadow-sm dark:shadow-gray-600 overflow-hidden bg-gray-100">
 				{hasValidImage ? (
 					<Image
-						src={imageUrl}
-						alt={title}
+						src={movie.thumb_url}
+						alt={movie.title}
 						width={160}
 						height={90}
 						className="object-cover w-full h-full"
@@ -61,7 +61,7 @@ export default function MovieCard({ title, imageUrl, rating, onClick }: MovieCar
 					/>
 				) : null}
 				{!hasValidImage && (
-					<ImageFallback width={160} height={90} title={title} className="rounded" />
+					<ImageFallback width={160} height={90} title={movie.title} className="rounded" />
 				)}
 				{/* Overlay rating badge */}
 				<div
@@ -72,7 +72,7 @@ export default function MovieCard({ title, imageUrl, rating, onClick }: MovieCar
 				</div>
 			</div>
 			<h4 className="mt-2 text-sm font-semibold text-black dark:text-white truncate">
-				{title}
+				{movie.title}
 			</h4>
 		</article>
 	);

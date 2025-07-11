@@ -1,22 +1,14 @@
 import EditableYearSection from "@/components/award/EditableYearSection";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import type { Database } from "@/types/supabase"; // if you're using Supabase types
-
-interface DisplayMovie {
-	id: string;
-	title: string;
-	release_year: number;
-	thumb_url: string;
-	poster_url: string;
-	ranking: number;
-}
+import type { Database } from "@/types/supabase";
+import type { Movie } from "@/types/types";
 
 interface YearData {
 	year: string;
-	winner: DisplayMovie;
-	nominees: DisplayMovie[];
-	allMovies: DisplayMovie[]; // All movies for the year
+	winner: Movie | undefined;
+	nominees: Movie[];
+	allMovies: Movie[]; // All movies for the year
 }
 
 export default async function AwardsPage() {
@@ -43,7 +35,7 @@ export default async function AwardsPage() {
 
 	const { data: movies, error } = await supabase
 		.from("movies")
-		.select("id, title, release_year, thumb_url, poster_url, rankings(ranking)")
+		.select("*, rankings(*)")
 		.order("release_year", { ascending: false });
 
 	if (error || !movies) {
@@ -52,37 +44,40 @@ export default async function AwardsPage() {
 		);
 	}
 
-	const moviesWithRankings: DisplayMovie[] = movies.map((movie) => ({
-		id: String(movie.id),
-		title: movie.title,
-		release_year: movie.release_year,
-		thumb_url: movie.thumb_url,
-		poster_url: movie.poster_url,
-		ranking: movie.rankings?.[0]?.ranking ?? 0,
-	}))
-  .filter((m) => m.ranking !== null);
+	const moviesWithRankings: Movie[] = movies
+		.map((movie) => ({
+			...(movie as Movie),
+			rankings: Array.isArray(movie.rankings) ? movie.rankings : [],
+		}))
+		.filter(
+			(m) => m.rankings && m.rankings.length > 0 && m.rankings[0].ranking !== null
+		);
 
-	const groupedByYear = moviesWithRankings.reduce<
-		Record<string, DisplayMovie[]>
-	>((acc, movie) => {
-		const year = movie.release_year;
-		if (!acc[year]) acc[year] = [];
-		acc[year].push(movie);
-		return acc;
-	}, {});
+	const groupedByYear = moviesWithRankings.reduce<Record<string, Movie[]>>(
+		(acc, movie) => {
+			const year = String(movie.release_year);
+			if (!acc[year]) acc[year] = [];
+			acc[year].push(movie);
+			return acc;
+		},
+		{}
+	);
 
 	const formattedYears: YearData[] = Object.entries(groupedByYear)
-		.map(([year, movies]) => {
+		.map(([year, moviesInYear]) => {
 			// Sort by ranking DESC
-			const sorted = [...movies].sort((a, b) => b.ranking - a.ranking);
-			
+			const sorted = [...moviesInYear].sort(
+				(a, b) => (b.rankings[0]?.ranking ?? 0) - (a.rankings[0]?.ranking ?? 0)
+			);
+
 			// Default nominees: top 10 movies ranked 7 or above
 			const defaultNominees = sorted
-				.filter(movie => movie.ranking >= 7)
+				.filter((movie) => (movie.rankings[0]?.ranking ?? 0) >= 7)
 				.slice(0, 10);
-			
+
 			// Default winner: highest ranked among nominees (or highest overall if no 7+ movies)
-			const defaultWinner = defaultNominees.length > 0 ? defaultNominees[0] : sorted[0];
+			const defaultWinner =
+				defaultNominees.length > 0 ? defaultNominees[0] : sorted[0];
 
 			return {
 				year,

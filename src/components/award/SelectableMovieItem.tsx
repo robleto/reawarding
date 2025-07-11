@@ -3,14 +3,7 @@
 import Image from "next/image";
 import { Plus, Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
-
-interface Movie {
-  id: string;
-  title: string;
-  thumb_url: string;
-  poster_url: string;
-  ranking: number;
-}
+import type { Movie } from "@/types/types";
 
 interface SelectableMovieItemProps {
   movie: Movie;
@@ -35,7 +28,8 @@ export default function SelectableMovieItem({
   onSelect,
   disabled = false,
 }: SelectableMovieItemProps) {
-  const ratingStyle = getRatingStyle(movie.ranking);
+  const ranking = movie.rankings?.[0]?.ranking ?? 0;
+  const ratingStyle = getRatingStyle(ranking);
   const hasValidImage = movie.thumb_url && movie.thumb_url.trim() !== '' && !movie.thumb_url.includes('placeholder');
 
   return (
@@ -75,7 +69,7 @@ export default function SelectableMovieItem({
             className="px-2 py-1 text-xs font-bold rounded"
             style={{ backgroundColor: ratingStyle.background, color: ratingStyle.text }}
           >
-            {movie.ranking}
+            {ranking}
           </span>
         </div>
       </div>

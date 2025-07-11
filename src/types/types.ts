@@ -28,7 +28,7 @@ export type Movie = {
 	rankings: {
 		id?: string;
 		seen_it: boolean;
-		ranking: number;
+		ranking: number | null;
 		user_id: string;
 	}[];
 };

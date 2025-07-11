@@ -2,22 +2,20 @@ import React from "react";
 import Image from "next/image";
 import { Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
+import type { Movie } from "@/types/types";
 
 interface WinnerCardProps {
-	title: string;
-	poster_url: string;
-	rating: number;
+	movie: Movie;
 	onClick?: () => void;
 }
 
 // Fallback component for missing poster images
 const WinnerPosterFallback = ({ 
-  title, 
-  rating 
+  movie
 }: { 
-  title: string; 
-  rating: number; 
+  movie: Movie;
 }) => {
+  const rating = movie.rankings?.[0]?.ranking ?? 0;
   const { background, text } = getRatingStyle(rating);
   
   return (
@@ -25,7 +23,7 @@ const WinnerPosterFallback = ({
       <div className="text-center px-4 text-gray-400 dark:text-gray-500">
         <Film className="w-16 h-16 mx-auto mb-2" />
         <div className="text-sm font-medium text-center leading-tight">
-          {title}
+          {movie.title}
         </div>
       </div>
       
@@ -41,15 +39,14 @@ const WinnerPosterFallback = ({
 };
 
 export default function WinnerCard({
-	title,
-	poster_url,
-	rating,
+	movie,
 	onClick,
 }: WinnerCardProps) {
+	const rating = movie.rankings?.[0]?.ranking ?? 0;
 	const { background, text } = getRatingStyle(rating);
 
 	// Check if poster image exists and is valid
-	const hasValidPoster = poster_url && poster_url.trim() !== '' && !poster_url.includes('placeholder');
+	const hasValidPoster = movie.poster_url && movie.poster_url.trim() !== '' && !movie.poster_url.includes('placeholder');
 
 	return (
 		<article 
@@ -60,8 +57,8 @@ export default function WinnerCard({
 			{hasValidPoster ? (
 				<div className="relative w-full aspect-[2/3] my-4 mx-auto rounded-xl overflow-hidden shadow-lg dark:shadw-gray-900">
 					<Image
-						src={poster_url}
-						alt={title}
+						src={movie.poster_url}
+						alt={movie.title}
 						fill
 						className="object-contain"
 						sizes="(max-width: 768px) 100vw, 240px"
@@ -86,12 +83,12 @@ export default function WinnerCard({
 					</div>
 				</div>
 			) : (
-				<WinnerPosterFallback title={title} rating={rating} />
+				<WinnerPosterFallback movie={movie} />
 			)}
 
 			{/* Movie title */}
 			<h4 className="mt-3 text-xl font-semibold text-[#1a3448] dark:text-white">
-				{title}
+				{movie.title}
 			</h4>
 		</article>
 	);

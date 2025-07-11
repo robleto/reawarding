@@ -155,7 +155,13 @@ export default function FilmsPage() {
 	
 	// Generate unique years and ranks for filter dropdowns
 	const uniqueYears = Array.from(new Set(movies.map((m) => m.release_year).filter(Boolean))).sort((a, b) => b - a);
-	const uniqueRanks = Array.from(new Set(movies.map((m) => m.rankings?.[0]?.ranking).filter(Boolean))).sort((a, b) => a - b);
+	const uniqueRanks = Array.from(
+		new Set(
+			movies
+				.map((m) => m.rankings?.[0]?.ranking)
+				.filter((rank): rank is number => typeof rank === "number")
+		)
+	).sort((a, b) => a - b);
 
 	const handleOpenModal = (movie: Movie) => {
 		setSelectedMovie(movie);

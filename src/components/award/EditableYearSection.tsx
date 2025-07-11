@@ -10,17 +10,7 @@ import WinnerCard from "./WinnerCard";
 import DraggableNomineeCard from "./DraggableNomineeCard";
 import SelectableMovieItem from "./SelectableMovieItem";
 import MovieDetailModal from "../movie/MovieDetailModal";
-
-interface Movie {
-  id: string;
-  title: string;
-  thumb_url: string;
-  poster_url: string;
-  ranking: number;
-  release_year?: number;
-  created_at?: string;
-  rankings?: any[];
-}
+import type { Movie } from "@/types/types";
 
 interface AwardNomination {
   nominee_ids: number[];
@@ -64,7 +54,7 @@ export default function EditableYearSection({
   const [nominees, setNominees] = useState<Movie[]>([]);
   const [selectedWinner, setSelectedWinner] = useState<Movie | null>(null);
   const [availableMovies, setAvailableMovies] = useState<Movie[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingNominations, setLoadingNominations] = useState(false);
@@ -102,7 +92,7 @@ export default function EditableYearSection({
         if (data.nominations && data.nominations.nominee_ids && data.nominations.nominee_ids.length > 0) {
           // User has custom nominations - use them for display
           const nomineeMovies = data.nominations.nominee_ids
-            .map((id: string) => allMoviesForYear.find(m => m.id === id))
+            .map((id: number) => allMoviesForYear.find(m => m.id === id))
             .filter(Boolean) as Movie[];
           const winnerMovie = data.nominations.winner_id 
             ? nomineeMovies.find(m => m.id === data.nominations.winner_id) || null
@@ -171,11 +161,11 @@ export default function EditableYearSection({
     setError(null);
   };
 
-  const handleRemoveNominee = (movieId: string) => {
+  const handleRemoveNominee = (movieId: number) => {
     const movieToRemove = nominees.find(m => m.id === movieId);
     if (movieToRemove) {
       setNominees(nominees.filter(m => m.id !== movieId));
-      setAvailableMovies([...availableMovies, movieToRemove].sort((a, b) => b.ranking - a.ranking));
+      setAvailableMovies([...availableMovies, movieToRemove].sort((a, b) => (b.rankings?.[0]?.ranking ?? 0) - (a.rankings?.[0]?.ranking ?? 0)));
       
       // If removing the winner, clear winner selection
       if (selectedWinner?.id === movieId) {
@@ -189,7 +179,7 @@ export default function EditableYearSection({
   };
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
+    setActiveId(event.active.id as number);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -297,23 +287,35 @@ export default function EditableYearSection({
   };
 
   const handleModalUpdate = (movieId: number, newRanking: number | null, newSeenIt: boolean) => {
-    // Find the movie in allMoviesForYear and update its ranking details
-    const updatedMovies = allMoviesForYear.map(m => {
-      if (m.id === String(movieId)) {
-        return {
-          ...m,
-          ranking: newRanking ?? 0,
-          rankings: [{
+    const updateMovieState = (movieList: Movie[]) =>
+      movieList.map(m => {
+        if (m.id === movieId) {
+          const updatedRankings = [{
             ...(m.rankings?.[0] || {}),
             ranking: newRanking,
             seen_it: newSeenIt,
-          }],
-        };
-      }
-      return m;
-    });
-    // Here you might want to trigger a state update if `allMoviesForYear` is a state variable
-    // For now, this just prepares the data for re-use
+            // user_id might be missing, so let's ensure it's there if we have a user
+            user_id: m.rankings?.[0]?.user_id || user?.id || '',
+          }];
+          return { ...m, rankings: updatedRankings };
+        }
+        return m;
+      });
+
+    // Update all relevant state variables
+    setNominees(updateMovieState(nominees));
+    setAvailableMovies(updateMovieState(availableMovies));
+    setCurrentNominees(updateMovieState(currentNominees));
+
+    if (selectedWinner?.id === movieId) {
+      setSelectedWinner(prev => prev ? updateMovieState([prev])[0] : null);
+    }
+    if (currentWinner?.id === movieId) {
+      setCurrentWinner(prev => prev ? updateMovieState([prev])[0] : null);
+    }
+    if (selectedMovie?.id === movieId) {
+      setSelectedMovie(prev => prev ? updateMovieState([prev])[0] : null);
+    }
   };
 
   // Display logic
@@ -327,21 +329,8 @@ export default function EditableYearSection({
     // This would typically come from a user's rankings data
     // For now, we'll use the movie's existing ranking
     return {
-      ranking: movie.ranking || null,
-      seenIt: movie.ranking > 0, // Assume seen if rated
-    };
-  };
-
-  // Convert Movie to the type expected by MovieDetailModal
-  const convertMovieForModal = (movie: Movie): import('@/types/types').Movie => {
-    return {
-      id: Number(movie.id),
-      title: movie.title,
-      release_year: movie.release_year || 2024,
-      poster_url: movie.poster_url,
-      thumb_url: movie.thumb_url,
-      created_at: movie.created_at || new Date().toISOString(),
-      rankings: movie.rankings || [],
+      ranking: movie.rankings?.[0]?.ranking ?? null,
+      seenIt: movie.rankings?.[0]?.seen_it ?? false,
     };
   };
 
@@ -398,9 +387,7 @@ export default function EditableYearSection({
                 </div>
                 {displayWinner ? (
                   <WinnerCard
-                    title={displayWinner.title}
-                    poster_url={displayWinner.poster_url}
-                    rating={displayWinner.ranking}
+                    movie={displayWinner}
                     onClick={() => handleOpenModal(displayWinner)}
                   />
                 ) : (
@@ -440,9 +427,7 @@ export default function EditableYearSection({
                     .map((movie) => (
                       <MovieCard
                         key={movie.id}
-                        title={movie.title}
-                        imageUrl={movie.thumb_url}
-                        rating={movie.ranking}
+                        movie={movie}
                         onClick={() => handleOpenModal(movie)}
                       />
                   ))}
@@ -580,41 +565,11 @@ export default function EditableYearSection({
       {/* Movie Detail Modal */}
       {selectedMovie && (
         <MovieDetailModal
-          movie={convertMovieForModal(selectedMovie)}
+          movie={selectedMovie}
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onUpdate={handleModalUpdate}
-          initialRanking={getMovieRankingData(selectedMovie).ranking}
-          initialSeenIt={getMovieRankingData(selectedMovie).seenIt}
         />
-      )}
-      {/* Sticky action bar for mobile - absolutely outside content, always at viewport bottom */}
-      {isEditing && (
-        <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-4 py-3 flex gap-2 md:hidden shadow-2xl transition-all">
-          <button
-            onClick={handleResetToDefault}
-            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
-            title="Reset to default nominees (top 10 ranked 7+)"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Reset
-          </button>
-          <button
-            onClick={handleCancelEditing}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <X className="w-4 h-4" />
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
       )}
     </section>
   );

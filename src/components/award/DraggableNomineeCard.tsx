@@ -5,20 +5,13 @@ import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
 import { GripVertical, X, Crown, Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
-
-interface Movie {
-  id: string;
-  title: string;
-  thumb_url: string;
-  poster_url: string;
-  ranking: number;
-}
+import type { Movie } from "@/types/types";
 
 interface DraggableNomineeCardProps {
   movie: Movie;
   isWinner: boolean;
   onSetWinner: (movie: Movie) => void;
-  onRemove: (movieId: string) => void;
+  onRemove: (movieId: number) => void;
 }
 
 // Fallback component for missing images
@@ -54,7 +47,8 @@ export default function DraggableNomineeCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const ratingStyle = getRatingStyle(movie.ranking);
+  const ranking = movie.rankings?.[0]?.ranking ?? 0;
+  const ratingStyle = getRatingStyle(ranking);
   const hasValidImage = movie.thumb_url && movie.thumb_url.trim() !== '' && !movie.thumb_url.includes('placeholder');
 
   return (
@@ -139,7 +133,7 @@ export default function DraggableNomineeCard({
             className="px-2 py-0.5 text-xs font-bold rounded"
             style={{ backgroundColor: ratingStyle.background, color: ratingStyle.text }}
           >
-            {movie.ranking}
+            {ranking}
           </span>
           {isWinner && (
             <div className="flex items-center gap-1 text-yellow-600">
