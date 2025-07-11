@@ -296,6 +296,26 @@ export default function EditableYearSection({
     setIsModalOpen(false);
   };
 
+  const handleModalUpdate = (movieId: number, newRanking: number | null, newSeenIt: boolean) => {
+    // Find the movie in allMoviesForYear and update its ranking details
+    const updatedMovies = allMoviesForYear.map(m => {
+      if (m.id === String(movieId)) {
+        return {
+          ...m,
+          ranking: newRanking ?? 0,
+          rankings: [{
+            ...(m.rankings?.[0] || {}),
+            ranking: newRanking,
+            seen_it: newSeenIt,
+          }],
+        };
+      }
+      return m;
+    });
+    // Here you might want to trigger a state update if `allMoviesForYear` is a state variable
+    // For now, this just prepares the data for re-use
+  };
+
   // Display logic
   const displayNominees = loadingNominations ? [] : (isEditing ? nominees : currentNominees);
   const displayWinner = loadingNominations ? null : (isEditing ? selectedWinner : currentWinner);
@@ -326,7 +346,7 @@ export default function EditableYearSection({
   };
 
   return (
-    <section className="w-full max-w-screen-xl px-6 py-0 mx-auto my-0 font-sans">
+    <section className="w-full max-w-screen-xl px-0 md:px-6 py-0 mx-auto my-0 font-sans">
       <div className="relative flex flex-col gap-6 md:flex-row md:gap-8">
         {/* Timeline and year label */}
         <h2 className="md:absolute block top-0 md:top-[125px] left-0 text-3xl font-bold text-[#A0A0A0] mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-widest">
@@ -341,7 +361,7 @@ export default function EditableYearSection({
         <div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
 
         {/* Content block */}
-        <div className={`flex flex-col w-full bg-white rounded-xl shadow-md border dark:border-[#232326]/80 dark:bg-[#1c1c1e]/60 hover:bg-[#232326]/90 hover:shadow-lg dark:shadow-gray-950 p-6 mb-24${isEditing ? " dark:bg-gray-700" : " dark:bg-[#1c1c1e]/60"}`}>
+        <div className={`award-editable-section flex flex-col w-full bg-white rounded-xl shadow-md dark-glass p-4 md:p-6 mb-24${isEditing ? ' pb-32 md:pb-0 dark:bg-gray-700' : ' dark-glass'}`}>
 
           {/* Error Message */}
           {error && (
@@ -435,9 +455,9 @@ export default function EditableYearSection({
               {/* Two Column Layout for Nominees and Available Movies */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Nominees Section - Left 2/3 */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 relative pb-32 md:pb-0">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xl">✉️</span>
                       <h3 className="text-2xl font-bold text-[#7e7e7e]">
                         Nominees
@@ -451,7 +471,8 @@ export default function EditableYearSection({
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    {/* Action buttons for md+ */}
+                    <div className="hidden md:flex items-center gap-2">
                       <button
                         onClick={handleResetToDefault}
                         className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
@@ -490,7 +511,7 @@ export default function EditableYearSection({
                         items={nominees.map(m => m.id)}
                         strategy={verticalListSortingStrategy}
                       >
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
                           {nominees.map((movie) => (
                             <DraggableNomineeCard
                               key={movie.id}
@@ -562,9 +583,38 @@ export default function EditableYearSection({
           movie={convertMovieForModal(selectedMovie)}
           isOpen={isModalOpen}
           onClose={handleCloseModal}
+          onUpdate={handleModalUpdate}
           initialRanking={getMovieRankingData(selectedMovie).ranking}
           initialSeenIt={getMovieRankingData(selectedMovie).seenIt}
         />
+      )}
+      {/* Sticky action bar for mobile - absolutely outside content, always at viewport bottom */}
+      {isEditing && (
+        <div className="fixed bottom-0 left-0 right-0 z-[100] bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 px-4 py-3 flex gap-2 md:hidden shadow-2xl transition-all">
+          <button
+            onClick={handleResetToDefault}
+            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
+            title="Reset to default nominees (top 10 ranked 7+)"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Reset
+          </button>
+          <button
+            onClick={handleCancelEditing}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <X className="w-4 h-4" />
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
       )}
     </section>
   );

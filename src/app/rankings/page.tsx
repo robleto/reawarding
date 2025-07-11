@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Movie } from "@/types/types";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
@@ -18,6 +18,7 @@ import {
   GROUP_OPTIONS,
   SortKey,
   GroupKey,
+  SortOrder,
 } from "@/utils/sharedMovieUtils";
 import { useSavePromptBanner } from "@/hooks/useSavePromptBanner";
 import MovieFilters from "@/components/filters/MovieFilters";
@@ -26,7 +27,21 @@ export const dynamic = "force-dynamic";
 
 export default function RankingsPage() {
   const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
-  const [viewMode, setViewMode] = useViewMode("list");
+  // Use a rankings-specific view mode with list as default for tabular feel
+  const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("rankingsViewMode") as "grid" | "list" | null;
+      return stored || "list"; // Default to list for rankings
+    }
+    return "list";
+  });
+
+  // Save rankings-specific view mode preference
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("rankingsViewMode", viewMode);
+    }
+  }, [viewMode]);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -36,22 +51,119 @@ export default function RankingsPage() {
   // Filter to only movies with rankings for the rankings page
   const moviesWithRankings = movies.filter((movie) => movie.rankings && movie.rankings.length > 0);
   
-  const {
-    hasMounted,
-    sortBy,
-    sortOrder,
-    groupBy,
-    filterType,
-    filterValue,
-    setSortBy,
-    setSortOrder,
-    setGroupBy,
-    setFilterType,
-    setFilterValue,
-    groupedMovies,
-    uniqueYears,
-    uniqueRanks,
-  } = useMovieFilters(moviesWithRankings);
+  // Rankings-specific filter state with custom defaults
+  const [hasMounted, setHasMounted] = useState(false);
+  const [sortBy, setSortBy] = useState<SortKey>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("rankingsSortBy") as SortKey;
+      return stored || "ranking"; // Default to ranking for rankings page
+    }
+    return "ranking";
+  });
+  
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("rankingsSortOrder") as SortOrder;
+      return stored || "desc"; // Default to desc for rankings page
+    }
+    return "desc";
+  });
+  
+  const [groupBy, setGroupBy] = useState<GroupKey>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("rankingsGroupBy") as GroupKey;
+      return stored || "release_year"; // Default to release_year for rankings page
+    }
+    return "release_year";
+  });
+  
+  const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie">("none");
+  const [filterValue, setFilterValue] = useState<string>("all");
+  
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  
+  // Save rankings-specific filter state
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("rankingsSortBy", sortBy);
+      localStorage.setItem("rankingsSortOrder", sortOrder);
+      localStorage.setItem("rankingsGroupBy", groupBy);
+    }
+  }, [sortBy, sortOrder, groupBy]);
+  
+  // Filter movies based on current filter settings
+  const filteredMovies = moviesWithRankings.filter((movie) => {
+    if (filterType === "year") {
+      return filterValue === "all" || movie.release_year === Number(filterValue);
+    }
+    if (filterType === "rank") {
+      return filterValue === "all" || movie.rankings?.[0]?.ranking === Number(filterValue);
+    }
+    if (filterType === "movie") {
+      return String(movie.id) === filterValue;
+    }
+    return true;
+  });
+  
+  // Import groupMovies function or implement grouping logic here
+  const groupedMovies = (() => {
+    if (groupBy === "none") {
+      const sorted = [...filteredMovies].sort((a, b) => {
+        if (sortBy === "ranking") {
+          const aRank = a.rankings?.[0]?.ranking || 0;
+          const bRank = b.rankings?.[0]?.ranking || 0;
+          return sortOrder === "asc" ? aRank - bRank : bRank - aRank;
+        }
+        if (sortBy === "title") {
+          return sortOrder === "asc" 
+            ? a.title.localeCompare(b.title)
+            : b.title.localeCompare(a.title);
+        }
+        if (sortBy === "release_year") {
+          return sortOrder === "asc" 
+            ? a.release_year - b.release_year
+            : b.release_year - a.release_year;
+        }
+        return 0;
+      });
+      return [{ key: "All Movies", movies: sorted }];
+    }
+    
+    if (groupBy === "release_year") {
+      const groups = new Map<number, Movie[]>();
+      filteredMovies.forEach(movie => {
+        const year = movie.release_year;
+        if (!groups.has(year)) {
+          groups.set(year, []);
+        }
+        groups.get(year)!.push(movie);
+      });
+      
+      return Array.from(groups.entries())
+        .sort(([a], [b]) => b - a) // Sort years descending
+        .map(([year, movies]) => ({
+          key: year.toString(),
+          movies: movies.sort((a, b) => {
+            if (sortBy === "ranking") {
+              const aRank = a.rankings?.[0]?.ranking || 0;
+              const bRank = b.rankings?.[0]?.ranking || 0;
+              return sortOrder === "asc" ? aRank - bRank : bRank - aRank;
+            }
+            return sortOrder === "asc" 
+              ? a.title.localeCompare(b.title)
+              : b.title.localeCompare(a.title);
+          })
+        }));
+    }
+    
+    return [{ key: "All Movies", movies: filteredMovies }];
+  })();
+  
+  // Generate unique years and ranks for filter dropdowns
+  const uniqueYears = Array.from(new Set(moviesWithRankings.map((m) => m.release_year).filter(Boolean))).sort((a, b) => b - a);
+  const uniqueRanks = Array.from(new Set(moviesWithRankings.map((m) => m.rankings?.[0]?.ranking).filter(Boolean))).sort((a, b) => a - b);
 
   const handleSignupClick = () => {
     setAuthMode("signup");
@@ -74,6 +186,10 @@ export default function RankingsPage() {
     setIsModalOpen(false);
   };
 
+  const handleModalUpdate = (movieId: number, newRanking: number | null, newSeenIt: boolean) => {
+    updateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
+  };
+
   const isDataReady =
     hasMounted &&
     !loading &&
@@ -86,7 +202,7 @@ export default function RankingsPage() {
   // Show empty state for guests with no rankings
   if (isGuest && moviesWithRankings.length === 0) {
     return (
-      <div className="max-w-screen-xl px-6 py-10 mx-auto">
+      <div className="max-w-screen-xl p-4 md:p-6  py-10 mx-auto">
         <div className="text-center py-16">
           <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
             <svg fill="currentColor" viewBox="0 0 20 20">
@@ -174,6 +290,14 @@ export default function RankingsPage() {
         setFilterValue={setFilterValue}
         uniqueYears={uniqueYears}
         uniqueRanks={uniqueRanks}
+        defaults={{
+          viewMode: "list",
+          sortBy: "ranking",
+          sortOrder: "desc",
+          groupBy: "release_year",
+          filterType: "none",
+          filterValue: "all"
+        }}
       />
 
       {groupedMovies.map(({ key, movies }: { key: string; movies: Movie[] }) => (
@@ -217,6 +341,7 @@ export default function RankingsPage() {
                     ranking={r.ranking ?? null}
                     seenIt={r.seen_it ?? false}
                     isLast={index === movies.length - 1}
+                    index={index} // Add index for row numbering
                     onClick={() => handleOpenModal(movie)}
                   />
                 );
@@ -242,6 +367,7 @@ export default function RankingsPage() {
           movie={selectedMovie}
           isOpen={isModalOpen}
           onClose={handleCloseModal}
+          onUpdate={handleModalUpdate}
           initialRanking={selectedMovie.rankings?.[0]?.ranking ?? null}
           initialSeenIt={selectedMovie.rankings?.[0]?.seen_it ?? false}
         />

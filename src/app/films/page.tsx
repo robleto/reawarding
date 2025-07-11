@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieRowCard from "@/components/movie/MovieRowCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
@@ -15,6 +15,7 @@ import {
 	GROUP_OPTIONS,
 	type SortKey,
 	type GroupKey,
+	type SortOrder,
 } from "@/utils/sharedMovieUtils";
 
 import Loader from "@/components/ui/Loading";
@@ -23,25 +24,138 @@ export const dynamic = "force-dynamic";
 
 export default function FilmsPage() {
 	const { movies, loading, user, userId, updateMovieRanking } = useMovieDataWithGuest();
-	const [viewMode, setViewMode] = useViewMode("grid");
+	// Films-specific view mode with grid as default for poster-based display
+	const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+		if (typeof window !== "undefined") {
+			const stored = localStorage.getItem("filmsViewMode") as "grid" | "list" | null;
+			return stored || "grid"; // Default to grid for films
+		}
+		return "grid";
+	});
+	
+	// Save films-specific view mode preference
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			localStorage.setItem("filmsViewMode", viewMode);
+		}
+	}, [viewMode]);
+	
 	const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	
-	const {
-		sortBy,
-		sortOrder,
-		groupBy,
-		filterType,
-		filterValue,
-		setSortBy,
-		setSortOrder,
-		setGroupBy,
-		setFilterType,
-		setFilterValue,
-		groupedMovies,
-		uniqueYears,
-		uniqueRanks,
-	} = useMovieFilters(movies);
+	// Films-specific filter state with custom defaults
+	const [hasMounted, setHasMounted] = useState(false);
+	const [sortBy, setSortBy] = useState<SortKey>(() => {
+		if (typeof window !== "undefined") {
+			const stored = localStorage.getItem("filmsSortBy") as SortKey;
+			return stored || "title"; // Default to title for films page
+		}
+		return "title";
+	});
+	
+	const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+		if (typeof window !== "undefined") {
+			const stored = localStorage.getItem("filmsSortOrder") as SortOrder;
+			return stored || "asc"; // Default to asc for films page
+		}
+		return "asc";
+	});
+	
+	const [groupBy, setGroupBy] = useState<GroupKey>(() => {
+		if (typeof window !== "undefined") {
+			const stored = localStorage.getItem("filmsGroupBy") as GroupKey;
+			return stored || "release_year"; // Default to release_year for films page
+		}
+		return "release_year";
+	});
+	
+	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie">("none");
+	const [filterValue, setFilterValue] = useState<string>("all");
+	
+	useEffect(() => {
+		setHasMounted(true);
+	}, []);
+	
+	// Save films-specific filter state
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			localStorage.setItem("filmsSortBy", sortBy);
+			localStorage.setItem("filmsSortOrder", sortOrder);
+			localStorage.setItem("filmsGroupBy", groupBy);
+		}
+	}, [sortBy, sortOrder, groupBy]);
+	
+	// Filter movies based on current filter settings
+	const filteredMovies = movies.filter((movie) => {
+		if (filterType === "year") {
+			return filterValue === "all" || movie.release_year === Number(filterValue);
+		}
+		if (filterType === "rank") {
+			return filterValue === "all" || movie.rankings?.[0]?.ranking === Number(filterValue);
+		}
+		if (filterType === "movie") {
+			return String(movie.id) === filterValue;
+		}
+		return true;
+	});
+	
+	// Group and sort logic for films
+	const groupedMovies = (() => {
+		if (groupBy === "none") {
+			const sorted = [...filteredMovies].sort((a, b) => {
+				if (sortBy === "ranking") {
+					const aRank = a.rankings?.[0]?.ranking || 0;
+					const bRank = b.rankings?.[0]?.ranking || 0;
+					return sortOrder === "asc" ? aRank - bRank : bRank - aRank;
+				}
+				if (sortBy === "title") {
+					return sortOrder === "asc" 
+						? a.title.localeCompare(b.title)
+						: b.title.localeCompare(a.title);
+				}
+				if (sortBy === "release_year") {
+					return sortOrder === "asc" 
+						? a.release_year - b.release_year
+						: b.release_year - a.release_year;
+				}
+				return 0;
+			});
+			return [{ key: "All Movies", movies: sorted }];
+		}
+		
+		if (groupBy === "release_year") {
+			const groups = new Map<number, Movie[]>();
+			filteredMovies.forEach(movie => {
+				const year = movie.release_year;
+				if (!groups.has(year)) {
+					groups.set(year, []);
+				}
+				groups.get(year)!.push(movie);
+			});
+			
+			return Array.from(groups.entries())
+				.sort(([a], [b]) => b - a) // Sort years descending
+				.map(([year, movies]) => ({
+					key: year.toString(),
+					movies: movies.sort((a, b) => {
+						if (sortBy === "ranking") {
+							const aRank = a.rankings?.[0]?.ranking || 0;
+							const bRank = b.rankings?.[0]?.ranking || 0;
+							return sortOrder === "asc" ? aRank - bRank : bRank - aRank;
+						}
+						return sortOrder === "asc" 
+							? a.title.localeCompare(b.title)
+							: b.title.localeCompare(a.title);
+					})
+				}));
+		}
+		
+		return [{ key: "All Movies", movies: filteredMovies }];
+	})();
+	
+	// Generate unique years and ranks for filter dropdowns
+	const uniqueYears = Array.from(new Set(movies.map((m) => m.release_year).filter(Boolean))).sort((a, b) => b - a);
+	const uniqueRanks = Array.from(new Set(movies.map((m) => m.rankings?.[0]?.ranking).filter(Boolean))).sort((a, b) => a - b);
 
 	const handleOpenModal = (movie: Movie) => {
 		setSelectedMovie(movie);
@@ -51,6 +165,10 @@ export default function FilmsPage() {
 	const handleCloseModal = () => {
 		setSelectedMovie(null);
 		setIsModalOpen(false);
+	};
+
+	const handleModalUpdate = (movieId: number, newRanking: number | null, newSeenIt: boolean) => {
+		updateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
 	};
 
 	if (!user) {
@@ -84,6 +202,14 @@ export default function FilmsPage() {
 				setFilterValue={setFilterValue}
 				uniqueYears={uniqueYears}
 				uniqueRanks={uniqueRanks}
+				defaults={{
+					viewMode: "grid",
+					sortBy: "title",
+					sortOrder: "asc",
+					groupBy: "release_year",
+					filterType: "none",
+					filterValue: "all"
+				}}
 			/>
 
 			{groupedMovies.map(({ key, movies }: { key: string; movies: import("@/types/types").Movie[] }) => (
@@ -141,6 +267,7 @@ export default function FilmsPage() {
 					movie={selectedMovie}
 					isOpen={isModalOpen}
 					onClose={handleCloseModal}
+					onUpdate={handleModalUpdate}
 					initialRanking={selectedMovie.rankings?.[0]?.ranking ?? null}
 					initialSeenIt={selectedMovie.rankings?.[0]?.seen_it ?? false}
 				/>

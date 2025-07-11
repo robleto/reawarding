@@ -56,15 +56,9 @@ export default function WinnerCard({
 			className={`text-left ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
 			onClick={onClick}
 		>
-			{/* Header with trophy and title */}
-			<div className="inline-flex items-center justify-center gap-2">
-				<span className="text-xl">🏆</span>
-				<h3 className="text-2xl font-bold text-[#cb8601] dark:text-yellow-400">Winner</h3>
-			</div>
-
 			{/* Poster image */}
 			{hasValidPoster ? (
-				<div className="relative w-full aspect-[2/3] my-4 mx-auto rounded-xl overflow-hidden shadow-lg dark:shadow-gray-600">
+				<div className="relative w-full aspect-[2/3] my-4 mx-auto rounded-xl overflow-hidden shadow-lg dark:shadw-gray-900">
 					<Image
 						src={poster_url}
 						alt={title}
@@ -85,7 +79,7 @@ export default function WinnerCard({
 
 					{/* Styled rating badge */}
 					<div
-						className="absolute px-3 py-1 text-sm font-semibold rounded-md bottom-2 right-2"
+						className="absolute px-2 py-1 text-sm font-semibold rounded-md bottom-2 right-2"
 						style={{ backgroundColor: background, color: text }}
 					>
 						{rating}

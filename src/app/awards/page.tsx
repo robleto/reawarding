@@ -94,7 +94,7 @@ export default async function AwardsPage() {
 		.sort((a, b) => Number(b.year) - Number(a.year)); // Year DESC
 
 	return (
-		<div className="p-6 pt-16 mx-auto">
+		<div className="p-4 md:p-6 pt-12 md:pt-16 mx-auto">
 			<main className="flex-1 ">
 				{formattedYears.map((yearData) => (
 					<EditableYearSection

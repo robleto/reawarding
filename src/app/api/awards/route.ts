@@ -188,7 +188,7 @@ export async function POST(request: Request) {
     }
     if (!profile) {
       // Create a minimal profile row (username fallback to user email prefix or user.id)
-      let fallbackUsername = user.email ? user.email.split('@')[0] : user.id.slice(0, 8);
+      const fallbackUsername = user.email ? user.email.split('@')[0] : user.id.slice(0, 8);
       const { error: insertProfileError } = await supabase
         .from('profiles')
         .insert({

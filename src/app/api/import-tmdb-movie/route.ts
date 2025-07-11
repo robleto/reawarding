@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       existingMovie?.thumb_url && existingMovie.thumb_url !== ""
         ? existingMovie.thumb_url
         : fanartThumb || (movie.poster_path ? `https://image.tmdb.org/t/p/w200${movie.poster_path}` : ""),
-    genres: Array.isArray(movie.genres) ? movie.genres.map((g: any) => g.name) : null,
+    genres: Array.isArray(movie.genres) ? movie.genres.map((g: { name: string }) => g.name) : null,
     runtime: movie.runtime || null,
     cached_at: new Date().toISOString(),
     // created_at will be set by DB default

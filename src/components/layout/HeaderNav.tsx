@@ -35,9 +35,9 @@ export default function HeaderNav() {
 
 	return (
 		<>
-			<header className={`fixed top-0 left-0 right-0 z-50 w-full border-b border-gray-200 dark:border-gray-700 transition-all duration-300 ${
+			<header className={`fixed top-0 left-0 right-0 z-50 w-full border-b border-gray-400 dark:border-gray-700 transition-all duration-300 ${
 				hasScrolled 
-					? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-sm dark:shadow-gray-800/50' 
+					? 'dark-background'
 					: 'bg-transparent'
 			}`}>
 				<div className="relative z-10 flex items-center justify-between max-w-screen-xl px-6 py-3 mx-auto gap-x-6">

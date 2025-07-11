@@ -3,6 +3,7 @@ import { SORT_OPTIONS, GROUP_OPTIONS } from "@/utils/sharedMovieUtils";
 import type { SortKey, GroupKey, SortOrder } from "@/utils/sharedMovieUtils";
 import { supabase } from "@/lib/supabaseBrowser";
 import type { Movie } from "@/types/types";
+import { Search, Filter, SortAsc, SortDesc, Grid3X3, List, X, ChevronDown } from "lucide-react";
 
 interface MovieFiltersProps {
   // View mode controls
@@ -28,6 +29,16 @@ interface MovieFiltersProps {
   // Filter options
   uniqueYears: number[];
   uniqueRanks: number[];
+  
+  // Default values for reset functionality
+  defaults?: {
+    viewMode?: "grid" | "list";
+    sortBy?: SortKey;
+    sortOrder?: SortOrder;
+    groupBy?: GroupKey;
+    filterType?: "none" | "year" | "rank" | "movie";
+    filterValue?: string;
+  };
 }
 
 export default function MovieFilters({
@@ -45,11 +56,20 @@ export default function MovieFilters({
   setFilterValue,
   uniqueYears,
   uniqueRanks,
+  defaults = {
+    viewMode: "grid",
+    sortBy: "ranking",
+    sortOrder: "desc",
+    groupBy: "none",
+    filterType: "none",
+    filterValue: "all"
+  }
 }: MovieFiltersProps) {
   // --- Movie search state ---
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState<Movie[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch movie suggestions as user types
@@ -83,202 +103,210 @@ export default function MovieFilters({
 
   // Clear All handler
   const isDefault =
-    filterType === "none" &&
-    filterValue === "all" &&
-    groupBy === "none" &&
-    sortBy === "ranking" &&
-    sortOrder === "desc" &&
-    viewMode === "grid";
+    filterType === (defaults.filterType || "none") &&
+    filterValue === (defaults.filterValue || "all") &&
+    groupBy === (defaults.groupBy || "none") &&
+    sortBy === (defaults.sortBy || "ranking") &&
+    sortOrder === (defaults.sortOrder || "desc") &&
+    viewMode === (defaults.viewMode || "grid");
 
   const handleClearAll = () => {
-    setFilterType("none");
-    setFilterValue("all");
-    setGroupBy("none");
-    setSortBy("ranking");
-    setSortOrder("desc");
-    setViewMode("grid");
+    setFilterType(defaults.filterType || "none");
+    setFilterValue(defaults.filterValue || "all");
+    setGroupBy(defaults.groupBy || "none");
+    setSortBy(defaults.sortBy || "ranking");
+    setSortOrder(defaults.sortOrder || "desc");
+    setViewMode(defaults.viewMode || "grid");
     setSearchTerm("");
   };
 
   return (
-    <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
-      <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-gray-700 dark:text-gray-300">
-        {/* Movie Search */}
-        <div className="relative z-30">
-          <input
-            type="text"
-            placeholder="Search movies..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-            onFocus={() => setShowSuggestions(!!searchTerm)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-transparent dark:text-gray-300 min-w-[180px]"
-          />
+    <div className="mb-6">
+      {/* Main Row - Clean and Minimal */}
+      <div className="flex items-center justify-between gap-4 mb-4">
+        {/* Left: Search Bar */}
+        <div className="relative flex-1 max-w-md">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search movies..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              onFocus={() => setShowSuggestions(!!searchTerm)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-600/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/50 text-gray-300 placeholder-gray-400"
+            />
+          </div>
           {showSuggestions && suggestions.length > 0 && (
-            <ul className="absolute z-30 left-0 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md mt-1 shadow-lg max-h-56 overflow-y-auto">
+            <ul className="absolute z-30 left-0 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg mt-1 shadow-lg max-h-56 overflow-y-auto">
               {suggestions.map((movie) => (
                 <li
                   key={movie.id}
-                  className="px-3 py-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800"
+                  className="px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                   onMouseDown={() => handleSuggestionClick(movie)}
                 >
-                  {movie.title} <span className="text-gray-400 text-xs">({movie.release_year})</span>
+                  <div className="font-medium text-sm">{movie.title}</div>
+                  <div className="text-xs text-gray-500">{movie.release_year}</div>
                 </li>
               ))}
-              <li className="px-3 py-2 text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                Film not here? <a href="/help/add-movie" className="text-blue-600 underline hover:text-blue-800">Learn how to add it.</a>
+              <li className="px-4 py-3 text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                Can't find your movie? <a href="/help/add-movie" className="text-blue-600 underline hover:text-blue-800">Learn how to add it</a>
               </li>
             </ul>
           )}
         </div>
-        {/* Group by */}
-        <div className="flex items-center gap-2">
-          <label htmlFor="group-select" className="dark:text-gray-300">Group by</label>
-          <select
-            id="group-select"
-            value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as GroupKey)}
-            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-transparent dark:text-gray-300"
-          >
-            {GROUP_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value} className="dark:bg-gray-900 dark:text-white">
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
 
-        {/* Sort by */}
+        {/* Center: Quick Actions */}
         <div className="flex items-center gap-2">
-          <label htmlFor="sort-select" className="dark:text-gray-300">Sort by</label>
-          <select
-            id="sort-select"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortKey)}
-            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-transparent dark:text-gray-300"
+          {/* Filters Toggle */}
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+              showAdvancedFilters || filterType !== "none" || groupBy !== "none" || sortBy !== "ranking"
+                ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                : "text-gray-400 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30"
+            }`}
           >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value} className="dark:bg-gray-900 dark:text-white">
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            <Filter className="w-4 h-4" />
+            <span className="text-sm hidden sm:inline">Filters</span>
+            <ChevronDown className={`w-3 h-3 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Sort Toggle */}
           <button
             onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-            className="px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-transparent dark:hover:bg-gray-800 transition-colors"
-            title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border text-gray-400 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30 transition-colors"
+            title={`Currently sorting ${SORT_OPTIONS.find(opt => opt.value === sortBy)?.label} ${sortOrder === "asc" ? "ascending" : "descending"}`}
           >
-            {sortOrder === "asc" ? "▲" : "▼"}
+            {sortOrder === "asc" ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
+            <span className="text-sm hidden sm:inline">{SORT_OPTIONS.find(opt => opt.value === sortBy)?.label}</span>
           </button>
-        </div>
 
-        {/* Filter Controls */}
-        <div className="flex items-center gap-2">
-          <label htmlFor="filter-type-select" className="dark:text-gray-300">Filter by</label>
-          <select
-            id="filter-type-select"
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value as "none" | "year" | "rank" | "movie")}
-            className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-xs shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-transparent dark:text-gray-300"
-          >
-            <option value="none" className="dark:bg-gray-900 dark:text-white">None</option>
-            <option value="year" className="dark:bg-gray-900 dark:text-white">Year</option>
-            <option value="rank" className="dark:bg-gray-900 dark:text-white">Ranking</option>
-            {/* Optionally hide 'movie' from manual selection, as it's set by search */}
-          </select>
-
-          {filterType === "year" && (
-            <select
-              value={filterValue}
-              onChange={(e) => setFilterValue(e.target.value)}
-              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:text-white"
+          {/* Clear All (only show if filters are active) */}
+          {!isDefault && (
+            <button
+              onClick={handleClearAll}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 bg-red-500/10 transition-colors"
+              title="Clear all filters and reset to defaults"
             >
-              <option value="all" className="dark:bg-gray-900 dark:text-white">All Years</option>
-              {uniqueYears.map((year) => (
-                <option key={year} value={year} className="dark:bg-gray-900 dark:text-white">
-                  {year}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {filterType === "rank" && (
-            <select
-              value={filterValue}
-              onChange={(e) => setFilterValue(e.target.value)}
-              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:text-white z-40 relative"
-              style={{ zIndex: 40 }}
-            >
-              <option value="all" className="dark:bg-gray-900 dark:text-white">All Rankings</option>
-              {uniqueRanks.map((rank) => (
-                <option key={rank} value={rank} className="dark:bg-gray-900 dark:text-white">
-                  {rank}
-                </option>
-              ))}
-            </select>
+              <X className="w-4 h-4" />
+              <span className="text-sm hidden sm:inline">Reset</span>
+            </button>
           )}
         </div>
-        {/* Clear All Button */}
-        {!isDefault && (
+
+        {/* Right: View Mode */}
+        <div className="flex items-center gap-1 p-1 bg-gray-800/50 rounded-lg border border-gray-600/50">
           <button
-            onClick={handleClearAll}
-            className="ml-2 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-xs"
+            onClick={() => setViewMode("list")}
+            className={`p-2 rounded-md transition-colors ${
+              viewMode === "list"
+                ? "bg-blue-500/20 text-blue-400 shadow-sm"
+                : "text-gray-500 hover:text-gray-300 hover:bg-gray-700/50"
+            }`}
+            title="List view"
           >
-            Clear All
+            <List className="w-4 h-4" />
           </button>
-        )}
+          <button
+            onClick={() => setViewMode("grid")}
+            className={`p-2 rounded-md transition-colors ${
+              viewMode === "grid"
+                ? "bg-blue-500/20 text-blue-400 shadow-sm"
+                : "text-gray-500 hover:text-gray-300 hover:bg-gray-700/50"
+            }`}
+            title="Grid view"
+          >
+            <Grid3X3 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => setViewMode("list")}
-          className={`p-2 rounded-full border ${
-            viewMode === "list"
-              ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600"
-              : "text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600"
-          } hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
-          aria-label="List view"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
-        <button
-          onClick={() => setViewMode("grid")}
-          className={`p-2 rounded-full border ${
-            viewMode === "grid"
-              ? "bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600"
-              : "text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600"
-          } hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
-          aria-label="Grid view"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h6v6H4V6zm0 8h6v6H4v-6zm10-8h6v6h-6V6zm0 8h6v6h-6v-6z"
-            />
-          </svg>
-        </button>
-      </div>
+      {/* Advanced Filters - Collapsible */}
+      {showAdvancedFilters && (
+        <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-600/50">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Sort By */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Sort by</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortKey)}
+                className="w-full border border-gray-600/50 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Group By */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Group by</label>
+              <select
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.target.value as GroupKey)}
+                className="w-full border border-gray-600/50 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
+              >
+                {GROUP_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter By */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Filter by</label>
+              <div className="flex gap-2">
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value as "none" | "year" | "rank" | "movie")}
+                  className="flex-1 border border-gray-600/50 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
+                >
+                  <option value="none">None</option>
+                  <option value="year">Year</option>
+                  <option value="rank">Ranking</option>
+                </select>
+
+                {filterType === "year" && (
+                  <select
+                    value={filterValue}
+                    onChange={(e) => setFilterValue(e.target.value)}
+                    className="flex-1 border border-gray-600/50 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
+                  >
+                    <option value="all">All Years</option>
+                    {uniqueYears.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {filterType === "rank" && (
+                  <select
+                    value={filterValue}
+                    onChange={(e) => setFilterValue(e.target.value)}
+                    className="flex-1 border border-gray-600/50 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
+                  >
+                    <option value="all">All Rankings</option>
+                    {uniqueRanks.map((rank) => (
+                      <option key={rank} value={rank}>
+                        {rank}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
