@@ -4,7 +4,7 @@ import {
 	filterUnseenMovies,
 	sortByRecent,
 } from "@/utils/sharedMovieUtils";
-import YearReview from "@/components/award/YearSection";
+import YearSection from "@/components/award/YearSection";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import GuestDataBanner from "@/components/auth/GuestDataBanner";
 import SignupPrompt from "@/components/auth/SignupPrompt";
@@ -58,7 +58,7 @@ export default function HomePage() {
 							<Film className="w-8 h-8 text-purple-500 dark:text-purple-400" />
 						</div>
 						<h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-							Welcome to OscarWorthy!
+							Welcome to Reawarding!
 						</h2>
 						<p className="text-gray-600 dark:text-gray-300 mb-4">
 							Discover and rate the best movies of the year. Start by exploring our collection 
@@ -143,7 +143,7 @@ export default function HomePage() {
 				<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
 					🏆 Best Picture of {currentYear}
 				</h2>
-				<YearReview
+				<YearSection
 					year={String(currentYear)}
 					movies={movies
 						.filter((movie) => {

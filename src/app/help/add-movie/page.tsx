@@ -37,30 +37,30 @@ export default function AddMovieHelpPage() {
     <main className="max-w-2xl mx-auto px-4 py-10 text-gray-800 dark:text-gray-100">
       <h1 className="text-2xl font-bold mb-4">How to Add a Missing Movie</h1>
       <p className="mb-4">
-        Oscarworthy uses <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">The Movie Database (TMDB)</a> for all film data, including cast, crew, posters, and release dates.
+        Reawarding uses <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">The Movie Database (TMDB)</a> for all film data, including cast, crew, posters, and release dates.
       </p>
       <div className="flex items-center gap-2 mb-4">
         <Image src="/tmdb.svg" alt="TMDB Logo" width={40} height={40} />
-        <span className="text-xs text-gray-500">Oscarworthy uses the TMDB API but is not endorsed or certified by TMDB.</span>
+        <span className="text-xs text-gray-500">Reawarding uses the TMDB API but is not endorsed or certified by TMDB.</span>
       </div>
       <ol className="list-decimal pl-6 mb-6 space-y-2">
         <li>
-          <strong>Search TMDB first:</strong> Visit <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">TMDB</a> and search for your film. If it exists, it will appear in Oscarworthy soon.
+          <strong>Search TMDB first:</strong> Visit <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">TMDB</a> and search for your film. If it exists, it will appear in Reawarding soon.
         </li>
         <li>
           <strong>If the film is missing:</strong> Create a free TMDB account and add the film using their interface. Be sure to fill out as much detail as possible (title, year, poster, etc).
         </li>
         <li>
-          <strong>Wait for sync:</strong> New films added to TMDB will appear in Oscarworthy within about 24 hours.
+          <strong>Wait for sync:</strong> New films added to TMDB will appear in Reawarding within about 24 hours.
         </li>
       </ol>
       <h2 className="text-lg font-semibold mb-2">Need it faster?</h2>
       <p className="mb-4">
-        If you need a film imported immediately, <a href="mailto:support@oscarworthy.app" className="text-blue-600 underline">contact support</a> with the TMDB link and we’ll try to help!
+        If you need a film imported immediately, <a href="mailto:support@reawarding.app" className="text-blue-600 underline">contact support</a> with the TMDB link and we’ll try to help!
       </p>
       <h2 className="text-lg font-semibold mb-2">Found a duplicate or error?</h2>
       <p className="mb-4">
-        If you spot a duplicate or incorrect entry, please <a href="mailto:support@oscarworthy.app" className="text-blue-600 underline">let us know</a> and we’ll fix it.
+        If you spot a duplicate or incorrect entry, please <a href="mailto:support@reawarding.app" className="text-blue-600 underline">let us know</a> and we’ll fix it.
       </p>
       <section className="mt-8 mb-8">
         <h2 className="text-lg font-semibold mb-2">Instant Import (TMDB Shortcut)</h2>

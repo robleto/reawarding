@@ -45,9 +45,6 @@ export default function HeaderNav() {
 					<div className="flex items-center flex-shrink-0">
 						<Link href="/" className="flex items-center">
 							<Logo size="sm" showText={false} />
-							<h1 className="ml-2 text-md uppercase font-bold font-['Unbounded'] text-[#1c3728] dark:text-gold font-inter tracking-widest transition-colors duration-300">
-								OscarWorthy
-							</h1>
 						</Link>
 					</div>
 

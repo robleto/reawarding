@@ -390,8 +390,8 @@ export default function LoginPage() {
         <div className="mt-6 text-center">
           <p className="text-gray-400 text-sm">
             Need help? Contact us at{' '}
-            <a href="mailto:support@oscarworthy.com" className="text-blue-400 hover:text-blue-300">
-              support@oscarworthy.com
+            <a href="mailto:support@reawarding.com" className="text-blue-400 hover:text-blue-300">
+              support@reawarding.com
             </a>
           </p>
         </div>

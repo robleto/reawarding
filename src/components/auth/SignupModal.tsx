@@ -73,7 +73,7 @@ export default function SignupModal({
       }
       if (data.user) {
         if (data.user.email_confirmed_at) {
-          showToast("Welcome to OscarWorthy!", "success");
+          showToast("Welcome to Reawarding!", "success");
           onAuthSuccess?.(data.user);
           onClose();
           router.push("/rankings");

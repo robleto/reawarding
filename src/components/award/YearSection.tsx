@@ -1,8 +1,9 @@
 import React from "react";
 import MovieCard from "./MovieCard";
 import WinnerCard from "./WinnerCard";
+import type { Movie } from "@/types/types";
 
-interface Movie {
+interface LocalMovie {
 	id: string;
 	title: string;
 	thumb_url: string;
@@ -12,8 +13,8 @@ interface Movie {
 
 interface YearSectionProps {
 	year: string;
-	movies: Movie[];
-	winner?: Movie | null;
+	movies: LocalMovie[];
+	winner?: LocalMovie | null;
 }
 
 export default function YearSection({
@@ -26,6 +27,21 @@ export default function YearSection({
 		.filter((movie) => movie.ranking >= 7)
 		.sort((a, b) => b.ranking - a.ranking)
 		.slice(0, 10);
+
+	// Convert local movie format to global Movie type for child components
+	const convertToGlobalMovie = (localMovie: LocalMovie): Movie => ({
+		id: parseInt(localMovie.id),
+		title: localMovie.title,
+		release_year: parseInt(year),
+		poster_url: localMovie.poster_url,
+		thumb_url: localMovie.thumb_url,
+		created_at: new Date().toISOString(),
+		rankings: [{
+			ranking: localMovie.ranking,
+			seen_it: true,
+			user_id: ''
+		}]
+	});
 
 	return (
 		<section className="w-full max-w-screen-xl px-6 py-0 mx-auto my-0 font-sans">
@@ -54,9 +70,7 @@ export default function YearSection({
 						</div>
 						{winner ? (
 							<WinnerCard
-								title={winner.title}
-								poster_url={winner.poster_url}
-								rating={winner.ranking}
+								movie={convertToGlobalMovie(winner)}
 							/>
 						) : (
 							<div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
@@ -84,9 +98,7 @@ export default function YearSection({
 							{nomineeList.map((movie) => (
 								<MovieCard
 									key={movie.id}
-									title={movie.title}
-									imageUrl={movie.poster_url}
-									rating={movie.ranking}
+									movie={convertToGlobalMovie(movie)}
 								/>
 							))}
 						</div>

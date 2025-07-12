@@ -84,7 +84,7 @@ export default function TermsOfServicePage() {
             </p>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-gray-700">
-                Email: <a href="mailto:support@oscarworthy.com" className="text-blue-600 hover:text-blue-700">support@oscarworthy.com</a>
+                Email: <a href="mailto:support@reawarding.com" className="text-blue-600 hover:text-blue-700">support@reawarding.com</a>
               </p>
             </div>
           </div>

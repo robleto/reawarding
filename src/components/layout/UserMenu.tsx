@@ -54,7 +54,7 @@ export function UserMenu({ onLoginClick, onSignupClick }: UserMenuProps) {
         </button>
         <button
           onClick={onSignupClick}
-          className="px-4 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 dark:bg-yellow-500 dark:hover:bg-yellow-400 rounded-lg transition-colors shadow"
+          className="px-4 py-2 text-sm font-medium text-white bg-[#CAAC4C] hover:bg-yellow-600 dark:bg-[#CAAC4C] dark:hover:bg-yellow-400 rounded-lg transition-colors shadow"
         >
           Sign Up
         </button>

@@ -32,8 +32,8 @@ const PosterFallback = ({
 	style={{ minHeight: 0, minWidth: 0 }}
 >
 <img
-	src="/Oscarworthy-logomark.svg"
-	alt="Oscarworthy Logo"
+	src="/reawarding.svg"
+	alt="Reawarding Logo"
 	width={80}
 	height={120}
 	className="mb-2 filter grayscale"

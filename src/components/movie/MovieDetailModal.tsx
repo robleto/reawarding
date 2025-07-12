@@ -6,6 +6,7 @@ import Image from "next/image";
 import { X, Eye, EyeOff, Star, Film, Clock, Calendar, Users, Clapperboard } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import { getRatingStyle } from "@/utils/getRatingStyle";
+import RankingDropdown from "@/components/movie/RankingDropdown";
 import type { Movie } from "@/types/types";
 
 interface MovieDetailModalProps {
@@ -112,7 +113,7 @@ export default function MovieDetailModal({
     updateRanking(ranking, newSeenIt);
   };
 
-  const handleRankingChange = (newRanking: number) => {
+  const handleRankingChange = (newRanking: number | null) => {
     setRanking(newRanking);
     updateRanking(newRanking, seenIt);
   };
@@ -194,63 +195,11 @@ export default function MovieDetailModal({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-gray-200">Your Rating</span>
-                    {ranking && (
-                      <span
-                        className="px-2 py-1 text-sm font-bold rounded"
-                        style={{ backgroundColor: ratingStyle.background, color: ratingStyle.text }}
-                      >
-                        {ranking}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={ranking ?? ""}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "") {
-                          handleRankingClear();
-                        } else {
-                          handleRankingChange(parseInt(value));
-                        }
-                      }}
+                    <RankingDropdown
+                      ranking={ranking}
+                      onChange={handleRankingChange}
                       disabled={isLoading}
-                      className={`
-                        w-full px-3 py-2 text-sm font-bold rounded-lg border bg-gray-800 border-gray-600
-                        focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500
-                        ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                      `}
-                      style={{ 
-                        color: ranking ? ratingStyle.text : 'inherit'
-                      }}
-                    >
-                      <option value="" className="text-gray-400 bg-gray-800">Rate movie...</option>
-                      {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((rating) => {
-                        const optStyle = getRatingStyle(rating);
-                        return (
-                          <option
-                            key={rating}
-                            value={rating}
-                            className="font-bold"
-                            style={{ backgroundColor: optStyle.background, color: optStyle.text }}
-                          >
-                            {rating}
-                          </option>
-                        );
-                      })}
-                    </select>
-                    
-                    {ranking && (
-                      <button
-                        onClick={handleRankingClear}
-                        disabled={isLoading}
-                        className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/50 rounded-full transition-colors"
-                        title="Clear rating"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
+                    />
                   </div>
                 </div>
               </div>

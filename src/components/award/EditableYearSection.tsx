@@ -569,6 +569,8 @@ export default function EditableYearSection({
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onUpdate={handleModalUpdate}
+          initialRanking={selectedMovie.rankings?.[0]?.ranking ?? null}
+          initialSeenIt={selectedMovie.rankings?.[0]?.seen_it ?? false}
         />
       )}
     </section>
