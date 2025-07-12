@@ -73,13 +73,15 @@ export default function SignupModal({
       }
       if (data.user) {
         if (data.user.email_confirmed_at) {
+          // User is already confirmed (shouldn't happen with email confirmation enabled)
           showToast("Welcome to Reawarding!", "success");
           onAuthSuccess?.(data.user);
           onClose();
           router.push("/rankings");
         } else {
+          // User needs to confirm email
           setEmailSent(true);
-          showToast("Check your email to confirm your account", "info");
+          showToast("Please check your email to confirm your account", "info");
         }
       } else {
         setError("No user returned from Supabase");

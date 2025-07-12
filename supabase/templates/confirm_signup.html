@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirm Your Reawarding Account</title>
+    <style>
+        /* Reset styles */
+        body, table, td, p, a, li, blockquote {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        table, td {
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+        img {
+            -ms-interpolation-mode: bicubic;
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+        }
+
+        /* Main styles */
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background-color: #f4f4f4;
+            font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            text-align: center;
+        }
+        
+        .logo {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 700;
+            text-decoration: none;
+            font-family: 'Unbounded', sans-serif;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .welcome-text {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        
+        .description {
+            font-size: 16px;
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            margin: 0 auto;
+            display: block;
+            width: fit-content;
+        }
+        
+        .cta-button:hover {
+            opacity: 0.9;
+        }
+        
+        .footer {
+            background-color: #f9fafb;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .footer-text {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+        
+        .footer-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Oscar theme elements */
+        .oscar-accent {
+            color: #d4af37;
+        }
+        
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #d4af37, transparent);
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">🏆 Reawarding</div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="content">
+            <h1 class="welcome-text">Welcome to Reawarding!</h1>
+            
+            <div class="divider"></div>
+            
+            <p class="description">
+                You're one step away from joining the ultimate community for ranking and discussing 
+                <span class="oscar-accent">Oscar Best Picture winners</span>. 
+                Click the button below to confirm your email and start creating your personalized rankings.
+            </p>
+            
+            <a href="{{ .ConfirmationURL }}" class="cta-button">
+                Confirm Your Account
+            </a>
+            
+            <div class="divider"></div>
+            
+            <p class="description" style="font-size: 14px; margin-top: 32px;">
+                If the button doesn't work, copy and paste this link into your browser:<br>
+                <a href="{{ .ConfirmationURL }}" class="footer-link">{{ .ConfirmationURL }}</a>
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p class="footer-text">
+                This email was sent because you signed up for a Reawarding account.<br>
+                If you didn't create an account, you can safely ignore this email.
+            </p>
+            <p class="footer-text" style="margin-top: 16px;">
+                <a href="{{ .SiteURL }}" class="footer-link">Visit Reawarding</a> • 
+                <a href="{{ .SiteURL }}/help" class="footer-link">Get Help</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
