@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirm Your Reawarding Account</title>
+    <title>Your ReAwarding Magic Link</title>
     <style>
         /* Reset styles */
         body, table, td, p, a, li, blockquote {
@@ -116,6 +116,16 @@
             background: linear-gradient(90deg, transparent, #d4af37, transparent);
             margin: 20px 0;
         }
+        
+        .security-note {
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 24px 0;
+            font-size: 14px;
+            color: #92400e;
+        }
     </style>
 </head>
 <body>
@@ -127,18 +137,24 @@
         
         <!-- Main Content -->
         <div class="content">
-            <h1 class="welcome-text">Welcome to Reawarding!</h1>
+            <h1 class="welcome-text">Your Magic Link is Ready!</h1>
             
             <div class="divider"></div>
             
             <p class="description">
-                You're one step away from joining the ultimate the ultimate community for ranking, noting and awarding the best movies according to you. 
-                Click the button below to confirm your email and start creating your personalized rankings.
+                Click the button below to securely sign in to your ReAwarding account. 
+                No password required – just one click to access your 
+                rankings, notes and awardings.
             </p>
             
             <a href="{{ .ConfirmationURL }}" class="cta-button">
-                Confirm Your Account
+                Sign In to ReAwarding
             </a>
+            
+            <div class="security-note">
+                <strong>🔒 Security Note:</strong> This magic link will expire in 1 hour and can only be used once. 
+                If you didn't request this login link, please ignore this email.
+            </div>
             
             <div class="divider"></div>
             
@@ -151,8 +167,8 @@
         <!-- Footer -->
         <div class="footer">
             <p class="footer-text">
-                This email was sent because you signed up for a ReAwarding account.<br>
-                If you didn't create an account, you can safely ignore this email.
+                This magic link was requested for your ReAwarding account.<br>
+                If you didn't request this, you can safely ignore this email.
             </p>
             <p class="footer-text" style="margin-top: 16px;">
                 <a href="{{ .SiteURL }}" class="footer-link">Visit ReAwarding</a> • 
