@@ -28,6 +28,9 @@ export default function LoginModal({
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [confirmationEmailSent, setConfirmationEmailSent] = useState(false);
+  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const router = useRouter();
   const { showToast } = useGlobalToast();
 
@@ -43,6 +46,13 @@ export default function LoginModal({
       });
       if (error) {
         setError(error.message);
+        // Check if error is related to email confirmation
+        if (error.message.toLowerCase().includes('email not confirmed') || 
+            error.message.toLowerCase().includes('confirm your email') ||
+            error.message.toLowerCase().includes('verification') ||
+            error.message.toLowerCase().includes('invalid login credentials')) {
+          setShowResendConfirmation(true);
+        }
         setLoading(false);
         return;
       }
@@ -87,11 +97,77 @@ export default function LoginModal({
     // No need to setLoading(false) here, as the page will redirect
   };
 
+  const handlePasswordReset = async () => {
+    if (!email) {
+      setError("Please enter your email address first");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: typeof window !== "undefined"
+          ? `${window.location.origin}/reset-password`
+          : undefined,
+      });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        setResetEmailSent(true);
+        showToast("Password reset email sent!", "success");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      setError("Please enter your email address first");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: typeof window !== "undefined"
+            ? `${window.location.origin}/rankings`
+            : undefined,
+        },
+      });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        setConfirmationEmailSent(true);
+        setShowResendConfirmation(false);
+        showToast("Confirmation email sent! Check your inbox.", "success");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetForm = () => {
     setEmail("");
     setPassword("");
     setShowPassword(false);
     setError(null);
+    setResetEmailSent(false);
+    setConfirmationEmailSent(false);
+    setShowResendConfirmation(false);
   };
 
   const handleClose = () => {
@@ -185,9 +261,45 @@ export default function LoginModal({
             </div>
           </div>
 
+          {/* Forgot Password Link */}
+          <div className="text-right">
+            <button
+              type="button"
+              onClick={handlePasswordReset}
+              disabled={loading}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+            >
+              Forgot password?
+            </button>
+          </div>
+
+          {resetEmailSent && (
+            <div className="text-sm p-3 rounded-lg bg-green-50 text-green-700 border border-green-200">
+              Password reset email sent! Check your inbox and follow the instructions.
+            </div>
+          )}
+
+          {confirmationEmailSent && (
+            <div className="text-sm p-3 rounded-lg bg-green-50 text-green-700 border border-green-200">
+              Confirmation email resent! Check your inbox and click the link to verify your account.
+            </div>
+          )}
+
           {error && (
             <div className="text-sm p-3 rounded-lg bg-red-50 text-red-700 border border-red-200">
               {error}
+              {showResendConfirmation && (
+                <div className="mt-2 pt-2 border-t border-red-300">
+                  <button
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    disabled={loading}
+                    className="text-red-700 hover:text-red-800 font-medium underline disabled:opacity-50"
+                  >
+                    Resend confirmation email
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
