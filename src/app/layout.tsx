@@ -15,8 +15,8 @@ const unbounded = Unbounded({
 });
 
 export const metadata = {
-  title: 'OscarWorthy',
-  description: 'Track and predict Oscar winners',
+  title: 'ReAwarding',
+  description: 'The ultimate community for ranking, noting and awarding the best movies... according to you.',
 };
 
 export default async function RootLayout({

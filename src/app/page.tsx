@@ -32,6 +32,11 @@ export default function HomePage() {
 		setShowAuthModal(true);
 	};
 
+	const handleLoginClick = () => {
+		setAuthMode("login");
+		setShowAuthModal(true);
+	};
+
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
@@ -108,7 +113,7 @@ export default function HomePage() {
 			)}
 
 			{/* Guest Data Warning Banner */}
-			{isGuest && <GuestDataBanner onSignupClick={handleSignupClick} />}
+			{isGuest && <GuestDataBanner onSignupClick={handleSignupClick} onLoginClick={handleLoginClick} />}
 
 			{/* Start Watching Section */}
 			<section id="movies-section">

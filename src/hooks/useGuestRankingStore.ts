@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import type { Database } from '@/types/supabase';
+import { updateGuestRanking } from '@/utils/guestMode';
 
 interface GuestRanking {
   movieId: number;
@@ -34,7 +35,7 @@ const useGuestRankingStore = create<GuestRankingStore>()(
       setRanking: (movieId: number, ranking: number | null) => {
         set((state) => {
           const existing = state.rankings[movieId] || { movieId, ranking: null, seenIt: false, timestamp: Date.now() };
-          return {
+          const updated = {
             rankings: {
               ...state.rankings,
               [movieId]: {
@@ -45,13 +46,18 @@ const useGuestRankingStore = create<GuestRankingStore>()(
             },
             hasInteracted: true,
           };
+          
+          // Also update the guestMode utility for banner tracking
+          updateGuestRanking(movieId, { ranking });
+          
+          return updated;
         });
       },
       
       setSeenIt: (movieId: number, seenIt: boolean) => {
         set((state) => {
           const existing = state.rankings[movieId] || { movieId, ranking: null, seenIt: false, timestamp: Date.now() };
-          return {
+          const updated = {
             rankings: {
               ...state.rankings,
               [movieId]: {
@@ -62,13 +68,18 @@ const useGuestRankingStore = create<GuestRankingStore>()(
             },
             hasInteracted: true,
           };
+          
+          // Also update the guestMode utility for banner tracking
+          updateGuestRanking(movieId, { seenIt });
+          
+          return updated;
         });
       },
       
       updateRanking: (movieId: number, updates: { ranking?: number | null; seenIt?: boolean }) => {
         set((state) => {
           const existing = state.rankings[movieId] || { movieId, ranking: null, seenIt: false, timestamp: Date.now() };
-          return {
+          const updated = {
             rankings: {
               ...state.rankings,
               [movieId]: {
@@ -79,6 +90,11 @@ const useGuestRankingStore = create<GuestRankingStore>()(
             },
             hasInteracted: true,
           };
+          
+          // Also update the guestMode utility for banner tracking
+          updateGuestRanking(movieId, updates);
+          
+          return updated;
         });
       },
       

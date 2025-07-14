@@ -3,9 +3,10 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
-import { Eye, EyeOff, GripVertical, X, Film } from "lucide-react";
+import { GripVertical, X, Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
+import SeenItButton from "@/components/movie/SeenItButton";
 
 // Fallback component for missing poster images
 const DraggablePosterFallback = ({ 
@@ -132,22 +133,12 @@ export default function DraggableMovieCard({
           </div>
 
           <div className="flex items-end justify-between mt-3">
-            <button
+            <SeenItButton
+              seenIt={item.seen_it}
               onClick={() => onUpdate({ seen_it: !item.seen_it })}
-              className="flex items-center gap-1 text-sm font-medium"
-            >
-              {item.seen_it ? (
-                <>
-                  <Eye className="w-4 h-4 text-blue-600" />
-                  <span className="text-blue-600">Seen It</span>
-                </>
-              ) : (
-                <>
-                  <EyeOff className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-400">Unseen</span>
-                </>
-              )}
-            </button>
+              showText={true}
+              size="md"
+            />
 
             <div className="relative z-20">
               <select
@@ -213,22 +204,12 @@ export default function DraggableMovieCard({
       </div>
 
       {/* Seen It */}
-      <button
+      <SeenItButton
+        seenIt={item.seen_it}
         onClick={() => onUpdate({ seen_it: !item.seen_it })}
-        className="flex items-center gap-1 text-sm font-medium"
-      >
-        {item.seen_it ? (
-          <>
-            <Eye className="w-4 h-4 text-blue-600" />
-            <span className="text-blue-600">Watched</span>
-          </>
-        ) : (
-          <>
-            <EyeOff className="w-4 h-4 text-gray-400" />
-            <span className="text-gray-400">Unseen</span>
-          </>
-        )}
-      </button>
+        showText={true}
+        size="md"
+      />
 
       {/* Ranking */}
       <div className="relative">

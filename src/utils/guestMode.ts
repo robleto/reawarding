@@ -12,25 +12,31 @@ export interface GuestData {
   rankings: GuestRanking[];
   hasInteracted: boolean;
   firstInteractionTime: number | null;
+  totalInteractions: number; // Track total interaction count
 }
 
 const GUEST_DATA_KEY = "oscarworthy_guest_data";
 
 export function getGuestData(): GuestData {
   if (typeof window === "undefined") {
-    return { rankings: [], hasInteracted: false, firstInteractionTime: null };
+    return { rankings: [], hasInteracted: false, firstInteractionTime: null, totalInteractions: 0 };
   }
 
   try {
     const stored = localStorage.getItem(GUEST_DATA_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      // Ensure backward compatibility - add totalInteractions if missing
+      return {
+        ...parsed,
+        totalInteractions: parsed.totalInteractions ?? 0
+      };
     }
   } catch (error) {
     console.error("Error loading guest data:", error);
   }
 
-  return { rankings: [], hasInteracted: false, firstInteractionTime: null };
+  return { rankings: [], hasInteracted: false, firstInteractionTime: null, totalInteractions: 0 };
 }
 
 export function saveGuestData(data: GuestData): void {
@@ -71,11 +77,14 @@ export function updateGuestRanking(
     });
   }
 
-  // Mark as interacted
+  // Mark as interacted and increment interaction counter
   if (!data.hasInteracted) {
     data.hasInteracted = true;
     data.firstInteractionTime = Date.now();
   }
+  
+  // Increment total interactions counter
+  data.totalInteractions = (data.totalInteractions || 0) + 1;
 
   saveGuestData(data);
 }
@@ -105,15 +114,19 @@ export function getGuestInteractionCount(): number {
   return data.rankings.length;
 }
 
+export function getTotalGuestInteractions(): number {
+  const data = getGuestData();
+  return data.totalInteractions || 0;
+}
+
 export function shouldShowSignupPrompt(): boolean {
   const data = getGuestData();
   if (!data.hasInteracted || !data.firstInteractionTime) return false;
   
-  const timeSinceFirst = Date.now() - data.firstInteractionTime;
-  const hasMultipleInteractions = data.rankings.length >= 2;
-  const hasWaitedMinTime = timeSinceFirst > 30000; // 30 seconds
+  const totalInteractions = data.totalInteractions || 0;
   
-  return hasMultipleInteractions || hasWaitedMinTime;
+  // Show banner after 10 interactions
+  return totalInteractions >= 10;
 }
 
 // Transform guest data to match the expected Movie ranking format

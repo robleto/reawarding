@@ -146,7 +146,7 @@ export function useMovieDataWithGuest() {
 							rankings: guestRanking ? [{
 								id: `guest_${movie.id}`,
 								user_id: 'guest',
-								ranking: guestRanking.ranking || 0,
+								ranking: guestRanking.ranking,
 								seen_it: guestRanking.seenIt,
 							}] : [],
 							thumb_url: movie.thumb_url ?? "",
@@ -200,8 +200,12 @@ export function useMovieDataWithGuest() {
 		updates: { seen_it?: boolean; ranking?: number | null }
 	) => {
 		if (isGuest) {
-			// For guests, update Zustand store
-			guestStore.updateRanking(movieId, updates);
+			// For guests, update Zustand store - need to map seen_it to seenIt
+			const guestUpdates: { ranking?: number | null; seenIt?: boolean } = {};
+			if (updates.ranking !== undefined) guestUpdates.ranking = updates.ranking;
+			if (updates.seen_it !== undefined) guestUpdates.seenIt = updates.seen_it;
+			
+			guestStore.updateRanking(movieId, guestUpdates);
 			
 			// Update local state immediately for better UX
 			setMovies((prevMovies) =>
@@ -214,7 +218,7 @@ export function useMovieDataWithGuest() {
 								rankings: [{
 									id: `guest_${movieId}`,
 									user_id: 'guest',
-									ranking: guestRanking.ranking || 0,
+									ranking: guestRanking.ranking,
 									seen_it: guestRanking.seenIt,
 								}],
 							};

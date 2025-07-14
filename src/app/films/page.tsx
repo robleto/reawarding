@@ -5,6 +5,9 @@ import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieRowCard from "@/components/movie/MovieRowCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieFilters from "@/components/filters/MovieFilters";
+import GuestDataBanner from "@/components/auth/GuestDataBanner";
+import FilmsPageAlert from "@/components/auth/FilmsPageAlert";
+import AuthModalManager from "@/components/auth/AuthModalManager";
 import type { Movie } from "@/types/types";
 
 import {
@@ -23,7 +26,7 @@ import Loader from "@/components/ui/Loading";
 export const dynamic = "force-dynamic";
 
 export default function FilmsPage() {
-	const { movies, loading, user, userId, updateMovieRanking } = useMovieDataWithGuest();
+	const { movies, loading, user, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
 	// Films-specific view mode with grid as default for poster-based display
 	const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
 		if (typeof window !== "undefined") {
@@ -71,6 +74,10 @@ export default function FilmsPage() {
 	
 	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie">("none");
 	const [filterValue, setFilterValue] = useState<string>("all");
+
+	// Auth modal state
+	const [showAuthModal, setShowAuthModal] = useState(false);
+	const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
 	
 	useEffect(() => {
 		setHasMounted(true);
@@ -163,6 +170,23 @@ export default function FilmsPage() {
 		)
 	).sort((a, b) => a - b);
 
+	// Auth handlers
+	const handleSignupClick = () => {
+		setAuthMode("signup");
+		setShowAuthModal(true);
+	};
+
+	const handleLoginClick = () => {
+		setAuthMode("login");
+		setShowAuthModal(true);
+	};
+
+	const handleAuthSuccess = async () => {
+		setShowAuthModal(false);
+		// Migration will be handled automatically by the auth migration hook
+		// The page will re-render with the updated data
+	};
+
 	const handleOpenModal = (movie: Movie) => {
 		setSelectedMovie(movie);
 		setIsModalOpen(true);
@@ -177,14 +201,14 @@ export default function FilmsPage() {
 		updateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
 	};
 
-	if (!user) {
+	if (loading) {
 		return (
 			<div className="flex flex-col items-center justify-center h-48 text-gray-500 dark:text-gray-400">
-				Please sign in to view your films.
+				<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+				<p>Loading amazing films...</p>
 			</div>
 		);
 	}
-
 
 	if (loading) {
 		return <Loader message="Loading films..." />;
@@ -192,6 +216,11 @@ export default function FilmsPage() {
 
 	return (
 		<div className="max-w-screen-xl px-6 py-10 mx-auto">
+			{/* Guest Data Warning Banner */}
+			{isGuest && <GuestDataBanner onSignupClick={handleSignupClick} onLoginClick={handleLoginClick} />}
+			
+			{/* Films Page Alert for Guest Users */}
+			{isGuest && <FilmsPageAlert />}
 
 			<MovieFilters
 				viewMode={viewMode}
@@ -276,6 +305,16 @@ export default function FilmsPage() {
 					onUpdate={handleModalUpdate}
 					initialRanking={selectedMovie.rankings?.[0]?.ranking ?? null}
 					initialSeenIt={selectedMovie.rankings?.[0]?.seen_it ?? false}
+				/>
+			)}
+
+			{/* Auth Modal */}
+			{showAuthModal && (
+				<AuthModalManager
+					isOpen={showAuthModal}
+					onClose={() => setShowAuthModal(false)}
+					initialMode={authMode}
+					onAuthSuccess={handleAuthSuccess}
 				/>
 			)}
 		</div>

@@ -176,6 +176,11 @@ export default function RankingsPage() {
     setShowAuthModal(true);
   };
 
+  const handleLoginClick = () => {
+    setAuthMode("login");
+    setShowAuthModal(true);
+  };
+
   const handleAuthSuccess = async () => {
     setShowAuthModal(false);
     // Migration will be handled automatically by the auth migration hook
@@ -270,7 +275,7 @@ export default function RankingsPage() {
   return (
     <div className="max-w-screen-xl px-6 py-10 mx-auto">
       {/* Guest Data Warning Banner */}
-      {isGuest && <GuestDataBanner onSignupClick={handleSignupClick} />}
+      {isGuest && <GuestDataBanner onSignupClick={handleSignupClick} onLoginClick={handleLoginClick} />}
 
       {/* Save Prompt Banner for Guests */}
       {isGuest && (
