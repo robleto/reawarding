@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -14,6 +14,8 @@ export default function HeaderNav() {
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<"login" | "signup">("login");
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+	const navRefs = useRef<(HTMLLIElement | null)[]>([]);
 	const hasScrolled = useScrollBackground();
 
 	const navItems = [
@@ -31,6 +33,25 @@ export default function HeaderNav() {
 	const handleSignupClick = () => {
 		setAuthMode("signup");
 		setShowAuthModal(true);
+	};
+
+	const getBubbleStyle = () => {
+		if (hoveredIndex === null) return { opacity: 0 };
+		
+		const hoveredElement = navRefs.current[hoveredIndex];
+		if (!hoveredElement) return { opacity: 0 };
+		
+		const rect = hoveredElement.getBoundingClientRect();
+		const parentRect = hoveredElement.parentElement?.getBoundingClientRect();
+		
+		if (!parentRect) return { opacity: 0 };
+		
+		return {
+			opacity: 1,
+			left: rect.left - parentRect.left,
+			width: rect.width,
+			height: rect.height,
+		};
 	};
 
 	return (
@@ -52,28 +73,47 @@ export default function HeaderNav() {
 					<div className="flex flex-1 items-center justify-between min-w-0">
 						{/* Navigation */}
 						<nav className="hidden md:block min-w-0">
-							<ul className="flex items-center gap-6 font-medium text-sm font-inter">
-								{navItems.map((item) => {
-									const isActive =
-										pathname === item.match ||
-										(item.match === "/" && pathname === "");
+							<div className="relative p-2 rounded-xl bg-white/10 dark:bg-black/20 backdrop-blur-md border border-gray-200/30 dark:border-gray-700/40 shadow-lg">
+								{/* Bubble background */}
+								<div 
+									className="absolute top-2 rounded-lg bg-white/30 dark:bg-white/15 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-md transition-all duration-500 ease-out"
+									style={{
+										...getBubbleStyle(),
+										transitionTimingFunction: `linear(
+											0, 0.008 1.1%, 0.031 2.2%, 0.129 4.8%, 0.257 7.2%, 0.671 14.2%,
+											0.789 16.5%, 0.881 18.6%, 0.957 20.7%, 1.019 22.9%, 1.063 25.1%,
+											1.094 27.4%, 1.114 30.7%, 1.112 34.5%, 1.018 49.9%, 0.99 59.1%, 1
+										)`
+									}}
+								/>
+								<ul className="flex items-center font-medium text-sm font-inter relative z-10">
+									{navItems.map((item, index) => {
+										const isActive =
+											pathname === item.match ||
+											(item.match === "/" && pathname === "");
 
-									return (
-										<li key={item.href}>
-											<Link
-												href={item.href}
-												className={`relative ${
-													isActive
-														? "text-gold dark:text-gold hover:border-b-gold"
-														: "text-black dark:text-gray-300"
-												} hover:text-gold dark:hover:text-gold transition-colors duration-200`}
+										return (
+											<li 
+												key={item.href}
+												ref={(el) => { navRefs.current[index] = el; }}
+												onMouseEnter={() => setHoveredIndex(index)}
+												onMouseLeave={() => setHoveredIndex(null)}
 											>
-												{item.label}
-											</Link>
-										</li>
-									);
-								})}
-							</ul>
+												<Link
+													href={item.href}
+													className={`block px-4 py-3 relative transition-colors duration-200 rounded-lg ${
+														isActive
+															? "text-gold dark:text-gold"
+															: "text-black dark:text-gray-300"
+													} hover:text-gold dark:hover:text-gold`}
+												>
+													{item.label}
+												</Link>
+											</li>
+										);
+									})}
+								</ul>
+							</div>
 						</nav>
 
 						{/* Controls: UserMenu */}
