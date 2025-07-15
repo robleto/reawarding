@@ -4,15 +4,14 @@ import {
 	filterUnseenMovies,
 	sortByRecent,
 } from "@/utils/sharedMovieUtils";
+import { getGuestData } from "@/utils/guestMode";
 import YearSection from "@/components/award/YearSection";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
-import GuestDataBanner from "@/components/auth/GuestDataBanner";
-import SignupPrompt from "@/components/auth/SignupPrompt";
-import SavePromptBanner from "@/components/auth/SavePromptBanner";
+import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
+import HomeEmptyState from "@/components/home/HomeEmptyState";
 import { useState } from "react";
-import { useSavePromptBanner } from "@/hooks/useSavePromptBanner";
-import { Star, Trophy, Film } from "lucide-react";
+import { Film } from "lucide-react";
 
 import type { Movie as BaseMovie } from "@/types/types";
 
@@ -20,7 +19,6 @@ export default function HomePage() {
 	const { movies, loading, user, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
-	const savePromptBanner = useSavePromptBanner();
 
 	const handleAuthSuccess = () => {
 		setShowAuthModal(false);
@@ -51,57 +49,75 @@ export default function HomePage() {
 	const unseen = sortByRecent(filterUnseenMovies(movies));
 	const currentYear = new Date().getFullYear();
 
+	// Check if user has rated any movies
+	const ratedMovies = movies.filter(
+		(movie) => movie.rankings && movie.rankings.length > 0 && movie.rankings[0].ranking !== null
+	);
+	const hasRatedMovies = ratedMovies.length > 0;
+
+	// Check guest interaction status
+	const guestData = getGuestData();
+	const hasGuestInteracted = guestData.hasInteracted || guestData.totalInteractions > 0;
+
+	// Show empty state for brand new users (authenticated users with no ratings OR guests with no interactions)
+	const shouldShowEmptyState = (!isGuest && !hasRatedMovies) || (isGuest && !hasGuestInteracted);
+	
+	if (shouldShowEmptyState) {
+		return (
+			<div className="px-4 py-8">
+				<HomeEmptyState />
+				
+				{/* Include the movies section below for when they scroll */}
+				<section id="movies-section" className="mt-16">
+					<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">For Your Consideration</h2>
+					{unseen.length > 0 ? (
+						<div className="flex gap-4 pb-4 overflow-x-auto">
+							{unseen.map((movie) => {
+								const r = movie.rankings?.[0];
+								return (
+									<div key={movie.id} className="flex-shrink-0 w-[160px]">
+										<MoviePosterCard
+											movie={movie}
+											currentUserId={userId}
+											ranking={r?.ranking ?? null}
+											seenIt={r?.seen_it ?? false}
+											onUpdate={updateMovieRanking}
+										/>
+									</div>
+								);
+							})}
+						</div>
+					) : (
+						<div className="text-center py-8 text-gray-500 dark:text-gray-400">
+							<Film className="w-12 h-12 mx-auto mb-2 text-gray-400 dark:text-gray-500" />
+							<p>You&apos;ve seen all the movies! Check back for new releases.</p>
+						</div>
+					)}
+				</section>
+
+				{/* Auth Modal */}
+				<AuthModalManager
+					isOpen={showAuthModal}
+					onClose={() => setShowAuthModal(false)}
+					initialMode={authMode}
+					onAuthSuccess={handleAuthSuccess}
+				/>
+			</div>
+		);
+	}
+
 	return (
 		<div className="px-4 py-8">
-			{/* Guest Welcome Section */}
+			{/* Unified Banner System for Guests */}
 			{isGuest && (
-				<div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-8">
-					<div className="text-center max-w-2xl mx-auto">
-						<div className="flex justify-center gap-2 mb-4">
-							<Trophy className="w-8 h-8 text-yellow-500 dark:text-yellow-400" />
-							<Star className="w-8 h-8 text-blue-500 dark:text-blue-400" />
-							<Film className="w-8 h-8 text-purple-500 dark:text-purple-400" />
-						</div>
-						<h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-							Welcome to Reawarding!
-						</h2>
-						<p className="text-gray-600 dark:text-gray-300 mb-4">
-							Discover and rate the best movies of the year. Start by exploring our collection 
-							and rating your favorites - no sign-up required to get started!
-						</p>
-						<div className="flex flex-col sm:flex-row gap-3 justify-center">
-							<button
-								onClick={() => {
-									document.getElementById('movies-section')?.scrollIntoView({ 
-										behavior: 'smooth' 
-									});
-								}}
-								className="px-6 py-3 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors font-medium"
-							>
-								Start Rating Movies
-							</button>
-							<button
-								onClick={handleSignupClick}
-								className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
-							>
-								Sign Up to Save Progress
-							</button>
-						</div>
-					</div>
-				</div>
-			)}
-
-			{/* Save Prompt Banner for Guests */}
-			{isGuest && (
-				<SavePromptBanner
-					visible={savePromptBanner.visible}
-					onDismiss={savePromptBanner.onDismiss}
-					onSignUp={handleSignupClick}
+				<UnifiedBanner 
+					onSignupClick={handleSignupClick} 
+					onLoginClick={handleLoginClick} 
 				/>
 			)}
 
 			{/* Authenticated User Welcome */}
-			{!isGuest && (
+			{!isGuest && hasRatedMovies && (
 				<div className="text-center mb-8">
 					<h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
 						Welcome back, {user?.email?.split('@')[0]}!
@@ -111,9 +127,6 @@ export default function HomePage() {
 					</p>
 				</div>
 			)}
-
-			{/* Guest Data Warning Banner */}
-			{isGuest && <GuestDataBanner onSignupClick={handleSignupClick} onLoginClick={handleLoginClick} />}
 
 			{/* Start Watching Section */}
 			<section id="movies-section">
@@ -204,14 +217,6 @@ export default function HomePage() {
 					})()}
 				/>
 			</section>
-
-			{/* Signup Prompt for Guests */}
-			{isGuest && (
-				<SignupPrompt
-					onSignupClick={handleSignupClick}
-					onDismiss={() => {}}
-				/>
-			)}
 
 			{/* Auth Modal */}
 			<AuthModalManager

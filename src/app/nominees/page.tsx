@@ -2,6 +2,8 @@
 
 import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
 import BestPictureNominees from "@/components/nominees/BestPictureNominees";
+import NomineesEmptyState from "@/components/nominees/NomineesEmptyState";
+import AuthModalManager from "@/components/auth/AuthModalManager";
 import { useState } from "react";
 import type { Movie } from "@/types/types";
 import { Trophy, Save, Share2, Crown } from "lucide-react";
@@ -10,6 +12,20 @@ export default function NomineesPage() {
   const { movies, loading, isGuest } = useMovieDataWithGuest();
   const [selectedNominees, setSelectedNominees] = useState<Movie[]>([]);
   const [winner, setWinner] = useState<Movie | undefined>();
+  
+  // Auth modal state
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
+
+  // Count movies with ratings
+  const ratedMoviesCount = movies.filter(movie => 
+    movie.rankings && movie.rankings.length > 0 && movie.rankings[0]?.ranking && movie.rankings[0].ranking > 0
+  ).length;
+
+  const handleSignupClick = () => {
+    setAuthMode('signup');
+    setShowAuthModal(true);
+  };
 
   const handleNomineesChange = (nominees: Movie[], selectedWinner?: Movie) => {
     setSelectedNominees(nominees);
@@ -39,6 +55,26 @@ export default function NomineesPage() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Show empty state for users with no/few ratings
+  if (ratedMoviesCount === 0 || ratedMoviesCount < 5) {
+    return (
+      <>
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <NomineesEmptyState 
+            isGuest={isGuest}
+            ratedMoviesCount={ratedMoviesCount}
+            onSignupClick={handleSignupClick}
+          />
+        </div>
+        <AuthModalManager 
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          initialMode={authMode}
+        />
+      </>
     );
   }
 
@@ -134,8 +170,20 @@ export default function NomineesPage() {
           <p className="text-sm text-yellow-700 mt-1">
             Sign up to save your nominees list and share it with friends!
           </p>
+          <button
+            onClick={handleSignupClick}
+            className="mt-2 text-sm text-yellow-800 hover:text-yellow-900 underline"
+          >
+            Sign up now
+          </button>
         </div>
       )}
+      
+      <AuthModalManager 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialMode={authMode}
+      />
     </div>
   );
 }

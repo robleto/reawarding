@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import type { Database } from "@/types/supabase";
 import Loader from "@/components/ui/Loading";
 import ListCard from "@/components/list/ListCard";
+import ListsEmptyState from "@/components/lists/ListsEmptyState";
+import AuthModalManager from "@/components/auth/AuthModalManager";
 import { Plus, X } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +26,7 @@ export default function ListsPage() {
   const [lists, setLists] = useState<MovieList[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
   const [createIsPublic, setCreateIsPublic] = useState(false);
@@ -74,6 +77,14 @@ export default function ListsPage() {
     setShowCreateModal(false);
   };
 
+  const handleCreateListClick = () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    setShowCreateModal(true);
+  };
+
   useEffect(() => {
     if (!user || !userId) {
       setLoading(false);
@@ -120,11 +131,7 @@ export default function ListsPage() {
   }, [userId, supabase, user]);
 
   if (!user) {
-    return (
-      <div className="flex flex-col items-center justify-center h-48 text-gray-500">
-        Please sign in to view your movie lists.
-      </div>
-    );
+    return <ListsEmptyState onCreateList={handleCreateListClick} />;
   }
 
   if (loading) {
@@ -142,7 +149,7 @@ export default function ListsPage() {
         </div>
         
         <button 
-          onClick={() => setShowCreateModal(true)}
+          onClick={handleCreateListClick}
           className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -151,30 +158,7 @@ export default function ListsPage() {
       </div>
 
       {lists.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-16 h-16 mb-4 text-gray-400">
-            <svg fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No movie lists yet
-          </h3>
-          <p className="text-gray-500 mb-6 max-w-md">
-            Create your first movie list to organize your favorite films, watchlists, or any custom collection.
-          </p>
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Create Your First List
-          </button>
-        </div>
+        <ListsEmptyState onCreateList={handleCreateListClick} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {lists.map((list) => (
@@ -271,6 +255,17 @@ export default function ListsPage() {
           </div>
         </div>
       )}
+
+      {/* Auth Modal */}
+      <AuthModalManager
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialMode="signup"
+        onAuthSuccess={() => {
+          setShowAuthModal(false);
+          // After successful auth, they'll be redirected and see their empty lists page
+        }}
+      />
     </div>
   );
 }

@@ -7,9 +7,9 @@ import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieRowCard from "@/components/movie/MovieRowCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import Loader from "@/components/ui/Loading";
-import GuestDataBanner from "@/components/auth/GuestDataBanner";
-import SavePromptBanner from "@/components/auth/SavePromptBanner";
+import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
+import RankingsEmptyState from "@/components/rankings/RankingsEmptyState";
 import {
   useMovieDataWithGuest,
   useViewMode,
@@ -20,7 +20,6 @@ import {
   GroupKey,
   SortOrder,
 } from "@/utils/sharedMovieUtils";
-import { useSavePromptBanner } from "@/hooks/useSavePromptBanner";
 import MovieFilters from "@/components/filters/MovieFilters";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +45,6 @@ export default function RankingsPage() {
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const savePromptBanner = useSavePromptBanner();
   
   // Filter to only movies with rankings for the rankings page
   const moviesWithRankings = movies.filter((movie) => movie.rankings && movie.rankings.length > 0);
@@ -213,34 +211,11 @@ export default function RankingsPage() {
   // Show empty state for guests with no rankings
   if (isGuest && moviesWithRankings.length === 0) {
     return (
-      <div className="max-w-screen-xl p-4 md:p-6  py-10 mx-auto">
-        <div className="text-center py-16">
-          <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
-            <svg fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <h3 className="text-xl font-medium text-gray-900 mb-2">
-            Start Building Your Rankings
-          </h3>
-          <p className="text-gray-600 mb-6 max-w-md mx-auto">
-            Rate some movies to see them appear here! Head to the homepage or browse films to get started.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link 
-              href="/"
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Start Rating Movies
-            </Link>
-            <button
-              onClick={handleSignupClick}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-            >
-              Sign Up to Save Progress
-            </button>
-          </div>
-        </div>
+      <div className="max-w-screen-xl p-4 md:p-6 py-10 mx-auto">
+        <RankingsEmptyState 
+          isGuest={true} 
+          onSignupClick={handleSignupClick}
+        />
       </div>
     );
   }
@@ -249,25 +224,9 @@ export default function RankingsPage() {
   if (!isGuest && moviesWithRankings.length === 0) {
     return (
       <div className="max-w-screen-xl px-6 py-10 mx-auto">
-        <div className="text-center py-16">
-          <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
-            <svg fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <h3 className="text-xl font-medium text-gray-900 mb-2">
-            Start Building Your Rankings
-          </h3>
-          <p className="text-gray-600 mb-6 max-w-md mx-auto">
-            Rate some movies to see them appear here! Head to the homepage or browse films to get started.
-          </p>
-          <Link 
-            href="/"
-            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            Start Rating Movies
-          </Link>
-        </div>
+        <RankingsEmptyState 
+          isGuest={false}
+        />
       </div>
     );
   }
@@ -275,14 +234,10 @@ export default function RankingsPage() {
   return (
     <div className="max-w-screen-xl px-6 py-10 mx-auto">
       {/* Guest Data Warning Banner */}
-      {isGuest && <GuestDataBanner onSignupClick={handleSignupClick} onLoginClick={handleLoginClick} />}
-
-      {/* Save Prompt Banner for Guests */}
       {isGuest && (
-        <SavePromptBanner
-          visible={savePromptBanner.visible}
-          onDismiss={savePromptBanner.onDismiss}
-          onSignUp={handleSignupClick}
+        <UnifiedBanner 
+          onSignupClick={handleSignupClick} 
+          onLoginClick={handleLoginClick} 
         />
       )}
 

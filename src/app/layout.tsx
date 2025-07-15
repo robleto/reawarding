@@ -74,9 +74,9 @@ export default async function RootLayout({
       <body className={`min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300 ${inter.className} ${unbounded.variable}`}>
         <NetflixGlow />
         <Providers initialUser={user}>
-          <div className="relative z-10">
+          <div className="relative z-10 min-h-screen flex flex-col">
             <HeaderNav />
-            <main className="flex-1 pt-8 pb-8 px-0 sm:px-6 lg:px-0 max-w-screen-xl mx-auto">
+            <main className="flex-1 pt-8 pb-8 px-0 sm:px-6 lg:px-0 max-w-screen-xl mx-auto w-full">
               {children}
             </main>
             <Footer />

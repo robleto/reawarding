@@ -5,8 +5,7 @@ import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieRowCard from "@/components/movie/MovieRowCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieFilters from "@/components/filters/MovieFilters";
-import GuestDataBanner from "@/components/auth/GuestDataBanner";
-import FilmsPageAlert from "@/components/auth/FilmsPageAlert";
+import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import type { Movie } from "@/types/types";
 
@@ -216,11 +215,14 @@ export default function FilmsPage() {
 
 	return (
 		<div className="max-w-screen-xl px-6 py-10 mx-auto">
-			{/* Guest Data Warning Banner */}
-			{isGuest && <GuestDataBanner onSignupClick={handleSignupClick} onLoginClick={handleLoginClick} />}
-			
-			{/* Films Page Alert for Guest Users */}
-			{isGuest && <FilmsPageAlert />}
+			{/* Unified Banner System for Guests */}
+			{isGuest && (
+				<UnifiedBanner 
+					onSignupClick={handleSignupClick} 
+					onLoginClick={handleLoginClick} 
+					excludeBannerTypes={['welcome']}
+				/>
+			)}
 
 			<MovieFilters
 				viewMode={viewMode}
