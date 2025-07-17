@@ -19,6 +19,7 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.50.0",
     "@tailwindcss/typography": "^0.5.16",
+    "clsx": "^2.1.1",
     "gsap": "^3.13.0",
     "lucide-react": "^0.517.0",
     "next": "15.3.3",

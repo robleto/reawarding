@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Button from "@/components/ui/Button";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
@@ -171,12 +172,13 @@ export default function DraggableMovieCard({
 
         {/* Remove Button */}
         {isEditing && (
-          <button
+          <Button
             onClick={onRemove}
-            className="absolute top-2 right-2 z-30 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+            variant="danger"
+            className="absolute top-2 right-2 z-30"
           >
             <X className="w-3 h-3" />
-          </button>
+          </Button>
         )}
 
         {/* Movie Poster */}
@@ -301,12 +303,13 @@ export default function DraggableMovieCard({
 
           {/* Remove Button */}
           {isEditing && (
-            <button
+            <Button
               onClick={onRemove}
-              className="p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors ml-2"
+              variant="danger"
+              className="ml-2"
             >
               <X className="w-3 h-3" />
-            </button>
+            </Button>
           )}
         </div>
       </div>

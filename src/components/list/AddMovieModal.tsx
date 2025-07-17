@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Button from "@/components/ui/Button";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
@@ -177,12 +178,9 @@ export default function AddMovieModal({
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add Movies to List</h2>
-            <button
-              onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
-            >
+            <Button onClick={handleClose} variant="ghost">
               <X className="w-6 h-6" />
-            </button>
+            </Button>
           </div>
           
           {/* Search Input with Autocomplete */}
@@ -337,13 +335,14 @@ export default function AddMovieModal({
                       </div>
                       
                       {/* Remove Button */}
-                      <button
+                      <Button
                         onClick={() => handleRemoveSelected(movie.id)}
-                        className="flex-shrink-0 p-1 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors"
+                        variant="icon"
+                        className="flex-shrink-0"
                         title="Remove from selection"
                       >
                         <X className="w-4 h-4" />
-                      </button>
+                      </Button>
                     </div>
                   );
                 })}
@@ -362,19 +361,16 @@ export default function AddMovieModal({
               }
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
+              <Button onClick={handleClose} variant="secondary">
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleAddSelectedMovies}
                 disabled={selectedMovies.length === 0}
-                className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                variant="primary"
               >
                 Add to List
-              </button>
+              </Button>
             </div>
           </div>
         </div>

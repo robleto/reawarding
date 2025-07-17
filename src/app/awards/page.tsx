@@ -100,14 +100,14 @@ export default function AwardsPage() {
 	// Show empty state if no years have enough movies
 	if (formattedYears.length === 0) {
 		return (
-			<div className="min-h-screen">
+			<div className="min-h-screen dark-glass flex items-center justify-center">
 				<AwardsEmptyState ratedMoviesCount={totalRatedMovies} />
 			</div>
 		);
 	}
 
 	return (
-		<div className="max-w-screen-xl">
+		<div className="max-w-screen-xl mx-auto">
 			{/* Unified Banner System for Guests */}
 			{isGuest && (
 				<UnifiedBanner 
@@ -117,15 +117,19 @@ export default function AwardsPage() {
 			)}
 
 			<main className="flex-1">
-				{formattedYears.map((yearData) => (
-					<EditableYearSection
-						key={yearData.year}
-						year={yearData.year}
-						winner={yearData.winner}
-						movies={yearData.nominees}
-						allMoviesForYear={yearData.allMovies}
-					/>
-				))}
+				<h1 className="page-header mb-8">Your Awards</h1>
+				<div className="space-y-8">
+					{formattedYears.map((yearData) => (
+						<div key={yearData.year} className="dark-glass p-4 rounded-xl">
+							<EditableYearSection
+								year={yearData.year}
+								winner={yearData.winner}
+								movies={yearData.nominees}
+								allMoviesForYear={yearData.allMovies}
+							/>
+						</div>
+					))}
+				</div>
 			</main>
 
 			{/* Auth Modal */}

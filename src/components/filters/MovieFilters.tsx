@@ -67,6 +67,7 @@ export default function MovieFilters({
 }: MovieFiltersProps) {
   // --- Movie search state ---
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<Movie[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -122,12 +123,12 @@ export default function MovieFilters({
 
   return (
     <div className="mb-6">
-      {/* Main Row - Clean and Minimal */}
-      <div className="flex items-center justify-between gap-4 mb-4">
-        {/* Left: Search Bar */}
-        <div className="relative flex-1 max-w-md">
+      {/* Main Row - Responsive, Search Expands, Controls Shift */}
+      <div className="flex items-center gap-4 mb-4">
+        {/* Search Bar: Compact, Expands on Focus/Input */}
+        <div className="relative transition-all duration-300" style={{ minWidth: 0 }}>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
               type="text"
               placeholder="Search movies..."
@@ -135,7 +136,10 @@ export default function MovieFilters({
               onChange={handleSearchChange}
               onFocus={() => setShowSuggestions(!!searchTerm)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-600/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/50 text-gray-300 placeholder-gray-400"
+              className={`pl-10 pr-4 py-2.5 border border-gray-600/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/50 text-gray-300 placeholder-gray-400 transition-all duration-300
+                ${searchTerm.length > 0 || showSuggestions ? 'w-64 sm:w-80 md:w-96' : 'w-28 sm:w-36 md:w-44'}
+              `}
+              style={{ minWidth: '3.5rem', maxWidth: '24rem' }}
             />
           </div>
           {showSuggestions && suggestions.length > 0 && (
@@ -146,8 +150,20 @@ export default function MovieFilters({
                   className="px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                   onMouseDown={() => handleSuggestionClick(movie)}
                 >
-                  <div className="font-medium text-sm">{movie.title}</div>
-                  <div className="text-xs text-gray-500">{movie.release_year}</div>
+                  <div className="flex items-center gap-3">
+                    {movie.poster_url && (
+                      <img
+                        src={movie.poster_url}
+                        alt={movie.title}
+                        className="w-12 h-16 object-cover rounded shadow-sm border border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-800 flex-shrink-0"
+                        loading="lazy"
+                      />
+                    )}
+                    <div>
+                      <div className="font-medium text-sm">{movie.title}</div>
+                      <div className="text-xs text-gray-500">{movie.release_year}</div>
+                    </div>
+                  </div>
                 </li>
               ))}
               <li className="px-4 py-3 text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
@@ -157,8 +173,8 @@ export default function MovieFilters({
           )}
         </div>
 
-        {/* Center: Quick Actions */}
-        <div className="flex items-center gap-2">
+        {/* Filters/Sort: Always flush left, shift as search expands */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* Filters Toggle */}
           <button
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -182,45 +198,6 @@ export default function MovieFilters({
             {sortOrder === "asc" ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
             <span className="text-sm hidden sm:inline">{SORT_OPTIONS.find(opt => opt.value === sortBy)?.label}</span>
           </button>
-
-          {/* Clear All (only show if filters are active) */}
-          {!isDefault && (
-            <button
-              onClick={handleClearAll}
-              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/20 bg-red-500/10 transition-colors"
-              title="Clear all filters and reset to defaults"
-            >
-              <X className="w-4 h-4" />
-              <span className="text-sm hidden sm:inline">Reset</span>
-            </button>
-          )}
-        </div>
-
-        {/* Right: View Mode */}
-        <div className="flex items-center gap-1 p-1 bg-gray-800/50 rounded-lg border border-gray-600/50">
-          <button
-            onClick={() => setViewMode("list")}
-            className={`p-2 rounded-md transition-colors ${
-              viewMode === "list"
-                ? "bg-blue-500/20 text-blue-400 shadow-sm"
-                : "text-gray-500 hover:text-gray-300 hover:bg-gray-700/50"
-            }`}
-            title="List view"
-          >
-            <List className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setViewMode("grid")}
-            className={`p-2 rounded-md transition-colors ${
-              viewMode === "grid"
-                ? "bg-blue-500/20 text-blue-400 shadow-sm"
-                : "text-gray-500 hover:text-gray-300 hover:bg-gray-700/50"
-            }`}
-            title="Grid view"
-          >
-            <Grid3X3 className="w-4 h-4" />
-          </button>
-        </div>
       </div>
 
       {/* Advanced Filters - Collapsible */}
@@ -307,6 +284,7 @@ export default function MovieFilters({
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }
