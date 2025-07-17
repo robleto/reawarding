@@ -140,22 +140,20 @@ export default function ListsPage() {
 
   return (
     <div className="max-w-screen-xl px-6 py-10 mx-auto">
-      <div className="flex flex-col gap-4 mb-8 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Movie Lists</h1>
-          <p className="mt-2 text-gray-600">
-            Create and manage your custom movie collections
-          </p>
+      {/* Only show header with create button if user has lists */}
+      {user && lists.length > 0 && (
+        <div className="flex flex-col gap-4 mb-8 md:flex-row md:items-center md:justify-between">
+          <div className="flex-1" /> {/* Spacer to push button to the right */}
+          
+          <button 
+            onClick={handleCreateListClick}
+            className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Create New List
+          </button>
         </div>
-        
-        <button 
-          onClick={handleCreateListClick}
-          className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Create New List
-        </button>
-      </div>
+      )}
 
       {lists.length === 0 ? (
         <ListsEmptyState onCreateList={handleCreateListClick} />
@@ -169,17 +167,17 @@ export default function ListsPage() {
 
       {/* Create List Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full border border-gray-200 dark:border-gray-700 shadow-xl">
             <form onSubmit={handleCreateList}>
               {/* Header */}
-              <div className="p-6 border-b border-gray-200">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-900">Create New List</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create New List</h2>
                   <button
                     type="button"
                     onClick={resetCreateForm}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
                   >
                     <X className="w-6 h-6" />
                   </button>
@@ -189,7 +187,7 @@ export default function ListsPage() {
               {/* Form */}
               <div className="p-6 space-y-4">
                 <div>
-                  <label htmlFor="listName" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="listName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     List Name *
                   </label>
                   <input
@@ -198,14 +196,14 @@ export default function ListsPage() {
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
                     placeholder="My Favorite Movies"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
                     required
                     autoFocus
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="listDescription" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="listDescription" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Description
                   </label>
                   <textarea
@@ -214,7 +212,7 @@ export default function ListsPage() {
                     onChange={(e) => setCreateDescription(e.target.value)}
                     placeholder="A brief description of your list..."
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent resize-none"
                   />
                 </div>
 
@@ -224,28 +222,28 @@ export default function ListsPage() {
                     id="isPublic"
                     checked={createIsPublic}
                     onChange={(e) => setCreateIsPublic(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="w-4 h-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800"
                   />
-                  <label htmlFor="isPublic" className="ml-2 text-sm text-gray-700">
+                  <label htmlFor="isPublic" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                     Make this list public (others can view it)
                   </label>
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t border-gray-200 bg-gray-50">
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg">
                 <div className="flex gap-3 justify-end">
                   <button
                     type="button"
                     onClick={resetCreateForm}
-                    className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                    className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={creating || !createName.trim()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {creating ? "Creating..." : "Create List"}
                   </button>

@@ -73,10 +73,10 @@ export default function HeaderNav() {
 					<div className="flex flex-1 items-center justify-between min-w-0">
 						{/* Navigation */}
 						<nav className="hidden md:block min-w-0">
-							<div className="relative p-2 rounded-xl bg-white/10 dark:bg-black/20 backdrop-blur-md border border-gray-200/30 dark:border-gray-700/40 shadow-lg">
+							<div className="relative rounded-xl bg-white/10 dark:bg-black/20 backdrop-blur-md border border-gray-200/30 dark:border-gray-700/40 shadow-lg">
 								{/* Bubble background */}
 								<div 
-									className="absolute top-2 rounded-lg bg-white/30 dark:bg-white/15 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-md transition-all duration-500 ease-out"
+									className="absolute top-0 rounded-lg bg-white/30 dark:bg-white/15 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-md transition-all duration-500 ease-out"
 									style={{
 										...getBubbleStyle(),
 										transitionTimingFunction: `linear(
@@ -101,7 +101,7 @@ export default function HeaderNav() {
 											>
 												<Link
 													href={item.href}
-													className={`block px-4 py-3 relative transition-colors duration-200 rounded-lg ${
+													className={`block px-4 py-2 relative transition-colors duration-200 rounded-lg text-center ${
 														isActive
 															? "text-gold dark:text-gold"
 															: "text-black dark:text-gray-300"

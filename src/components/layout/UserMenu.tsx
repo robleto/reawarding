@@ -2,10 +2,10 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { LogOut, List } from 'lucide-react';
 import { useEnsureProfile } from '@/hooks/useEnsureProfile';
-import { supabase } from '@/lib/supabaseBrowser';
+import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
 import type { Database } from '@/types/supabase';
 
 interface UserMenuProps {
@@ -25,15 +25,11 @@ interface Profile {
 
 export function UserMenu({ onLoginClick, onSignupClick }: UserMenuProps) {
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const supabase = useSupabaseClient<Database>();
+  const user = useUser();
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUser(data.user);
-    };
-    getUser();
-  }, []);
+  // console.log("UserMenu - useUser() result:", user);
+  // console.log("UserMenu - useSupabaseClient configured:", !!supabase);
 
   const { profile, loading: profileLoading, error: profileError, created } = useEnsureProfile(user);
 

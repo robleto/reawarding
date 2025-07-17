@@ -1,0 +1,48 @@
+[
+  {
+    "tmdb_id": 550,
+    "title": "Fight Club",
+    "overview": "A depressed man fights his insomnia by attending various support groups.",
+    "release_year": 1999,
+    "runtime": 139,
+    "poster_url": "https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
+    "thumb_url": "https://image.tmdb.org/t/p/w300/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
+    "mpaa_rating": "R",
+    "imdb_rating": 8.8,
+    "metacritic_score": 66,
+    "imdb_id": "tt0137523",
+    "director": "David Fincher",
+    "genres": [
+      "Drama",
+      "Thriller"
+    ],
+    "cast_list": [
+      "Brad Pitt",
+      "Edward Norton",
+      "Helena Bonham Carter"
+    ]
+  },
+  {
+    "tmdb_id": 13,
+    "title": "Forrest Gump",
+    "overview": "The presidencies of Kennedy and Johnson through the eyes of an Alabama man.",
+    "release_year": 1994,
+    "runtime": 142,
+    "poster_url": "https://image.tmdb.org/t/p/w500/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg",
+    "thumb_url": "https://image.tmdb.org/t/p/w300/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg",
+    "mpaa_rating": "PG-13",
+    "imdb_rating": 8.8,
+    "metacritic_score": 82,
+    "imdb_id": "tt0109830",
+    "director": "Robert Zemeckis",
+    "genres": [
+      "Drama",
+      "Romance"
+    ],
+    "cast_list": [
+      "Tom Hanks",
+      "Robin Wright",
+      "Gary Sinise"
+    ]
+  }
+]

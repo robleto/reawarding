@@ -8,7 +8,7 @@ interface LogoProps {
   imageClassName?: string;
 }
 
-export function Logo({ size = 'md', className = '', showText = true, imageClassName = 'object-contain' }: LogoProps) {
+export function Logo({ size = 'lg', className = '', showText = true, imageClassName = 'object-contain' }: LogoProps) {
   const [imageError, setImageError] = useState(false);
   
   const dimensions = {
@@ -30,11 +30,11 @@ export function Logo({ size = 'md', className = '', showText = true, imageClassN
   };
 
   // Use the new logo file
-  const logoSrc = '/reawarding.svg';
+  const logoSrc = '/reawarding-logo-on-black.svg';
 
   return ( 
     <div className={`flex items-center gap-1 ${className}`} aria-label="Reawarding Home">
-      {/* Oscar Worthy Logo with fallback */}
+      {/* Reawarding Logo with fallback */}
       {
         !imageError ? (
           <Image

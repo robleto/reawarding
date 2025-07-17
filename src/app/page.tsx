@@ -1,4 +1,7 @@
 "use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import {
 	useMovieDataWithGuest,
 	filterUnseenMovies,
@@ -14,11 +17,87 @@ import { useState } from "react";
 import { Film } from "lucide-react";
 
 import type { Movie as BaseMovie } from "@/types/types";
+import { AuthChecker } from "@/components/auth/AuthChecker";
 
 export default function HomePage() {
 	const { movies, loading, user, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
+	const router = useRouter();
+	const supabase = useSupabaseClient();
+
+	// Handle auth code from email confirmation
+	useEffect(() => {
+		const handleAuthCode = async () => {
+			const params = new URLSearchParams(window.location.search);
+			const hashParams = new URLSearchParams(window.location.hash.substring(1));
+			
+			const code = params.get('code');
+			const token_hash = params.get('token_hash') || hashParams.get('token_hash');
+			const type = params.get('type') || hashParams.get('type');
+			const access_token = hashParams.get('access_token');
+			const refresh_token = hashParams.get('refresh_token');
+			
+			// Handle email confirmation or recovery
+			if (access_token || token_hash) {
+				console.log('🔐 Processing auth params:', { 
+					hasCode: !!code, 
+					hasTokenHash: !!token_hash, 
+					hasAccessToken: !!access_token,
+					type,
+					codePreview: code ? code.substring(0, 8) + '...' : null,
+					url: window.location.href
+				});
+				
+				try {
+					let result;
+					
+					if (access_token && refresh_token) {
+						// Handle hash-based auth (typical for email confirmation)
+						console.log('🔐 Setting session from tokens');
+						result = await supabase.auth.setSession({
+							access_token,
+							refresh_token
+						});
+					} else if (token_hash && type) {
+						// Handle email confirmation via token hash
+						console.log('🔐 Using verifyOtp for token hash');
+						result = await supabase.auth.verifyOtp({
+							token_hash,
+							type: type as any
+						});
+					}
+					
+					if (result?.error) {
+						console.error('❌ Auth verification error:', result.error);
+						console.log('🔄 Trying to get existing session...');
+						
+						// If the first method failed, try getting a fresh session
+						const { data: session } = await supabase.auth.getSession();
+						if (session?.session) {
+							console.log('✅ Found existing session:', session.session.user.email);
+							window.history.replaceState({}, '', window.location.pathname);
+							window.location.reload();
+							return;
+						}
+					} else {
+						console.log('✅ Auth processed successfully:', result?.data?.user?.email);
+						// Clear the params from URL and refresh auth state
+						window.history.replaceState({}, '', window.location.pathname);
+						window.location.reload();
+					}
+				} catch (err) {
+					console.error('❌ Auth processing error:', err);
+				}
+			} else if (code) {
+				// Just log that we found a code but skip processing for now
+				console.log('🔐 Found auth code but skipping processing (likely expired):', code.substring(0, 8) + '...');
+				console.log('💡 Please sign up again to get a fresh confirmation link');
+			}
+		};
+
+		handleAuthCode();
+	}, [supabase]);
 
 	const handleAuthSuccess = () => {
 		setShowAuthModal(false);
@@ -115,6 +194,9 @@ export default function HomePage() {
 					onLoginClick={handleLoginClick} 
 				/>
 			)}
+			
+			{/* Temporary Auth Checker - Remove when done testing */}
+			<AuthChecker />
 
 			{/* Authenticated User Welcome */}
 			{!isGuest && hasRatedMovies && (

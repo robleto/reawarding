@@ -33,16 +33,16 @@ export default function ListCard({ list }: ListCardProps) {
 
   return (
     <Link href={`/lists/${list.id}`}>
-      <div className="border border-[#232326]/80 bg-[#1c1c1e]/60 hover:bg-[#232326]/90 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer group">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 cursor-pointer group">
         <div className="p-6">
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
-            <h3 className="text-lg font-semibold text-white line-clamp-2 group-hover:text-blue-400 transition-colors">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
               {list.name}
             </h3>
             <div className="flex items-center gap-2 ml-2 flex-shrink-0">
               {list.is_public ? (
-                <div className="flex items-center text-green-400 bg-green-900/30 px-2.5 py-1 rounded-full text-xs font-medium">
+                <div className="flex items-center text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2.5 py-1 rounded-full text-xs font-medium">
                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                     <path
@@ -54,7 +54,7 @@ export default function ListCard({ list }: ListCardProps) {
                   Public
                 </div>
               ) : (
-                <div className="flex items-center text-gray-400 bg-gray-700/50 px-2.5 py-1 rounded-full text-xs font-medium">
+                <div className="flex items-center text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-full text-xs font-medium">
                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                     <path
                       fillRule="evenodd"
@@ -70,15 +70,15 @@ export default function ListCard({ list }: ListCardProps) {
 
           {/* Description */}
           {list.description && (
-            <p className="text-sm text-gray-300 mb-4 line-clamp-2 leading-relaxed">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 line-clamp-2 leading-relaxed">
               {list.description}
             </p>
           )}
 
           {/* Stats */}
-          <div className="flex items-center justify-between text-sm text-gray-400 pt-2 border-t border-gray-600/50">
+          <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700">
             <div className="flex items-center font-medium">
-              <svg className="w-4 h-4 mr-1.5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 mr-1.5 text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M2 6a2 2 0 012-2h6l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
               </svg>
               {list.movie_count} {list.movie_count === 1 ? "movie" : "movies"}

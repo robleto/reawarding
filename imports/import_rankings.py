@@ -3,12 +3,12 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 
-load_dotenv()  # 👈 Loads .env file from the current directory or parents
+load_dotenv("../.env.local")  # 👈 Load local development environment
 
 SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
-SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")  # Use service role key to bypass RLS
 USER_ID = "45d902c9-d56a-4589-8932-9e25b6eeec30"  # Replace with your Supabase user ID
-CSV_PATH = "imports/user_rankings.csv"
+CSV_PATH = "user_rankings.csv"
 
 headers = {
     "apikey": SUPABASE_KEY,
@@ -20,15 +20,22 @@ def main():
     df = pd.read_csv(CSV_PATH)
 
     for _, row in df.iterrows():
-        tmdb_id = row.get("TMDB_ID")
+        tmdb_id_raw = row.get("TMDB_ID")
         seen_it = row.get("Seen It", "").strip().lower() == "yes"
         ranking = row.get("Ranking")
         
-        if pd.isna(tmdb_id) or pd.isna(ranking):
+        if pd.isna(tmdb_id_raw) or pd.isna(ranking):
+            continue
+        
+        # Convert TMDB ID to integer (handles cases like "14906.0")
+        try:
+            tmdb_id = int(float(str(tmdb_id_raw).strip()))
+        except (ValueError, TypeError):
+            print(f"❌ Invalid TMDB_ID: {tmdb_id_raw}")
             continue
         
         # Find the movie ID from Supabase based on TMDB_ID
-        query = f"{SUPABASE_URL}/rest/v1/movies?select=id&tmdb_id=eq.{int(tmdb_id)}"
+        query = f"{SUPABASE_URL}/rest/v1/movies?select=id&tmdb_id=eq.{tmdb_id}"
         res = requests.get(query, headers=headers)
         if res.status_code != 200 or not res.json():
             print(f"❌ Movie not found for TMDB_ID {tmdb_id}")
