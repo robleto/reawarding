@@ -211,7 +211,7 @@ export default function RankingsPage() {
   // Show empty state for guests with no rankings
   if (isGuest && moviesWithRankings.length === 0) {
     return (
-      <div className="max-w-screen-xl p-4 md:p-6 py-10 mx-auto">
+      <div className="max-w-screen-xl">
         <RankingsEmptyState 
           isGuest={true} 
           onSignupClick={handleSignupClick}
@@ -232,7 +232,7 @@ export default function RankingsPage() {
   }
 
   return (
-    <div className="max-w-screen-xl px-6 py-10 mx-auto">
+    <div className="max-w-screen-xl">
       {/* Guest Data Warning Banner */}
       {isGuest && (
         <UnifiedBanner 

@@ -8,10 +8,12 @@ type MovieList = {
   is_public: boolean;
   updated_at: string;
   movie_count?: number;
+  posterUrls?: string[];
 };
 
 interface ListCardProps {
   list: MovieList;
+  readOnly?: boolean;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -28,13 +30,32 @@ function formatRelativeTime(dateString: string): string {
   return `${Math.floor(diffInDays / 365)} years ago`;
 }
 
-export default function ListCard({ list }: ListCardProps) {
+const ListCard = ({ list, readOnly }: ListCardProps) => {
   const lastModified = formatRelativeTime(list.updated_at);
+  const posterUrls = list.posterUrls || [];
 
   return (
-    <Link href={`/lists/${list.id}`}>
-      <div className="border border-[#232326]/80 bg-[#1c1c1e]/60 hover:bg-[#232326]/90 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer group">
-        <div className="p-6">
+    <Link href={`/lists/${list.id}`} tabIndex={readOnly ? -1 : 0} aria-disabled={readOnly}>
+      <div className={`border border-[#232326]/80 bg-[#1c1c1e]/60 hover:bg-[#232326]/90 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer group ${readOnly ? 'opacity-80 pointer-events-none' : ''}`}>
+        {/* Fan of posters */}
+        {posterUrls.length > 0 && (
+          <div className="flex items-center justify-center -mt-4 mb-2 h-28 relative overflow-visible z-20">
+            {posterUrls.map((url: string, i: number) => (
+              <img
+                key={i}
+                src={url}
+                alt="Movie poster"
+                className="w-16 h-24 object-cover rounded-xl shadow-lg border-2 border-gray-800 absolute"
+                style={{
+                  left: `calc(50% + ${(i - (posterUrls.length - 1) / 2) * 32}px - 32px)`,
+                  zIndex: posterUrls.length - i,
+                  transform: `rotate(${(i - 2) * 7}deg)`
+                }}
+              />
+            ))}
+          </div>
+        )}
+        <div className="p-6 pt-2">
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
             <h3 className="text-lg font-semibold text-white line-clamp-2 group-hover:text-blue-400 transition-colors">
@@ -89,4 +110,6 @@ export default function ListCard({ list }: ListCardProps) {
       </div>
     </Link>
   );
-}
+};
+
+export default ListCard;

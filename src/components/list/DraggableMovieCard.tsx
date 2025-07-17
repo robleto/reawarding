@@ -117,10 +117,20 @@ export default function DraggableMovieCard({
   const hasValidPoster = item.movie.poster_url && item.movie.poster_url.trim() !== '' && !item.movie.poster_url.includes('placeholder') && !imageError;
   const hasValidThumb = item.movie.thumb_url && item.movie.thumb_url.trim() !== '' && !item.movie.thumb_url.includes('placeholder');
 
-  // Get user's seen status and ranking from movie rankings data
-  const userRanking = item.movie.rankings?.[0];
-  const userSeenIt = userRanking?.seen_it ?? false;
-  const userScore = userRanking?.ranking ?? null;
+  // Get user's seen status and ranking from list item data (not global rankings)
+  const userSeenIt = item.seen_it ?? false;
+  const userScore = item.score ?? null;
+
+  // Debug logging to see what data we're getting
+  console.log("🎬 DraggableMovieCard DEBUG:", {
+    movieTitle: item.movie.title,
+    itemSeenIt: item.seen_it,
+    itemScore: item.score,
+    itemRanking: item.ranking,
+    userSeenIt,
+    userScore,
+    fullItem: item
+  });
 
   const ratingStyle = getRatingStyle(userScore ?? 0);
 

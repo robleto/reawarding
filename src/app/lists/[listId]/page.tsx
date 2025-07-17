@@ -44,10 +44,12 @@ type ListItem = {
   id: string;
   list_id: string;
   movie_id: number;
-  ranking: number;
-  seen_it: boolean;
-  score: number | null;
+  ranking: number; // list position
   movie: Movie;
+  // These will be merged in from global rankings
+  seen_it?: boolean;
+  score?: number | null;
+  ranking_id?: string; // id from rankings table if needed
 };
 
 export default function ListDetailPage() {
@@ -236,7 +238,7 @@ export default function ListDetailPage() {
   ).sort((a, b) => a - b);
 
   useEffect(() => {
-    if (!listId) return;
+    if (!listId || !userId) return;
 
     async function fetchListData() {
       setLoading(true);
@@ -287,21 +289,53 @@ export default function ListDetailPage() {
         if (itemsError) {
           console.error("Error fetching list items:", itemsError.message);
           setListItems([]);
-        } else {
-          // Transform the data to match our expected structure
-          const transformedItems: ListItem[] = (itemsData || [])
-            .filter(item => item.movies) // Only include items with valid movie data
-            .map(item => ({
+          setLoading(false);
+          return;
+        }
+
+        // Get all movie_ids in the list
+        const movieIds = (itemsData || []).map(item => item.movie_id);
+
+        // Fetch global rankings for these movies for this user
+        let rankingsData: any[] = [];
+        if (movieIds.length > 0) {
+          const { data: rankings, error: rankingsError } = await supabase
+            .from("rankings")
+            .select("id, movie_id, seen_it, ranking")
+            .eq("user_id", userId)
+            .in("movie_id", movieIds);
+          if (rankingsError) {
+            console.error("Error fetching user rankings:", rankingsError.message);
+          } else {
+            rankingsData = rankings;
+          }
+        }
+
+        // Map movie_id to ranking info
+        const rankingMap = new Map<number, any>();
+        for (const r of rankingsData) {
+          rankingMap.set(r.movie_id, r);
+        }
+
+        // Transform the data to match our expected structure, merging in global ranking/seen_it
+        const transformedItems: ListItem[] = (itemsData || [])
+          .filter(item => item.movies)
+          .map(item => {
+            const global = rankingMap.get(item.movie_id) || {};
+            return {
               ...item,
+              seen_it: global.seen_it ?? false,
+              score: typeof global.ranking === 'number' ? global.ranking : null,
+              ranking_id: global.id,
               movie: {
                 ...item.movies,
-                rankings: [], // We'll populate this separately if needed
+                rankings: [],
                 thumb_url: item.movies.thumb_url || "",
               } as Movie,
-            }));
+            };
+          });
 
-          setListItems(transformedItems);
-        }
+        setListItems(transformedItems);
       } catch (err) {
         console.error("Error fetching list data:", err);
         setError("Failed to load list");
@@ -313,18 +347,31 @@ export default function ListDetailPage() {
     fetchListData();
   }, [listId, userId, supabase]);
 
+  // Update global ranking/seen_it for a movie
   const handleUpdateItem = async (
     itemId: string,
     updates: { seen_it?: boolean; score?: number | null }
   ) => {
-    // Update the list item
+    // Find the movie_id for this item
+    const item = listItems.find(i => i.id === itemId);
+    if (!item) return;
+    const movieId = item.movie_id;
+
+    // Prepare upsert payload for rankings table
+    const payload: any = {
+      user_id: userId,
+      movie_id: movieId,
+    };
+    if (updates.seen_it !== undefined) payload.seen_it = updates.seen_it;
+    if (updates.score !== undefined) payload.ranking = updates.score;
+
+    // Upsert into rankings table
     const { error } = await supabase
-      .from("movie_list_items")
-      .update(updates)
-      .eq("id", itemId);
+      .from("rankings")
+      .upsert(payload, { onConflict: "user_id,movie_id" });
 
     if (error) {
-      console.error("Error updating list item:", error.message);
+      console.error("Error updating global ranking:", error.message);
       return;
     }
 
@@ -334,12 +381,6 @@ export default function ListDetailPage() {
         item.id === itemId ? { ...item, ...updates } : item
       )
     );
-
-    // Update the list's updated_at timestamp
-    await supabase
-      .from("movie_lists")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", listId);
   };
 
   const handleRemoveItem = async (itemId: string) => {
@@ -491,33 +532,33 @@ export default function ListDetailPage() {
 
         {/* Controls - positioned absolute top right */}
         {isOwner && (
-          <div className="absolute top-0 right-0 flex items-center gap-3">
+          <div className="absolute top-0 right-0 flex items-center gap-2">
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-800/50 backdrop-blur-sm border border-gray-700 text-gray-300 rounded-md hover:bg-gray-700/50 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border text-gray-400 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30 transition-colors"
             >
               <Plus className="w-4 h-4" />
-              Add
+              <span className="text-sm">Add</span>
             </button>
             
             <button
               onClick={() => setIsEditing(!isEditing)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
                 isEditing
-                  ? "bg-green-600/50 backdrop-blur-sm border border-green-500 text-white hover:bg-green-500/50"
-                  : "bg-gray-800/50 backdrop-blur-sm border border-gray-700 text-gray-300 hover:bg-gray-700/50"
+                  ? "bg-green-500/20 text-green-400 border-green-500/30"
+                  : "text-gray-400 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30"
               }`}
             >
               <Edit2 className="w-4 h-4" />
-              {isEditing ? "Done" : "Edit"}
+              <span className="text-sm">{isEditing ? "Done" : "Edit"}</span>
             </button>
 
             <button
               onClick={handleToggleVisibility}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-800/50 backdrop-blur-sm border border-gray-700 text-gray-300 rounded-md hover:bg-gray-700/50 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border text-gray-400 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30 transition-colors"
             >
               {list.is_public ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
-              {list.is_public ? "Private" : "Make Public"}
+              <span className="text-sm">{list.is_public ? "Private" : "Make Public"}</span>
             </button>
           </div>
         )}
@@ -529,7 +570,7 @@ export default function ListDetailPage() {
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="text-4xl lg:text-5xl font-unbounded text-white border-b-2 border-blue-500 bg-transparent focus:outline-none w-full uppercase tracking-wide"
+              className="text-4xl lg:text-4xl font-unbounded text-white border-b-2 border-blue-500 bg-transparent focus:outline-none w-full uppercase tracking-wide"
               placeholder="List name"
             />
             <textarea
@@ -561,7 +602,7 @@ export default function ListDetailPage() {
         ) : (
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-4xl lg:text-5xl font-unbounded text-white uppercase tracking-wide">{list.name}</h1>
+              <h1 className="text-4xl lg:text-4xl font-unbounded text-white uppercase tracking-wide">{list.name}</h1>
               {isOwner && (
                 <button
                   onClick={() => setIsEditingDetails(true)}
@@ -692,7 +733,11 @@ export default function ListDetailPage() {
               {sortedListItems.map((item, index) => (
                 <DraggableMovieCard
                   key={item.id}
-                  item={item}
+                  item={{
+                    ...item,
+                    score: item.score ?? null,
+                    seen_it: item.seen_it ?? false,
+                  }}
                   currentUserId={userId || ""}
                   viewMode={viewMode}
                   position={index + 1}

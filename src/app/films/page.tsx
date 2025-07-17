@@ -214,7 +214,7 @@ export default function FilmsPage() {
 	}
 
 	return (
-		<div className="max-w-screen-xl px-6 py-10 mx-auto">
+		<div className="max-w-screen-xl">
 			{/* Unified Banner System for Guests */}
 			{isGuest && (
 				<UnifiedBanner 

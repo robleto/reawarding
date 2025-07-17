@@ -128,8 +128,14 @@ export default function MovieDetailModal({
   const ratingStyle = getRatingStyle(ranking ?? 0);
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-900/80 border border-yellow-500/20 rounded-2xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto text-gray-200">
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-gray-900/80 border border-yellow-500/20 rounded-2xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto text-gray-200"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-start justify-between p-4 sm:p-6 border-b border-yellow-500/20 sticky top-0 bg-gray-900/80 backdrop-blur-sm z-10">
           <div>

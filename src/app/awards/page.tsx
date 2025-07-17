@@ -107,7 +107,7 @@ export default function AwardsPage() {
 	}
 
 	return (
-		<div className="p-4 md:p-6 pt-4 md:pt-6 mx-auto">
+		<div className="max-w-screen-xl">
 			{/* Unified Banner System for Guests */}
 			{isGuest && (
 				<UnifiedBanner 

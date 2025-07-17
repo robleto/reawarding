@@ -143,7 +143,7 @@ export default function HomePage() {
 	
 	if (shouldShowEmptyState) {
 		return (
-			<div className="px-4 py-8">
+	   <div>
 				<HomeEmptyState />
 				
 				{/* Include the movies section below for when they scroll */}

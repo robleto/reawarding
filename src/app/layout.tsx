@@ -76,7 +76,7 @@ export default async function RootLayout({
         <Providers initialUser={user}>
           <div className="relative z-10 min-h-screen flex flex-col">
             <HeaderNav />
-            <main className="flex-1 pt-8 pb-8 px-0 sm:px-6 lg:px-0 max-w-screen-xl mx-auto w-full">
+            <main className="flex-1 pt-20 pb-8 px-10 sm:px-6 max-w-screen-xl mx-auto w-full">
               {children}
             </main>
             <Footer />
