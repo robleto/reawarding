@@ -7,7 +7,8 @@ export type ButtonVariant =
   | "danger"
   | "icon"
   | "ghost"
-  | "default";
+  | "default"
+  | "cta";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -31,6 +32,8 @@ const variants: Record<ButtonVariant, string> = {
     "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300",
   default:
     "px-4 py-2 rounded-lg",
+  cta:
+    "px-8 py-4 text-lg font-unbounded bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 text-black shadow-lg border-2 border-yellow-400 hover:from-yellow-500 hover:to-yellow-700 hover:border-yellow-500 focus:ring-yellow-400 focus:ring-2 focus:ring-offset-2 focus:ring-offset-black rounded-xl",
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

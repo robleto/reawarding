@@ -173,8 +173,8 @@ export default function MovieFilters({
           )}
         </div>
 
-        {/* Filters/Sort: Always flush left, shift as search expands */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Filters/Sort & View Toggle: Always flush left, shift as search expands */}
+        <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
           {/* Filters Toggle */}
           <button
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -198,6 +198,26 @@ export default function MovieFilters({
             {sortOrder === "asc" ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
             <span className="text-sm hidden sm:inline">{SORT_OPTIONS.find(opt => opt.value === sortBy)?.label}</span>
           </button>
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 ml-2">
+            <button
+              type="button"
+              className={`p-2 rounded-lg border transition-colors ${viewMode === "list" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "text-gray-400 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30"}`}
+              title="Row View"
+              onClick={() => setViewMode("list")}
+            >
+              <List className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              className={`p-2 rounded-lg border transition-colors ${viewMode === "grid" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "text-gray-400 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30"}`}
+              title="Card View"
+              onClick={() => setViewMode("grid")}
+            >
+              <Grid3X3 className="w-4 h-4" />
+            </button>
+          </div>
       </div>
 
       {/* Advanced Filters - Collapsible */}

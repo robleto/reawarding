@@ -3,6 +3,8 @@
     "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "cSpell.words": [
+    "fanart",
+    "placehold",
     "SUPABASE",
     "Unranked"
   ],

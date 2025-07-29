@@ -746,9 +746,38 @@ export default function ListDetailPage() {
                   isEditing={isEditing}
                 />
               ))}
+              {/* Add Card for Grid View */}
+              {viewMode === "grid" && isOwner && (
+                <Button
+                  variant="cta"
+                  type="button"
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="flex flex-col items-center justify-center min-h-[325px] h-full aspect-[2/3] w-full text-black font-unbounded text-2xl gap-2"
+                  style={{ minHeight: 0, minWidth: 0 }}
+                  aria-label="Add movie"
+                >
+                  <Plus className="w-12 h-12 mb-2" />
+                  <span>Add Movies</span>
+                </Button>
+              )}
             </div>
           </SortableContext>
+
         </DndContext>
+        {/* Add CTA for Row View */}
+        {viewMode === "list" && isOwner && (
+          <div className="flex justify-center mt-8">
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white text-xl font-unbounded rounded-lg shadow-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Add movies"
+            >
+              <Plus className="w-7 h-7" />
+              Add Movies
+            </button>
+          </div>
+        )}
         </>
       )}
 
