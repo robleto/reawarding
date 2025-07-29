@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, Mail, Eye, EyeOff } from "lucide-react";
+import type { Database } from "@/types/supabase";
 import type { User } from "@supabase/auth-helpers-nextjs";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
 import { supabase } from "@/lib/supabaseBrowser";
