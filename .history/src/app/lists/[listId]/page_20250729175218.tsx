@@ -497,7 +497,7 @@ export default function ListDetailPage() {
         <p className="text-lg">{error || "List not found"}</p>
         <button
           onClick={() => router.push("/lists")}
-          className="px-4 py-2 mt-4 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+          className="mt-4 px-4 py-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
         >
           ← Back to Lists
         </button>
@@ -513,18 +513,18 @@ export default function ListDetailPage() {
         <div className="flex items-center gap-4 mb-4">
           <button
             onClick={() => router.push("/lists")}
-            className="font-medium text-gray-300 hover:text-white"
+            className="text-gray-300 hover:text-white font-medium"
           >
             ← Back to Lists
           </button>
           <div className="flex items-center gap-2">
             {list.is_public ? (
-              <div className="flex items-center px-3 py-1 text-sm font-medium text-green-400 rounded-full bg-green-900/30">
+              <div className="flex items-center text-green-400 bg-green-900/30 px-3 py-1 rounded-full text-sm font-medium">
                 <Globe className="w-4 h-4 mr-2" />
                 Public
               </div>
             ) : (
-              <div className="flex items-center px-2 py-1 text-xs font-medium text-gray-400 rounded-full bg-gray-800/30">
+              <div className="flex items-center text-gray-400 bg-gray-800/30 px-2 py-1 rounded-full text-xs font-medium">
                 <Lock className="w-3 h-3 mr-1" />
                 Private
               </div>
@@ -537,7 +537,7 @@ export default function ListDetailPage() {
           <div className="absolute top-0 right-0 flex items-center gap-2">
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 text-gray-400 transition-colors border rounded-lg border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border text-gray-400 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30 transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span className="text-sm">Add</span>
@@ -557,7 +557,7 @@ export default function ListDetailPage() {
 
             <button
               onClick={handleToggleVisibility}
-              className="flex items-center gap-2 px-3 py-2 text-gray-400 transition-colors border rounded-lg border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border text-gray-400 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30 transition-colors"
             >
               {list.is_public ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
               <span className="text-sm">{list.is_public ? "Private" : "Make Public"}</span>
@@ -572,20 +572,20 @@ export default function ListDetailPage() {
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="w-full text-4xl tracking-wide text-white uppercase bg-transparent border-b-2 border-blue-500 lg:text-4xl font-unbounded focus:outline-none"
+              className="text-4xl lg:text-4xl font-unbounded text-white border-b-2 border-blue-500 bg-transparent focus:outline-none w-full uppercase tracking-wide"
               placeholder="List name"
             />
             <textarea
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
-              className="w-full px-3 py-2 text-gray-300 border border-gray-600 rounded-md bg-gray-800/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-gray-300 border border-gray-600 bg-gray-800/50 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="List description (optional)"
               rows={3}
             />
             <div className="flex gap-2">
               <button
                 onClick={handleUpdateDetails}
-                className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
               >
                 Save
               </button>
@@ -595,7 +595,7 @@ export default function ListDetailPage() {
                   setEditName(list.name);
                   setEditDescription(list.description || "");
                 }}
-                className="px-4 py-2 text-sm text-gray-300 border border-gray-600 rounded-md bg-gray-800/50 hover:bg-gray-700/50"
+                className="px-4 py-2 bg-gray-800/50 border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700/50 text-sm"
               >
                 Cancel
               </button>
@@ -604,18 +604,18 @@ export default function ListDetailPage() {
         ) : (
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-4xl tracking-wide text-white uppercase lg:text-4xl font-unbounded">{list.name}</h1>
+              <h1 className="text-4xl lg:text-4xl font-unbounded text-white uppercase tracking-wide">{list.name}</h1>
               {isOwner && (
                 <button
                   onClick={() => setIsEditingDetails(true)}
-                  className="p-2 text-gray-400 transition-colors hover:text-gray-300"
+                  className="p-2 text-gray-400 hover:text-gray-300 transition-colors"
                 >
                   <Edit2 className="w-6 h-6" />
                 </button>
               )}
             </div>
             {list.description && (
-              <p className="mb-2 text-lg text-gray-300">{list.description}</p>
+              <p className="text-lg text-gray-300 mb-2">{list.description}</p>
             )}
             <p className="text-sm text-gray-400">
               {listItems.length} {listItems.length === 1 ? "movie" : "movies"}
@@ -656,16 +656,16 @@ export default function ListDetailPage() {
               />
             </svg>
           </div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             No movies in this list
           </h3>
-          <p className="max-w-md mb-6 text-gray-500 dark:text-gray-400">
+          <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
             This list is empty. {isOwner ? "Add some movies to get started!" : "Check back later for updates."}
           </p>
           {isOwner && (
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 text-white transition-colors bg-blue-600 rounded-md hover:bg-blue-700"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add Movies
@@ -676,15 +676,15 @@ export default function ListDetailPage() {
         <>
           {/* Edit Mode Active Banner */}
           {isEditing && (
-            <div className="p-4 mb-4 border-2 rounded-lg bg-green-500/10 border-green-500/30">
+            <div className="mb-4 p-4 bg-green-500/10 border-2 border-green-500/30 rounded-lg">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <p className="font-semibold text-green-400">
+                <p className="text-green-400 font-semibold">
                   🎯 EDIT MODE ACTIVE - You can now drag and drop movies to reorder them!
                 </p>
               </div>
               {(filterType !== "none" || sortBy !== "ranking") && (
-                <p className="mt-2 text-sm text-amber-400">
+                <p className="text-sm text-amber-400 mt-2">
                   ⚠️ Clear filters and sort by "My Ranking" to enable drag & drop.
                 </p>
               )}
@@ -693,7 +693,7 @@ export default function ListDetailPage() {
           
           {/* Reordering notice when filters are applied */}
           {(filterType !== "none" || sortBy !== "ranking") && isEditing && (
-            <div className="p-3 mb-4 border rounded-lg bg-amber-500/10 border-amber-500/30">
+            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
               <p className="text-sm text-amber-600 dark:text-amber-400">
                 <strong>Note:</strong> Drag & drop reordering is only available when viewing the complete list sorted by position. 
                 Clear filters and sort by "My Ranking" to reorder items.
@@ -708,7 +708,7 @@ export default function ListDetailPage() {
           
           {/* Show info for non-owners when editing */}
           {isEditing && !isOwner && (filterType === "none" && sortBy === "ranking") && (
-            <div className="p-3 mb-4 border rounded-lg bg-blue-500/10 border-blue-500/30">
+            <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
               <p className="text-sm text-blue-600 dark:text-blue-400">
                 <strong>Preview Mode:</strong> You can reorder items to see how they would look, but changes won't be saved permanently.
                 {userId ? " Only the list owner can save changes." : " Log in and create your own list to save changes."}
@@ -772,7 +772,7 @@ export default function ListDetailPage() {
             <button
               type="button"
               onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-3 px-8 py-4 text-xl text-white transition-colors bg-blue-600 rounded-lg shadow-lg font-unbounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex items-center gap-3 px-8 py-4 bg-blue-600 text-white text-xl font-unbounded rounded-lg shadow-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
               aria-label="Add movies"
             >
               <Plus className="w-7 h-7" />
