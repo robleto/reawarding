@@ -109,13 +109,20 @@ async function importTmdbMovie(tmdbId, supabaseUrl, supabaseKey, tmdbApiKey, fan
   }
 }
 Deno.serve(async (req)=>{
-  // Allow local POSTs with no Authorization header (robust for all local dev)
-  const isLocalEnv = (Deno.env.get("SUPABASE_URL") || "").includes("localhost") || (Deno.env.get("SUPABASE_URL") || "").includes("127.0.0.1");
-  const isScheduledInvocation = req.headers.get("Authorization") === `Bearer ${Deno.env.get("CRON_SECRET")}`;
-  if (!isLocalEnv && !isScheduledInvocation && req.method !== "POST") {
-    return new Response("Unauthorized", {
-      status: 401
-    });
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+  const cronSecret = Deno.env.get("CRON_SECRET") || "";
+  const isLocalEnv = supabaseUrl.includes("localhost") || supabaseUrl.includes("127.0.0.1");
+  const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
+  const cronHeader = req.headers.get("x-cron-secret") || req.headers.get("X-CRON-SECRET") || "";
+
+  // In production: require a valid Supabase Authorization header (anon or service role)
+  // AND a matching X-CRON-SECRET. In local dev, allow any POST for ease of testing.
+  if (!isLocalEnv) {
+    const hasSupabaseAuth = authHeader.startsWith("Bearer ");
+    const cronOk = !!cronSecret && cronHeader === cronSecret;
+    if (!hasSupabaseAuth || !cronOk) {
+      return new Response("Unauthorized", { status: 401 });
+    }
   }
   try {
     console.log("Starting TMDB trending movies scraper");

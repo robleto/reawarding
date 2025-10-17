@@ -23,11 +23,5 @@ alter function admin.invoke_backup_export() owner to postgres;
 revoke all on function admin.invoke_backup_export() from public;
 grant execute on function admin.invoke_backup_export() to postgres;
 
--- Create a daily schedule at 03:30 UTC if not already present
-select cron.schedule(
-  'daily-backup-export',
-  '30 3 * * *',
-  $$select admin.invoke_backup_export();$$
-) where not exists (
-  select 1 from cron.job where command = $$select admin.invoke_backup_export();$$
-);
+-- Note: We no longer auto-create a pg_cron schedule here because GitHub Actions will own scheduling.
+-- You can still run the wrapper manually: SELECT admin.invoke_backup_export();

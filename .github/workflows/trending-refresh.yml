@@ -1,0 +1,21 @@
+name: Trending Refresh
+
+on:
+  schedule:
+    - cron: '7 * * * *' # Hourly at minute 7 UTC
+  workflow_dispatch:
+
+jobs:
+  call:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke tmdb-trending-scraper
+        run: |
+          curl -sS -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/tmdb-trending-scraper" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "X-CRON-SECRET: ${{ secrets.CRON_SECRET }}" \
+            --data '{"source":"github-action"}'
+      - name: Done
+        run: echo "Trending refresh triggered"

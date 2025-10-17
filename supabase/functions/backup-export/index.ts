@@ -51,16 +51,19 @@ Deno.serve(async (req) => {
     // Auth: require CRON_SECRET for non-local calls
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const cronSecret = Deno.env.get("CRON_SECRET");
+  const cronSecret = Deno.env.get("CRON_SECRET");
 
     if (!supabaseUrl || !serviceKey) {
       return new Response("Missing env SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY", { status: 500 });
     }
 
     const isLocal = supabaseUrl.includes("localhost") || supabaseUrl.includes("127.0.0.1");
-    const bearer = req.headers.get("authorization") || req.headers.get("Authorization");
+    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
+    const cronHeader = req.headers.get("x-cron-secret") || req.headers.get("X-CRON-SECRET");
     if (!isLocal) {
-      if (!cronSecret || !bearer || bearer !== `Bearer ${cronSecret}`) {
+      const hasSupabaseAuth = !!authHeader && authHeader.startsWith("Bearer ");
+      const cronOk = !!cronSecret && !!cronHeader && cronHeader === cronSecret;
+      if (!hasSupabaseAuth || !cronOk) {
         return new Response("Unauthorized", { status: 401 });
       }
     }
