@@ -14,15 +14,22 @@ jobs:
           [ -n "${{ secrets.SUPABASE_URL }}" ] || { echo "Missing SUPABASE_URL repo secret" >&2; exit 1; }
           [ -n "${{ secrets.SUPABASE_ANON_KEY }}" ] || { echo "Missing SUPABASE_ANON_KEY repo secret" >&2; exit 1; }
           [ -n "${{ secrets.CRON_SECRET }}" ] || { echo "Missing CRON_SECRET repo secret" >&2; exit 1; }
+          # Print non-sensitive diagnostics
+          echo "ANON_LEN=${#{{ secrets.SUPABASE_ANON_KEY }}}"
+          echo "CRON_LEN=${#{{ secrets.CRON_SECRET }}}"
 
       - name: Invoke tmdb-trending-scraper
         run: |
-          curl -sS -X POST \
+          # Fail the step on non-2xx and print response
+          http_code=$(curl -fSs -o /tmp/resp.json -w '%{http_code}' -X POST \
             "${{ secrets.SUPABASE_URL }}/functions/v1/tmdb-trending-scraper" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "X-CRON-SECRET: ${{ secrets.CRON_SECRET }}" \
-            --data '{"source":"github-action"}'
+            --data '{"source":"github-action"}') && true
+          echo "HTTP: $http_code"
+          cat /tmp/resp.json || true
+          [ "$http_code" = "200" ] || exit 1
       - name: Done
         run: echo "Trending refresh triggered"
