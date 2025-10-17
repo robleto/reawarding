@@ -19,6 +19,7 @@ jobs:
         run: |
           curl -sS -X POST \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "X-CRON-SECRET: ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             "${{ secrets.SUPABASE_URL }}/functions/v1/backup-export"

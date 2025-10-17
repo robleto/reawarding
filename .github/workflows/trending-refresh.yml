@@ -21,6 +21,7 @@ jobs:
             "${{ secrets.SUPABASE_URL }}/functions/v1/tmdb-trending-scraper" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "X-CRON-SECRET: ${{ secrets.CRON_SECRET }}" \
             --data '{"source":"github-action"}'
       - name: Done
