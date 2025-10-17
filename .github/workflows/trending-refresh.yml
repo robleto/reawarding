@@ -9,6 +9,12 @@ jobs:
   call:
     runs-on: ubuntu-latest
     steps:
+      - name: Validate required secrets
+        run: |
+          [ -n "${{ secrets.SUPABASE_URL }}" ] || { echo "Missing SUPABASE_URL repo secret" >&2; exit 1; }
+          [ -n "${{ secrets.SUPABASE_ANON_KEY }}" ] || { echo "Missing SUPABASE_ANON_KEY repo secret" >&2; exit 1; }
+          [ -n "${{ secrets.CRON_SECRET }}" ] || { echo "Missing CRON_SECRET repo secret" >&2; exit 1; }
+
       - name: Invoke tmdb-trending-scraper
         run: |
           curl -sS -X POST \
