@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+const VERSION = "backup-export@2025-10-17-1";
 
 // Tables to back up (add here as needed)
 const TABLES = [
@@ -70,20 +71,17 @@ Deno.serve(async (req) => {
   const cronOk = !!cronEnv && !!cronHeader && cronHeader.length === cronEnv.length && cronHeader === cronEnv;
       if (!hasSupabaseAuth || !cronOk) {
         const reason = !hasSupabaseAuth ? "no-supabase-auth" : "cron-mismatch";
-        if (debug) {
-          console.warn("cron-auth-fail", {
-            reason,
-            authHeaderLen: (authHeader || "").length,
-            apiKeyPresent: !!apiKeyHeader,
-            cronHeaderLen: cronHeader.length,
-            cronEnvLen: cronEnv.length,
-          });
-          return new Response(JSON.stringify({ error: "Unauthorized", reason }), {
-            status: 401,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
-        return new Response("Unauthorized", { status: 401 });
+        console.warn("cron-auth-fail", {
+          reason,
+          authHeaderLen: (authHeader || "").length,
+          apiKeyPresent: !!apiKeyHeader,
+          cronHeaderLen: cronHeader.length,
+          cronEnvLen: cronEnv.length,
+        });
+        return new Response(JSON.stringify({ error: "Unauthorized", reason, version: VERSION }), {
+          status: 401,
+          headers: { "Content-Type": "application/json", "X-Version": VERSION },
+        });
       }
     }
 
@@ -105,13 +103,13 @@ Deno.serve(async (req) => {
       results[table] = rows.length;
     }
 
-    return new Response(JSON.stringify({ success: true, datePrefix, counts: results }), {
-      headers: { "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ success: true, datePrefix, counts: results, version: VERSION }), {
+      headers: { "Content-Type": "application/json", "X-Version": VERSION },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ success: false, error: e instanceof Error ? e.message : String(e) }), {
+    return new Response(JSON.stringify({ success: false, error: e instanceof Error ? e.message : String(e), version: VERSION }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Version": VERSION },
     });
   }
 });

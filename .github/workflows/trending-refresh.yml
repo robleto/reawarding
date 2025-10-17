@@ -4,11 +4,6 @@ on:
   schedule:
     - cron: '7 * * * *' # Hourly at minute 7 UTC
   workflow_dispatch:
-    inputs:
-      debug:
-        description: 'Enable function debug (adds X-Debug: 1)'
-        required: false
-        default: '0'
 
 jobs:
   call:
@@ -17,7 +12,7 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
-      DEBUG_CRON: ${{ github.event.inputs.debug }}
+      DEBUG_CRON: '1'
     steps:
       - name: Validate required secrets
         run: |
@@ -31,17 +26,37 @@ jobs:
       - name: Invoke tmdb-trending-scraper
         run: |
           # Call function, capture HTTP and body
-          http_code=$(curl -sS -o /tmp/resp.json -w '%{http_code}' -X POST \
+          http_code=$(curl -sS -D /tmp/headers.txt -o /tmp/resp.json -w '%{http_code}' -X POST \
             "$SUPABASE_URL/functions/v1/tmdb-trending-scraper" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "X-CRON-SECRET: $CRON_SECRET" \
-            -H "X-Debug: ${DEBUG_CRON:-0}" \
+            -H "X-Debug: 1" \
             --data '{"source":"github-action"}')
           ec=$?
           echo "HTTP: $http_code"
+          echo "--- Response headers (filtered) ---"
+          grep -iE '^(x-reason|content-type|server):' /tmp/headers.txt || true
           cat /tmp/resp.json || true
-          if [ "$ec" -ne 0 ] || [ "$http_code" != "200" ]; then exit 1; fi
+          if [ "$ec" -ne 0 ] || [ "$http_code" != "200" ]; then
+            echo "Primary endpoint failed, trying functions subdomain..."
+            # Derive project ref from SUPABASE_URL (https://<ref>.supabase.co)
+            REF=$(printf '%s' "$SUPABASE_URL" | sed -E 's#https?://([^\.]+)\..*#\1#')
+            FUNCS_URL="https://$REF.functions.supabase.co/tmdb-trending-scraper"
+            http_code2=$(curl -sS -D /tmp/headers2.txt -o /tmp/resp2.json -w '%{http_code}' -X POST \
+              "$FUNCS_URL" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "X-CRON-SECRET: $CRON_SECRET" \
+              -H "X-Debug: 1" \
+              --data '{"source":"github-action"}')
+            echo "HTTP (functions subdomain): $http_code2"
+            echo "--- Response headers (filtered, subdomain) ---"
+            grep -iE '^(x-reason|content-type|server|x-version):' /tmp/headers2.txt || true
+            cat /tmp/resp2.json || true
+            if [ "$http_code2" != "200" ]; then exit 1; fi
+          fi
       - name: Done
         run: echo "Trending refresh triggered"

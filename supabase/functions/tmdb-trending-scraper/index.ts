@@ -1,4 +1,6 @@
 import { load } from "npm:cheerio@1.0.0-rc.12";
+// Bump this when deploying to verify code version in logs
+const VERSION = "tmdb-trending-scraper@2025-10-17-1";
 // Helper: get today's date in YYYY-MM-DD (UTC)
 function getTodayUTC() {
   const now = new Date();
@@ -128,20 +130,17 @@ Deno.serve(async (req)=>{
     const cronOk = !!cronEnv && cronHeader.length === cronEnv.length && cronHeader === cronEnv;
     if (!hasSupabaseAuth || !cronOk) {
       const reason = !hasSupabaseAuth ? "no-supabase-auth" : "cron-mismatch";
-      if (debug) {
-        console.warn("cron-auth-fail", {
-          reason,
-          authHeaderLen: authHeader.length,
-          apiKeyPresent: !!apiKeyHeader,
-          cronHeaderLen: cronHeader.length,
-          cronEnvLen: cronEnv.length,
-        });
-        return new Response(JSON.stringify({ error: "Unauthorized", reason }), {
-          status: 401,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response("Unauthorized", { status: 401 });
+      console.warn("cron-auth-fail", {
+        reason,
+        authHeaderLen: authHeader.length,
+        apiKeyPresent: !!apiKeyHeader,
+        cronHeaderLen: cronHeader.length,
+        cronEnvLen: cronEnv.length,
+      });
+      return new Response(JSON.stringify({ error: "Unauthorized", reason, version: VERSION }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", "X-Version": VERSION },
+      });
     }
   }
   try {
@@ -203,21 +202,25 @@ Deno.serve(async (req)=>{
     return new Response(JSON.stringify({
       success: true,
       message: `Processed ${filteredIds.length} new trending movies (skipped ${movieIds.length - filteredIds.length})`,
-      results
+      results,
+      version: VERSION
     }), {
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Version": VERSION
       }
     });
   } catch (error) {
     console.error("Error in TMDB scraper:", error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error.message,
+      version: VERSION
     }), {
       status: 500,
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Version": VERSION
       }
     });
   }
