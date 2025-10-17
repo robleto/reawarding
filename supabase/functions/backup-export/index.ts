@@ -61,11 +61,12 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
   const apiKeyHeader = req.headers.get("apikey") || req.headers.get("x-api-key") || req.headers.get("X-API-KEY");
   const cronHeaderRaw = req.headers.get("x-cron-secret") || req.headers.get("X-CRON-SECRET");
-  const cronHeader = (cronHeaderRaw || "").trim();
-  const cronEnv = (cronSecret || "").trim();
+  const normalize = (s: string) => (s || "").trim().replace(/[^0-9a-fA-F]/g, "").toLowerCase();
+  const cronHeader = normalize(cronHeaderRaw || "");
+  const cronEnv = normalize(cronSecret || "");
     if (!isLocal) {
       const hasSupabaseAuth = (!!authHeader && authHeader.toLowerCase().startsWith("bearer ")) || !!apiKeyHeader;
-  const cronOk = !!cronEnv && !!cronHeader && cronHeader === cronEnv;
+  const cronOk = !!cronEnv && !!cronHeader && cronHeader.length === cronEnv.length && cronHeader === cronEnv;
       if (!hasSupabaseAuth || !cronOk) {
         return new Response("Unauthorized", { status: 401 });
       }

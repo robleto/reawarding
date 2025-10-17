@@ -115,15 +115,16 @@ Deno.serve(async (req)=>{
   const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
   const apiKeyHeader = req.headers.get("apikey") || req.headers.get("x-api-key") || req.headers.get("X-API-KEY") || "";
   const cronHeaderRaw = req.headers.get("x-cron-secret") || req.headers.get("X-CRON-SECRET") || "";
-  // Normalize both values to avoid whitespace/newline issues
-  const cronHeader = cronHeaderRaw.trim();
-  const cronEnv = cronSecret.trim();
+  // Normalize both values to avoid whitespace/quotes/case issues
+  const normalize = (s: string) => (s || "").trim().replace(/[^0-9a-fA-F]/g, "").toLowerCase();
+  const cronHeader = normalize(cronHeaderRaw);
+  const cronEnv = normalize(cronSecret || "");
 
   // In production: require a valid Supabase Authorization header (anon or service role)
   // AND a matching X-CRON-SECRET. In local dev, allow any POST for ease of testing.
   if (!isLocalEnv) {
     const hasSupabaseAuth = authHeader.toLowerCase().startsWith("bearer ") || apiKeyHeader.length > 0;
-  const cronOk = !!cronEnv && cronHeader === cronEnv;
+  const cronOk = !!cronEnv && cronHeader.length === cronEnv.length && cronHeader === cronEnv;
     if (!hasSupabaseAuth || !cronOk) {
       return new Response("Unauthorized", { status: 401 });
     }
