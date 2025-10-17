@@ -112,6 +112,7 @@ Deno.serve(async (req)=>{
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
   const cronSecret = Deno.env.get("CRON_SECRET") || "";
   const isLocalEnv = supabaseUrl.includes("localhost") || supabaseUrl.includes("127.0.0.1");
+  const debug = (req.headers.get("x-debug") === "1") || (Deno.env.get("DEBUG_CRON") === "1");
   const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
   const apiKeyHeader = req.headers.get("apikey") || req.headers.get("x-api-key") || req.headers.get("X-API-KEY") || "";
   const cronHeaderRaw = req.headers.get("x-cron-secret") || req.headers.get("X-CRON-SECRET") || "";
@@ -124,8 +125,22 @@ Deno.serve(async (req)=>{
   // AND a matching X-CRON-SECRET. In local dev, allow any POST for ease of testing.
   if (!isLocalEnv) {
     const hasSupabaseAuth = authHeader.toLowerCase().startsWith("bearer ") || apiKeyHeader.length > 0;
-  const cronOk = !!cronEnv && cronHeader.length === cronEnv.length && cronHeader === cronEnv;
+    const cronOk = !!cronEnv && cronHeader.length === cronEnv.length && cronHeader === cronEnv;
     if (!hasSupabaseAuth || !cronOk) {
+      const reason = !hasSupabaseAuth ? "no-supabase-auth" : "cron-mismatch";
+      if (debug) {
+        console.warn("cron-auth-fail", {
+          reason,
+          authHeaderLen: authHeader.length,
+          apiKeyPresent: !!apiKeyHeader,
+          cronHeaderLen: cronHeader.length,
+          cronEnvLen: cronEnv.length,
+        });
+        return new Response(JSON.stringify({ error: "Unauthorized", reason }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
       return new Response("Unauthorized", { status: 401 });
     }
   }
