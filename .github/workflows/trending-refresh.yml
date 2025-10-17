@@ -13,6 +13,7 @@ jobs:
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
       DEBUG_CRON: '1'
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - name: Validate required secrets
         run: |
@@ -56,7 +57,39 @@ jobs:
             echo "--- Response headers (filtered, subdomain) ---"
             grep -iE '^(x-reason|content-type|server|x-version):' /tmp/headers2.txt || true
             cat /tmp/resp2.json || true
-            if [ "$http_code2" != "200" ]; then exit 1; fi
+            if [ "$http_code2" != "200" ]; then
+              # Retry with service role key if provided
+              if [ -n "${SUPABASE_SERVICE_ROLE_KEY}" ]; then
+                echo "Retrying with service role key (primary endpoint)..."
+                http_code3=$(curl -sS -D /tmp/headers3.txt -o /tmp/resp3.json -w '%{http_code}' -X POST \
+                  "$SUPABASE_URL/functions/v1/tmdb-trending-scraper" \
+                  -H "Content-Type: application/json" \
+                  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "X-CRON-SECRET: $CRON_SECRET" \
+                  -H "X-Debug: 1" \
+                  --data '{"source":"github-action"}')
+                echo "HTTP (primary, service role): $http_code3"
+                grep -iE '^(x-reason|content-type|server|x-version):' /tmp/headers3.txt || true
+                cat /tmp/resp3.json || true
+                if [ "$http_code3" = "200" ]; then exit 0; fi
+
+                echo "Retrying with service role key (functions subdomain)..."
+                http_code4=$(curl -sS -D /tmp/headers4.txt -o /tmp/resp4.json -w '%{http_code}' -X POST \
+                  "$FUNCS_URL" \
+                  -H "Content-Type: application/json" \
+                  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "X-CRON-SECRET: $CRON_SECRET" \
+                  -H "X-Debug: 1" \
+                  --data '{"source":"github-action"}')
+                echo "HTTP (subdomain, service role): $http_code4"
+                grep -iE '^(x-reason|content-type|server|x-version):' /tmp/headers4.txt || true
+                cat /tmp/resp4.json || true
+                if [ "$http_code4" = "200" ]; then exit 0; fi
+              fi
+              exit 1
+            fi
           fi
       - name: Done
         run: echo "Trending refresh triggered"

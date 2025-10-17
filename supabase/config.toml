@@ -324,6 +324,19 @@ deno_version = 1
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Edge Function configuration
+# We disable gateway JWT verification for the GitHub-triggered functions and enforce access via X-CRON-SECRET inside the functions.
+[functions.tmdb-trending-scraper]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/tmdb-trending-scraper/index.ts"
+import_map = "./functions/tmdb-trending-scraper/deno.json"
+
+[functions.backup-export]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/backup-export/index.ts"
+
 [analytics]
 enabled = true
 port = 54327
