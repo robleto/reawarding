@@ -8,28 +8,33 @@ on:
 jobs:
   call:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
       - name: Validate required secrets
         run: |
-          [ -n "${{ secrets.SUPABASE_URL }}" ] || { echo "Missing SUPABASE_URL repo secret" >&2; exit 1; }
-          [ -n "${{ secrets.SUPABASE_ANON_KEY }}" ] || { echo "Missing SUPABASE_ANON_KEY repo secret" >&2; exit 1; }
-          [ -n "${{ secrets.CRON_SECRET }}" ] || { echo "Missing CRON_SECRET repo secret" >&2; exit 1; }
-          # Print non-sensitive diagnostics
-          echo "ANON_LEN=${#{{ secrets.SUPABASE_ANON_KEY }}}"
-          echo "CRON_LEN=${#{{ secrets.CRON_SECRET }}}"
+          [ -n "$SUPABASE_URL" ] || { echo "Missing SUPABASE_URL repo secret" >&2; exit 1; }
+          [ -n "$SUPABASE_ANON_KEY" ] || { echo "Missing SUPABASE_ANON_KEY repo secret" >&2; exit 1; }
+          [ -n "$CRON_SECRET" ] || { echo "Missing CRON_SECRET repo secret" >&2; exit 1; }
+          # Print non-sensitive diagnostics (lengths only)
+          echo "ANON_LEN=$(printf '%s' "$SUPABASE_ANON_KEY" | wc -c)"
+          echo "CRON_LEN=$(printf '%s' "$CRON_SECRET" | wc -c)"
 
       - name: Invoke tmdb-trending-scraper
         run: |
-          # Fail the step on non-2xx and print response
-          http_code=$(curl -fSs -o /tmp/resp.json -w '%{http_code}' -X POST \
-            "${{ secrets.SUPABASE_URL }}/functions/v1/tmdb-trending-scraper" \
+          # Call function, capture HTTP and body
+          http_code=$(curl -sS -o /tmp/resp.json -w '%{http_code}' -X POST \
+            "$SUPABASE_URL/functions/v1/tmdb-trending-scraper" \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "X-CRON-SECRET: ${{ secrets.CRON_SECRET }}" \
-            --data '{"source":"github-action"}') && true
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "X-CRON-SECRET: $CRON_SECRET" \
+            --data '{"source":"github-action"}')
+          ec=$?
           echo "HTTP: $http_code"
           cat /tmp/resp.json || true
-          [ "$http_code" = "200" ] || exit 1
+          if [ "$ec" -ne 0 ] || [ "$http_code" != "200" ]; then exit 1; fi
       - name: Done
         run: echo "Trending refresh triggered"
