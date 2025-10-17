@@ -350,6 +350,67 @@ export default function ListDetailPage() {
   }, [listId, userId, supabase]);
 
   // Update global ranking/seen_it for a movie
+  // Refetch list items and rankings after update
+  const refetchListItems = async () => {
+    if (!listId || !userId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      // Fetch the list items with movie details
+      const { data: itemsData, error: itemsError } = await supabase
+        .from("movie_list_items")
+        .select(`*, movies:movie_id (id, title, release_year, poster_url, thumb_url, created_at)`)
+        .eq("list_id", listId)
+        .order("ranking");
+      if (itemsError) {
+        setListItems([]);
+        setLoading(false);
+        return;
+      }
+      // Get all movie_ids in the list
+      const movieIds = (itemsData || []).map(item => item.movie_id);
+      // Fetch global rankings for these movies for this user
+      let rankingsData: any[] = [];
+      if (movieIds.length > 0) {
+        const { data: rankings, error: rankingsError } = await supabase
+          .from("rankings")
+          .select("id, movie_id, seen_it, ranking")
+          .eq("user_id", userId)
+          .in("movie_id", movieIds);
+        if (!rankingsError && rankings) {
+          rankingsData = rankings;
+        }
+      }
+      // Map movie_id to ranking info
+      const rankingMap = new Map<number, any>();
+      for (const r of rankingsData) {
+        rankingMap.set(r.movie_id, r);
+      }
+      // Transform the data to match our expected structure, merging in global ranking/seen_it
+      const transformedItems: ListItem[] = (itemsData || [])
+        .filter(item => item.movies)
+        .map(item => {
+          const global = rankingMap.get(item.movie_id) || {};
+          return {
+            ...item,
+            seen_it: global.seen_it ?? false,
+            score: typeof global.ranking === 'number' ? global.ranking : null,
+            ranking_id: global.id,
+            movie: {
+              ...item.movies,
+              rankings: [],
+              thumb_url: item.movies.thumb_url || "",
+            } as Movie,
+          };
+        });
+      setListItems(transformedItems);
+    } catch (err) {
+      setError("Failed to refresh list items");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleUpdateItem = async (
     itemId: string,
     updates: { seen_it?: boolean; score?: number | null }
@@ -377,12 +438,14 @@ export default function ListDetailPage() {
       return;
     }
 
-    // Update local state
+    // Optimistically update local state
     setListItems(prevItems =>
       prevItems.map(item =>
         item.id === itemId ? { ...item, ...updates } : item
       )
     );
+    // Refetch from backend to ensure sync
+    await refetchListItems();
   };
 
   const handleRemoveItem = async (itemId: string) => {

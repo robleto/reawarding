@@ -69,7 +69,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
 
   return (
     <div
-      className={`px-2 py-1 md:px-4 md:py-3 mb-2 md:mb-3 rounded-xl border border-[#232326]/80 bg-[#1c1c1e]/60 hover:bg-[#232326]/90 transition duration-200 shadow-sm ${
+      className={`px-1 py-1 md:px-2 md:py-2 mb-2 md:mb-2 rounded-xl border border-[#232326]/80 bg-[#1c1c1e]/60 hover:bg-[#232326]/90 transition duration-200 shadow-sm ${
       onClick ? 'cursor-pointer' : ''
       }`}
       onClick={handleClick}
@@ -77,14 +77,14 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
       style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)' }}
     >
       {/* Desktop Layout */}
-      <div className="hidden md:flex items-center justify-between gap-4">
+      <div className="hidden md:flex items-center justify-between gap-2">
         {/* Poster */}
         {hasValidImage ? (
           <Image
             src={movie.thumb_url}
             alt={movie.title}
-            width={100}
-            height={75}
+            width={80}
+            height={50}
             className="rounded-md shadow-md"
             unoptimized
             onError={(e) => {
@@ -138,7 +138,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
 
       {/* Mobile Layout */}
       <div className="md:hidden">
-        <div className="flex items-center gap-2 min-h-[60px]">
+        <div className="flex items-center gap-1 min-h-[60px]">
           {/* Row Number */}
           {typeof index === 'number' && (
             <div className="w-5 flex items-center justify-end text-xs font-bold text-gray-400 select-none pr-1">

@@ -75,110 +75,51 @@ export default function MovieDetailModal({
     };
   }, [isOpen, onClose]);
 
+  // Update ranking and refetch latest value from backend
   const updateRanking = async (newRanking: number | null, newSeenIt: boolean) => {
     if (!user) {
       console.error('No user found when trying to update ranking');
       return;
     }
 
-    console.log('Attempting to update ranking:', {
-      userId: user.id,
-      movieId: movie.id,
-      movieTitle: movie.title,
-      newRanking,
-      newSeenIt,
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'configured' : 'missing',
-      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'configured' : 'missing'
-    });
-
     setIsLoading(true);
     try {
-      // First, let's check if the user exists and the movie exists
-      const { data: userCheck, error: userError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .single();
-
-      if (userError && userError.code !== 'PGRST116') { // PGRST116 is "not found"
-        console.error('Error checking user profile:', userError);
-      }
-
-      if (!userCheck && userError?.code === 'PGRST116') {
-        console.log('User profile not found, creating one...');
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            username: user.email || `user_${user.id.slice(0, 8)}`,
-            full_name: user.user_metadata?.full_name || user.email || 'Anonymous User'
-          });
-
-        if (profileError) {
-          console.error('Error creating user profile:', profileError);
-        }
-      }
-
-      // Check if the movie exists in the database
-      const { error: movieError } = await supabase
-        .from('movies')
-        .select('id')
-        .eq('id', movie.id)
-        .single();
-
-      if (movieError) {
-        console.error('Error checking movie existence:', {
-          error: movieError,
-          movieId: movie.id,
-          movieTitle: movie.title
-        });
-        
-        if (movieError.code === 'PGRST116') {
-          console.error('Movie not found in database. Movie ID:', movie.id);
-          // Revert state on error
-          setRanking(initialRanking);
-          setSeenIt(initialSeenIt);
-          return;
-        }
-      }
-
-      const { data, error } = await supabase.from('rankings').upsert({
+      // Upsert ranking
+      const { error } = await supabase.from('rankings').upsert({
         user_id: user.id,
         movie_id: movie.id,
         ranking: newRanking,
         seen_it: newSeenIt,
-      });
+      }, { onConflict: 'user_id,movie_id' });
 
       if (error) {
-        console.error('Error updating ranking:', {
-          error,
-          errorMessage: error.message,
-          errorCode: error.code,
-          errorHint: error.hint,
-          errorDetails: error.details,
-          userId: user.id,
-          movieId: movie.id,
-          ranking: newRanking,
-          seenIt: newSeenIt
-        });
-        // Revert state on error
+        console.error('Error updating ranking:', error);
         setRanking(initialRanking);
         setSeenIt(initialSeenIt);
-      } else {
-        console.log('Successfully updated ranking:', { data, userId: user.id, movieId: movie.id });
-        // On success, call the onUpdate callback
-        onUpdate(movie.id, newRanking, newSeenIt);
+        return;
       }
+
+      // Refetch latest ranking from backend
+      const { data: rankingData, error: fetchError } = await supabase
+        .from('rankings')
+        .select('ranking, seen_it')
+        .eq('user_id', user.id)
+        .eq('movie_id', movie.id)
+        .single();
+
+      if (fetchError || !rankingData) {
+        console.error('Error fetching updated ranking:', fetchError);
+        setRanking(initialRanking);
+        setSeenIt(initialSeenIt);
+        return;
+      }
+
+      setRanking(rankingData.ranking ?? null);
+      setSeenIt(rankingData.seen_it ?? false);
+      // On success, call the onUpdate callback
+      onUpdate(movie.id, rankingData.ranking ?? null, rankingData.seen_it ?? false);
     } catch (error) {
-      console.error('Caught exception updating ranking:', {
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        userId: user.id,
-        movieId: movie.id,
-        ranking: newRanking,
-        seenIt: newSeenIt
-      });
-      // Revert state on error
+      console.error('Caught exception updating ranking:', error);
       setRanking(initialRanking);
       setSeenIt(initialSeenIt);
     } finally {

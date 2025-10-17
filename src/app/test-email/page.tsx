@@ -34,7 +34,7 @@ export default function EmailTestPage() {
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/rankings`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/rankings`,
         },
       });
 
@@ -57,7 +57,7 @@ export default function EmailTestPage() {
 
     try {
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       });
 
       if (error) {
@@ -86,7 +86,7 @@ export default function EmailTestPage() {
         email: testEmail,
         password: 'testpassword123',
         options: {
-          emailRedirectTo: `${window.location.origin}/rankings`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/rankings`,
         },
       });
 

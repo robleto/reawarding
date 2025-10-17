@@ -60,8 +60,9 @@ export default function SignupModal({
         email,
         password,
         options: {
+          // Use auth callback to exchange code and then redirect to rankings
           emailRedirectTo: typeof window !== "undefined"
-            ? `${window.location.origin}/rankings`
+            ? `${window.location.origin}/auth/callback?next=/rankings`
             : undefined,
         },
       });
@@ -97,7 +98,7 @@ export default function SignupModal({
     setError(null);
 
     const redirectTo = typeof window !== "undefined"
-      ? `${window.location.origin}/rankings`
+      ? `${window.location.origin}/auth/callback?next=/rankings`
       : undefined;
 
     // Try Supabase redirect, fallback to manual redirect if url is returned

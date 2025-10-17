@@ -76,7 +76,7 @@ export default function LoginModal({
     setError(null);
 
     const redirectTo = typeof window !== "undefined"
-      ? `${window.location.origin}/rankings`
+      ? `${window.location.origin}/auth/callback?next=/rankings`
       : undefined;
 
     // Try Supabase redirect, fallback to manual redirect if url is returned
@@ -108,7 +108,7 @@ export default function LoginModal({
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: typeof window !== "undefined"
-          ? `${window.location.origin}/reset-password`
+          ? `${window.location.origin}/auth/reset-password`
           : undefined,
       });
 
@@ -140,7 +140,7 @@ export default function LoginModal({
         email: email,
         options: {
           emailRedirectTo: typeof window !== "undefined"
-            ? `${window.location.origin}/rankings`
+            ? `${window.location.origin}/auth/callback?next=/rankings`
             : undefined,
         },
       });
