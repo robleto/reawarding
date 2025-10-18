@@ -19,6 +19,18 @@ export function NetflixGlow() {
   const gradientRefs = useRef<(HTMLDivElement | null)[]>([]);
   // Track if this is the first render after mount
   const isFirstRender = useRef(true);
+  // Track theme to adjust intensity in light mode only
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Observe html.dark class changes (Tailwind darkMode: 'class')
+  useEffect(() => {
+    const root = document.documentElement;
+    const update = () => setIsDarkMode(root.classList.contains('dark'));
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   // Set the correct color index after mount (client-side)
   useEffect(() => {
@@ -63,10 +75,11 @@ export function NetflixGlow() {
     const curr = gradientRefs.current[currentColorIndex];
     console.log('[NetflixGlow] Color index changed:', prevColorIndex.current, '->', currentColorIndex);
     if (prev && curr) {
+      const targetOpacity = isDarkMode ? 1 : 0.35; // Lighten effect in light mode
       gsap.to(prev, { opacity: 0, duration: 1, ease: 'power2.out' });
-      gsap.to(curr, { opacity: 1, duration: 0.5, ease: 'power2.out' });
+      gsap.to(curr, { opacity: targetOpacity, duration: 0.5, ease: 'power2.out' });
     }
-  }, [currentColorIndex]);
+  }, [currentColorIndex, isDarkMode]);
 
   return (
     <div
@@ -80,7 +93,7 @@ export function NetflixGlow() {
           className="gradient absolute w-full h-full transition-opacity duration-1000 ease-out"
           style={{
             background: `linear-gradient(226.67deg, ${color} -38.52%, ${color}00 50.26%)`,
-            opacity: index === currentColorIndex ? 1 : 0,
+            opacity: index === currentColorIndex ? (isDarkMode ? 1 : 0.35) : 0,
             mixBlendMode: 'normal',
           }}
         />

@@ -58,9 +58,9 @@ export default function HeaderNav() {
 		<>
 			<header className={`fixed top-0 left-0 right-0 z-50 w-full border-b border-gray-400 dark:border-gray-700 transition-all duration-300 ${
 				hasScrolled 
-					? 'dark-background'
+					? 'light-background dark-background'
 					: 'bg-transparent'
-			}`}>
+			}`}> 
 				<div className="relative z-10 flex items-center justify-between max-w-screen-xl px-6 py-3 mx-auto gap-x-6">
 					{/* Logo & Title */}
 					<div className="flex items-center flex-shrink-0">

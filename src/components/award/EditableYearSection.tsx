@@ -338,8 +338,8 @@ export default function EditableYearSection({
         {/* Spacer to account for timeline offset */}
         <div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
 
-        {/* Content block */}
-        <div className={`award-editable-section flex flex-col w-full bg-white rounded-xl shadow-md dark-glass p-4 md:p-6 mb-24${isEditing ? ' pb-32 md:pb-0 dark:bg-gray-700' : ' dark-glass'}`}>
+    {/* Content block */}
+  <div className={`award-editable-section flex flex-col w-full rounded-xl shadow-md light-glass dark:dark-glass p-4 md:p-6 mb-24${isEditing ? ' pb-32 md:pb-0' : ''}`}>
 
           {/* Error Message */}
           {error && (

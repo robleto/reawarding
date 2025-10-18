@@ -15,6 +15,7 @@ import {
 	type SortKey,
 	type GroupKey,
 	type SortOrder,
+  groupMovies,
 } from "@/utils/sharedMovieUtils";
 
 import Loader from "@/components/ui/Loading";
@@ -97,62 +98,11 @@ export default function FilmsPage() {
 		return true;
 	});
 	
-	// Group and sort logic for films
-	const groupedMovies = (() => {
-		if (groupBy === "none") {
-			const sorted = [...filteredMovies].sort((a, b) => {
-				if (sortBy === "ranking") {
-					const aRank = a.rankings?.[0]?.ranking || 0;
-					const bRank = b.rankings?.[0]?.ranking || 0;
-					return sortOrder === "asc" ? aRank - bRank : bRank - aRank;
-				}
-				if (sortBy === "title") {
-					return sortOrder === "asc" 
-						? a.title.localeCompare(b.title)
-						: b.title.localeCompare(a.title);
-				}
-				if (sortBy === "release_year") {
-					return sortOrder === "asc" 
-						? a.release_year - b.release_year
-						: b.release_year - a.release_year;
-				}
-				return 0;
-			});
-			return [{ key: "All Movies", movies: sorted }];
-		}
-		
-		if (groupBy === "release_year") {
-			const groups = new Map<number, Movie[]>();
-			filteredMovies.forEach(movie => {
-				const year = movie.release_year;
-				if (!groups.has(year)) {
-					groups.set(year, []);
-				}
-				groups.get(year)!.push(movie);
-			});
-			
-			return Array.from(groups.entries())
-				.sort(([a], [b]) => b - a) // Sort years descending
-				.map(([year, movies]) => ({
-					key: year.toString(),
-					movies: movies.sort((a, b) => {
-						if (sortBy === "ranking") {
-							const aRank = a.rankings?.[0]?.ranking || 0;
-							const bRank = b.rankings?.[0]?.ranking || 0;
-							return sortOrder === "asc" ? aRank - bRank : bRank - aRank;
-						}
-						return sortOrder === "asc" 
-							? a.title.localeCompare(b.title)
-							: b.title.localeCompare(a.title);
-					})
-				}));
-		}
-		
-		return [{ key: "All Movies", movies: filteredMovies }];
-	})();
+	// Group and sort logic for films: use shared util for consistency (supports Year/Ranking/None)
+	const groupedMovies = groupMovies(filteredMovies, groupBy, sortBy, sortOrder);
 	
 	// Generate unique years and ranks for filter dropdowns
-	const uniqueYears = Array.from(new Set(movies.map((m) => m.release_year).filter(Boolean))).sort((a, b) => b - a);
+	const uniqueYears = Array.from(new Set(movies.map((m) => m.release_year).filter((y): y is number => typeof y === 'number'))).sort((a, b) => b - a);
 	const uniqueRanks = Array.from(
 		new Set(
 			movies
@@ -257,7 +207,7 @@ export default function FilmsPage() {
 									<MoviePosterCard
 										key={movie.id}
 										movie={movie}
-										currentUserId={userId}
+										currentUserId={userId ?? ""}
 										ranking={r?.ranking ?? null}
 										seenIt={r?.seen_it ?? false}
 										onUpdate={updateMovieRanking}
@@ -274,7 +224,7 @@ export default function FilmsPage() {
 									<MovieRowCard
 										key={movie.id}
 										movie={movie}
-										currentUserId={userId}
+										currentUserId={userId ?? ""}
 										ranking={r?.ranking ?? null}
 										seenIt={r?.seen_it ?? false}
 										isLast={index === movies.length - 1}

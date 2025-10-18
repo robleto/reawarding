@@ -22,6 +22,12 @@ DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can delete their own profile" ON profiles;
 
+-- Also drop the target policies if they already exist to avoid 42710 errors on re-run
+DROP POLICY IF EXISTS "Authenticated users can view their own profile" ON profiles;
+DROP POLICY IF EXISTS "Authenticated users can insert their own profile" ON profiles;
+DROP POLICY IF EXISTS "Authenticated users can update their own profile" ON profiles;
+DROP POLICY IF EXISTS "Anonymous users can view profiles" ON profiles;
+
 -- Enable RLS on profiles table (if not already enabled)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 

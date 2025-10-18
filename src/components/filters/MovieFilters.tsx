@@ -174,7 +174,7 @@ export default function MovieFilters({
         </div>
 
         {/* Filters/Sort & View Toggle: Always flush left, shift as search expands */}
-        <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+  <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
           {/* Filters Toggle */}
           <button
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -218,6 +218,21 @@ export default function MovieFilters({
               <Grid3X3 className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Clear All */}
+          <button
+            type="button"
+            onClick={handleClearAll}
+            disabled={isDefault}
+            className={`ml-2 px-3 py-2 text-sm rounded-lg border transition-colors ${
+              isDefault
+                ? "opacity-50 cursor-not-allowed text-gray-400 border-gray-600/50 bg-gray-800/30"
+                : "text-gray-200 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30"
+            }`}
+            title="Reset filters to defaults"
+          >
+            Clear All
+          </button>
       </div>
 
       {/* Advanced Filters - Collapsible */}

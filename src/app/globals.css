@@ -3,17 +3,52 @@
   @apply font-unbounded text-4xl lg:text-4xl text-white uppercase tracking-wide font-bold mb-6;
 }
 
-/* Consistent dark glass card style */
-.dark-glass {
-  @apply border border-[#232326]/80 bg-[#1c1c1e]/60 hover:bg-[#232326]/90 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer;
+/* Light/Dark glass cards */
+/* Light mode glass (base); will be neutralized under .dark */
+.light-glass {
+  @apply rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer border;
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-color: rgba(17, 24, 39, 0.08);
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.08), 0 1.5px 6px 0 rgba(0, 0, 0, 0.04) inset;
+}
+.light-glass:hover {
+  background-color: rgba(255, 255, 255, 0.75);
+  border-color: rgba(17, 24, 39, 0.16);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -4px rgba(0, 0, 0, 0.12);
+}
+
+/* When in dark mode, neutralize light-glass background so dark glass can show */
+.dark .light-glass {
+  background-color: transparent;
+}
+
+/* Dark mode glass (applies when any ancestor has .dark) */
+.dark .dark-glass {
+  @apply rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer border;
   background-color: rgba(31, 41, 55, 0.4);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-color: rgba(75, 85, 99, 0.2);
   box-shadow: 0 4px 24px 0 rgba(17, 24, 39, 0.15), 0 1.5px 6px 0 rgba(255, 255, 255, 0.08) inset;
 }
+.dark .dark-glass:hover {
+  background-color: rgba(55, 65, 81, 0.6);
+  border-color: rgba(107, 114, 128, 0.4);
+  box-shadow: 0 10px 15px -3px rgba(17, 24, 39, 0.7), 0 4px 6px -4px rgba(17, 24, 39, 0.7);
+}
 
-/* Optional: dark-glass hover state for consistency */
-.dark-glass:hover {
+/* Support components using the literal class 'dark:dark-glass' (Tailwind variant on custom class doesn't apply) */
+.dark .dark\:dark-glass {
+  @apply rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer border;
+  background-color: rgba(31, 41, 55, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-color: rgba(75, 85, 99, 0.2);
+  box-shadow: 0 4px 24px 0 rgba(17, 24, 39, 0.15), 0 1.5px 6px 0 rgba(255, 255, 255, 0.08) inset;
+}
+.dark .dark\:dark-glass:hover {
   background-color: rgba(55, 65, 81, 0.6);
   border-color: rgba(107, 114, 128, 0.4);
   box-shadow: 0 10px 15px -3px rgba(17, 24, 39, 0.7), 0 4px 6px -4px rgba(17, 24, 39, 0.7);
@@ -63,26 +98,32 @@ body {
   border-color: rgba(107, 114, 128, 0.4);
 }
 
-.dark-glass {
-  background-color: rgba(31, 41, 55, 0.4);
-  backdrop-filter: blur(8px);
-  border-color: rgba(75, 85, 99, 0.2); 
-  box-shadow: 0 4px 24px 0 rgba(17, 24, 39, 0.15), 0 1.5px 6px 0 rgba(255, 255, 255, 0.08) inset;
+/* Remove duplicate dark-glass rules; now scoped above under .dark */
 
-}
-
-.dark-glass:hover {
-  background-color: rgba(55, 65, 81, 0.6);
-  border-color: rgba(107, 114, 128, 0.4);
-  box-shadow: 0 10px 15px -3px rgba(17, 24, 39, 0.7), 0 4px 6px -4px rgba(17, 24, 39, 0.7);
-}
-
-.dark-background {
+/* Dark mode sticky header background (applies when any ancestor has .dark) */
+.dark .dark-background {
   background-color: rgba(28, 28, 30, 0.9);
   backdrop-filter: blur(8px);
   border-color: rgba(75, 85, 99, 0.2);
 }
-
-.dark-background:hover {
+ 
+.dark .dark-background:hover {
   background-color: rgba(28, 28, 30, 1);
+}
+
+/* Light mode sticky header background (base); neutralized under .dark */
+.light-background {
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-color: rgba(17, 24, 39, 0.12);
+}
+
+.light-background:hover {
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+/* Neutralize light header background in dark mode so dark-background shows */
+.dark .light-background {
+  background-color: transparent;
 }

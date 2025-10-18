@@ -137,43 +137,8 @@ export async function POST(request: Request) {
     };
     console.log('Upsert payload:', upsertPayload);
 
-    // Ensure a row exists in public.users for this user (to satisfy foreign key constraint)
-    const { data: publicUser, error: publicUserError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('id', user.id)
-      .single();
-    if (publicUserError && publicUserError.code !== 'PGRST116') {
-      // Only ignore 'not found' error, otherwise fail
-      console.error('Error checking for public.users:', publicUserError);
-      return NextResponse.json({ error: 'Error checking for user in public.users', details: publicUserError }, { status: 500 });
-    }
-    if (!publicUser) {
-      // Insert a row into public.users for this user
-      const insertUserPayload = {
-        id: user.id,
-        email: user.email || null,
-        created_at: new Date().toISOString(),
-      };
-      console.log('Attempting to insert into public.users:', insertUserPayload);
-      const { error: insertPublicUserError } = await supabase
-        .from('users')
-        .insert(insertUserPayload);
-      if (insertPublicUserError) {
-        // If duplicate key error, ignore and continue
-        if (
-          insertPublicUserError.code === '23505' || // Postgres duplicate key
-          (insertPublicUserError.message && insertPublicUserError.message.includes('duplicate key'))
-        ) {
-          console.warn('public.users row already exists for user:', user.id);
-        } else {
-          console.error('Error creating missing public.users row:', insertPublicUserError, 'Payload:', insertUserPayload);
-          return NextResponse.json({ error: 'Failed to create user in public.users', details: insertPublicUserError, payload: insertUserPayload }, { status: 500 });
-        }
-      } else {
-        console.log('Created missing public.users row for user:', user.id);
-      }
-    }
+    // Note: No need to touch public.users; Supabase stores auth users in auth.users.
+    // We ensure a profile exists below, which references auth.users.
 
     // Ensure a profile row exists for this user (to satisfy foreign key constraint)
     const { data: profile, error: profileError } = await supabase

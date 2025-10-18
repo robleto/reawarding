@@ -71,9 +71,9 @@ export default function RankingsPage() {
   const [groupBy, setGroupBy] = useState<GroupKey>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("rankingsGroupBy") as GroupKey;
-      return stored || "none"; // Default to flat list sorted by ranking
+      return stored || "release_year"; // Default to year grouping
     }
-    return "none";
+    return "release_year";
   });
   
   const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie">("none");
@@ -83,17 +83,17 @@ export default function RankingsPage() {
     setHasMounted(true);
   }, []);
 
-  // One-time migration: reset old stored defaults so new "flat by ranking" default takes effect
+  // One-time migration: reset old stored defaults so the new Year-grouped default takes effect
   useEffect(() => {
     if (typeof window !== "undefined") {
       const versionKey = "rankingsDefaultsVersion";
       const current = localStorage.getItem(versionKey);
-      if (current !== "2") {
+      if (current !== "3") {
         try {
           localStorage.removeItem("rankingsGroupBy");
           localStorage.removeItem("rankingsSortBy");
           localStorage.removeItem("rankingsSortOrder");
-          localStorage.setItem(versionKey, "2");
+          localStorage.setItem(versionKey, "3");
         } catch {}
       }
     }
@@ -226,7 +226,7 @@ export default function RankingsPage() {
           viewMode: "list",
           sortBy: "ranking",
           sortOrder: "desc",
-          groupBy: "none",
+          groupBy: "release_year",
           filterType: "none",
           filterValue: "all"
         }}

@@ -195,7 +195,7 @@ export default function ListsHomePage() {
           <div className="flex-1" /> {/* Spacer to push button to the right */}
           <button
             onClick={handleCreateListClick}
-            className="flex items-center gap-2 px-4 py-2 text-white dark-glass border border-gray-500/30 rounded-lg shadow-md hover:shadow-lg transition-all backdrop-blur"
+            className="flex items-center gap-2 px-4 py-2 text-white light-glass dark:dark-glass border border-gray-500/30 rounded-lg shadow-md hover:shadow-lg transition-all backdrop-blur"
           >
             <Plus className="w-4 h-4" />
             Create New List

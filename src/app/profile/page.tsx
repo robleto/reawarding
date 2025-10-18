@@ -160,8 +160,8 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Profile Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
+  {/* Profile Card */}
+  <div className="light-glass dark:dark-glass rounded-xl shadow-lg p-6 mb-6 border border-gray-300/40 dark:border-gray-600/50">
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -252,7 +252,7 @@ export default function ProfilePage() {
 
       {/* Edit Form Fields */}
       {editing && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <div className="light-glass dark:dark-glass rounded-xl shadow-lg p-6 border border-gray-300/40 dark:border-gray-600/50">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Edit Details</h3>
           
           <div className="space-y-6">

@@ -30,7 +30,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState({
     theme: "system" as "light" | "dark" | "system",
     emailNotifications: true,
-    marketingEmails: false,
+    marketingEmails: true,
     dataCollection: true
   });
   
@@ -46,7 +46,17 @@ export default function SettingsPage() {
     
     // Load theme preference from localStorage
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" || "system";
-    setSettings(prev => ({ ...prev, theme: savedTheme }));
+    // Load other saved preferences if present; otherwise keep defaults
+    const savedEmail = localStorage.getItem("emailNotifications");
+    const savedMkt = localStorage.getItem("marketingEmails");
+    const savedData = localStorage.getItem("dataCollection");
+    setSettings(prev => ({
+      ...prev,
+      theme: savedTheme,
+      emailNotifications: savedEmail !== null ? savedEmail === "true" : prev.emailNotifications,
+      marketingEmails: savedMkt !== null ? savedMkt === "true" : prev.marketingEmails,
+      dataCollection: savedData !== null ? savedData === "true" : prev.dataCollection,
+    }));
   }, [user, router]);
 
   const handleThemeChange = (theme: "light" | "dark" | "system") => {
@@ -148,7 +158,7 @@ export default function SettingsPage() {
 
       <div className="space-y-6">
         {/* Appearance Settings */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+  <div className="light-glass dark:dark-glass rounded-xl shadow-lg p-6 border border-gray-300/40 dark:border-gray-600/50">
           <div className="flex items-center gap-3 mb-6">
             <Monitor className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Appearance</h2>
@@ -197,7 +207,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Notifications Settings */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+  <div className="light-glass dark:dark-glass rounded-xl shadow-lg p-6 border border-gray-300/40 dark:border-gray-600/50">
           <div className="flex items-center gap-3 mb-6">
             <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Notifications</h2>
@@ -249,7 +259,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Privacy Settings */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+  <div className="light-glass dark:dark-glass rounded-xl shadow-lg p-6 border border-gray-300/40 dark:border-gray-600/50">
           <div className="flex items-center gap-3 mb-6">
             <Shield className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Privacy</h2>
@@ -280,7 +290,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Account Management */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+  <div className="light-glass dark:dark-glass rounded-xl shadow-lg p-6 border border-gray-300/40 dark:border-gray-600/50">
           <div className="flex items-center gap-3 mb-6">
             <Lock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Account</h2>
@@ -292,10 +302,7 @@ export default function SettingsPage() {
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white">Email Address</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
               </div>
-              <button className="flex items-center gap-2 px-3 py-1 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
-                <Mail className="w-4 h-4" />
-                Change
-              </button>
+              {/* Email change not supported */}
             </div>
             
             <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -327,7 +334,7 @@ export default function SettingsPage() {
       {/* Delete Account Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
+          <div className="light-glass dark:dark-glass border border-gray-300/40 dark:border-gray-600/50 rounded-xl p-6 w-full max-w-md">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="w-6 h-6 text-red-500" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete Account</h3>

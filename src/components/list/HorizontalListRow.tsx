@@ -31,7 +31,7 @@ const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, see
         {/* Add New List card at the end, only if not readOnly */}
         {!readOnly && onAdd && (
           <div
-            className="min-w-[260px] max-w-[260px] flex-shrink-0 flex flex-col items-center justify-center border-2 border-dashed border-gray-500/40 dark-glass rounded-xl shadow-md cursor-pointer hover:shadow-lg transition-all p-6 group"
+            className="min-w-[260px] max-w-[260px] flex-shrink-0 flex flex-col items-center justify-center border-2 border-dashed border-gray-500/40 light-glass dark:dark-glass rounded-xl shadow-md cursor-pointer hover:shadow-lg transition-all p-6 group"
             onClick={onAdd}
             tabIndex={0}
             role="button"
