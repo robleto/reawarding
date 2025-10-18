@@ -130,14 +130,33 @@ Deno.serve(async (req)=>{
     const cronOk = !!cronEnv && cronHeader.length === cronEnv.length && cronHeader === cronEnv;
     if (!hasSupabaseAuth || !cronOk) {
       const reason = !hasSupabaseAuth ? "no-supabase-auth" : "cron-mismatch";
+      const sha256 = async (s: string) => {
+        const enc = new TextEncoder().encode(s);
+        const buf = await crypto.subtle.digest("SHA-256", enc);
+        return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      };
+      const [headerSha, envSha] = await Promise.all([
+        sha256(cronHeader),
+        sha256(cronEnv),
+      ]);
       console.warn("cron-auth-fail", {
         reason,
         authHeaderLen: authHeader.length,
         apiKeyPresent: !!apiKeyHeader,
         cronHeaderLen: cronHeader.length,
         cronEnvLen: cronEnv.length,
+        cronHeaderSha256Prefix: headerSha.slice(0, 16),
+        cronEnvSha256Prefix: envSha.slice(0, 16),
       });
-      return new Response(JSON.stringify({ error: "Unauthorized", reason, version: VERSION }), {
+      return new Response(JSON.stringify({
+        error: "Unauthorized",
+        reason,
+        version: VERSION,
+        cronHeaderLen: cronHeader.length,
+        cronEnvLen: cronEnv.length,
+        cronHeaderSha256Prefix: headerSha.slice(0, 16),
+        cronEnvSha256Prefix: envSha.slice(0, 16),
+      }), {
         status: 401,
         headers: { "Content-Type": "application/json", "X-Version": VERSION },
       });

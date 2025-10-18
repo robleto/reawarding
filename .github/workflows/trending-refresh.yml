@@ -24,6 +24,7 @@ jobs:
           # Print non-sensitive diagnostics (lengths only)
           echo "SR_LEN=$(printf '%s' "$SUPABASE_SERVICE_ROLE_KEY" | wc -c)"
           echo "CRON_LEN=$(printf '%s' "$CRON_SECRET" | wc -c)"
+          echo "CRON_SHA_PREFIX=$(printf '%s' "$CRON_SECRET" | shasum -a 256 | awk '{print substr($1,1,16)}')"
 
       - name: Invoke tmdb-trending-scraper
         run: |
