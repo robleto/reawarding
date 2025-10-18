@@ -66,3 +66,17 @@ jobs:
 
       - name: Done
         run: echo "Backup export triggered"
+
+      - name: Verify backup files in Storage
+        run: |
+          DATE_PREFIX=$(date -u +%Y%m%d)
+          echo "Checking backups for $DATE_PREFIX"
+          resp=$(curl -sS -X POST \
+            "$SUPABASE_URL/storage/v1/object/list/backups" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            --data "{\"prefix\":\"$DATE_PREFIX/\",\"limit\":200,\"offset\":0,\"sortBy\":{\"column\":\"name\",\"order\":\"asc\"}}")
+          echo "$resp"
+          # Simple presence check for a key table file
+          echo "$resp" | grep -q '"name":"movies.json"' && echo "Found movies.json" || { echo "movies.json not found" >&2; exit 1; }

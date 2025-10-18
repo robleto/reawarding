@@ -67,3 +67,13 @@ jobs:
           fi
       - name: Done
         run: echo "Trending refresh triggered"
+
+      - name: Show today's imports (latest 10)
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          echo "Listing imports since ${DATE}T00:00:00Z (latest 10)"
+          curl -sS \
+            "$SUPABASE_URL/rest/v1/imports?select=tmdb_id,status,imported_at&imported_at=gte.${DATE}T00:00:00Z&order=imported_at.desc&limit=10" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Accept: application/json" | sed 's/},{/},\n{/g'
