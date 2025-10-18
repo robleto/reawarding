@@ -21,32 +21,39 @@ jobs:
           [ -n "$CRON_SECRET" ] || { echo "Missing CRON_SECRET repo secret" >&2; exit 1; }
           echo "ANON_LEN=$(printf '%s' "$SUPABASE_ANON_KEY" | wc -c)"
           echo "CRON_LEN=$(printf '%s' "$CRON_SECRET" | wc -c)"
+          echo "CRON_SHA_PREFIX=$(printf '%s' "$CRON_SECRET" | shasum -a 256 | awk '{print substr($1,1,16)}')"
 
       - name: Call backup-export Edge Function
         run: |
           http_code=$(curl -sS -D /tmp/headers.txt -o /tmp/resp.json -w '%{http_code}' -X POST \
+            "$SUPABASE_URL/functions/v1/backup-export?cron_secret=$CRON_SECRET" \
             -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "X-CRON-SECRET: $CRON_SECRET" \
+            -H "X-CRON-TOKEN: $CRON_SECRET" \
+            -H "X-JOB-TOKEN: $CRON_SECRET" \
             -H "X-Debug: 1" \
             -H "Content-Type: application/json" \
-            "$SUPABASE_URL/functions/v1/backup-export")
+            --data "{\"cron_secret\":\"$CRON_SECRET\"}")
           ec=$?
           echo "HTTP: $http_code"
           echo "--- Response headers (filtered) ---"
-          grep -iE '^(x-reason|content-type|server):' /tmp/headers.txt || true
+          grep -iE '^(x-reason|content-type|server|x-version):' /tmp/headers.txt || true
           cat /tmp/resp.json || true
           if [ "$ec" -ne 0 ] || [ "$http_code" != "200" ]; then
             echo "Primary endpoint failed, trying functions subdomain..."
             REF=$(printf '%s' "$SUPABASE_URL" | sed -E 's#https?://([^\.]+)\..*#\1#')
             FUNCS_URL="https://$REF.functions.supabase.co/backup-export"
             http_code2=$(curl -sS -D /tmp/headers2.txt -o /tmp/resp2.json -w '%{http_code}' -X POST \
+              "$FUNCS_URL?cron_secret=$CRON_SECRET" \
               -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
               -H "apikey: $SUPABASE_ANON_KEY" \
               -H "X-CRON-SECRET: $CRON_SECRET" \
+              -H "X-CRON-TOKEN: $CRON_SECRET" \
+              -H "X-JOB-TOKEN: $CRON_SECRET" \
               -H "X-Debug: 1" \
               -H "Content-Type: application/json" \
-              "$FUNCS_URL")
+              --data "{\"cron_secret\":\"$CRON_SECRET\"}")
             echo "HTTP (functions subdomain): $http_code2"
             echo "--- Response headers (filtered, subdomain) ---"
             grep -iE '^(x-reason|content-type|server|x-version):' /tmp/headers2.txt || true

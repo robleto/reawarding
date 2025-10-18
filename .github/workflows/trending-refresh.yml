@@ -30,13 +30,15 @@ jobs:
         run: |
           # Call function, capture HTTP and body
           http_code=$(curl -sS -D /tmp/headers.txt -o /tmp/resp.json -w '%{http_code}' -X POST \
-            "$SUPABASE_URL/functions/v1/tmdb-trending-scraper" \
+            "$SUPABASE_URL/functions/v1/tmdb-trending-scraper?cron_secret=$CRON_SECRET" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "X-CRON-SECRET: $CRON_SECRET" \
+            -H "X-CRON-TOKEN: $CRON_SECRET" \
+            -H "X-JOB-TOKEN: $CRON_SECRET" \
             -H "X-Debug: 1" \
-            --data '{"source":"github-action"}')
+            --data "{\"source\":\"github-action\",\"cron_secret\":\"$CRON_SECRET\"}")
           ec=$?
           echo "HTTP: $http_code"
           echo "--- Response headers (filtered) ---"
@@ -48,13 +50,15 @@ jobs:
             REF=$(printf '%s' "$SUPABASE_URL" | sed -E 's#https?://([^\.]+)\..*#\1#')
             FUNCS_URL="https://$REF.functions.supabase.co/tmdb-trending-scraper"
             http_code2=$(curl -sS -D /tmp/headers2.txt -o /tmp/resp2.json -w '%{http_code}' -X POST \
-              "$FUNCS_URL" \
+              "$FUNCS_URL?cron_secret=$CRON_SECRET" \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
               -H "apikey: $SUPABASE_ANON_KEY" \
               -H "X-CRON-SECRET: $CRON_SECRET" \
+              -H "X-CRON-TOKEN: $CRON_SECRET" \
+              -H "X-JOB-TOKEN: $CRON_SECRET" \
               -H "X-Debug: 1" \
-              --data '{"source":"github-action"}')
+              --data "{\"source\":\"github-action\",\"cron_secret\":\"$CRON_SECRET\"}")
             echo "HTTP (functions subdomain): $http_code2"
             echo "--- Response headers (filtered, subdomain) ---"
             grep -iE '^(x-reason|content-type|server|x-version):' /tmp/headers2.txt || true

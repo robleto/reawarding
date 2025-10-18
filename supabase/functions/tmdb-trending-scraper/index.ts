@@ -117,9 +117,38 @@ Deno.serve(async (req)=>{
   const debug = (req.headers.get("x-debug") === "1") || (Deno.env.get("DEBUG_CRON") === "1");
   const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
   const apiKeyHeader = req.headers.get("apikey") || req.headers.get("x-api-key") || req.headers.get("X-API-KEY") || "";
-  const cronHeaderRaw = req.headers.get("x-cron-secret") || req.headers.get("X-CRON-SECRET") || "";
+  // Accept multiple header names to avoid upstream stripping of 'secret' headers
+  let cronHeaderRaw =
+    req.headers.get("x-cron-token") ||
+    req.headers.get("X-CRON-TOKEN") ||
+    req.headers.get("x-job-token") ||
+    req.headers.get("X-JOB-TOKEN") ||
+    req.headers.get("x-cron-secret") ||
+    req.headers.get("X-CRON-SECRET") ||
+    "";
   // Normalize both values to avoid whitespace/quotes/case issues
   const normalize = (s: string) => (s || "").trim().replace(/[^0-9a-fA-F]/g, "").toLowerCase();
+  // Optional: if header missing, try JSON body field 'cron_secret'
+  if (!cronHeaderRaw) {
+    try {
+      const contentType = req.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const clone = req.clone();
+        const body = await clone.json().catch(() => ({}));
+        if (body && typeof body.cron_secret === "string") {
+          cronHeaderRaw = body.cron_secret;
+        }
+      }
+      // As a last resort, check URL query params (?cron_secret=...)
+      if (!cronHeaderRaw) {
+        const url = new URL(req.url);
+        const qs = url.searchParams.get("cron_secret");
+        if (qs) cronHeaderRaw = qs;
+      }
+    } catch (_) {
+      // ignore
+    }
+  }
   const cronHeader = normalize(cronHeaderRaw);
   const cronEnv = normalize(cronSecret || "");
 
