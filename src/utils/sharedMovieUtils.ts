@@ -50,12 +50,16 @@ export function groupMovies(
 	if (groupBy === "release_year") {
 		const groups: Record<string, Movie[]> = {};
 		movies.forEach((movie) => {
-			const year = movie.release_year?.toString() ?? "Unknown";
-			if (!groups[year]) groups[year] = [];
-			groups[year].push(movie);
+			const yearKey = movie.release_year?.toString() ?? "Unknown";
+			if (!groups[yearKey]) groups[yearKey] = [];
+			groups[yearKey].push(movie);
 		});
 		return Object.entries(groups)
-			.sort(([a], [b]) => Number(b) - Number(a))
+			.sort(([a], [b]) => {
+				if (a === "Unknown") return 1;
+				if (b === "Unknown") return -1;
+				return Number(b) - Number(a);
+			})
 			.map(([key, group]) => ({
 				key,
 				movies: sortMovies(group, sortBy, sortOrder),
@@ -116,9 +120,7 @@ export function useMovieDataWithGuest() {
 	const supabase = useSupabaseClient<Database>();
 	const user = useUser();
 	const guestStore = useGuestRankingStore();
-	// TEMPORARY: Hardcode your user ID to bypass auth issues
-	// const userId = "45d902c9-d56a-4589-8932-9e25b6eeec30";
-	// const isGuest = false; // Force authenticated mode
+	// Determine auth state
 	const userId = user?.id;
 	const isGuest = !user;
 
@@ -306,10 +308,10 @@ export function useMovieDataWithGuest() {
 	return { 
 		movies, 
 		loading, 
-		user: { id: "45d902c9-d56a-4589-8932-9e25b6eeec30", email: "greg@robleto.com" }, // Fake user object
-		userId: "45d902c9-d56a-4589-8932-9e25b6eeec30", 
+		user,
+		userId, 
 		updateMovieRanking,
-		isGuest: false, // Force authenticated state
+		isGuest,
 		hasMounted
 	};
 }

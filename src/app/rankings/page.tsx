@@ -19,6 +19,7 @@ import {
   SortKey,
   GroupKey,
   SortOrder,
+  groupMovies,
 } from "@/utils/sharedMovieUtils";
 import MovieFilters from "@/components/filters/MovieFilters";
 
@@ -70,9 +71,9 @@ export default function RankingsPage() {
   const [groupBy, setGroupBy] = useState<GroupKey>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("rankingsGroupBy") as GroupKey;
-      return stored || "release_year"; // Default to release_year for rankings page
+      return stored || "none"; // Default to flat list sorted by ranking
     }
-    return "release_year";
+    return "none";
   });
   
   const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie">("none");
@@ -80,6 +81,22 @@ export default function RankingsPage() {
   
   useEffect(() => {
     setHasMounted(true);
+  }, []);
+
+  // One-time migration: reset old stored defaults so new "flat by ranking" default takes effect
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const versionKey = "rankingsDefaultsVersion";
+      const current = localStorage.getItem(versionKey);
+      if (current !== "2") {
+        try {
+          localStorage.removeItem("rankingsGroupBy");
+          localStorage.removeItem("rankingsSortBy");
+          localStorage.removeItem("rankingsSortOrder");
+          localStorage.setItem(versionKey, "2");
+        } catch {}
+      }
+    }
   }, []);
   
   // Save rankings-specific filter state
@@ -105,62 +122,11 @@ export default function RankingsPage() {
     return true;
   });
   
-  // Import groupMovies function or implement grouping logic here
-  const groupedMovies = (() => {
-    if (groupBy === "none") {
-      const sorted = [...filteredMovies].sort((a, b) => {
-        if (sortBy === "ranking") {
-          const aRank = a.rankings?.[0]?.ranking || 0;
-          const bRank = b.rankings?.[0]?.ranking || 0;
-          return sortOrder === "asc" ? aRank - bRank : bRank - aRank;
-        }
-        if (sortBy === "title") {
-          return sortOrder === "asc" 
-            ? a.title.localeCompare(b.title)
-            : b.title.localeCompare(a.title);
-        }
-        if (sortBy === "release_year") {
-          return sortOrder === "asc" 
-            ? a.release_year - b.release_year
-            : b.release_year - a.release_year;
-        }
-        return 0;
-      });
-      return [{ key: "All Movies", movies: sorted }];
-    }
-    
-    if (groupBy === "release_year") {
-      const groups = new Map<number, Movie[]>();
-      filteredMovies.forEach(movie => {
-        const year = movie.release_year;
-        if (!groups.has(year)) {
-          groups.set(year, []);
-        }
-        groups.get(year)!.push(movie);
-      });
-      
-      return Array.from(groups.entries())
-        .sort(([a], [b]) => b - a) // Sort years descending
-        .map(([year, movies]) => ({
-          key: year.toString(),
-          movies: movies.sort((a, b) => {
-            if (sortBy === "ranking") {
-              const aRank = a.rankings?.[0]?.ranking || 0;
-              const bRank = b.rankings?.[0]?.ranking || 0;
-              return sortOrder === "asc" ? aRank - bRank : bRank - aRank;
-            }
-            return sortOrder === "asc" 
-              ? a.title.localeCompare(b.title)
-              : b.title.localeCompare(a.title);
-          })
-        }));
-    }
-    
-    return [{ key: "All Movies", movies: filteredMovies }];
-  })();
+  // Use shared grouping/sorting for consistency across pages
+  const groupedMovies = groupMovies(filteredMovies, groupBy, sortBy, sortOrder);
   
   // Generate unique years and ranks for filter dropdowns
-  const uniqueYears = Array.from(new Set(moviesWithRankings.map((m) => m.release_year).filter(Boolean))).sort((a, b) => b - a);
+  const uniqueYears = Array.from(new Set(moviesWithRankings.map((m) => m.release_year).filter((y): y is number => typeof y === 'number'))).sort((a, b) => b - a);
   const uniqueRanks = Array.from(
     new Set(
       moviesWithRankings
@@ -260,7 +226,7 @@ export default function RankingsPage() {
           viewMode: "list",
           sortBy: "ranking",
           sortOrder: "desc",
-          groupBy: "release_year",
+          groupBy: "none",
           filterType: "none",
           filterValue: "all"
         }}
@@ -284,7 +250,7 @@ export default function RankingsPage() {
                   <MoviePosterCard
                     key={movie.id}
                     movie={movie}
-                    currentUserId={userId}
+                    currentUserId={userId ?? ""}
                     onUpdate={updateMovieRanking}
                     ranking={r.ranking ?? null}
                     seenIt={r.seen_it ?? false}
@@ -302,7 +268,7 @@ export default function RankingsPage() {
                   <MovieRowCard
                     key={movie.id}
                     movie={movie}
-                    currentUserId={userId}
+                    currentUserId={userId ?? ""}
                     onUpdate={updateMovieRanking}
                     ranking={r.ranking ?? null}
                     seenIt={r.seen_it ?? false}
