@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-const VERSION = "backup-export@2025-10-17-1";
+const VERSION = "backup-export@2025-10-17-2";
 
 // Tables to back up (add here as needed)
 const TABLES = [
@@ -95,21 +95,54 @@ Deno.serve(async (req) => {
   const cronHeader = normalize(cronHeaderRaw || "");
   const cronEnv = normalize(cronSecret || "");
     if (!isLocal) {
-      const hasSupabaseAuth = (!!authHeader && authHeader.toLowerCase().startsWith("bearer ")) || !!apiKeyHeader;
-  const cronOk = !!cronEnv && !!cronHeader && cronHeader.length === cronEnv.length && cronHeader === cronEnv;
-      if (!hasSupabaseAuth || !cronOk) {
+      const bearerToken = (() => {
+        const a = authHeader || "";
+        return a.toLowerCase().startsWith("bearer ") ? a.slice(7).trim() : "";
+      })();
+      const hasSupabaseAuth = (!!bearerToken) || !!apiKeyHeader;
+      const isServiceRoleAuth = !!bearerToken && bearerToken === serviceKey;
+      const cronOk = !!cronEnv && !!cronHeader && cronHeader.length === cronEnv.length && cronHeader === cronEnv;
+      // If caller presents the exact Service Role key as Bearer, accept without cron secret.
+      // Otherwise, require a valid cron secret match.
+      if (!hasSupabaseAuth || (!isServiceRoleAuth && !cronOk)) {
         const reason = !hasSupabaseAuth ? "no-supabase-auth" : "cron-mismatch";
+        const sha256 = async (s: string) => {
+          const enc = new TextEncoder().encode(s);
+          const buf = await crypto.subtle.digest("SHA-256", enc);
+          return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+        };
+        const [headerSha, envSha] = await Promise.all([
+          sha256(cronHeader),
+          sha256(cronEnv),
+        ]);
         console.warn("cron-auth-fail", {
           reason,
           authHeaderLen: (authHeader || "").length,
           apiKeyPresent: !!apiKeyHeader,
+          isServiceRoleAuth,
+          bearerTokenLen: bearerToken.length,
           cronHeaderLen: cronHeader.length,
           cronEnvLen: cronEnv.length,
+          cronHeaderSha256Prefix: headerSha.slice(0, 16),
+          cronEnvSha256Prefix: envSha.slice(0, 16),
         });
-        return new Response(JSON.stringify({ error: "Unauthorized", reason, version: VERSION }), {
-          status: 401,
-          headers: { "Content-Type": "application/json", "X-Version": VERSION },
-        });
+        return new Response(
+          JSON.stringify({
+            error: "Unauthorized",
+            reason,
+            version: VERSION,
+            isServiceRoleAuth,
+            bearerTokenLen: bearerToken.length,
+            cronHeaderLen: cronHeader.length,
+            cronEnvLen: cronEnv.length,
+            cronHeaderSha256Prefix: headerSha.slice(0, 16),
+            cronEnvSha256Prefix: envSha.slice(0, 16),
+          }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json", "X-Version": VERSION, "X-Reason": reason },
+          }
+        );
       }
     }
 
