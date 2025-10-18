@@ -11,6 +11,7 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
       DEBUG_CRON: '1'
     steps:
@@ -18,8 +19,10 @@ jobs:
         run: |
           [ -n "$SUPABASE_URL" ] || { echo "Missing SUPABASE_URL repo secret" >&2; exit 1; }
           [ -n "$SUPABASE_ANON_KEY" ] || { echo "Missing SUPABASE_ANON_KEY repo secret" >&2; exit 1; }
+          [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || { echo "Missing SUPABASE_SERVICE_ROLE_KEY repo secret" >&2; exit 1; }
           [ -n "$CRON_SECRET" ] || { echo "Missing CRON_SECRET repo secret" >&2; exit 1; }
           echo "ANON_LEN=$(printf '%s' "$SUPABASE_ANON_KEY" | wc -c)"
+          echo "SR_LEN=$(printf '%s' "$SUPABASE_SERVICE_ROLE_KEY" | wc -c)"
           echo "CRON_LEN=$(printf '%s' "$CRON_SECRET" | wc -c)"
           echo "CRON_SHA_PREFIX=$(printf '%s' "$CRON_SECRET" | shasum -a 256 | awk '{print substr($1,1,16)}')"
 
@@ -27,7 +30,7 @@ jobs:
         run: |
           http_code=$(curl -sS -D /tmp/headers.txt -o /tmp/resp.json -w '%{http_code}' -X POST \
             "$SUPABASE_URL/functions/v1/backup-export?cron_secret=$CRON_SECRET" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             -H "apikey: $SUPABASE_ANON_KEY" \
             -H "X-CRON-SECRET: $CRON_SECRET" \
             -H "X-CRON-TOKEN: $CRON_SECRET" \
@@ -46,7 +49,7 @@ jobs:
             FUNCS_URL="https://$REF.functions.supabase.co/backup-export"
             http_code2=$(curl -sS -D /tmp/headers2.txt -o /tmp/resp2.json -w '%{http_code}' -X POST \
               "$FUNCS_URL?cron_secret=$CRON_SECRET" \
-              -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
               -H "apikey: $SUPABASE_ANON_KEY" \
               -H "X-CRON-SECRET: $CRON_SECRET" \
               -H "X-CRON-TOKEN: $CRON_SECRET" \
