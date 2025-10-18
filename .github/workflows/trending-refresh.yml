@@ -19,6 +19,7 @@ jobs:
         run: |
           [ -n "$SUPABASE_URL" ] || { echo "Missing SUPABASE_URL repo secret" >&2; exit 1; }
           [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || { echo "Missing SUPABASE_SERVICE_ROLE_KEY repo secret" >&2; exit 1; }
+          [ -n "$SUPABASE_ANON_KEY" ] || { echo "Missing SUPABASE_ANON_KEY repo secret" >&2; exit 1; }
           [ -n "$CRON_SECRET" ] || { echo "Missing CRON_SECRET repo secret" >&2; exit 1; }
           # Print non-sensitive diagnostics (lengths only)
           echo "SR_LEN=$(printf '%s' "$SUPABASE_SERVICE_ROLE_KEY" | wc -c)"
@@ -31,7 +32,7 @@ jobs:
             "$SUPABASE_URL/functions/v1/tmdb-trending-scraper" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
             -H "X-CRON-SECRET: $CRON_SECRET" \
             -H "X-Debug: 1" \
             --data '{"source":"github-action"}')
@@ -49,7 +50,7 @@ jobs:
               "$FUNCS_URL" \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-              -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "apikey: $SUPABASE_ANON_KEY" \
               -H "X-CRON-SECRET: $CRON_SECRET" \
               -H "X-Debug: 1" \
               --data '{"source":"github-action"}')
