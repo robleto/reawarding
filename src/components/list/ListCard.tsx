@@ -36,7 +36,7 @@ const ListCard = ({ list, readOnly }: ListCardProps) => {
 
   return (
     <Link href={`/lists/${list.id}`} tabIndex={readOnly ? -1 : 0} aria-disabled={readOnly}>
-      <div className={`border border-[#232326]/80 bg-[#1c1c1e]/60 hover:bg-[#232326]/90 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer group ${readOnly ? 'opacity-80 pointer-events-none' : ''}`}>
+      <div className={`dark-glass group ${readOnly ? 'opacity-80 pointer-events-none' : ''}`}>
         {/* Fan of posters */}
         {posterUrls.length > 0 && (
           <div className="flex items-center justify-center -mt-4 mb-2 h-28 relative overflow-visible z-20">

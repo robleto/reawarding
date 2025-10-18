@@ -66,7 +66,7 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
 
   return (
     <div
-      className={`relative flex flex-col overflow-visible border  border-gray-200 dark:border-gray-600 border-1 hover:dark:border-gray-300 transition bg-white dark:bg-gray-800 shadow hover:shadow-lg dark:shadow-gray-800 rounded-lg ${onClick ? 'cursor-pointer' : ''}`}
+      className={`relative flex flex-col overflow-visible rounded-lg ${onClick ? 'cursor-pointer' : ''} dark-glass border border-gray-300/40`}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => { setIsHovered(false); setShowDropdown(false); }}

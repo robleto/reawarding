@@ -59,7 +59,7 @@ export default function YearSection({
 				<div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
 
 				{/* Content block */}
-				<div className="flex flex-col md:flex-row w-full bg-white dark:year-card-dark rounded-xl shadow-md dark:shadow-gray-900/50 border border-[#d6d6d3] dark:border-gray-600/50 p-6 mb-24 gap-12 transition-all duration-300 hover:shadow-lg dark:hover:shadow-gray-900/60">
+				<div className="flex flex-col md:flex-row w-full rounded-xl shadow-md border border-[#d6d6d3] p-6 mb-24 gap-12 transition-all duration-300 hover:shadow-lg dark-glass dark:border-gray-600/50 bg-white">
 					{/* Winner */}
 					<div className="w-full md:w-1/3">
 						<div className="inline-flex items-center justify-center gap-2 mb-4">
