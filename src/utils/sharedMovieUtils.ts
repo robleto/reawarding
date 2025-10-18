@@ -121,7 +121,8 @@ export function useMovieDataWithGuest() {
 	const user = useUser();
 	const guestStore = useGuestRankingStore();
 	// Determine auth state
-	const userId = user?.id;
+	// Always provide a string for userId; guests will have an empty string
+	const userId: string = user?.id ?? "";
 	const isGuest = !user;
 
 	useEffect(() => {

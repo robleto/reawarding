@@ -30,8 +30,5 @@ jobs:
         run: supabase functions deploy tmdb-trending-scraper --project-ref "$PROJECT_REF"
       - name: Deploy backup-export
         run: supabase functions deploy backup-export --project-ref "$PROJECT_REF"
-      - name: Verify function secrets exist (names only)
-        run: |
-          supabase secrets list --project-ref "$PROJECT_REF" | sed 's/.*/SECRET: &/' || true
       - name: Done
         run: echo "Edge Functions deployed"

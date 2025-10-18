@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '7 * * * *' # Hourly at minute 7 UTC
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Skip invoking function, print safe diagnostics only'
+        required: false
+        default: 'false'
 
 jobs:
   call:
@@ -21,16 +26,14 @@ jobs:
           [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || { echo "Missing SUPABASE_SERVICE_ROLE_KEY repo secret" >&2; exit 1; }
           [ -n "$SUPABASE_ANON_KEY" ] || { echo "Missing SUPABASE_ANON_KEY repo secret" >&2; exit 1; }
           [ -n "$CRON_SECRET" ] || { echo "Missing CRON_SECRET repo secret" >&2; exit 1; }
-          # Print non-sensitive diagnostics (lengths only)
-          echo "SR_LEN=$(printf '%s' "$SUPABASE_SERVICE_ROLE_KEY" | wc -c)"
-          echo "CRON_LEN=$(printf '%s' "$CRON_SECRET" | wc -c)"
-          echo "CRON_SHA_PREFIX=$(printf '%s' "$CRON_SECRET" | shasum -a 256 | awk '{print substr($1,1,16)}')"
+          echo "Dry run: ${{ github.event.inputs.dry_run || 'false' }}"
 
       - name: Invoke tmdb-trending-scraper
+        if: ${{ github.event.inputs.dry_run != 'true' }}
         run: |
           # Call function, capture HTTP and body
           http_code=$(curl -sS -D /tmp/headers.txt -o /tmp/resp.json -w '%{http_code}' -X POST \
-            "$SUPABASE_URL/functions/v1/tmdb-trending-scraper?cron_secret=$CRON_SECRET" \
+            "$SUPABASE_URL/functions/v1/tmdb-trending-scraper" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             -H "apikey: $SUPABASE_ANON_KEY" \
@@ -43,14 +46,15 @@ jobs:
           echo "HTTP: $http_code"
           echo "--- Response headers (filtered) ---"
           grep -iE '^(x-reason|content-type|server):' /tmp/headers.txt || true
-          cat /tmp/resp.json || true
+          # Print at most first 2000 chars of body to avoid long logs
+          head -c 2000 /tmp/resp.json || true; echo
           if [ "$ec" -ne 0 ] || [ "$http_code" != "200" ]; then
             echo "Primary endpoint failed, trying functions subdomain..."
             # Derive project ref from SUPABASE_URL (https://<ref>.supabase.co)
             REF=$(printf '%s' "$SUPABASE_URL" | sed -E 's#https?://([^\.]+)\..*#\1#')
             FUNCS_URL="https://$REF.functions.supabase.co/tmdb-trending-scraper"
             http_code2=$(curl -sS -D /tmp/headers2.txt -o /tmp/resp2.json -w '%{http_code}' -X POST \
-              "$FUNCS_URL?cron_secret=$CRON_SECRET" \
+              "$FUNCS_URL" \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
               -H "apikey: $SUPABASE_ANON_KEY" \
@@ -62,13 +66,20 @@ jobs:
             echo "HTTP (functions subdomain): $http_code2"
             echo "--- Response headers (filtered, subdomain) ---"
             grep -iE '^(x-reason|content-type|server|x-version):' /tmp/headers2.txt || true
-            cat /tmp/resp2.json || true
+            head -c 2000 /tmp/resp2.json || true; echo
             if [ "$http_code2" != "200" ]; then exit 1; fi
           fi
+      - name: Dry-run diagnostics
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "Dry run enabled. Skipping remote calls."
+          echo "Endpoint: $SUPABASE_URL/functions/v1/tmdb-trending-scraper"
+          echo "Headers used: Authorization: Bearer <SR>, apikey: <anon>, X-CRON-SECRET (masked)"
       - name: Done
         run: echo "Trending refresh triggered"
 
       - name: Show today's imports (latest 10)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
         run: |
           DATE=$(date -u +%Y-%m-%d)
           echo "Listing imports since ${DATE}T00:00:00Z (latest 10)"
