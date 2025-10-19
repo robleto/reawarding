@@ -1,0 +1,85 @@
+name: Enrich Movie Details (Weekly)
+
+on:
+  schedule:
+    - cron: '10 6 * * 0' # Sundays at 06:10 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Skip invoking function, print safe diagnostics only'
+        required: false
+        default: 'false'
+      days:
+        description: 'How many days back to scan for new movies'
+        required: false
+        default: '7'
+      limit:
+        description: 'Max movies to enrich'
+        required: false
+        default: '100'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      DEBUG_CRON: '1'
+    steps:
+      - name: Validate required secrets
+        run: |
+          [ -n "$SUPABASE_URL" ] || { echo "Missing SUPABASE_URL repo secret" >&2; exit 1; }
+          [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || { echo "Missing SUPABASE_SERVICE_ROLE_KEY repo secret" >&2; exit 1; }
+          [ -n "$SUPABASE_ANON_KEY" ] || { echo "Missing SUPABASE_ANON_KEY repo secret" >&2; exit 1; }
+          [ -n "$CRON_SECRET" ] || { echo "Missing CRON_SECRET repo secret" >&2; exit 1; }
+          echo "Dry run: ${{ github.event.inputs.dry_run || 'false' }}"
+
+      - name: Derive time window and movie IDs
+        id: idlist
+        run: |
+          DAYS=${{ github.event.inputs.days || '7' }}
+          LIMIT=${{ github.event.inputs.limit || '100' }}
+          SINCE=$(date -u -v-${DAYS}d +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d "-${DAYS} days" +%Y-%m-%dT%H:%M:%SZ)
+          echo "Collecting movies created since $SINCE (limit=$LIMIT)"
+          curl -sS "$SUPABASE_URL/rest/v1/movies?select=id,tmdb_id,created_at&created_at=gte.${SINCE}&order=created_at.desc&limit=${LIMIT}" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Accept: application/json" > /tmp/movies.json
+          IDS=$(jq -r '[ .[] | select(.tmdb_id != null) | .id ] | .[0:limit] | @csv' /tmp/movies.json | sed 's/\"//g')
+          echo "ids=$IDS" >> $GITHUB_OUTPUT
+          echo "Found $(jq 'length' /tmp/movies.json) movies, enriching up to ${LIMIT}"
+
+      - name: Enrich each movie (details)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          IFS=',' read -r -a ARR <<< "${{ steps.idlist.outputs.ids }}"
+          for ID in "${ARR[@]}"; do
+            [ -z "$ID" ] && continue
+            echo "Enriching movie $ID via enrich-movie-details"
+            http_code=$(curl -sS -D /tmp/headers.txt -o /tmp/resp.json -w '%{http_code}' -X POST \
+              "$SUPABASE_URL/functions/v1/enrich-movie-details" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "X-CRON-SECRET: $CRON_SECRET" \
+              -H "X-CRON-TOKEN: $CRON_SECRET" \
+              -H "X-JOB-TOKEN: $CRON_SECRET" \
+              -H "X-Debug: 1" \
+              -H "Content-Type: application/json" \
+              --data "{\"movieId\":\"$ID\"}")
+            echo "HTTP: $http_code"; head -c 500 /tmp/resp.json || true; echo
+            [ "$http_code" = "200" ] || echo "Warning: enrich failed for $ID"
+            sleep 1
+          done
+
+      - name: Dry-run diagnostics
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "Dry run enabled. Skipping remote calls."
+          echo "Endpoints:"
+          echo " - $SUPABASE_URL/functions/v1/enrich-movie-details"
+          echo " - $SUPABASE_URL/functions/v1/enrich-movies"
+          echo "Headers used: Authorization: Bearer <SR>, apikey: <anon>, X-CRON-SECRET (masked)"
+      - name: Done
+        run: echo "Enrich Movie Details workflow completed"

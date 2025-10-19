@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
+import { normalizeImageUrl } from "@/utils/imageUrl";
 import { Eye, EyeOff } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
@@ -51,8 +53,10 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
   const [imageError, setImageError] = useState(false);
   const style = getRatingStyle(ranking ?? 0);
 
-  // Check if poster image exists and is valid
-  const hasValidPoster = movie.poster_url && movie.poster_url.trim() !== '' && !movie.poster_url.includes('placeholder') && !imageError;
+  // Prefer cached poster when available
+  const posterSrc = movie.cached_poster_url?.trim() || movie.poster_url;
+  const normalizedPoster = normalizeImageUrl(posterSrc);
+  const hasValidPoster = !!normalizedPoster && !imageError;
 
   const handleClick = (e: React.MouseEvent) => {
     // Only trigger onClick if not clicking overlay or its children
@@ -73,12 +77,14 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
     >
       {hasValidPoster ? (
         <Image
-          src={movie.poster_url}
+          src={normalizedPoster}
           alt={movie.title}
           width={210}
           height={325}
           className="w-full h-auto rounded-lg object-cover"
-          unoptimized
+          sizes="(max-width: 640px) 160px, 210px"
+          placeholder="blur"
+          blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(210,325))}`}
           onError={() => setImageError(true)}
         />
       ) : (

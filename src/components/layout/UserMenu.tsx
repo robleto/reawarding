@@ -7,6 +7,7 @@ import { LogOut, List, User, Settings } from 'lucide-react';
 import { useEnsureProfile } from '@/hooks/useEnsureProfile';
 import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
 import type { Database } from '@/types/supabase';
+import { normalizeImageUrl } from '@/utils/imageUrl';
 
 interface UserMenuProps {
   onLoginClick?: () => void;
@@ -66,10 +67,7 @@ export function UserMenu({ onLoginClick, onSignupClick }: UserMenuProps) {
         aria-label="User menu"
       >
         <Image
-          src={
-            avatarUrl ||
-            'https://placehold.co/40x40?text=👤'
-          }
+          src={normalizeImageUrl(avatarUrl) || 'https://placehold.co/40x40?text=%F0%9F%91%A4'}
           alt="User Avatar"
           width={32}
           height={32}

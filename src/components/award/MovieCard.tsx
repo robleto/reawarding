@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
+import { normalizeImageUrl } from "@/utils/imageUrl";
 
 interface MovieCardProps {
 	movie: Movie;
@@ -37,7 +38,8 @@ const ImageFallback = ({
 export default function MovieCard({ movie, onClick }: MovieCardProps) {
 	const rating = movie.rankings?.[0]?.ranking ?? 0;
 	const { text, background } = getRatingStyle(rating);
-	const hasValidImage = movie.thumb_url && movie.thumb_url.trim() !== '' && !movie.thumb_url.includes('placeholder');
+	const thumbSrc = movie.cached_thumb_url?.trim() || movie.thumb_url;
+	const hasValidImage = thumbSrc && thumbSrc.trim() !== '' && !thumbSrc.includes('placeholder');
 
 	return (
 		<article
@@ -47,7 +49,7 @@ export default function MovieCard({ movie, onClick }: MovieCardProps) {
 			<div className="relative aspect-video rounded-lg shadow-sm dark:shadow-gray-600 overflow-hidden bg-gray-100">
 				{hasValidImage ? (
 					<Image
-						src={movie.thumb_url}
+						src={normalizeImageUrl(thumbSrc)}
 						alt={movie.title}
 						width={160}
 						height={90}

@@ -1,0 +1,101 @@
+name: Update Movie Batch
+
+on:
+  schedule:
+    - cron: '20 5 * * *' # Daily at 05:20 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Skip invoking function, print safe diagnostics only'
+        required: false
+        default: 'false'
+      start_index:
+        description: 'Starting index for unenriched movies'
+        required: false
+        default: '0'
+      batch_size:
+        description: 'Number of movies per batch'
+        required: false
+        default: '25'
+      max_batches:
+        description: 'Max batches to process this run (prevents long jobs)'
+        required: false
+        default: '4'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      DEBUG_CRON: '1'
+    steps:
+      - name: Validate required secrets
+        run: |
+          [ -n "$SUPABASE_URL" ] || { echo "Missing SUPABASE_URL repo secret" >&2; exit 1; }
+          [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || { echo "Missing SUPABASE_SERVICE_ROLE_KEY repo secret" >&2; exit 1; }
+          [ -n "$SUPABASE_ANON_KEY" ] || { echo "Missing SUPABASE_ANON_KEY repo secret" >&2; exit 1; }
+          [ -n "$CRON_SECRET" ] || { echo "Missing CRON_SECRET repo secret" >&2; exit 1; }
+          echo "Dry run: ${{ github.event.inputs.dry_run || 'false' }}"
+
+      - name: Process batches
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          START_INDEX=${{ github.event.inputs.start_index || '0' }}
+          BATCH_SIZE=${{ github.event.inputs.batch_size || '25' }}
+          MAX_BATCHES=${{ github.event.inputs.max_batches || '4' }}
+          COUNT=0
+          while [ "$COUNT" -lt "$MAX_BATCHES" ]; do
+            echo "Invoking update-movie-batch (start=$START_INDEX, size=$BATCH_SIZE)"
+            http_code=$(curl -sS -D /tmp/headers.txt -o /tmp/resp.json -w '%{http_code}' -X POST \
+              "$SUPABASE_URL/functions/v1/update-movie-batch" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "X-CRON-SECRET: $CRON_SECRET" \
+              -H "X-CRON-TOKEN: $CRON_SECRET" \
+              -H "X-JOB-TOKEN: $CRON_SECRET" \
+              -H "X-Debug: 1" \
+              --data "{\"startIndex\":$START_INDEX,\"batchSize\":$BATCH_SIZE,\"requestDelay\":300}")
+            ec=$?
+            echo "HTTP: $http_code"
+            grep -iE '^(x-reason|content-type|server|x-version):' /tmp/headers.txt || true
+            head -c 2000 /tmp/resp.json || true; echo
+            if [ "$ec" -ne 0 ] || [ "$http_code" != "200" ]; then
+              echo "Primary endpoint failed, trying functions subdomain..."
+              REF=$(printf '%s' "$SUPABASE_URL" | sed -E 's#https?://([^\.]+)\..*#\1#')
+              FUNCS_URL="https://$REF.functions.supabase.co/update-movie-batch"
+              http_code2=$(curl -sS -D /tmp/headers2.txt -o /tmp/resp2.json -w '%{http_code}' -X POST \
+                "$FUNCS_URL" \
+                -H "Content-Type: application/json" \
+                -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                -H "apikey: $SUPABASE_ANON_KEY" \
+                -H "X-CRON-SECRET: $CRON_SECRET" \
+                -H "X-CRON-TOKEN: $CRON_SECRET" \
+                -H "X-JOB-TOKEN: $CRON_SECRET" \
+                -H "X-Debug: 1" \
+                --data "{\"startIndex\":$START_INDEX,\"batchSize\":$BATCH_SIZE,\"requestDelay\":300}")
+              echo "HTTP (functions subdomain): $http_code2"
+              grep -iE '^(x-reason|content-type|server|x-version):' /tmp/headers2.txt || true
+              head -c 2000 /tmp/resp2.json || true; echo
+              [ "$http_code2" = "200" ] || exit 1
+              mv /tmp/resp2.json /tmp/resp.json
+            fi
+            HAS_MORE=$(jq -r '.batchInfo.hasMore // false' /tmp/resp.json 2>/dev/null || echo "false")
+            NEXT_START=$(jq -r '.batchInfo.nextBatch.startIndex // empty' /tmp/resp.json 2>/dev/null || true)
+            if [ -n "$NEXT_START" ]; then START_INDEX=$NEXT_START; fi
+            COUNT=$((COUNT+1))
+            echo "hasMore=$HAS_MORE nextStart=$START_INDEX count=$COUNT"
+            [ "$HAS_MORE" = "true" ] || break
+            echo "Sleeping 5s before next batch..."; sleep 5
+          done
+      - name: Dry-run diagnostics
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "Dry run enabled. Skipping remote calls."
+          echo "Endpoint: $SUPABASE_URL/functions/v1/update-movie-batch"
+          echo "Headers used: Authorization: Bearer <SR>, apikey: <anon>, X-CRON-SECRET (masked)"
+      - name: Done
+        run: echo "Update Movie Batch workflow completed"

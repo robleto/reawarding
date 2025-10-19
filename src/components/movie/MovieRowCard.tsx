@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
+import { normalizeImageUrl } from "@/utils/imageUrl";
 import { Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
@@ -46,8 +48,10 @@ const ImageFallback = ({
 export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, seenIt, isLast = false, onClick, index }: Props) {
   const style = getRatingStyle(ranking ?? 0);
 
-  // Check if image exists and is valid
-  const hasValidImage = movie.thumb_url && movie.thumb_url.trim() !== '' && !movie.thumb_url.includes('placeholder');
+  // Prefer cached thumb when available; compute normalized URL and only render Image if non-empty
+  const thumbSrc = movie.cached_thumb_url?.trim() || movie.thumb_url;
+  const normalizedThumb = normalizeImageUrl(thumbSrc);
+  const hasValidImage = !!normalizedThumb && !(thumbSrc?.includes('placeholder'));
 
   const handleClick = (e: React.MouseEvent) => {
     // Don't trigger onClick if user is clicking on interactive elements
@@ -81,12 +85,14 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
         {/* Poster */}
         {hasValidImage ? (
           <Image
-            src={movie.thumb_url}
+            src={normalizedThumb}
             alt={movie.title}
             width={80}
             height={50}
-            className="rounded-md shadow-md"
-            unoptimized
+            className="rounded-md shadow-md object-cover"
+            sizes="(max-width: 768px) 100px, 120px"
+            placeholder="blur"
+            blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(80,50))}`}
             onError={(e) => {
               e.currentTarget.style.display = 'none';
               const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -150,12 +156,14 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
           <div className="flex-shrink-0">
             {hasValidImage ? (
               <Image
-                src={movie.thumb_url}
+                src={normalizedThumb}
                 alt={movie.title}
                 width={60}
                 height={45}
                 className="rounded-md shadow-md object-cover"
-                unoptimized
+                sizes="60px"
+                placeholder="blur"
+                blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(60,45))}`}
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   const fallback = e.currentTarget.nextElementSibling as HTMLElement;

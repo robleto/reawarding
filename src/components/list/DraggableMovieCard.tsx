@@ -5,6 +5,8 @@ import Button from "@/components/ui/Button";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
+import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
+import { normalizeImageUrl } from "@/utils/imageUrl";
 import { GripVertical, X, Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
@@ -115,8 +117,10 @@ export default function DraggableMovieCard({
   };
 
   // Check if poster/thumb image exists and is valid
-  const hasValidPoster = item.movie.poster_url && item.movie.poster_url.trim() !== '' && !item.movie.poster_url.includes('placeholder') && !imageError;
-  const hasValidThumb = item.movie.thumb_url && item.movie.thumb_url.trim() !== '' && !item.movie.thumb_url.includes('placeholder');
+  const posterSrc = item.movie.cached_poster_url?.trim() || item.movie.poster_url;
+  const thumbSrc = item.movie.cached_thumb_url?.trim() || item.movie.thumb_url;
+  const hasValidPoster = posterSrc && posterSrc.trim() !== '' && !posterSrc.includes('placeholder') && !imageError;
+  const hasValidThumb = thumbSrc && thumbSrc.trim() !== '' && !thumbSrc.includes('placeholder');
 
   // Get user's seen status and ranking from list item data (not global rankings)
   const userSeenIt = item.seen_it ?? false;
@@ -184,12 +188,14 @@ export default function DraggableMovieCard({
         {/* Movie Poster */}
         {hasValidPoster ? (
           <Image
-            src={item.movie.poster_url}
+            src={normalizeImageUrl(posterSrc)}
             alt={item.movie.title}
             width={210}
             height={325}
             className="w-full h-auto rounded-lg object-cover"
-            unoptimized
+            sizes="(max-width: 640px) 160px, 210px"
+            placeholder="blur"
+            blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(210,325))}`}
             onError={() => setImageError(true)}
           />
         ) : (
@@ -250,12 +256,14 @@ export default function DraggableMovieCard({
         {/* Poster */}
         {hasValidPoster ? (
           <Image
-            src={item.movie.poster_url}
+            src={normalizeImageUrl(posterSrc)}
             alt={item.movie.title}
             width={60}
             height={90}
             className="rounded-md shadow-md object-cover"
-            unoptimized
+            sizes="60px"
+            placeholder="blur"
+            blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(60,90))}`}
             onError={() => setImageError(true)}
           />
         ) : (
@@ -331,12 +339,14 @@ export default function DraggableMovieCard({
           <div className="flex-shrink-0">
             {hasValidPoster ? (
               <Image
-                src={item.movie.poster_url}
+                src={normalizeImageUrl(posterSrc)}
                 alt={item.movie.title}
                 width={40}
                 height={60}
                 className="rounded-md shadow-md object-cover"
-                unoptimized
+                sizes="40px"
+                placeholder="blur"
+                blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(40,60))}`}
                 onError={() => setImageError(true)}
               />
             ) : (

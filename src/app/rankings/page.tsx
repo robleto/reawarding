@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { Movie } from "@/types/types";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
@@ -26,6 +27,7 @@ import MovieFilters from "@/components/filters/MovieFilters";
 export const dynamic = "force-dynamic";
 
 export default function RankingsPage() {
+  const searchParams = useSearchParams();
   const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
   // Use a rankings-specific view mode with list as default for tabular feel
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
@@ -78,6 +80,22 @@ export default function RankingsPage() {
   
   const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie">("none");
   const [filterValue, setFilterValue] = useState<string>("all");
+
+  // Apply preset from nav search (?movie=<id> or ?query=)
+  useEffect(() => {
+    const movieId = searchParams.get("movie");
+    const q = searchParams.get("query");
+    if (movieId) {
+      setFilterType("movie");
+      setFilterValue(String(movieId));
+    } else if (q) {
+      const match = movies.find(m => m.title.toLowerCase().includes(q.toLowerCase()));
+      if (match) {
+        setFilterType("movie");
+        setFilterValue(String(match.id));
+      }
+    }
+  }, [searchParams, movies]);
   
   useEffect(() => {
     setHasMounted(true);

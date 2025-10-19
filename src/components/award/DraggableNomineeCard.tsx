@@ -6,6 +6,7 @@ import Image from "next/image";
 import { GripVertical, X, Crown, Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
+import { normalizeImageUrl } from "@/utils/imageUrl";
 
 interface DraggableNomineeCardProps {
   movie: Movie;
@@ -49,7 +50,8 @@ export default function DraggableNomineeCard({
 
   const ranking = movie.rankings?.[0]?.ranking ?? 0;
   const ratingStyle = getRatingStyle(ranking);
-  const hasValidImage = movie.thumb_url && movie.thumb_url.trim() !== '' && !movie.thumb_url.includes('placeholder');
+  const thumbSrc = movie.cached_thumb_url?.trim() || movie.thumb_url;
+  const hasValidImage = thumbSrc && thumbSrc.trim() !== '' && !thumbSrc.includes('placeholder');
 
   return (
     <div
@@ -75,7 +77,7 @@ export default function DraggableNomineeCard({
       <div className="flex-shrink-0">
         {hasValidImage ? (
           <Image
-            src={movie.thumb_url}
+            src={normalizeImageUrl(thumbSrc)}
             alt={movie.title}
             width={64}
             height={48}

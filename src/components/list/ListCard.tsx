@@ -1,4 +1,6 @@
 import Link from "next/link";
+import Image from "next/image";
+import { normalizeImageUrl } from "@/utils/imageUrl";
 
 type MovieList = {
   id: string;
@@ -32,7 +34,7 @@ function formatRelativeTime(dateString: string): string {
 
 const ListCard = ({ list, readOnly }: ListCardProps) => {
   const lastModified = formatRelativeTime(list.updated_at);
-  const posterUrls = list.posterUrls || [];
+  const posterUrls = (list.posterUrls || []).filter((u) => typeof u === 'string' && u.trim().length > 0);
 
   return (
     <Link href={`/lists/${list.id}`} tabIndex={readOnly ? -1 : 0} aria-disabled={readOnly}>
@@ -41,17 +43,30 @@ const ListCard = ({ list, readOnly }: ListCardProps) => {
         {posterUrls.length > 0 && (
           <div className="flex items-center justify-center -mt-4 mb-2 h-28 relative overflow-visible z-20">
             {posterUrls.map((url: string, i: number) => (
-              <img
+              <div
                 key={i}
-                src={url}
-                alt="Movie poster"
-                className="w-16 h-24 object-cover rounded-xl shadow-lg border-2 border-gray-800 absolute"
+                className="absolute w-16 h-24 rounded-xl shadow-lg border-2 border-gray-800 overflow-hidden"
                 style={{
                   left: `calc(50% + ${(i - (posterUrls.length - 1) / 2) * 32}px - 32px)`,
                   zIndex: posterUrls.length - i,
                   transform: `rotate(${(i - 2) * 7}deg)`
                 }}
-              />
+              >
+                {(() => {
+                  const src = normalizeImageUrl(url);
+                  return src ? (
+                    <Image
+                      src={src}
+                      alt="Movie poster"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 64px, 64px"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200" />
+                  );
+                })()}
+              </div>
             ))}
           </div>
         )}

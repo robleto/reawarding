@@ -1,0 +1,55 @@
+name: Mirror Movie Images (Nightly)
+
+on:
+  schedule:
+    - cron: '25 4 * * *' # Daily at 04:25 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Skip invoking function, print safe diagnostics only'
+        required: false
+        default: 'false'
+      limit:
+        description: 'Max movies to mirror per run'
+        required: false
+        default: '600'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Validate required secrets
+        run: |
+          [ -n "$SUPABASE_URL" ] || { echo "Missing SUPABASE_URL repo secret" >&2; exit 1; }
+          [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || { echo "Missing SUPABASE_SERVICE_ROLE_KEY repo secret" >&2; exit 1; }
+          [ -n "$SUPABASE_ANON_KEY" ] || { echo "Missing SUPABASE_ANON_KEY repo secret" >&2; exit 1; }
+          [ -n "$CRON_SECRET" ] || { echo "Missing CRON_SECRET repo secret" >&2; exit 1; }
+      - name: Call mirror-movie-images
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          LIMIT=${{ github.event.inputs.limit || '600' }}
+          http_code=$(curl -sS -D /tmp/headers.txt -o /tmp/resp.json -w '%{http_code}' -X POST \
+            "$SUPABASE_URL/functions/v1/mirror-movie-images" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "X-CRON-SECRET: $CRON_SECRET" \
+            -H "X-CRON-TOKEN: $CRON_SECRET" \
+            -H "X-JOB-TOKEN: $CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            --data "{\"limit\":$LIMIT}")
+          echo "HTTP: $http_code"
+          grep -iE '^(x-reason|content-type|server|x-version):' /tmp/headers.txt || true
+          head -c 2000 /tmp/resp.json || true; echo
+          [ "$http_code" = "200" ] || exit 1
+      - name: Dry-run diagnostics
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "Dry run enabled. Skipping remote calls."
+          echo "Endpoint: $SUPABASE_URL/functions/v1/mirror-movie-images"
+      - name: Done
+        run: echo "Mirror Movie Images completed"

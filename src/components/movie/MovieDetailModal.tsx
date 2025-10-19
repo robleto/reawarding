@@ -7,6 +7,7 @@ import { X, Eye, EyeOff, Film, Clock, Users, Clapperboard } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import RankingDropdown from "@/components/movie/RankingDropdown";
 import type { Movie } from "@/types/types";
+import { normalizeImageUrl } from "@/utils/imageUrl";
 
 interface MovieDetailModalProps {
   movie: Movie;
@@ -52,7 +53,8 @@ export default function MovieDetailModal({
     if (isOpen) {
       setSeenIt(initialSeenIt);
       setRanking(initialRanking);
-      setHasValidImage(Boolean(movie.poster_url && movie.poster_url.trim() !== '' && !movie.poster_url.includes('placeholder')));
+  const poster = movie.cached_poster_url?.trim() || movie.poster_url;
+  setHasValidImage(Boolean(poster && poster.trim() !== '' && !poster.includes('placeholder')));
     }
   }, [isOpen, movie, initialRanking, initialSeenIt]);
 
@@ -176,7 +178,7 @@ export default function MovieDetailModal({
               <div className="aspect-[2/3] relative bg-gray-800 rounded-lg overflow-hidden shadow-lg">
                 {hasValidImage ? (
                   <Image
-                    src={movie.poster_url}
+                    src={normalizeImageUrl(movie.cached_poster_url?.trim() || movie.poster_url)}
                     alt={movie.title}
                     fill
                     className="object-cover"

@@ -8,6 +8,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Star, Check, X, Crown, Trophy } from "lucide-react";
 import Image from "next/image";
 import type { Movie } from "@/types/types";
+import { normalizeImageUrl } from "@/utils/imageUrl";
 
 interface BestPictureNomineesProps {
   movies: Movie[];
@@ -79,14 +80,21 @@ function SortableMovieItem({ movie, index, onRemove, isSelected, isWinner = fals
 
       {/* Movie Poster */}
       <div className="flex-shrink-0">
-        <Image
-          src={movie.thumb_url}
-          alt={movie.title}
-          width={60}
-          height={90}
-          className="rounded shadow-sm"
-          unoptimized
-        />
+        {(() => {
+          const thumbSrc = normalizeImageUrl(movie.cached_thumb_url?.trim() || movie.thumb_url);
+          return thumbSrc ? (
+            <Image
+              src={thumbSrc}
+              alt={movie.title}
+              width={60}
+              height={90}
+              className="rounded shadow-sm"
+              unoptimized
+            />
+          ) : (
+            <div className="rounded shadow-sm bg-gray-100" style={{ width: 60, height: 90 }} />
+          );
+        })()}
       </div>
 
       {/* Movie Details */}
@@ -303,14 +311,21 @@ export default function BestPictureNominees({
                 )}
               </div>
               <div className="mt-3 flex items-center gap-3 p-3 bg-white border border-yellow-200 rounded-lg">
-                <Image
-                  src={winner.thumb_url}
-                  alt={winner.title}
-                  width={60}
-                  height={90}
-                  className="rounded shadow-sm"
-                  unoptimized
-                />
+                {(() => {
+                  const winnerSrc = normalizeImageUrl(winner.cached_thumb_url?.trim() || winner.thumb_url);
+                  return winnerSrc ? (
+                    <Image
+                      src={winnerSrc}
+                      alt={winner.title}
+                      width={60}
+                      height={90}
+                      className="rounded shadow-sm"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="rounded shadow-sm bg-gray-100" style={{ width: 60, height: 90 }} />
+                  );
+                })()}
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900">{winner.title}</h4>
                   <p className="text-sm text-gray-600">{winner.release_year}</p>
@@ -343,14 +358,21 @@ export default function BestPictureNominees({
                     onClick={() => handleSelectWinner(movie)}
                     className="flex items-center gap-3 p-3 bg-white border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all group"
                   >
-                    <Image
-                      src={movie.thumb_url}
-                      alt={movie.title}
-                      width={60}
-                      height={90}
-                      className="rounded shadow-sm"
-                      unoptimized
-                    />
+                    {(() => {
+                      const src = normalizeImageUrl(movie.cached_thumb_url?.trim() || movie.thumb_url);
+                      return src ? (
+                        <Image
+                          src={src}
+                          alt={movie.title}
+                          width={60}
+                          height={90}
+                          className="rounded shadow-sm"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="rounded shadow-sm bg-gray-100" style={{ width: 60, height: 90 }} />
+                      );
+                    })()}
                     <div className="flex-1 text-left">
                       <h4 className="font-semibold text-gray-900 group-hover:text-blue-900">
                         {movie.title}
@@ -401,14 +423,21 @@ export default function BestPictureNominees({
                 >
                   {/* Movie Poster */}
                   <div className="flex-shrink-0">
-                    <Image
-                      src={movie.thumb_url}
-                      alt={movie.title}
-                      width={40}
-                      height={60}
-                      className="rounded shadow-sm"
-                      unoptimized
-                    />
+                    {(() => {
+                      const src = normalizeImageUrl(movie.cached_thumb_url?.trim() || movie.thumb_url);
+                      return src ? (
+                        <Image
+                          src={src}
+                          alt={movie.title}
+                          width={40}
+                          height={60}
+                          className="rounded shadow-sm"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="rounded shadow-sm bg-gray-100" style={{ width: 40, height: 60 }} />
+                      );
+                    })()}
                   </div>
 
                   {/* Movie Details */}

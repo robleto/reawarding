@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieRowCard from "@/components/movie/MovieRowCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
@@ -23,6 +24,7 @@ import Loader from "@/components/ui/Loading";
 export const dynamic = "force-dynamic";
 
 export default function FilmsPage() {
+	const searchParams = useSearchParams();
 	const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
 	// Films-specific view mode with grid as default for poster-based display
 	const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
@@ -70,6 +72,24 @@ export default function FilmsPage() {
 	
 	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie">("none");
 	const [filterValue, setFilterValue] = useState<string>("all");
+
+	// Apply preset from nav search (?movie=<id> or ?query=)
+	useEffect(() => {
+		const movieId = searchParams.get("movie");
+		const q = searchParams.get("query");
+		if (movieId) {
+			setFilterType("movie");
+			setFilterValue(String(movieId));
+		} else if (q) {
+			// Fallback: filter by title contains (temporary approach)
+			// We reuse movie filter by picking first matching id when movies load
+			const match = movies.find(m => m.title.toLowerCase().includes(q.toLowerCase()));
+			if (match) {
+				setFilterType("movie");
+				setFilterValue(String(match.id));
+			}
+		}
+	}, [searchParams, movies]);
 
 	// Auth modal state
 	const [showAuthModal, setShowAuthModal] = useState(false);

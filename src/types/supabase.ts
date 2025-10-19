@@ -47,6 +47,8 @@ export interface Database {
 					release_year: number;
 					poster_url: string;
 					thumb_url: string;
+					cached_poster_url?: string | null;
+					cached_thumb_url?: string | null;
 					runtime: number;
 					created_at?: string;
 				};
@@ -56,6 +58,8 @@ export interface Database {
 					release_year: number;
 					poster_url: string;
 					thumb_url: string;
+					cached_poster_url?: string | null;
+					cached_thumb_url?: string | null;
 					runtime: number;
 					created_at?: string;
 				};

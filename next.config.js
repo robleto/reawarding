@@ -5,6 +5,9 @@ const nextConfig = {
     ignoreDuringBuilds: false,
   },
   images: {
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [320, 420, 640, 750, 828, 1080],
+    imageSizes: [160, 210, 320],
     remotePatterns: [
       {
         protocol: 'https',
@@ -12,7 +15,15 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'images.fanart.tv', // Fanart CDN alternate
+      },
+      {
+        protocol: 'https',
         hostname: 'image.tmdb.org', // TMDB images
+      },
+      {
+        protocol: 'https',
+        hostname: 'media.themoviedb.org', // Alternate TMDB media host
       },
       {
         protocol: 'https',

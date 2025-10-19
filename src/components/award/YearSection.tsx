@@ -7,7 +7,9 @@ interface LocalMovie {
 	id: string;
 	title: string;
 	thumb_url: string;
+	cached_thumb_url?: string | null;
 	poster_url: string;
+	cached_poster_url?: string | null;
 	ranking: number;
 }
 
@@ -34,7 +36,9 @@ export default function YearSection({
 		title: localMovie.title,
 		release_year: parseInt(year),
 		poster_url: localMovie.poster_url,
+		cached_poster_url: localMovie.cached_poster_url,
 		thumb_url: localMovie.thumb_url,
+		cached_thumb_url: localMovie.cached_thumb_url,
 		created_at: new Date().toISOString(),
 		rankings: [{
 			ranking: localMovie.ranking,

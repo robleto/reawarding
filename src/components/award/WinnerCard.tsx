@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
+import { normalizeImageUrl } from "@/utils/imageUrl";
 
 interface WinnerCardProps {
 	movie: Movie;
@@ -45,8 +46,9 @@ export default function WinnerCard({
 	const rating = movie.rankings?.[0]?.ranking ?? 0;
 	const { background, text } = getRatingStyle(rating);
 
-	// Check if poster image exists and is valid
-	const hasValidPoster = movie.poster_url && movie.poster_url.trim() !== '' && !movie.poster_url.includes('placeholder');
+	// Prefer cached poster; check if image exists and is valid
+	const posterSrc = movie.cached_poster_url?.trim() || movie.poster_url;
+	const hasValidPoster = posterSrc && posterSrc.trim() !== '' && !posterSrc.includes('placeholder');
 
 	return (
 		<article 
@@ -57,7 +59,7 @@ export default function WinnerCard({
 			{hasValidPoster ? (
 				<div className="relative w-full aspect-[2/3] my-4 mx-auto rounded-xl overflow-hidden shadow-lg dark:shadw-gray-900">
 					<Image
-						src={movie.poster_url}
+						src={normalizeImageUrl(posterSrc)}
 						alt={movie.title}
 						fill
 						className="object-contain"

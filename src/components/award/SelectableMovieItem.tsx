@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Plus, Film } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
+import { normalizeImageUrl } from "@/utils/imageUrl";
 
 interface SelectableMovieItemProps {
   movie: Movie;
@@ -30,7 +31,8 @@ export default function SelectableMovieItem({
 }: SelectableMovieItemProps) {
   const ranking = movie.rankings?.[0]?.ranking ?? 0;
   const ratingStyle = getRatingStyle(ranking);
-  const hasValidImage = movie.thumb_url && movie.thumb_url.trim() !== '' && !movie.thumb_url.includes('placeholder');
+  const thumbSrcRaw = movie.cached_thumb_url?.trim() || movie.thumb_url;
+  const hasValidImage = thumbSrcRaw && thumbSrcRaw.trim() !== '' && !thumbSrcRaw.includes('placeholder');
 
   return (
     <div className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow min-h-[80px]">
@@ -38,7 +40,7 @@ export default function SelectableMovieItem({
       <div className="flex-shrink-0">
         {hasValidImage ? (
           <Image
-            src={movie.thumb_url}
+            src={normalizeImageUrl(thumbSrcRaw)}
             alt={movie.title}
             width={80}
             height={60}

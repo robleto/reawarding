@@ -19,6 +19,7 @@ import { Film } from "lucide-react";
 
 import type { Movie as BaseMovie } from "@/types/types";
 import { AuthChecker } from "@/components/auth/AuthChecker";
+import StatsSummary from "@/components/stats/StatsSummary";
 
 export default function HomePage() {
 	const { movies, loading, user, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
@@ -144,7 +145,7 @@ export default function HomePage() {
 	
 	if (shouldShowEmptyState) { 
 		return ( 
-			<div> 
+			<div>
 				<HomeEmptyState /> 
 				
 				{/* Include the movies section below for when they scroll */}
@@ -152,7 +153,7 @@ export default function HomePage() {
 					<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">For Your Consideration</h2>
 					{unseen.length > 0 ? (
 						<div className="flex gap-4 pb-4 overflow-x-auto">
-							{unseen.map((movie) => {
+							{unseen.map((movie, idx) => {
 								const r = movie.rankings?.[0];
 								return (
 									<div key={movie.id} className="flex-shrink-0 w-[160px]">
@@ -162,6 +163,8 @@ export default function HomePage() {
 											ranking={r?.ranking ?? null}
 											seenIt={r?.seen_it ?? false}
 											onUpdate={updateMovieRanking}
+											// Priority-load the first row's first few posters
+											// Note: MoviePosterCard doesn't accept priority; handled internally by Next for top-of-viewport
 										/>
 									</div>
 								);
@@ -174,6 +177,11 @@ export default function HomePage() {
 						</div>
 					)}
 				</section>
+
+				{/* Stats Summary at bottom */}
+				<div className="mt-12 px-4">
+					<StatsSummary />
+				</div>
 
 				{/* Auth Modal */}
 				<AuthModalManager
@@ -196,7 +204,6 @@ export default function HomePage() {
 				/>
 			)}
 			
-
 
 			{/* Authenticated User Welcome */}
 			{!isGuest && hasRatedMovies && (
@@ -257,7 +264,9 @@ export default function HomePage() {
 							id: String(movie.id),
 							title: movie.title,
 							thumb_url: movie.thumb_url,
+							cached_thumb_url: movie.cached_thumb_url,
 							poster_url: movie.poster_url,
+							cached_poster_url: movie.cached_poster_url,
 							ranking: movie.rankings?.[0]?.ranking ?? 0,
 						}))}
 			winner={(() => {
@@ -291,7 +300,9 @@ export default function HomePage() {
 							id: String(topMovie.id),
 							title: topMovie.title,
 							thumb_url: topMovie.thumb_url,
+							cached_thumb_url: topMovie.cached_thumb_url,
 							poster_url: topMovie.poster_url,
+							cached_poster_url: topMovie.cached_poster_url,
 							ranking:
 								topMovie.rankings?.[0]?.ranking ?? 0,
 					  }
@@ -302,6 +313,11 @@ export default function HomePage() {
 
 		   {/* Public Lists Horizontal Table */}
 		   <PublicListsHomeSection />
+
+		   {/* Stats Summary at bottom */}
+		   <div className="mt-12">
+		     <StatsSummary />
+		   </div>
 
 		   {/* Auth Modal */}
 		   <AuthModalManager

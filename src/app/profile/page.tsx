@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Edit3, Save, X, Mail, Calendar, Camera } from "lucide-react";
 import Image from "next/image";
 import type { Database } from "@/types/supabase";
+import { normalizeImageUrl } from "@/utils/imageUrl";
+import StatsSummary from "@/components/stats/StatsSummary";
 
 interface Profile {
   id: string;
@@ -166,7 +168,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-4">
             <div className="relative">
               <Image
-                src={avatarUrl || 'https://placehold.co/80x80?text=👤'}
+                src={normalizeImageUrl(avatarUrl) || 'https://placehold.co/80x80?text=%F0%9F%91%A4'}
                 alt="Profile Picture"
                 width={80}
                 height={80}
@@ -297,6 +299,11 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Stats Summary at bottom */}
+      <div className="mt-12">
+        <StatsSummary />
+      </div>
     </div>
   );
 }

@@ -28,7 +28,21 @@ jobs:
         run: supabase link --project-ref "$PROJECT_REF"
       - name: Deploy tmdb-trending-scraper
         run: supabase functions deploy tmdb-trending-scraper --project-ref "$PROJECT_REF"
+      - name: Deploy tmdb-popular-movies
+        run: supabase functions deploy tmdb-popular-movies --project-ref "$PROJECT_REF"
+      - name: Deploy tmdb-now-playing
+        run: supabase functions deploy tmdb-now-playing --project-ref "$PROJECT_REF"
       - name: Deploy backup-export
         run: supabase functions deploy backup-export --project-ref "$PROJECT_REF"
+      - name: Deploy enrich-movies
+        run: supabase functions deploy enrich-movies --project-ref "$PROJECT_REF"
+      - name: Deploy enrich-movie-details
+        run: supabase functions deploy enrich-movie-details --project-ref "$PROJECT_REF"
+      - name: Deploy update-movie-batch
+        run: supabase functions deploy update-movie-batch --project-ref "$PROJECT_REF"
+      - name: Deploy update-all-movies
+        run: supabase functions deploy update-all-movies --project-ref "$PROJECT_REF"
+      - name: Deploy mirror-movie-images
+        run: supabase functions deploy mirror-movie-images --project-ref "$PROJECT_REF"
       - name: Done
         run: echo "Edge Functions deployed"

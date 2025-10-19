@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { UserMenu } from "@/components/layout/UserMenu";
+import NavSearch from "@/components/layout/NavSearch";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import { Logo } from "@/components/ui/Logo";
 import { useScrollBackground } from "@/hooks/useScrollBackground";
@@ -116,8 +117,11 @@ export default function HeaderNav() {
 							</div>
 						</nav>
 
-						{/* Controls: UserMenu */}
-						<div className="flex items-center gap-4 flex-shrink-0">
+						{/* Controls: Search + UserMenu */}
+						<div className="flex items-center gap-3 flex-shrink-0">
+							<div className="hidden md:block">
+								<NavSearch />
+							</div>
 							<UserMenu onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
 							{/* Mobile Menu Button */}
 							<button
@@ -140,6 +144,9 @@ export default function HeaderNav() {
 					<div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-800/50 transition-colors duration-300">
 						<nav className="px-6 py-4">
 							<ul className="space-y-3">
+								<li>
+									<NavSearch />
+								</li>
 								{navItems.map((item) => {
 									const isActive =
 										pathname === item.match ||
