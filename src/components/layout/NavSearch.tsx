@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import type { Movie } from "@/types/types";
+import { movieSlug } from "@/utils/slug";
 
 type Props = {
   className?: string;
@@ -52,8 +53,7 @@ export default function NavSearch({ className = "" }: Props) {
     setShowSuggestions(false);
     setExpanded(false);
     setTerm("");
-    // Navigate to films with movie filter query param
-    router.push(`/films?movie=${movie.id}`);
+  router.push(`/films/${movieSlug(movie.title, movie.id)}`);
   };
 
   const onSubmit = (e: React.FormEvent) => {

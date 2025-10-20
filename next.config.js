@@ -1,5 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [
+      {
+        source: '/films/:slug-:id',
+        destination: '/films/:slug/:id',
+        permanent: true,
+      },
+    ];
+  },
   eslint: {
     // During builds, only warn for linting issues instead of failing the build
     ignoreDuringBuilds: false,

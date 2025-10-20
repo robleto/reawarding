@@ -153,10 +153,12 @@ Deno.serve(async (req)=>{
       if (typeof body.batchSize === 'number') batchSize = body.batchSize;
       if (typeof body.requestDelay === 'number') requestDelay = body.requestDelay;
     } catch  {}
-    // DEBUG: Print the movies API URL
-    // Change filter: only fetch movies where overview IS NULL (i.e., not yet TMDB-enriched)
-    const filter = 'overview.is.null';
-    const moviesApiUrl = `${supabaseUrl}/rest/v1/movies?select=id,tmdb_id,title&order=id.asc&${filter}&offset=${startIndex}&limit=${batchSize}`;
+  // DEBUG: Print the movies API URL
+  // Change filter: only fetch movies where overview IS NULL (i.e., not yet TMDB-enriched)
+  // NOTE: PostgREST null filter syntax is "overview=is.null"
+  const filter = 'overview=is.null';
+  // Prioritize newest inserts first so recent movies get enriched quickly
+  const moviesApiUrl = `${supabaseUrl}/rest/v1/movies?select=id,tmdb_id,title&order=id.desc&${filter}&offset=${startIndex}&limit=${batchSize}`;
     console.log('Movies API URL:', moviesApiUrl);
     const moviesRes = await fetch(moviesApiUrl, {
       headers: {
