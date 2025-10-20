@@ -1,5 +1,3 @@
-import { load } from "npm:cheerio@1.0.0-rc.12";
-
 // Helper: Enrich a movie from TMDB/OMDb and upsert into Supabase
 async function enrichMovie(tmdbId, supabaseUrl, supabaseKey, tmdbApiKey, omdbApiKey) {
   // Fetch from TMDB (with credits, external_ids, release_dates)
@@ -88,8 +86,8 @@ Deno.serve(async (req) => {
     return new Response("Missing required environment variables", { status: 500 });
   }
   try {
-    // Fetch all movies
-    const moviesRes = await fetch(`${supabaseUrl}/rest/v1/movies?select=tmdb_id`, {
+    // Fetch only unenriched movies (overview is null), newest first
+    const moviesRes = await fetch(`${supabaseUrl}/rest/v1/movies?select=tmdb_id&overview=is.null&order=id.desc`, {
       headers: {
         "apikey": supabaseKey,
         "Authorization": `Bearer ${supabaseKey}`

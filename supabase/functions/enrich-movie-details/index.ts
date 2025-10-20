@@ -73,53 +73,27 @@ Deno.serve(async (req) => {
     const movieDetails = await movieDetailsResponse.json()
 
     // Extract relevant information
-    const director = movieDetails.credits?.crew?.find(person => person.job === 'Director')
-    const cast = movieDetails.credits?.cast?.slice(0, 10) || []
-    const genres = movieDetails.genres?.map(genre => genre.name) || []
+  const director = movieDetails.credits?.crew?.find(person => person.job === 'Director')
+  const cast = movieDetails.credits?.cast?.slice(0, 10) || []
+  const genres = movieDetails.genres?.map(genre => genre.name) || []
     const trailer = movieDetails.videos?.results?.find(video => 
       video.type === 'Trailer' && video.site === 'YouTube'
     )
 
     // Prepare the data to update in the database
-    const movieData = {
-      genres,
-      runtime: movieDetails.runtime,
+    const movieData: Record<string, any> = {
       overview: movieDetails.overview,
-      vote_average: movieDetails.vote_average,
-      vote_count: movieDetails.vote_count,
-      popularity: movieDetails.popularity,
-      director: director ? {
-        id: director.id,
-        name: director.name,
-        profile_path: director.profile_path
-      } : null,
-      cast: cast.map(actor => ({
-        id: actor.id,
-        name: actor.name,
-        character: actor.character,
-        profile_path: actor.profile_path,
-        order: actor.order
-      })),
-      trailer: trailer ? {
-        key: trailer.key,
-        site: trailer.site,
-        name: trailer.name
-      } : null,
-      production_companies: movieDetails.production_companies?.map(company => ({
-        id: company.id,
-        name: company.name,
-        logo_path: company.logo_path
-      })),
-      budget: movieDetails.budget,
-      revenue: movieDetails.revenue,
-      original_language: movieDetails.original_language,
+      runtime: movieDetails.runtime,
+      genres,
+      director: director?.name || null,
+      cast_list: cast.map(actor => actor.name),
       cached_at: new Date().toISOString()
     }
 
     // Update the movie in the database
     const { error: updateError } = await supabaseClient
       .from('movies')
-      .update(movieData)
+  .update(movieData)
       .eq('id', movieId)
 
     if (updateError) {

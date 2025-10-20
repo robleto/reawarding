@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
 import Image from "next/image";
-import { X, Eye, EyeOff, Film, Clock, Users, Clapperboard } from "lucide-react";
+import { X, Eye, EyeOff, Film, Clock, Users, Clapperboard, Maximize2 } from "lucide-react";
+import Link from "next/link";
+import { movieSlug } from "@/utils/slug";
 import { supabase } from "@/lib/supabaseBrowser";
 import RankingDropdown from "@/components/movie/RankingDropdown";
 import type { Movie } from "@/types/types";
@@ -53,8 +55,9 @@ export default function MovieDetailModal({
     if (isOpen) {
       setSeenIt(initialSeenIt);
       setRanking(initialRanking);
-  const poster = movie.cached_poster_url?.trim() || movie.poster_url;
-  setHasValidImage(Boolean(poster && poster.trim() !== '' && !poster.includes('placeholder')));
+      const raw = (movie.cached_poster_url?.trim() || movie.poster_url || '').trim();
+      const normalized = normalizeImageUrl(raw);
+      setHasValidImage(Boolean(normalized && !normalized.includes('placeholder')));
     }
   }, [isOpen, movie, initialRanking, initialSeenIt]);
 
@@ -162,12 +165,21 @@ export default function MovieDetailModal({
             </h2>
             <p className="text-gray-400 text-md">{movie.release_year}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 transition-colors rounded-full hover:bg-gray-700/50"
-          >
-            <X className="w-6 h-6 text-gray-400 hover:text-white" />
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/films/${movieSlug(movie.title, movie.id)}`}
+              className="p-2 transition-colors rounded-full hover:bg-gray-700/50"
+              title="Open full page"
+            >
+              <Maximize2 className="w-5 h-5 text-gray-300" />
+            </Link>
+            <button
+              onClick={onClose}
+              className="p-2 transition-colors rounded-full hover:bg-gray-700/50"
+            >
+              <X className="w-6 h-6 text-gray-400 hover:text-white" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -178,7 +190,7 @@ export default function MovieDetailModal({
               <div className="aspect-[2/3] relative bg-gray-800 rounded-lg overflow-hidden shadow-lg">
                 {hasValidImage ? (
                   <Image
-                    src={normalizeImageUrl(movie.cached_poster_url?.trim() || movie.poster_url)}
+                    src={normalizeImageUrl((movie.cached_poster_url?.trim() || movie.poster_url || '').trim())}
                     alt={movie.title}
                     fill
                     className="object-cover"
