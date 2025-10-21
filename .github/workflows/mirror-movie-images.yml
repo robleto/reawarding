@@ -16,6 +16,7 @@ on:
 
 jobs:
   run:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
