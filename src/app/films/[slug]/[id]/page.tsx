@@ -6,9 +6,7 @@ import { normalizeImageUrl } from "@/utils/imageUrl";
 
 export const dynamic = "force-dynamic";
 
-type Params = { params: { slug: string; id: string } };
-
-export default async function MovieDetailPage({ params }: Params) {
+export default async function MovieDetailPage({ params }: any) {
   const { slug, id } = params;
 
   const { data: movie, error } = await supabaseAdmin
