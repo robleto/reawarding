@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 
 interface RankingDropdownProps {
@@ -11,10 +11,30 @@ const RANKING_OPTIONS = Array.from({ length: 10 }, (_, i) => 10 - i);
 
 export default function RankingDropdown({ ranking, onChange, disabled = false }: RankingDropdownProps) {
   const [showDropdown, setShowDropdown] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const style = getRatingStyle(ranking ?? 0);
 
+  // Close on outside click or Escape
+  useEffect(() => {
+    if (!showDropdown) return;
+    const handleClick = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowDropdown(false);
+    };
+    document.addEventListener('mousedown', handleClick, true);
+    document.addEventListener('keydown', handleKey, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClick, true);
+      document.removeEventListener('keydown', handleKey, true);
+    };
+  }, [showDropdown]);
+
   return (
-    <div className="relative z-30">
+    <div className="relative z-30" ref={rootRef}>
       <button
         type="button"
         disabled={disabled}

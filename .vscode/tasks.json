@@ -36,6 +36,15 @@
 				"$tsc",
 				"$eslint-stylish"
 			]
+		},
+		{
+			"label": "Next.js build",
+			"type": "shell",
+			"command": "npm run build",
+			"problemMatcher": [
+				"$tsc",
+				"$eslint-stylish"
+			]
 		}
 	]
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { UserMenu } from "@/components/layout/UserMenu";
@@ -9,15 +10,21 @@ import NavSearch from "@/components/layout/NavSearch";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import { Logo } from "@/components/ui/Logo";
 import { useScrollBackground } from "@/hooks/useScrollBackground";
+import { useUser } from "@supabase/auth-helpers-react";
+import { useEnsureProfile } from "@/hooks/useEnsureProfile";
+import { normalizeImageUrl } from "@/utils/imageUrl";
 
 export default function HeaderNav() {
 	const pathname = usePathname();
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<"login" | "signup">("login");
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+	const [mobileUserOpen, setMobileUserOpen] = useState(false);
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 	const navRefs = useRef<(HTMLLIElement | null)[]>([]);
 	const hasScrolled = useScrollBackground();
+	const user = useUser();
+	const { profile } = useEnsureProfile(user);
 
 	const navItems = [
 		{ label: "Best Picture", href: "/awards", match: "/awards" },
@@ -118,15 +125,33 @@ export default function HeaderNav() {
 						</nav>
 
 						{/* Controls: Search + UserMenu */}
-						<div className="flex items-center gap-3 flex-shrink-0">
+						<div className="flex items-center gap-3 flex-shrink-0 ml-auto">
 							<div className="hidden md:block">
 								<NavSearch />
 							</div>
-							<UserMenu onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
+							<div className="hidden md:block">
+								<UserMenu onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
+							</div>
+
+							{/* Mobile avatar button opens a full-width panel */}
+							<button
+								className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+								aria-label="Open user menu"
+								onClick={() => { setMobileUserOpen(!mobileUserOpen); if (!mobileUserOpen) setMobileMenuOpen(false); }}
+							>
+								<Image
+									src={normalizeImageUrl(profile?.avatar_url || user?.user_metadata?.avatar_url) || 'https://placehold.co/40x40?text=%F0%9F%91%A4'}
+									alt="User Avatar"
+									width={28}
+									height={28}
+									className="rounded-full"
+									unoptimized
+								/>
+							</button>
 							{/* Mobile Menu Button */}
 							<button
-								onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-								className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+								onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (!mobileMenuOpen) setMobileUserOpen(false); }}
+								className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ml-auto"
 								aria-label="Toggle mobile menu"
 							>
 								{mobileMenuOpen ? (
@@ -168,8 +193,19 @@ export default function HeaderNav() {
 										</li>
 									);
 								})}
-								<li className="pt-2 border-t border-gray-200 dark:border-gray-700">
-									<UserMenu onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
+
+							</ul>
+						</nav>
+					</div>
+				)}
+
+				{/* Mobile User Panel */}
+				{mobileUserOpen && (
+					<div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-800/50 transition-colors duration-300">
+						<nav className="px-6 py-4">
+							<ul className="space-y-3">
+								<li>
+									<UserMenu variant="inline" onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
 								</li>
 							</ul>
 						</nav>

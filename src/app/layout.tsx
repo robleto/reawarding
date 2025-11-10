@@ -7,6 +7,7 @@ import HeaderNav from '@/components/layout/HeaderNav';
 import Footer from '@/components/layout/Footer';
 import { NetflixGlow } from '@/components/ui/NetflixGlow';
 import { Inter, Unbounded } from 'next/font/google';
+import MobileTabBar from '@/components/layout/MobileTabBar';
 
 const inter = Inter({ subsets: ['latin'] });
 const unbounded = Unbounded({ 
@@ -78,10 +79,15 @@ export default async function RootLayout({
         <Providers initialUser={user}>
           <div className="relative z-10 min-h-screen flex flex-col">
             <HeaderNav />
-            <main className="flex-1 pt-20 pb-8 px-10 sm:px-6 max-w-screen-xl mx-auto w-full">
+            <main className="flex-1 pt-20 pb-24 md:pb-8 px-10 sm:px-6 max-w-screen-xl mx-auto w-full">
               {children}
             </main>
-            <Footer />
+            {/* Mobile bottom navigation */}
+            <MobileTabBar />
+            {/* Hide footer on small screens to avoid overlap with tab bar */}
+            <div className="hidden md:block">
+              <Footer />
+            </div>
           </div>
         </Providers>
       </body>

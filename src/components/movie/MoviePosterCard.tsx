@@ -70,7 +70,7 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
 
   return (
     <div
-      className={`relative flex flex-col overflow-visible rounded-lg ${onClick ? 'cursor-pointer' : ''} light-glass dark:dark-glass border border-gray-300/40`}
+      className={`group relative flex flex-col overflow-visible rounded-lg ${onClick ? 'cursor-pointer' : ''} light-glass dark:dark-glass border border-gray-300/40`}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => { setIsHovered(false); setShowDropdown(false); }}
@@ -92,7 +92,8 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
       )}
       {/* Overlay on hover */}
       <div
-        className={`movie-poster-overlay absolute rounded-b-lg left-0 right-0 bottom-0 flex flex-col items-center justify-end w-full transition-opacity duration-200 ${isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'} z-20`}
+        className={`movie-poster-overlay absolute rounded-b-lg left-0 right-0 bottom-0 flex flex-col items-center justify-end w-full transition-opacity duration-200 z-20
+          opacity-100 sm:opacity-0 sm:group-hover:opacity-100`}
         style={{ minHeight: '25%', background: 'linear-gradient(to top, rgba(24,24,27,0.92) 80%, rgba(24,24,27,0.0) 100%)' }}
         onClick={e => e.stopPropagation()}
       >

@@ -123,10 +123,10 @@ export default function MovieFilters({
 
   return (
     <div className="mb-6">
-      {/* Main Row - Responsive, Search Expands, Controls Shift */}
-      <div className="flex items-center gap-4 mb-4">
-        {/* Search Bar: Compact, Expands on Focus/Input */}
-        <div className="relative transition-all duration-300" style={{ minWidth: 0 }}>
+      {/* Main Row - Responsive, stacks on mobile */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 sm:mb-4">
+        {/* Search Bar: Full width on mobile, compact on larger */}
+        <div className="relative transition-all duration-300 w-full sm:w-auto" style={{ minWidth: 0 }}>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
@@ -136,10 +136,8 @@ export default function MovieFilters({
               onChange={handleSearchChange}
               onFocus={() => setShowSuggestions(!!searchTerm)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-              className={`pl-10 pr-4 py-2.5 border border-gray-600/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/50 text-gray-300 placeholder-gray-400 transition-all duration-300
-                ${searchTerm.length > 0 || showSuggestions ? 'w-64 sm:w-80 md:w-96' : 'w-28 sm:w-36 md:w-44'}
-              `}
-              style={{ minWidth: '3.5rem', maxWidth: '24rem' }}
+              className={`w-full pl-10 pr-4 py-2.5 border border-gray-600/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/50 text-gray-300 placeholder-gray-400 transition-all duration-300 sm:w-72 md:w-96`}
+              style={{ minWidth: '0' }}
             />
           </div>
           {showSuggestions && suggestions.length > 0 && (
@@ -173,8 +171,8 @@ export default function MovieFilters({
           )}
         </div>
 
-        {/* Filters/Sort & View Toggle: Always flush left, shift as search expands */}
-  <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+        {/* Filters/Sort & View Toggle */}
+        <div className="flex items-center gap-2 flex-wrap mt-1 sm:mt-0 sm:flex-nowrap sm:ml-auto">
           {/* Filters Toggle */}
           <button
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -200,7 +198,7 @@ export default function MovieFilters({
           </button>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 ml-2">
+          <div className="flex items-center gap-1 sm:ml-2">
             <button
               type="button"
               className={`p-2 rounded-lg border transition-colors ${viewMode === "list" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "text-gray-400 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30"}`}

@@ -18,7 +18,8 @@ type StatItem = {
 export default function StatsSummary({ className = "" }: { className?: string }) {
   const supabase = useSupabaseClient();
   const user = useUser();
-  const guestStore = useGuestRankingStore();
+  // Subscribe to guest rankings so UI updates after persist rehydration
+  const guestRankingsMap = useGuestRankingStore((s) => s.rankings);
   const isGuest = !user;
   const currentYear = new Date().getFullYear();
   const [scope, setScope] = useState<"all" | "year">("all");
@@ -35,12 +36,12 @@ export default function StatsSummary({ className = "" }: { className?: string })
 
   // Compute guest stats from local store
   const guestStatsAll = useMemo(() => {
-    const all = guestStore.getAllRankings();
+    const all = Object.values(guestRankingsMap || {});
     const rated = all.filter((r) => typeof r.ranking === "number");
     const seen = all.filter((r) => r.seenIt);
     const avg = rated.length > 0 ? rated.reduce((sum, r) => sum + (r.ranking || 0), 0) / rated.length : null;
     return { ratedCount: rated.length, avgRating: avg, seenCount: seen.length, listsCount: 0, awardsCount: 0 };
-  }, [guestStore]);
+  }, [guestRankingsMap]);
 
   // For guests: year-scoped stats require knowing which movie IDs are from current year
   const computeGuestYearStats = async () => {
@@ -49,8 +50,8 @@ export default function StatsSummary({ className = "" }: { className?: string })
       .select("id", { count: "exact" })
       .eq("release_year", currentYear);
     const yearIds = new Set((moviesYear || []).map((m: any) => m.id));
-    const all = guestStore.getAllRankings();
-    const yearOnly = all.filter((r) => yearIds.has(r.movieId));
+    const all = Object.values(guestRankingsMap || {});
+    const yearOnly = all.filter((r: any) => yearIds.has(r.movieId));
     const rated = yearOnly.filter((r) => typeof r.ranking === "number");
     const seen = yearOnly.filter((r) => r.seenIt);
     const avg = rated.length > 0 ? rated.reduce((sum, r) => sum + (r.ranking || 0), 0) / rated.length : null;
@@ -154,7 +155,7 @@ export default function StatsSummary({ className = "" }: { className?: string })
     return () => {
       mounted = false;
     };
-  }, [supabase, user, guestStatsAll, scope, currentYear]);
+  }, [supabase, user, guestStatsAll, scope, currentYear, guestRankingsMap]);
 
   const items: StatItem[] = [
     {
@@ -194,7 +195,7 @@ export default function StatsSummary({ className = "" }: { className?: string })
     <section className={`max-w-screen-xl mx-auto ${className}`}>
       {/* Scope toggle */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Your Stats</h3>
+        <h3 className="text-base sm:text-sm font-semibold text-gray-800 dark:text-gray-200">Your Stats</h3>
         <div className="inline-flex rounded-lg overflow-hidden border border-gray-300/60 dark:border-gray-600/60">
           <button
             className={`px-3 py-1 text-xs font-medium transition-colors ${scope === "all" ? "bg-blue-600 text-white" : "bg-transparent text-gray-700 dark:text-gray-300"}`}
@@ -211,10 +212,10 @@ export default function StatsSummary({ className = "" }: { className?: string })
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {loading ? (
-          <div className="col-span-2 sm:col-span-3 lg:col-span-5">
-            <div className="light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 p-4">
+          <div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-5">
+            <div className="light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 p-3 sm:p-4">
               <Loader message="Loading your stats..." />
             </div>
           </div>
@@ -231,19 +232,19 @@ export default function StatsSummary({ className = "" }: { className?: string })
             const Card = (
               <div
                 key={item.key}
-                className={`light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 p-4 flex items-center justify-between ${href ? "hover:shadow-md transition-shadow" : ""}`}
+                className={`light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 p-3 sm:p-4 flex items-center justify-between ${href ? "hover:shadow-md transition-shadow" : ""}`}
               >
                 <div>
-                  <div className="text-xs uppercase tracking-wide text-gray-600 dark:text-gray-400">{item.label}</div>
-                  <div className="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{item.value}</div>
+                  <div className="text-[11px] sm:text-xs uppercase tracking-wide text-gray-600 dark:text-gray-400">{item.label}</div>
+                  <div className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">{item.value}</div>
                   {item.hint && (
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    <div className="mt-1 hidden sm:flex text-xs text-gray-500 dark:text-gray-400 items-center gap-1">
                       <UserPlus className="w-3.5 h-3.5" />
                       {item.hint}
                     </div>
                   )}
                 </div>
-                <div className="shrink-0 text-[#ba7a00] dark:text-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/10 p-2 rounded-lg">
+                <div className="shrink-0 text-[#ba7a00] dark:text-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/10 p-1.5 sm:p-2 rounded-lg">
                   {item.icon}
                 </div>
               </div>

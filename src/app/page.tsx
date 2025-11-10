@@ -8,8 +8,9 @@ import {
 	sortByRecent,
 } from "@/utils/sharedMovieUtils";
 import { getGuestData } from "@/utils/guestMode";
-import YearSection from "@/components/award/YearSection";
+import EditableYearSection from "@/components/award/EditableYearSection";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
+import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import HomeEmptyState from "@/components/home/HomeEmptyState";
@@ -25,6 +26,7 @@ export default function HomePage() {
 	const { movies, loading, user, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
+	const [selectedMovie, setSelectedMovie] = useState<BaseMovie | null>(null);
 	const router = useRouter();
 	const supabase = useSupabaseClient();
 
@@ -152,23 +154,26 @@ export default function HomePage() {
 				<section id="movies-section" className="mt-16">
 					<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">For Your Consideration</h2>
 					{unseen.length > 0 ? (
-						<div className="flex gap-4 pb-4 overflow-x-auto">
+						<div className="-mx-10 sm:-mx-6 px-10 sm:px-6">
+							<div className="flex gap-4 pb-4 overflow-x-auto snap-x snap-mandatory pr-8 sm:pr-10">
 							{unseen.map((movie, idx) => {
 								const r = movie.rankings?.[0];
 								return (
-									<div key={movie.id} className="flex-shrink-0 w-[160px]">
+										<div key={movie.id} className="flex-shrink-0 w-[140px] sm:w-[160px] snap-start">
 										<MoviePosterCard
 											movie={movie}
 											currentUserId={userId}
 											ranking={r?.ranking ?? null}
 											seenIt={r?.seen_it ?? false}
 											onUpdate={updateMovieRanking}
+											onClick={() => setSelectedMovie(movie as BaseMovie)}
 											// Priority-load the first row's first few posters
 											// Note: MoviePosterCard doesn't accept priority; handled internally by Next for top-of-viewport
 										/>
 									</div>
 								);
 							})}
+							</div>
 						</div>
 					) : (
 						<div className="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -195,7 +200,7 @@ export default function HomePage() {
 	}
 
 	return (
-		<div className="px-4 py-8">
+		<div className="py-8">
 			{/* Unified Banner System for Guests */}
 			{isGuest && (
 				<UnifiedBanner 
@@ -221,21 +226,24 @@ export default function HomePage() {
 			<section id="movies-section">
 				<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">For Your Consideration</h2>
 				{unseen.length > 0 ? (
-					<div className="flex gap-4 pb-4 overflow-x-auto">
+					<div className="-mx-10 sm:-mx-6 px-10 sm:px-6">
+						<div className="flex gap-4 pb-4 overflow-x-auto snap-x snap-mandatory pr-8 sm:pr-10">
 						{unseen.map((movie) => {
 							const r = movie.rankings?.[0];
 							return (
-								<div key={movie.id} className="flex-shrink-0 w-[160px]">
-									<MoviePosterCard
+									<div key={movie.id} className="flex-shrink-0 w-[140px] sm:w-[160px] snap-start">
+										<MoviePosterCard
 										movie={movie}
 										currentUserId={userId}
 										ranking={r?.ranking ?? null}
 										seenIt={r?.seen_it ?? false}
-										onUpdate={updateMovieRanking}
+											onUpdate={updateMovieRanking}
+											onClick={() => setSelectedMovie(movie as BaseMovie)}
 									/>
 								</div>
 							);
 						})}
+						</div>
 					</div>
 				) : (
 					<div className="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -245,70 +253,28 @@ export default function HomePage() {
 				)}
 			</section>
 
-			{/* Current Best Picture */}
-			<section className="px-6 py-8">
-				<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
-					🏆 Best Picture of {currentYear}
-				</h2>
-				<YearSection
-					year={String(currentYear)}
-					movies={movies
-						.filter((movie) => {
-							const movieYear =
-								movie.release_year ||
-								(movie.release_year &&
-									new Date(movie.release_year).getFullYear());
-							return movieYear === currentYear;
-						})
-						.map((movie) => ({
-							id: String(movie.id),
-							title: movie.title,
-							thumb_url: movie.thumb_url,
-							cached_thumb_url: movie.cached_thumb_url,
-							poster_url: movie.poster_url,
-							cached_poster_url: movie.cached_poster_url,
-							ranking: movie.rankings?.[0]?.ranking ?? 0,
-						}))}
-			winner={(() => {
-				const currentYearMovies = movies.filter(
-					(movie: BaseMovie) => {
-						const movieYear =
-							movie.release_year ||
-							(movie.release_year &&
-								new Date(
-									movie.release_year
-								).getFullYear());
-						return movieYear === currentYear;
-					}
-				);
+			{/* Current Best Picture (reuse the Awards layout for visual parity) */}
+			<section className="px-0 md:px-6 py-4 md:py-8">
+				{(() => {
+					const currentYearMovies = movies.filter((m) => {
+						const y = m.release_year || (m.release_year && new Date(m.release_year).getFullYear());
+						return y === currentYear;
+					});
+					const sorted = [...currentYearMovies].sort(
+						(a, b) => (b.rankings?.[0]?.ranking ?? 0) - (a.rankings?.[0]?.ranking ?? 0)
+					);
+					const defaultNominees = sorted.filter(m => (m.rankings?.[0]?.ranking ?? 0) >= 7).slice(0, 10);
+					const defaultWinner = defaultNominees.length > 0 ? defaultNominees[0] : sorted[0] ?? null;
 
-				const topMovie = currentYearMovies.reduce(
-					(topMovie, currentMovie) => {
-						const currentRanking =
-							currentMovie.rankings?.[0]?.ranking ?? 0;
-						const topRanking =
-							topMovie?.rankings?.[0]?.ranking ?? 0;
-						return currentRanking > topRanking
-							? currentMovie
-							: topMovie;
-					},
-					null as BaseMovie | null
-				);
-
-				return topMovie
-					? {
-							id: String(topMovie.id),
-							title: topMovie.title,
-							thumb_url: topMovie.thumb_url,
-							cached_thumb_url: topMovie.cached_thumb_url,
-							poster_url: topMovie.poster_url,
-							cached_poster_url: topMovie.cached_poster_url,
-							ranking:
-								topMovie.rankings?.[0]?.ranking ?? 0,
-					  }
-					: null;
-			})()}
-				/>
+					return (
+						<EditableYearSection
+							year={String(currentYear)}
+							movies={defaultNominees}
+							winner={defaultWinner || undefined}
+							allMoviesForYear={sorted}
+						/>
+					);
+				})()}
 			</section>
 
 		   {/* Public Lists Horizontal Table */}
@@ -326,6 +292,23 @@ export default function HomePage() {
 			   initialMode={authMode}
 			   onAuthSuccess={handleAuthSuccess}
 		   />
+		{/* Movie Detail Modal for mobile/desktop */}
+		{selectedMovie && (
+			<MovieDetailModal
+				movie={selectedMovie as any}
+				isOpen={!!selectedMovie}
+				onClose={() => setSelectedMovie(null)}
+				onUpdate={(movieId, newRanking, newSeenIt) => {
+					updateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
+				}}
+				initialRanking={
+					(selectedMovie.rankings && selectedMovie.rankings[0]?.ranking) ?? null
+				}
+				initialSeenIt={
+					(selectedMovie.rankings && selectedMovie.rankings[0]?.seen_it) ?? false
+				}
+			/>
+		)}
 		</div>
 	);
 }

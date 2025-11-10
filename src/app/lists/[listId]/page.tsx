@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/Button";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import {
@@ -29,7 +29,7 @@ import DraggableMovieCard from "@/components/list/DraggableMovieCard";
 import AddMovieModal from "@/components/list/AddMovieModal";
 import { useViewMode, useMovieFilters, SORT_OPTIONS, GROUP_OPTIONS, type SortKey, type GroupKey, type SortOrder } from "@/utils/sharedMovieUtils";
 import MovieFilters from "@/components/filters/MovieFilters";
-import { Edit2, Plus, Globe, Lock } from "lucide-react";
+import { Edit2, Plus, Globe, Lock, MoreVertical, ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +68,27 @@ export default function ListDetailPage() {
   const [isEditingDetails, setIsEditingDetails] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [showMobileManage, setShowMobileManage] = useState(false);
+  const manageMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Close mobile manage menu on outside click or Escape
+  useEffect(() => {
+    if (!showMobileManage) return;
+    const handleClick = (e: MouseEvent) => {
+      if (manageMenuRef.current && !manageMenuRef.current.contains(e.target as Node)) {
+        setShowMobileManage(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowMobileManage(false);
+    };
+    document.addEventListener('mousedown', handleClick, true);
+    document.addEventListener('keydown', handleKey, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClick, true);
+      document.removeEventListener('keydown', handleKey, true);
+    };
+  }, [showMobileManage]);
   
   // Filter state for the list
   const [sortBy, setSortBy] = useState<SortKey>("ranking");
@@ -569,35 +590,117 @@ export default function ListDetailPage() {
   }
 
   return (
-    <div className="max-w-screen-xl px-6 py-10 mx-auto">
+    <div className="max-w-screen-xl py-6 pb-28 md:py-10 md:pb-10 mx-auto">
       {/* Header - Unbounded, no background */}
-      <div className="relative w-full mb-8">
+      <div className="relative w-full mb-6 md:mb-8">
         {/* Back button and badge - top left */}
-        <div className="flex items-center gap-4 mb-4">
+        <div className="relative flex items-center gap-3 mb-3 md:mb-4">
           <button
             onClick={() => router.push("/lists")}
-            className="font-medium text-gray-300 hover:text-white"
+            className="flex items-center gap-2 text-sm md:text-base font-medium text-gray-300 hover:text-white"
           >
-            ← Back to Lists
+            <ArrowLeft className="w-5 h-5" />
+            <span className="hidden sm:inline">Back to Lists</span>
           </button>
-          <div className="flex items-center gap-2">
-            {list.is_public ? (
-              <div className="flex items-center px-3 py-1 text-sm font-medium text-green-400 rounded-full bg-green-900/30">
-                <Globe className="w-4 h-4 mr-2" />
-                Public
+          {/* Visibility badge - clickable toggle on mobile for owners */}
+          {isOwner ? (
+            <>
+              {/* Mobile: clickable to toggle */}
+              <button
+                onClick={handleToggleVisibility}
+                className="sm:hidden flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full border border-transparent bg-gray-800/30 text-gray-300"
+                aria-label={list.is_public ? "Make Private" : "Make Public"}
+                title={list.is_public ? "Make Private" : "Make Public"}
+              >
+                {list.is_public ? (
+                  <>
+                    <Globe className="w-3 h-3 mr-1.5" />
+                    Public
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-3 h-3 mr-1.5" />
+                    Private
+                  </>
+                )}
+              </button>
+              {/* Desktop/Tablet: non-clickable badge */}
+              <div className="hidden sm:flex items-center gap-2">
+                {list.is_public ? (
+                  <div className="flex items-center px-2.5 py-0.5 text-xs md:text-sm font-medium text-green-400 rounded-full bg-green-900/30">
+                    <Globe className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
+                    Public
+                  </div>
+                ) : (
+                  <div className="flex items-center px-2 py-1 text-xs font-medium text-gray-400 rounded-full bg-gray-800/30">
+                    <Lock className="w-3 h-3 mr-1" />
+                    Private
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="flex items-center px-2 py-1 text-xs font-medium text-gray-400 rounded-full bg-gray-800/30">
-                <Lock className="w-3 h-3 mr-1" />
-                Private
-              </div>
-            )}
-          </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              {list.is_public ? (
+                <div className="flex items-center px-2.5 py-0.5 text-xs md:text-sm font-medium text-green-400 rounded-full bg-green-900/30">
+                  <Globe className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
+                  Public
+                </div>
+              ) : (
+                <div className="flex items-center px-2 py-1 text-xs font-medium text-gray-400 rounded-full bg-gray-800/30">
+                  <Lock className="w-3 h-3 mr-1" />
+                  Private
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Mobile manage menu trigger */}
+          {isOwner && (
+            <div className="ml-auto sm:hidden relative" ref={manageMenuRef}>
+              <button
+                onClick={() => setShowMobileManage((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={showMobileManage}
+                className="p-2 rounded-lg border border-gray-600/50 bg-gray-800/30 text-gray-300 hover:bg-gray-800/50"
+                title="Manage list"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+              {showMobileManage && (
+                <div className="absolute right-0 top-full mt-2 w-44 z-50 rounded-lg border border-gray-700/50 bg-gray-900 shadow-lg p-1">
+                  <button
+                    onClick={() => { setIsEditing((v) => !v); setShowMobileManage(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-gray-800 text-gray-200"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    {isEditing ? "Done Editing" : "Edit Order"}
+                  </button>
+                  <button
+                    onClick={() => { setIsEditingDetails(true); setShowMobileManage(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-gray-800 text-gray-200"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit Details
+                  </button>
+                  <button
+                    onClick={() => { handleToggleVisibility(); setShowMobileManage(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-gray-800 text-gray-200"
+                  >
+                    {list.is_public ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+                    {list.is_public ? "Make Private" : "Make Public"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Controls - positioned absolute top right */}
         {isOwner && (
-          <div className="absolute top-0 right-0 flex items-center gap-2">
+          <>
+          {/* Desktop/Tablet */}
+          <div className="hidden sm:flex absolute top-0 right-0 items-center gap-2">
             <button
               onClick={() => setIsAddModalOpen(true)}
               className="flex items-center gap-2 px-3 py-2 text-gray-400 transition-colors border rounded-lg border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30"
@@ -626,6 +729,17 @@ export default function ListDetailPage() {
               <span className="text-sm">{list.is_public ? "Private" : "Make Public"}</span>
             </button>
           </div>
+          {/* Mobile - simplified actions under header */}
+          <div className="sm:hidden flex flex-wrap gap-2 mb-3">
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 text-gray-300 transition-colors border rounded-lg border-gray-600/50 bg-gray-800/30 hover:bg-gray-800/50 text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Add
+            </button>
+          </div>
+          </>
         )}
 
         {/* Title and description - full width, unbounded */}
@@ -635,7 +749,7 @@ export default function ListDetailPage() {
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              className="w-full text-4xl tracking-wide text-white uppercase bg-transparent border-b-2 border-blue-500 lg:text-4xl font-unbounded focus:outline-none"
+              className="w-full text-3xl md:text-4xl tracking-wide text-white uppercase bg-transparent border-b-2 border-blue-500 font-unbounded focus:outline-none"
               placeholder="List name"
             />
             <textarea
@@ -666,19 +780,19 @@ export default function ListDetailPage() {
           </div>
         ) : (
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-4xl tracking-wide text-white uppercase lg:text-4xl font-unbounded">{list.name}</h1>
+            <div className="flex items-start md:items-center gap-2 md:gap-3 mb-2">
+              <h1 className="text-3xl md:text-4xl tracking-wide text-white uppercase font-unbounded break-words leading-tight md:leading-snug">{list.name}</h1>
               {isOwner && (
                 <button
                   onClick={() => setIsEditingDetails(true)}
                   className="p-2 text-gray-400 transition-colors hover:text-gray-300"
                 >
-                  <Edit2 className="w-6 h-6" />
+                  <Edit2 className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
               )}
             </div>
             {list.description && (
-              <p className="mb-2 text-lg text-gray-300">{list.description}</p>
+              <p className="mb-2 text-base md:text-lg text-gray-300">{list.description}</p>
             )}
             <p className="text-sm text-gray-400">
               {listItems.length} {listItems.length === 1 ? "movie" : "movies"}

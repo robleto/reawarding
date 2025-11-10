@@ -49,9 +49,9 @@ export default function YearSection({
 
 	return (
 		<section className="w-full max-w-screen-xl px-6 py-0 mx-auto my-0 font-sans">
-			<div className="relative flex flex-col gap-6 md:flex-row md:gap-8">
+			<div className="relative flex flex-col gap-3 md:flex-row md:gap-8">
 				{/* Timeline and year label */}
-				<h2 className="md:absolute block top-0 md:top-[125px] left-0 text-3xl font-bold text-[#A0A0A0] dark:text-[#9CA3AF] mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-widest">
+				<h2 className="hidden md:block md:absolute top-0 md:top-[125px] left-0 text-3xl font-bold text-[#A0A0A0] dark:text-[#9CA3AF] mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-widest">
 					{year}
 				</h2>
 				<div className="top-0 bottom-0 flex-col items-center hidden md:absolute md:flex left-4">
@@ -63,12 +63,12 @@ export default function YearSection({
 				<div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
 
 				{/* Content block */}
-				<div className="flex flex-col md:flex-row w-full rounded-xl shadow-md border border-[#d6d6d3] dark:border-gray-600/50 p-6 mb-24 gap-12 transition-all duration-300 hover:shadow-lg light-glass dark:dark-glass">
+				<div className="flex flex-col md:flex-row w-full rounded-xl shadow-md border border-[#d6d6d3] dark:border-gray-600/50 p-3 md:p-6 mb-8 md:mb-24 gap-4 md:gap-12 transition-all duration-300 hover:shadow-lg light-glass dark:dark-glass">
 					{/* Winner */}
-					<div className="w-full md:w-1/3">
-						<div className="inline-flex items-center justify-center gap-2 mb-4">
+					<div className="w-full md:w-1/3 max-w-[300px] mx-auto">
+						<div className="inline-flex items-center justify-center gap-2 mb-2 md:mb-4">
 							<span className="text-xl">🏆</span>
-							<h3 className="text-2xl font-bold text-[#cb8601] dark:text-yellow-400 font-unbounded">
+							<h3 className="text-xl md:text-2xl font-bold text-[#cb8601] dark:text-yellow-400 font-unbounded">
 								Winner
 							</h3>
 						</div>
@@ -88,17 +88,17 @@ export default function YearSection({
 					<div className="hidden md:block w-px bg-[#d6d6d3] dark:bg-gray-600/50" />
 
 					{/* Nominees */}
-					<div className="w-full md:w-2/3">
-						<div className="flex items-center gap-2 mb-4">
+						<div className="w-full md:w-2/3">
+							<div className="flex items-center gap-2 mb-2 md:mb-4">
 							<span className="text-xl">✉️</span>
 
-							<h3 className="text-2xl font-bold text-[#7e7e7e] dark:text-gray-200">
+							<h3 className="text-xl md:text-2xl font-bold text-[#7e7e7e] dark:text-gray-200">
 
 								Nominees
 							</h3>
 						</div>
 
-						<div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+							<div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
 							{nomineeList.map((movie) => (
 								<MovieCard
 									key={movie.id}
