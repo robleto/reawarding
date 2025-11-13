@@ -111,6 +111,12 @@ async function importTmdbMovie(tmdbId, supabaseUrl, supabaseKey, tmdbApiKey, fan
   }
 }
 Deno.serve(async (req)=>{
+  // DEPRECATED: Trending scraper retired to reduce surface area; freshness now handled by tmdb-fresh-movies.
+  return new Response(JSON.stringify({ retired: true, use: 'tmdb-fresh-movies', version: VERSION }), {
+    status: 410,
+    headers: { 'Content-Type': 'application/json', 'X-Retired': 'tmdb-trending-scraper', 'X-Version': VERSION }
+  });
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
   const cronSecret = Deno.env.get("CRON_SECRET") || "";
   const isLocalEnv = supabaseUrl.includes("localhost") || supabaseUrl.includes("127.0.0.1");

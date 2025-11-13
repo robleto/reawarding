@@ -31,7 +31,7 @@ export default function SelectableMovieItem({
 }: SelectableMovieItemProps) {
   const ranking = movie.rankings?.[0]?.ranking ?? 0;
   const ratingStyle = getRatingStyle(ranking);
-  const thumbSrcRaw = movie.cached_thumb_url?.trim() || movie.thumb_url;
+  const thumbSrcRaw = movie.thumb_url || movie.poster_url;
   const hasValidImage = thumbSrcRaw && thumbSrcRaw.trim() !== '' && !thumbSrcRaw.includes('placeholder');
 
   return (

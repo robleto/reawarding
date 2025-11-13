@@ -47,17 +47,45 @@ CREATE UNIQUE INDEX IF NOT EXISTS rankings_user_movie_unique ON rankings(user_id
 ALTER TABLE rankings ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for rankings
-CREATE POLICY "Users can view their own rankings" ON rankings
-    FOR SELECT USING (user_id = auth.uid());
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'rankings' AND policyname = 'Users can view their own rankings'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can view their own rankings" ON rankings
+                FOR SELECT USING (user_id = auth.uid())$$;
+    END IF;
+END $$;
 
-CREATE POLICY "Users can create their own rankings" ON rankings
-    FOR INSERT WITH CHECK (user_id = auth.uid());
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'rankings' AND policyname = 'Users can create their own rankings'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can create their own rankings" ON rankings
+                FOR INSERT WITH CHECK (user_id = auth.uid())$$;
+    END IF;
+END $$;
 
-CREATE POLICY "Users can update their own rankings" ON rankings
-    FOR UPDATE USING (user_id = auth.uid());
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'rankings' AND policyname = 'Users can update their own rankings'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can update their own rankings" ON rankings
+                FOR UPDATE USING (user_id = auth.uid())$$;
+    END IF;
+END $$;
 
-CREATE POLICY "Users can delete their own rankings" ON rankings
-    FOR DELETE USING (user_id = auth.uid());
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'rankings' AND policyname = 'Users can delete their own rankings'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can delete their own rankings" ON rankings
+                FOR DELETE USING (user_id = auth.uid())$$;
+    END IF;
+END $$;
 
 -- Create profiles table
 CREATE TABLE IF NOT EXISTS profiles (
@@ -74,11 +102,25 @@ CREATE TABLE IF NOT EXISTS profiles (
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for profiles
-CREATE POLICY "Users can view all profiles" ON profiles
-    FOR SELECT USING (true);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'profiles' AND policyname = 'Users can view all profiles'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can view all profiles" ON profiles
+                FOR SELECT USING (true)$$;
+    END IF;
+END $$;
 
-CREATE POLICY "Users can update their own profile" ON profiles
-    FOR UPDATE USING (id = auth.uid());
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'profiles' AND policyname = 'Users can update their own profile'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can update their own profile" ON profiles
+                FOR UPDATE USING (id = auth.uid())$$;
+    END IF;
+END $$;
 
 -- Create movie_lists table
 CREATE TABLE IF NOT EXISTS movie_lists (
@@ -99,19 +141,47 @@ CREATE INDEX IF NOT EXISTS movie_lists_is_public_idx ON movie_lists(is_public);
 ALTER TABLE movie_lists ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for movie_lists
-CREATE POLICY "Users can view their own lists and public lists" ON movie_lists
-    FOR SELECT USING (
-        user_id = auth.uid() OR is_public = TRUE
-    );
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'movie_lists' AND policyname = 'Users can view their own lists and public lists'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can view their own lists and public lists" ON movie_lists
+                FOR SELECT USING (
+                        user_id = auth.uid() OR is_public = TRUE
+                )$$;
+    END IF;
+END $$;
 
-CREATE POLICY "Users can create their own lists" ON movie_lists
-    FOR INSERT WITH CHECK (user_id = auth.uid());
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'movie_lists' AND policyname = 'Users can create their own lists'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can create their own lists" ON movie_lists
+                FOR INSERT WITH CHECK (user_id = auth.uid())$$;
+    END IF;
+END $$;
 
-CREATE POLICY "Users can update their own lists" ON movie_lists
-    FOR UPDATE USING (user_id = auth.uid());
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'movie_lists' AND policyname = 'Users can update their own lists'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can update their own lists" ON movie_lists
+                FOR UPDATE USING (user_id = auth.uid())$$;
+    END IF;
+END $$;
 
-CREATE POLICY "Users can delete their own lists" ON movie_lists
-    FOR DELETE USING (user_id = auth.uid());
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'movie_lists' AND policyname = 'Users can delete their own lists'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can delete their own lists" ON movie_lists
+                FOR DELETE USING (user_id = auth.uid())$$;
+    END IF;
+END $$;
 
 -- Create movie_list_items table
 CREATE TABLE IF NOT EXISTS movie_list_items (
@@ -137,41 +207,69 @@ CREATE UNIQUE INDEX IF NOT EXISTS movie_list_items_list_movie_unique
 ALTER TABLE movie_list_items ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for movie_list_items
-CREATE POLICY "Users can view items in their own lists and public lists" ON movie_list_items
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM movie_lists ml 
-            WHERE ml.id = list_id 
-            AND (ml.user_id = auth.uid() OR ml.is_public = TRUE)
-        )
-    );
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'movie_list_items' AND policyname = 'Users can view items in their own lists and public lists'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can view items in their own lists and public lists" ON movie_list_items
+                FOR SELECT USING (
+                        EXISTS (
+                                SELECT 1 FROM movie_lists ml 
+                                WHERE ml.id = list_id 
+                                AND (ml.user_id = auth.uid() OR ml.is_public = TRUE)
+                        )
+                )$$;
+    END IF;
+END $$;
 
-CREATE POLICY "Users can create items in their own lists" ON movie_list_items
-    FOR INSERT WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM movie_lists ml 
-            WHERE ml.id = list_id 
-            AND ml.user_id = auth.uid()
-        )
-    );
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'movie_list_items' AND policyname = 'Users can create items in their own lists'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can create items in their own lists" ON movie_list_items
+                FOR INSERT WITH CHECK (
+                        EXISTS (
+                                SELECT 1 FROM movie_lists ml 
+                                WHERE ml.id = list_id 
+                                AND ml.user_id = auth.uid()
+                        )
+                )$$;
+    END IF;
+END $$;
 
-CREATE POLICY "Users can update items in their own lists" ON movie_list_items
-    FOR UPDATE USING (
-        EXISTS (
-            SELECT 1 FROM movie_lists ml 
-            WHERE ml.id = list_id 
-            AND ml.user_id = auth.uid()
-        )
-    );
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'movie_list_items' AND policyname = 'Users can update items in their own lists'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can update items in their own lists" ON movie_list_items
+                FOR UPDATE USING (
+                        EXISTS (
+                                SELECT 1 FROM movie_lists ml 
+                                WHERE ml.id = list_id 
+                                AND ml.user_id = auth.uid()
+                        )
+                )$$;
+    END IF;
+END $$;
 
-CREATE POLICY "Users can delete items in their own lists" ON movie_list_items
-    FOR DELETE USING (
-        EXISTS (
-            SELECT 1 FROM movie_lists ml 
-            WHERE ml.id = list_id 
-            AND ml.user_id = auth.uid()
-        )
-    );
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'movie_list_items' AND policyname = 'Users can delete items in their own lists'
+    ) THEN
+        EXECUTE $$CREATE POLICY "Users can delete items in their own lists" ON movie_list_items
+                FOR DELETE USING (
+                        EXISTS (
+                                SELECT 1 FROM movie_lists ml 
+                                WHERE ml.id = list_id 
+                                AND ml.user_id = auth.uid()
+                        )
+                )$$;
+    END IF;
+END $$;
 
 -- Create a function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

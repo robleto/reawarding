@@ -1,3 +1,4 @@
+-- (Renamed from 20251015T0420_cron_wrapper_and_schedule.sql to remove time component per migration naming rules)
 -- SECURITY DEFINER wrapper to call Edge Function with secret
 create schema if not exists admin;
 

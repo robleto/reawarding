@@ -50,7 +50,7 @@ export default function DraggableNomineeCard({
 
   const ranking = movie.rankings?.[0]?.ranking ?? 0;
   const ratingStyle = getRatingStyle(ranking);
-  const thumbSrc = movie.cached_thumb_url?.trim() || movie.thumb_url;
+  const thumbSrc = movie.thumb_url || movie.poster_url;
   const hasValidImage = thumbSrc && thumbSrc.trim() !== '' && !thumbSrc.includes('placeholder');
 
   return (

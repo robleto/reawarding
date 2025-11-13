@@ -371,9 +371,11 @@ entrypoint = "./functions/enrich-movie-details/index.ts"
 enabled = true
 verify_jwt = true
 import_map = "./functions/update-movie-batch/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
 entrypoint = "./functions/update-movie-batch/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/update-movie-batch/*.html" ]
+
+# Fresh movies discover/import function (new canonical ingestion)
+[functions.tmdb-fresh-movies]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/tmdb-fresh-movies/index.ts"

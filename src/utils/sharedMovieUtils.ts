@@ -112,6 +112,158 @@ export function sortByRecent(movies: Movie[]) {
 	});
 }
 
+/**
+ * Smart sorting for "For Your Consideration" - balances three priorities:
+ * 1. OSCAR CONTENDERS: 2024-2025 releases with critical acclaim (70+ scores)
+ * 2. FRESH + OSCAR-WORTHY: Recently added (last 7 days) AND Oscar-eligible years
+ * 3. CULTURAL RELEVANCE: Popular/blockbuster films (1000+ votes or 100+ popularity)
+ * 
+ * Key insight: Prioritize Oscar-eligible YEARS first, then use recency/popularity as tiebreakers
+ * This prevents obscure recent imports from dominating over 2024 Oscar contenders
+ */
+export function sortForYourConsideration(movies: Movie[]) {
+	const now = new Date();
+	const currentYear = now.getFullYear(); // 2025
+	const awardYear = currentYear - 1; // 2024 for 2025 Oscars
+	const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+	
+	// Helper: Calculate quality score with fallbacks
+	const getQualityScore = (movie: Movie): number => {
+		// If we have both professional scores, use them
+		if (movie.imdb_rating && movie.metacritic_score) {
+			return (movie.imdb_rating * 10 + movie.metacritic_score) / 2;
+		}
+		// If we have IMDb, weight it higher
+		if (movie.imdb_rating) {
+			return movie.imdb_rating * 10;
+		}
+		// If we have Metacritic only
+		if (movie.metacritic_score) {
+			return movie.metacritic_score;
+		}
+		// Fallback to TMDB vote_average (scale 0-10, convert to 0-100)
+		if ((movie as any).vote_average) {
+			return (movie as any).vote_average * 10;
+		}
+		// No ratings at all - return neutral score
+		return 50;
+	};
+	
+	// Helper: Check if film is "acclaimed" (Oscar-worthy quality)
+	const isAcclaimed = (movie: Movie): boolean => {
+		const score = getQualityScore(movie);
+		return score >= 70; // 7.0 IMDb or 70 Metacritic equivalent
+	};
+	
+	// Helper: Check if film has professional critical ratings (not just TMDB)
+	const hasCriticalRatings = (movie: Movie): boolean => {
+		return !!(movie.imdb_rating || movie.metacritic_score);
+	};
+	
+	// Helper: Check if film is "popular" (buzzworthy blockbuster)
+	const isPopular = (movie: Movie): boolean => {
+		// Use stored TMDB data from database
+		const voteCount = (movie as any).vote_count ?? 0;
+		const popularity = (movie as any).popularity ?? 0;
+		// Thresholds: 1000+ votes = widely seen, 100+ popularity = TMDB trending
+		return voteCount >= 1000 || popularity >= 100;
+	};
+	
+	return [...movies].sort((a, b) => {
+		const aYear = a.release_year ?? 0;
+		const bYear = b.release_year ?? 0;
+		const aCreated = a.created_at ? new Date(a.created_at) : new Date(0);
+		const bCreated = b.created_at ? new Date(b.created_at) : new Date(0);
+		
+		// 1. OSCAR-ELIGIBLE YEARS FIRST (2024-2025) - this is the primary filter
+		const aIsEligible = aYear === awardYear || aYear === currentYear;
+		const bIsEligible = bYear === awardYear || bYear === currentYear;
+		
+		if (aIsEligible !== bIsEligible) {
+			return aIsEligible ? -1 : 1;
+		}
+		
+		// 2. Within eligible years, prioritize films with critical ratings (IMDb/Metacritic)
+		// This ensures Oscar contenders rise above unreleased/unrated films
+		if (aIsEligible && bIsEligible) {
+			const aHasCritical = hasCriticalRatings(a);
+			const bHasCritical = hasCriticalRatings(b);
+			
+			if (aHasCritical !== bHasCritical) {
+				return aHasCritical ? -1 : 1;
+			}
+			
+			// 3. Among films with critical ratings, prioritize acclaimed
+			if (aHasCritical && bHasCritical) {
+				const aAcclaimed = isAcclaimed(a);
+				const bAcclaimed = isAcclaimed(b);
+				
+				if (aAcclaimed !== bAcclaimed) {
+					return aAcclaimed ? -1 : 1;
+				}
+			}
+			
+			// 4. Sort by exact quality score
+			const aScore = getQualityScore(a);
+			const bScore = getQualityScore(b);
+			
+			if (Math.abs(aScore - bScore) > 5) {
+				return bScore - aScore;
+			}
+			
+			// 5. Among similarly-rated films, show fresh additions first (last 7 days)
+			const aIsFresh = aCreated >= sevenDaysAgo;
+			const bIsFresh = bCreated >= sevenDaysAgo;
+			
+			if (aIsFresh !== bIsFresh) {
+				return aIsFresh ? -1 : 1;
+			}
+			
+			// 6. Tiebreaker: prefer 2024 over 2025 (2025 Oscars more imminent)
+			if (aYear !== bYear) {
+				return bYear - aYear;
+			}
+			
+			// 7. Final tiebreaker: most recently added
+			return bCreated.getTime() - aCreated.getTime();
+		}
+		
+		// 7. For non-eligible years, show popular/buzzworthy films (cultural relevance)
+		const aPopular = isPopular(a);
+		const bPopular = isPopular(b);
+		
+		if (aPopular !== bPopular) {
+			return aPopular ? -1 : 1;
+		}
+		
+		// 8. Among popular films, prioritize acclaimed ones
+		if (aPopular && bPopular) {
+			const aAcclaimed = isAcclaimed(a);
+			const bAcclaimed = isAcclaimed(b);
+			
+			if (aAcclaimed !== bAcclaimed) {
+				return aAcclaimed ? -1 : 1;
+			}
+		}
+		
+		// 9. Sort by quality score
+		const aScore = getQualityScore(a);
+		const bScore = getQualityScore(b);
+		
+		if (Math.abs(aScore - bScore) > 5) {
+			return bScore - aScore;
+		}
+		
+		// 10. Prefer recent years (shows site is current)
+		if (Math.abs(aYear - bYear) > 2) {
+			return bYear - aYear;
+		}
+		
+		// 11. Final tiebreaker: database addition date (newer first)
+		return bCreated.getTime() - aCreated.getTime();
+	});
+}
+
 // New hook that supports both authenticated and guest users
 export function useMovieDataWithGuest() {
 	const [movies, setMovies] = useState<Movie[]>([]);

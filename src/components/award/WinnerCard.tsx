@@ -47,7 +47,7 @@ export default function WinnerCard({
 	const { background, text } = getRatingStyle(rating);
 
 	// Prefer cached poster; check if image exists and is valid
-	const posterSrc = movie.cached_poster_url?.trim() || movie.poster_url;
+	const posterSrc = movie.poster_url;
 	const hasValidPoster = posterSrc && posterSrc.trim() !== '' && !posterSrc.includes('placeholder');
 
 	return (

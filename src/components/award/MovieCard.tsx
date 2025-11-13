@@ -38,7 +38,7 @@ const ImageFallback = ({
 export default function MovieCard({ movie, onClick }: MovieCardProps) {
 	const rating = movie.rankings?.[0]?.ranking ?? 0;
 	const { text, background } = getRatingStyle(rating);
-	const thumbSrc = movie.cached_thumb_url?.trim() || movie.thumb_url;
+	const thumbSrc = movie.thumb_url || movie.poster_url;
 	const hasValidImage = thumbSrc && thumbSrc.trim() !== '' && !thumbSrc.includes('placeholder');
 
 	return (

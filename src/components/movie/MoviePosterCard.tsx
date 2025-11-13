@@ -53,8 +53,8 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
   const [imageError, setImageError] = useState(false);
   const style = getRatingStyle(ranking ?? 0);
 
-  // Prefer cached poster when available
-  const posterSrc = movie.cached_poster_url?.trim() || movie.poster_url;
+  // Use poster_url directly (cached_poster_url doesn't exist in schema)
+  const posterSrc = movie.poster_url;
   const normalizedPoster = normalizeImageUrl(posterSrc);
   const hasValidPoster = !!normalizedPoster && !imageError;
 

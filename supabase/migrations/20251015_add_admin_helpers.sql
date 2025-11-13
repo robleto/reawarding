@@ -1,3 +1,4 @@
+-- (Renamed from 20251015T0415_add_admin_helpers.sql to remove time component per migration naming rules)
 -- Create admin schema and last_updates() helper
 create schema if not exists admin;
 

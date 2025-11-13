@@ -39,6 +39,13 @@ async function importTmdbMovie(tmdbId: number, supabaseUrl: string, supabaseKey:
 }
 
 Deno.serve(async (req) => {
+  // DEPRECATED: This function has been retired in favor of tmdb-fresh-movies.
+  // It intentionally returns 410 Gone to signal callers to stop using it.
+  return new Response(
+    JSON.stringify({ retired: true, use: 'tmdb-fresh-movies', message: 'tmdb-now-playing has been retired; use tmdb-fresh-movies for ingestion.' }),
+    { status: 410, headers: { 'Content-Type': 'application/json', 'X-Retired': 'tmdb-now-playing' } }
+  );
+  
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   const tmdbApiKey = Deno.env.get("TMDB_API_KEY") || "";
@@ -105,3 +112,5 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ success: false, error: e instanceof Error ? e.message : String(e) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 });
+
+// select admin.invoke_tmdb_fresh_movies();

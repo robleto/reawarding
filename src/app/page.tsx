@@ -5,7 +5,7 @@ import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import {
 	useMovieDataWithGuest,
 	filterUnseenMovies,
-	sortByRecent,
+	sortForYourConsideration,
 } from "@/utils/sharedMovieUtils";
 import { getGuestData } from "@/utils/guestMode";
 import EditableYearSection from "@/components/award/EditableYearSection";
@@ -129,7 +129,7 @@ export default function HomePage() {
 		);
 	}
 
-	const unseen = sortByRecent(filterUnseenMovies(movies));
+	const unseen = sortForYourConsideration(filterUnseenMovies(movies));
 	const currentYear = new Date().getFullYear();
 
 	// Check if user has rated any movies

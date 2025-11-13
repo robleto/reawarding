@@ -1,0 +1,3 @@
+-- Placeholder migration to reconcile remote history version 20250715.
+-- This file exists only to satisfy Supabase CLI checks that require all remote versions
+-- to have a corresponding local file. No schema changes are included.

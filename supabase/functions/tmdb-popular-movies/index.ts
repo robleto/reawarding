@@ -66,6 +66,12 @@ async function importTmdbMovie(tmdbId: number, supabaseUrl: string, supabaseKey:
 }
 
 Deno.serve(async (req) => {
+  // DEPRECATED: This function is retired. Use tmdb-fresh-movies for catalog freshness.
+  return new Response(
+    JSON.stringify({ retired: true, use: 'tmdb-fresh-movies', message: 'tmdb-popular-movies retired; superseded by tmdb-fresh-movies.' }),
+    { status: 410, headers: { 'Content-Type': 'application/json', 'X-Retired': 'tmdb-popular-movies' } }
+  );
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
   const cronSecret = Deno.env.get("CRON_SECRET") || "";
   const tmdbApiKey = Deno.env.get("TMDB_API_KEY") || "";
