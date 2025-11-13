@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
 import Image from "next/image";
-import { X, Eye, EyeOff, Film, Clock, Users, Clapperboard, Maximize2 } from "lucide-react";
+import { X, Eye, EyeOff, Film, Clock, Users, Clapperboard, Maximize2, ExternalLink, Copy } from "lucide-react";
 import Link from "next/link";
 import { movieSlug } from "@/utils/slug";
 import { supabase } from "@/lib/supabaseBrowser";
@@ -49,6 +49,7 @@ export default function MovieDetailModal({
   const [ranking, setRanking] = useState(initialRanking);
   const [isLoading, setIsLoading] = useState(false);
   const [hasValidImage, setHasValidImage] = useState(true);
+  const [copiedTmdb, setCopiedTmdb] = useState(false);
 
   // Reset state when modal opens with new movie
   useEffect(() => {
@@ -144,6 +145,17 @@ export default function MovieDetailModal({
   };
 
   // Removed unused handleRankingClear function
+
+  const handleCopyTmdb = async () => {
+    if (!movie?.tmdb_id) return;
+    try {
+      await navigator.clipboard.writeText(String(movie.tmdb_id));
+      setCopiedTmdb(true);
+      setTimeout(() => setCopiedTmdb(false), 1500);
+    } catch (e) {
+      console.error('Failed to copy TMDB id', e);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -273,6 +285,38 @@ export default function MovieDetailModal({
                     <span className="text-gray-300 truncate" title={movie.director}>
                       {movie.director}
                     </span>
+                  </div>
+                )}
+              </div>
+
+              {/* External Links / IDs */}
+              <div className="space-y-2 text-sm">
+                {/* Database ID */}
+                <div className="flex items-center gap-2 text-gray-400">
+                  <span className="font-mono">DB ID: {movie.id}</span>
+                </div>
+                
+                {/* TMDB ID */}
+                {movie.tmdb_id && (
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`https://www.themoviedb.org/movie/${movie.tmdb_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-yellow-300 hover:text-yellow-200"
+                      title="Open on TMDB"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      TMDB: {movie.tmdb_id}
+                    </Link>
+                    <button
+                      onClick={handleCopyTmdb}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-yellow-500/10 bg-gray-800/50 hover:bg-gray-700/50 text-xs text-gray-200"
+                      title="Copy TMDB ID"
+                    >
+                      <Copy className="w-3 h-3" />
+                      {copiedTmdb ? 'Copied' : 'Copy'}
+                    </button>
                   </div>
                 )}
               </div>

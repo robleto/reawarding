@@ -12,7 +12,10 @@ import StatsSummary from "@/components/stats/StatsSummary";
 interface Profile {
   id: string;
   username: string;
+  first_name: string | null;
+  last_name: string | null;
   full_name: string | null;
+  preferred_name: string | null;
   avatar_url: string | null;
   bio: string | null;
   created_at: string;
@@ -33,9 +36,20 @@ export default function ProfilePage() {
   // Edit form state
   const [editForm, setEditForm] = useState({
     username: "",
-    full_name: "",
+    first_name: "",
+    last_name: "",
+    preferred_name: "",
     bio: "",
     avatar_url: ""
+  });
+  
+  // Preferred name builder state
+  const [nameBuilder, setNameBuilder] = useState({
+    title: "",
+    useFirstName: true,
+    useLastName: false,
+    useUsername: false,
+    customNickname: ""
   });
 
   const fetchProfile = useCallback(async () => {
@@ -56,10 +70,23 @@ export default function ProfilePage() {
         setProfile(data);
         setEditForm({
           username: data.username || "",
-          full_name: data.full_name || "",
+          first_name: data.first_name || "",
+          last_name: data.last_name || "",
+          preferred_name: data.preferred_name || "",
           bio: data.bio || "",
           avatar_url: data.avatar_url || ""
         });
+        
+        // Initialize name builder based on current preferred_name
+        if (data.preferred_name) {
+          setNameBuilder({
+            title: "",
+            useFirstName: data.preferred_name === data.first_name,
+            useLastName: false,
+            useUsername: data.preferred_name === data.username,
+            customNickname: (data.preferred_name !== data.first_name && data.preferred_name !== data.username) ? data.preferred_name : ""
+          });
+        }
       }
     } catch (err) {
       console.error("Error fetching profile:", err);
@@ -88,12 +115,41 @@ export default function ProfilePage() {
     if (profile) {
       setEditForm({
         username: profile.username || "",
-        full_name: profile.full_name || "",
+        first_name: profile.first_name || "",
+        last_name: profile.last_name || "",
+        preferred_name: profile.preferred_name || "",
         bio: profile.bio || "",
         avatar_url: profile.avatar_url || ""
       });
     }
     setError(null);
+  };
+  
+  // Build preferred name from components
+  const buildPreferredName = () => {
+    const parts: string[] = [];
+    
+    if (nameBuilder.title) {
+      parts.push(nameBuilder.title);
+    }
+    
+    if (nameBuilder.customNickname) {
+      return parts.concat(nameBuilder.customNickname).join(" ").trim();
+    }
+    
+    if (nameBuilder.useFirstName && editForm.first_name) {
+      parts.push(editForm.first_name);
+    }
+    
+    if (nameBuilder.useLastName && editForm.last_name) {
+      parts.push(editForm.last_name);
+    }
+    
+    if (nameBuilder.useUsername && editForm.username) {
+      return parts.concat(editForm.username).join(" ").trim();
+    }
+    
+    return parts.join(" ").trim() || editForm.first_name || editForm.username;
   };
 
   const handleSave = async () => {
@@ -103,12 +159,16 @@ export default function ProfilePage() {
     setError(null);
 
     try {
+      const preferredName = buildPreferredName();
+      
       const { data, error } = await supabase
         .from("profiles")
         .upsert({
           id: user.id,
           username: editForm.username.trim(),
-          full_name: editForm.full_name.trim() || null,
+          first_name: editForm.first_name.trim() || null,
+          last_name: editForm.last_name.trim() || null,
+          preferred_name: preferredName || null,
           bio: editForm.bio.trim() || null,
           avatar_url: editForm.avatar_url.trim() || null,
           updated_at: new Date().toISOString()
@@ -142,7 +202,7 @@ export default function ProfilePage() {
     );
   }
 
-  const displayName = profile?.full_name || profile?.username || user.email?.split('@')[0];
+  const displayName = profile?.preferred_name || profile?.first_name || profile?.full_name || profile?.username || user.email?.split('@')[0];
   const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
 
   return (
@@ -273,15 +333,138 @@ export default function ProfilePage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Full Name
+                First Name
               </label>
               <input
                 type="text"
-                value={editForm.full_name}
-                onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                value={editForm.first_name}
+                onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                placeholder="Enter your full name"
+                placeholder="Enter your first name"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Last Name
+              </label>
+              <input
+                type="text"
+                value={editForm.last_name}
+                onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                placeholder="Enter your last name"
+              />
+            </div>
+            
+            {/* Call Me / Preferred Name Builder */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Call Me (How you'll be greeted)
+              </label>
+              
+              <div className="space-y-4">
+                {/* Title/Honorific */}
+                <div>
+                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                    Title (optional)
+                  </label>
+                  <select
+                    value={nameBuilder.title}
+                    onChange={(e) => setNameBuilder({ ...nameBuilder, title: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  >
+                    <option value="">None</option>
+                    <option value="Mr.">Mr.</option>
+                    <option value="Mrs.">Mrs.</option>
+                    <option value="Ms.">Ms.</option>
+                    <option value="Miss">Miss</option>
+                    <option value="Dr.">Dr.</option>
+                    <option value="Prof.">Prof.</option>
+                    <option value="Sir">Sir</option>
+                    <option value="Madam">Madam</option>
+                  </select>
+                </div>
+                
+                {/* Name Component Toggles */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={nameBuilder.useFirstName}
+                      onChange={(e) => setNameBuilder({ 
+                        ...nameBuilder, 
+                        useFirstName: e.target.checked,
+                        useUsername: false,
+                        customNickname: ""
+                      })}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      Use First Name {editForm.first_name && `(${editForm.first_name})`}
+                    </span>
+                  </label>
+                  
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={nameBuilder.useLastName}
+                      onChange={(e) => setNameBuilder({ ...nameBuilder, useLastName: e.target.checked })}
+                      disabled={!nameBuilder.useFirstName}
+                      className="w-4 h-4 text-blue-600 disabled:opacity-50"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      Include Last Name {editForm.last_name && `(${editForm.last_name})`}
+                    </span>
+                  </label>
+                  
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={nameBuilder.useUsername}
+                      onChange={(e) => setNameBuilder({ 
+                        ...nameBuilder, 
+                        useUsername: e.target.checked,
+                        useFirstName: false,
+                        useLastName: false,
+                        customNickname: ""
+                      })}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      Use Username {editForm.username && `(@${editForm.username})`}
+                    </span>
+                  </label>
+                </div>
+                
+                {/* Custom Nickname */}
+                <div>
+                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                    Or use a custom nickname
+                  </label>
+                  <input
+                    type="text"
+                    value={nameBuilder.customNickname}
+                    onChange={(e) => setNameBuilder({ 
+                      ...nameBuilder, 
+                      customNickname: e.target.value,
+                      useFirstName: false,
+                      useLastName: false,
+                      useUsername: false
+                    })}
+                    placeholder="e.g., Greg, GregR, Coach, etc."
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm placeholder-gray-500 dark:placeholder-gray-400"
+                  />
+                </div>
+                
+                {/* Preview */}
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Preview:</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    "Good morning, {buildPreferredName() || "..."}!"
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div>

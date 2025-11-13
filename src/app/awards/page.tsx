@@ -71,7 +71,7 @@ export default function AwardsPage() {
 					allMovies: sorted, // All movies for this year
 				};
 			})
-			.filter(yearData => yearData.allMovies.length >= 5) // Only show years with 5+ rated movies
+			.filter(yearData => yearData.allMovies.length >= 1) // Only show years with 1+ rated movies
 			.sort((a, b) => Number(b.year) - Number(a.year)); // Year DESC
 
 		setFormattedYears(years);

@@ -127,6 +127,15 @@ export function sortForYourConsideration(movies: Movie[]) {
 	const awardYear = currentYear - 1; // 2024 for 2025 Oscars
 	const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 	
+	// Seeded random number generator for daily shuffle (changes once per day)
+	const today = new Date().toDateString(); // e.g., "Wed Nov 13 2025"
+	const seed = today.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+	
+	const seededRandom = (index: number) => {
+		const x = Math.sin(seed + index) * 10000;
+		return x - Math.floor(x);
+	};
+	
 	// Helper: Calculate quality score with fallbacks
 	const getQualityScore = (movie: Movie): number => {
 		// If we have both professional scores, use them
@@ -261,7 +270,36 @@ export function sortForYourConsideration(movies: Movie[]) {
 		
 		// 11. Final tiebreaker: database addition date (newer first)
 		return bCreated.getTime() - aCreated.getTime();
-	});
+	})
+	// Add daily shuffle within quality tiers to keep it fresh
+	.map((movie, index) => ({ movie, randomValue: seededRandom(index) }))
+	.sort((a, b) => {
+		// Preserve top-tier ordering but shuffle within similar-quality movies
+		// Group movies by their primary characteristics
+		const aYear = a.movie.release_year ?? 0;
+		const bYear = b.movie.release_year ?? 0;
+		const aIsEligible = aYear === awardYear || aYear === currentYear;
+		const bIsEligible = bYear === awardYear || bYear === currentYear;
+		const aScore = getQualityScore(a.movie);
+		const bScore = getQualityScore(b.movie);
+		
+		// Keep eligible vs non-eligible separation
+		if (aIsEligible !== bIsEligible) {
+			return aIsEligible ? -1 : 1;
+		}
+		
+		// Within each tier (10-point buckets), randomize
+		const aTier = Math.floor(aScore / 10);
+		const bTier = Math.floor(bScore / 10);
+		
+		if (aTier !== bTier) {
+			return bTier - aTier;
+		}
+		
+		// Same tier = randomize
+		return a.randomValue - b.randomValue;
+	})
+	.map(item => item.movie);
 }
 
 // New hook that supports both authenticated and guest users

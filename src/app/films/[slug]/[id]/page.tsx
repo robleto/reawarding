@@ -52,6 +52,25 @@ export default async function MovieDetailPage({ params }: any) {
             ) : null}
           </div>
 
+          <div className="mt-4 space-y-1 text-sm">
+            <div className="text-gray-400">
+              <span className="font-mono">DB ID: {movie.id}</span>
+            </div>
+            {movie.tmdb_id ? (
+              <div>
+                <a
+                  href={`https://www.themoviedb.org/movie/${movie.tmdb_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-yellow-300 hover:text-yellow-200"
+                  title="Open on TMDB"
+                >
+                  TMDB: {movie.tmdb_id}
+                </a>
+              </div>
+            ) : null}
+          </div>
+
           {Array.isArray(movie.genres) && movie.genres.length > 0 && (
             <div className="mt-6">
               <div className="mb-2 text-yellow-400 font-semibold">Genres</div>

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import {
@@ -8,13 +8,13 @@ import {
 	sortForYourConsideration,
 } from "@/utils/sharedMovieUtils";
 import { getGuestData } from "@/utils/guestMode";
+import { getGreeting, getGreetingSubtext } from "@/utils/greeting";
 import EditableYearSection from "@/components/award/EditableYearSection";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import HomeEmptyState from "@/components/home/HomeEmptyState";
-import { useState } from "react";
 import PublicListsHomeSection from "@/components/list/PublicListsHomeSection";
 import { Film } from "lucide-react";
 
@@ -27,8 +27,28 @@ export default function HomePage() {
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
 	const [selectedMovie, setSelectedMovie] = useState<BaseMovie | null>(null);
+	const [userProfile, setUserProfile] = useState<{ first_name?: string; last_name?: string; username?: string; last_login?: string } | null>(null);
 	const router = useRouter();
 	const supabase = useSupabaseClient();
+
+	// Fetch user profile for first_name, last_name, username and last_login
+	useEffect(() => {
+		async function fetchProfile() {
+			if (!user?.id) return;
+			
+			const { data, error } = await supabase
+				.from("profiles")
+				.select("first_name, last_name, username, last_login")
+				.eq("id", user.id)
+				.single();
+			
+			if (data) {
+				setUserProfile(data);
+			}
+		}
+		
+		fetchProfile();
+	}, [user, supabase]);
 
 	// Handle auth code from email confirmation
 	useEffect(() => {
@@ -145,6 +165,26 @@ export default function HomePage() {
 	// Show empty state for brand new users (authenticated users with no ratings OR guests with no interactions)
 	const shouldShowEmptyState = (!isGuest && !hasRatedMovies) || (isGuest && !hasGuestInteracted);
 	
+	// Compute greeting for authenticated users
+	// Priority: preferred_name > first_name > username > email handle
+	let displayName = "there";
+	if (userProfile?.preferred_name) {
+		displayName = userProfile.preferred_name;
+	} else if (userProfile?.first_name) {
+		displayName = userProfile.first_name;
+	} else if (userProfile?.username) {
+		displayName = userProfile.username;
+	} else if (user?.email) {
+		displayName = user.email.split('@')[0];
+	}
+	
+	const lastLogin = userProfile?.last_login;
+	const daysSinceLastLogin = lastLogin 
+		? Math.floor((new Date().getTime() - new Date(lastLogin).getTime()) / (1000 * 60 * 60 * 24))
+		: undefined;
+	const greeting = getGreeting(lastLogin, displayName);
+	const subtext = getGreetingSubtext(daysSinceLastLogin);
+	
 	if (shouldShowEmptyState) { 
 		return ( 
 			<div>
@@ -214,10 +254,10 @@ export default function HomePage() {
 			{!isGuest && hasRatedMovies && (
 				<div className="text-center mb-8">
 					<h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-						Welcome back, {user?.email?.split('@')[0]}!
+						{greeting}
 					</h2>
 					<p className="text-gray-600 dark:text-gray-300">
-						Continue rating movies and building your perfect Best Picture collection.
+						{subtext}
 					</p>
 				</div>
 			)}

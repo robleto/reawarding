@@ -11,6 +11,12 @@ export default function Footer() {
 					</p>
 					<div className="flex flex-wrap justify-center md:justify-end gap-4 md:gap-6">
 						<Link
+							href="/help"
+							className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+						>
+							Help
+						</Link>
+						<Link
 							href="/legal/privacy"
 							className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
 						>
