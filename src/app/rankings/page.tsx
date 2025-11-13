@@ -245,6 +245,9 @@ export default function RankingsPage() {
       <RankingsStats movies={moviesWithRankings} onRatingClick={handleRatingClick} />
 
       <MovieFilters
+        localSearchMode={true}
+        availableMovies={moviesWithRankings}
+        searchContext="rankings"
         viewMode={viewMode}
         setViewMode={setViewMode}
         sortBy={sortBy}
