@@ -27,7 +27,13 @@ export default function HomePage() {
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
 	const [selectedMovie, setSelectedMovie] = useState<BaseMovie | null>(null);
-	const [userProfile, setUserProfile] = useState<{ first_name?: string; last_name?: string; username?: string; last_login?: string } | null>(null);
+	const [userProfile, setUserProfile] = useState<{
+		first_name?: string;
+		last_name?: string;
+		username?: string;
+		preferred_name?: string | null;
+		last_login?: string;
+	} | null>(null);
 	const router = useRouter();
 	const supabase = useSupabaseClient();
 
@@ -38,7 +44,7 @@ export default function HomePage() {
 			
 			const { data, error } = await supabase
 				.from("profiles")
-				.select("first_name, last_name, username, last_login")
+				.select("first_name, last_name, username, preferred_name, last_login")
 				.eq("id", user.id)
 				.single();
 			
