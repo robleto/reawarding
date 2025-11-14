@@ -14,9 +14,12 @@ interface TMDBMovieDetail {
   id: number;
   imdb_id?: string | null;
   title: string;
+  original_title?: string;
+  original_language?: string;
   overview?: string;
   runtime?: number | null;
   release_date?: string;
+  status?: string;
   genres?: { id: number; name: string }[];
   vote_average?: number;
   vote_count?: number;
@@ -88,8 +91,12 @@ async function importMovie(tmdbId: number, env: Env, genreMap: Record<number,str
     tmdb_id: tmdbId,
     imdb_id,
     title: detail.title,
+    original_title: detail.original_title || null,
+    original_language: detail.original_language || null,
     overview: detail.overview || null,
     release_year,
+    release_date: detail.release_date || null,
+    status: detail.status || null,
     runtime: detail.runtime || null,
     poster_url,
     thumb_url,

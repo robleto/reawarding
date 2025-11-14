@@ -20,7 +20,7 @@ const WinnerPosterFallback = ({
   const { background, text } = getRatingStyle(rating);
   
   return (
-	<div className="relative w-full aspect-[2/3] my-2 md:my-4 mx-auto rounded-xl overflow-hidden shadow-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+	<div className="relative w-full aspect-[2/3] my-2 md:my-4 mx-auto rounded-xl overflow-hidden shadow-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center" style={{ minHeight: '325px' }}>
       <div className="text-center px-4 text-gray-400 dark:text-gray-500">
         <Film className="w-16 h-16 mx-auto mb-2" />
         <div className="text-sm font-medium text-center leading-tight">

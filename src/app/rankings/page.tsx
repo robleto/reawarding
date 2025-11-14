@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Flame } from "lucide-react";
 import type { Movie } from "@/types/types";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieRowCard from "@/components/movie/MovieRowCard";
@@ -23,6 +24,8 @@ import {
   groupMovies,
 } from "@/utils/sharedMovieUtils";
 import MovieFilters from "@/components/filters/MovieFilters";
+import RankingsStats from "@/components/rankings/RankingsStats";
+import HotTakeIndicator from "@/components/rankings/HotTakeIndicator";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +51,43 @@ export default function RankingsPage() {
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"all" | "hot-takes">("all");
   
   // Filter to only movies with rankings for the rankings page
   const moviesWithRankings = movies.filter((movie) => movie.rankings && movie.rankings.length > 0);
+  
+  // Calculate hot takes (movies with significant rating disparity)
+  const hotTakes = moviesWithRankings.filter((movie) => {
+    const myRating = movie.rankings?.[0]?.ranking || 0;
+    
+    // Convert ratings to 10-point scale
+    const imdbRating = movie.imdb_rating || 0; // Already 0-10
+    const metacriticRating = movie.metacritic_score ? movie.metacritic_score / 10 : 0; // Convert 0-100 to 0-10
+    
+    // Use IMDB if available, otherwise Metacritic
+    const criticsRating = imdbRating > 0 ? imdbRating : metacriticRating;
+    
+    // Calculate disparity (minimum 2 points difference)
+    const disparity = Math.abs(myRating - criticsRating);
+    
+    return criticsRating > 0 && disparity >= 2;
+  }).map(movie => {
+    const myRating = movie.rankings?.[0]?.ranking || 0;
+    const imdbRating = movie.imdb_rating || 0;
+    const metacriticRating = movie.metacritic_score ? movie.metacritic_score / 10 : 0;
+    const criticsRating = imdbRating > 0 ? imdbRating : metacriticRating;
+    const disparity = myRating - criticsRating;
+    
+    return {
+      ...movie,
+      disparity,
+      criticsRating,
+      source: imdbRating > 0 ? 'IMDB' : 'Metacritic'
+    };
+  }).sort((a, b) => Math.abs(b.disparity) - Math.abs(a.disparity)); // Sort by biggest disparity
+  
+  // Use appropriate movie list based on active tab
+  const displayMovies = activeTab === "hot-takes" ? hotTakes : moviesWithRankings;
   
   // Rankings-specific filter state with custom defaults
   const [hasMounted, setHasMounted] = useState(false);
@@ -80,6 +117,21 @@ export default function RankingsPage() {
   
   const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie">("none");
   const [filterValue, setFilterValue] = useState<string>("all");
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
+
+  // Handle rating filter from bar graph
+  const handleRatingClick = (rating: number) => {
+    if (selectedRating === rating) {
+      // Toggle off if clicking same rating
+      setSelectedRating(null);
+      setFilterType("none");
+      setFilterValue("all");
+    } else {
+      setSelectedRating(rating);
+      setFilterType("rank");
+      setFilterValue(String(rating));
+    }
+  };
 
   // Apply preset from nav search (?movie=<id> or ?query=)
   useEffect(() => {
@@ -126,8 +178,8 @@ export default function RankingsPage() {
     }
   }, [sortBy, sortOrder, groupBy]);
   
-  // Filter movies based on current filter settings
-  const filteredMovies = moviesWithRankings.filter((movie) => {
+    // Filter movies based on search, year, rank, etc.
+  const filteredMovies = displayMovies.filter((movie) => {
     if (filterType === "year") {
       return filterValue === "all" || movie.release_year === Number(filterValue);
     }
@@ -225,7 +277,40 @@ export default function RankingsPage() {
         />
       )}
 
+      {/* Rankings Statistics */}
+      <RankingsStats movies={moviesWithRankings} onRatingClick={handleRatingClick} />
+
+      {/* Tab Navigation */}
+      <div className="mb-6 flex gap-2 border-b border-gray-700">
+        <button
+          onClick={() => setActiveTab("all")}
+          className={`px-4 py-3 text-sm font-medium transition-colors relative ${
+            activeTab === "all"
+              ? "text-yellow-400 border-b-2 border-yellow-400"
+              : "text-gray-400 hover:text-gray-300"
+          }`}
+        >
+          All Rankings
+          <span className="ml-2 text-xs text-gray-500">({moviesWithRankings.length})</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("hot-takes")}
+          className={`px-4 py-3 text-sm font-medium transition-colors relative flex items-center gap-2 ${
+            activeTab === "hot-takes"
+              ? "text-orange-400 border-b-2 border-orange-400"
+              : "text-gray-400 hover:text-gray-300"
+          }`}
+        >
+          <Flame className="w-4 h-4" />
+          Hot Takes
+          <span className="ml-1 text-xs text-gray-500">({hotTakes.length})</span>
+        </button>
+      </div>
+
       <MovieFilters
+        localSearchMode={true}
+        availableMovies={displayMovies}
+        searchContext={activeTab === "hot-takes" ? "hot takes" : "rankings"}
         viewMode={viewMode}
         setViewMode={setViewMode}
         sortBy={sortBy}
@@ -265,15 +350,26 @@ export default function RankingsPage() {
                 const r = movie.rankings?.[0];
                 if (!r) return null;
                 return (
-                  <MoviePosterCard
-                    key={movie.id}
-                    movie={movie}
-                    currentUserId={userId ?? ""}
-                    onUpdate={updateMovieRanking}
-                    ranking={r.ranking ?? null}
-                    seenIt={r.seen_it ?? false}
-                    onClick={() => handleOpenModal(movie)}
-                  />
+                  <div key={movie.id} className="relative">
+                    <MoviePosterCard
+                      movie={movie}
+                      currentUserId={userId ?? ""}
+                      onUpdate={updateMovieRanking}
+                      ranking={r.ranking ?? null}
+                      seenIt={r.seen_it ?? false}
+                      onClick={() => handleOpenModal(movie)}
+                    />
+                    {activeTab === "hot-takes" && (
+                      <div className="mt-2">
+                        <HotTakeIndicator
+                          myRating={r.ranking ?? 0}
+                          imdbRating={movie.imdb_rating}
+                          metacriticScore={movie.metacritic_score}
+                          compact={true}
+                        />
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -291,7 +387,8 @@ export default function RankingsPage() {
                     ranking={r.ranking ?? null}
                     seenIt={r.seen_it ?? false}
                     isLast={index === movies.length - 1}
-                    index={index} // Add index for row numbering
+                    index={index}
+                    showHotTake={activeTab === "hot-takes"}
                     onClick={() => handleOpenModal(movie)}
                   />
                 );

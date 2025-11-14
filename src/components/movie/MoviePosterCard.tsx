@@ -30,8 +30,8 @@ const PosterFallback = ({
   className?: string; 
 }) => (
 <div 
-	className={`flex flex-col items-center justify-center w-full h-full aspect-[2/3] rounded-xl bg-gray-100 dark:bg-gray-900 ${className}`}
-	style={{ minHeight: 0, minWidth: 0 }}
+	className={`flex flex-col items-center justify-center w-full aspect-[2/3] rounded-xl bg-gray-100 dark:bg-gray-900 ${className}`}
+	style={{ width: '210px', height: '325px' }}
 >
 <img
 	src="/reawarding.svg"
