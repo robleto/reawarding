@@ -319,72 +319,112 @@ export function useMovieDataWithGuest() {
 		setHasMounted(true);
 	}, []);
 
+	const MOVIE_LIST_FIELDS = `
+		id,
+		title,
+		release_year,
+		poster_url,
+		thumb_url,
+		cached_poster_url,
+		cached_thumb_url,
+		created_at,
+		overview,
+		tmdb_id,
+		imdb_rating,
+		metacritic_score,
+		imdb_votes,
+		vote_count,
+		popularity,
+		runtime,
+		director,
+		cast_list,
+		mpaa_rating,
+		genres
+	`;
+
 	useEffect(() => {
 		async function fetchData() {
 			setLoading(true);
 			
-			if (isGuest) {
-				// For guests, fetch movies without user-specific rankings
-				const { data, error } = await supabase
-					.from("movies")
-					.select("*")
-					.range(0, 2999);
+			try {
+				if (isGuest) {
+					// For guests, fetch movies without user-specific rankings
+					const { data, error } = await supabase
+						.from("movies")
+						.select(MOVIE_LIST_FIELDS)
+						.range(0, 2999);
 
-				if (error) {
-					console.error("Fetch error:", error.message);
-					setMovies([]);
-				} else {
-					// Apply guest data from Zustand store
-					const moviesWithGuestData = data.map(movie => {
-						const guestRanking = guestStore.getRanking(movie.id);
-						return {
-							...movie,
-							rankings: guestRanking ? [{
-								id: `guest_${movie.id}`,
-								user_id: 'guest',
-								ranking: guestRanking.ranking,
-								seen_it: guestRanking.seenIt,
-							}] : [],
-							thumb_url: movie.thumb_url ?? "",
-						} as Movie;
-					});
-					
-					setMovies(moviesWithGuestData);
-				}
-			} else if (userId) {
-				// For authenticated users, fetch with their rankings
-				const { data, error } = await supabase
-					.from("movies")
-					.select(
-						`*,
-						rankings!left (
-							id,
-							seen_it,
-							ranking,
-							user_id
-						)`
-					)
-					.eq("rankings.user_id", userId)
-					.range(0, 2999);
-
-				if (error) {
-					console.error("Fetch error:", error.message);
-					setMovies([]);
-				} else {
-					const enriched: Movie[] = data.map((movie) => {
-						const userRankings = Array.isArray(movie.rankings) 
-							? movie.rankings.filter((r: any) => r && r.user_id === userId)
-							: [];
+					if (error) {
+						console.warn("Guest movie fetch failed, keeping previous list:", error);
+						setMovies((prev) => prev);
+					} else {
+						// Apply guest data from Zustand store
+						const moviesWithGuestData = data.map(movie => {
+							const guestRanking = guestStore.getRanking(movie.id);
+							return {
+								...movie,
+								rankings: guestRanking ? [{
+									id: `guest_${movie.id}`,
+									user_id: 'guest',
+									ranking: guestRanking.ranking,
+									seen_it: guestRanking.seenIt,
+								}] : [],
+								thumb_url: movie.thumb_url ?? "",
+							} as Movie;
+						});
 						
-						return {
-							...movie,
-							rankings: userRankings,
-							thumb_url: movie.thumb_url ?? "",
-						} as Movie;
-					});
-					setMovies(enriched);
+						setMovies(moviesWithGuestData);
+					}
+				} else if (userId) {
+					// For authenticated users, fetch movies and their rankings separately for performance
+					// RLS policies automatically filter rankings to current user
+					const [moviesResult, rankingsResult] = await Promise.all([
+						supabase
+							.from("movies")
+							.select(MOVIE_LIST_FIELDS)
+							.range(0, 2999),
+						supabase
+							.from("rankings")
+							.select("*")
+							.limit(10000)
+							.then(result => {
+								// Silently handle rankings errors - user might not have SELECT permission yet
+								if (result.error) {
+									console.warn("Rankings not accessible (this is OK):", result.error.message);
+									return { data: [], error: null };
+								}
+								return result;
+							})
+					]);
+
+					if (moviesResult.error) {
+						console.warn("Authenticated movie fetch failed, keeping previous list:", moviesResult.error);
+						setMovies((prev) => prev);
+					} else {
+						// Create a map of movie_id -> ranking for fast lookup
+						const rankingsMap = new Map();
+						if (rankingsResult.data) {
+							rankingsResult.data.forEach((r: any) => {
+								rankingsMap.set(r.movie_id, r);
+							});
+						}
+						
+						const enriched: Movie[] = moviesResult.data.map((movie) => {
+							const ranking = rankingsMap.get(movie.id);
+							return {
+								...movie,
+								rankings: ranking ? [ranking] : [],
+								thumb_url: movie.thumb_url ?? "",
+							} as Movie;
+						});
+						setMovies(enriched);
+					}
 				}
+			} catch (err) {
+				console.warn("Movie data fetch exception, keeping previous list:", err);
+				setMovies((prev) => prev);
 			}
+			
 			setLoading(false);
 		}
 		

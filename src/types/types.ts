@@ -23,6 +23,8 @@ export type Movie = {
 	imdb_rating?: number;
 	imdb_votes?: number;
 	metacritic_score?: number;
+	vote_count?: number;
+	popularity?: number;
 	director?: string;
 	writer?: string;
 	cast_list?: string[];

@@ -3,8 +3,10 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { slugifyTitle } from "@/utils/slug";
 import Image from "next/image";
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 3600; // Cache for 1 hour
 
 export default async function MovieDetailPage({ params }: any) {
   const { slug, id } = params;
@@ -23,6 +25,21 @@ export default async function MovieDetailPage({ params }: any) {
   }
 
   const poster = normalizeImageUrl(movie.cached_poster_url || movie.poster_url);
+
+  // Fetch similar movies using content-based filtering (non-blocking - don't fail if slow)
+  let similarMovies = null;
+  try {
+    const result = await Promise.race([
+      supabaseAdmin.rpc('get_similar_movies', {
+        target_movie_id: id,
+        limit_count: 12
+      }),
+      new Promise((resolve) => setTimeout(() => resolve({ data: null }), 2000)) // 2s timeout
+    ]);
+    similarMovies = (result as any)?.data;
+  } catch (error) {
+    console.error('Similar movies error:', error);
+  }
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 py-6">
@@ -83,6 +100,47 @@ export default async function MovieDetailPage({ params }: any) {
           )}
         </div>
       </div>
+
+      {/* Similar Movies Section */}
+      {similarMovies && similarMovies.length > 0 && (
+        <div className="mt-12">
+          <h2 className="text-2xl font-unbounded font-semibold text-yellow-400 mb-6">More Like This</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+            {similarMovies.map((m: any) => {
+              const href = `/films/${slugifyTitle(m.title)}/${m.id}`;
+              const thumb = normalizeImageUrl(m.cached_thumb_url || m.thumb_url || m.poster_url);
+              return (
+                <Link key={m.id} href={href} className="group block">
+                  <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-gray-800 border border-yellow-500/20">
+                    {thumb ? (
+                      <Image 
+                        src={thumb} 
+                        alt={m.title} 
+                        fill 
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 25vw, 16vw"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-500">
+                        No Image
+                      </div>
+                    )}
+                    <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                      <div className="text-xs text-gray-100 line-clamp-2">{m.title}</div>
+                      {m.release_year && (
+                        <div className="text-[10px] text-gray-400 mt-0.5">{m.release_year}</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500 text-center">
+                    {Math.round((m.similarity_score || 0) * 100)}% match
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
