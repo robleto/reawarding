@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
 import { normalizeImageUrl } from "@/utils/imageUrl";
-import { Film } from "lucide-react";
+import { Film, Flame, TrendingUp, TrendingDown } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
 import RankingDropdown from "./RankingDropdown";
@@ -16,6 +16,7 @@ type Props = {
   seenIt: boolean;
   isLast?: boolean;
   index?: number;
+  showHotTake?: boolean;
   onUpdate: (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => void;
   onClick?: () => void;
 };
@@ -45,13 +46,21 @@ const ImageFallback = ({
   </div>
 );
 
-export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, seenIt, isLast = false, onClick, index }: Props) {
+export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, seenIt, isLast = false, onClick, index, showHotTake = false }: Props) {
   const style = getRatingStyle(ranking ?? 0);
 
   // Prefer cached thumb when available; compute normalized URL and only render Image if non-empty
   const thumbSrc = movie.cached_thumb_url?.trim() || movie.thumb_url;
   const normalizedThumb = normalizeImageUrl(thumbSrc);
   const hasValidImage = !!normalizedThumb && !(thumbSrc?.includes('placeholder'));
+
+  // Calculate hot take info
+  const myRating = ranking ?? 0;
+  const imdbRating = movie.imdb_rating || 0;
+  const metacriticRating = movie.metacritic_score ? movie.metacritic_score / 10 : 0;
+  const criticsRating = imdbRating > 0 ? imdbRating : metacriticRating;
+  const disparity = myRating - criticsRating;
+  const showHotTakeIndicator = showHotTake && criticsRating > 0 && Math.abs(disparity) >= 2;
 
   const handleClick = (e: React.MouseEvent) => {
     // Don't trigger onClick if user is clicking on interactive elements
@@ -117,22 +126,36 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
 
         {/* Status Indicators */}
         <div className="flex items-center gap-2">
-          {/* Seen It Toggle */}
-          <SeenItButton
-            seenIt={seenIt}
-            onClick={toggleSeenIt}
-            showText={true}
-            size="md"
-            className="hidden lg:inline-flex px-2 py-1 rounded-lg transition-colors bg-opacity-10 hover:bg-opacity-20"
-          />
-          <SeenItButton
-            seenIt={seenIt}
-            onClick={toggleSeenIt}
-            showText={false}
-            size="md"
-            variant="compact"
-            className="lg:hidden"
-          />
+          {/* Seen It Toggle OR Hot Take Indicator */}
+          {showHotTakeIndicator ? (
+            <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold ${
+              disparity > 0 
+                ? "bg-green-500/20 text-green-400" 
+                : "bg-red-500/20 text-red-400"
+            }`}>
+              <Flame className="w-3 h-3" />
+              {disparity > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+              <span>{disparity > 0 ? "+" : ""}{Math.abs(disparity).toFixed(1)}</span>
+            </div>
+          ) : (
+            <>
+              <SeenItButton
+                seenIt={seenIt}
+                onClick={toggleSeenIt}
+                showText={true}
+                size="md"
+                className="hidden lg:inline-flex px-2 py-1 rounded-lg transition-colors bg-opacity-10 hover:bg-opacity-20"
+              />
+              <SeenItButton
+                seenIt={seenIt}
+                onClick={toggleSeenIt}
+                showText={false}
+                size="md"
+                variant="compact"
+                className="lg:hidden"
+              />
+            </>
+          )}
 
           {/* Rating */}
           <RankingDropdown

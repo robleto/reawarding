@@ -3,8 +3,23 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { slugifyTitle } from "@/utils/slug";
 import Image from "next/image";
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import FilmActions from "@/components/films/FilmActions";
+import VideoPlayer from "@/components/films/VideoPlayer";
+import BackdropGallery from "@/components/films/BackdropGallery";
+import KeywordTags from "@/components/films/KeywordTags";
+import WatchProviders from "@/components/films/WatchProviders";
+import ReviewsList from "@/components/films/ReviewsList";
+import AlternativeTitles from "@/components/films/AlternativeTitles";
+import SimilarMoviesGrid from "@/components/films/SimilarMoviesGrid";
+import EnhancedStats from "@/components/films/EnhancedStats";
+import { 
+  ExternalLink, Star, TrendingUp, DollarSign, Users, Calendar, Clock, 
+  Film as FilmIcon, Award, Video, Image as ImageIcon, BookOpen, 
+  MessageSquare, BarChart3, ThumbsUp, Play, Camera, Sparkles
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 3600; // Cache for 1 hour
 
 export default async function MovieDetailPage({ params }: any) {
   const { slug, id } = params;
@@ -24,63 +39,577 @@ export default async function MovieDetailPage({ params }: any) {
 
   const poster = normalizeImageUrl(movie.cached_poster_url || movie.poster_url);
 
+  // Parse JSONB fields if they're strings (Supabase sometimes returns JSONB as strings)
+  const videos = typeof movie.videos === 'string' ? JSON.parse(movie.videos) : movie.videos;
+  const images = typeof movie.images === 'string' ? JSON.parse(movie.images) : movie.images;
+  const keywords = movie.keywords; // Arrays are already parsed
+  const watchProviders = typeof movie.watch_providers === 'string' ? JSON.parse(movie.watch_providers) : movie.watch_providers;
+  const reviews = typeof movie.tmdb_reviews === 'string' ? JSON.parse(movie.tmdb_reviews) : movie.tmdb_reviews;
+  const altTitles = typeof movie.alternative_titles === 'string' ? JSON.parse(movie.alternative_titles) : movie.alternative_titles;
+  const similarTmdbIds: number[] | null = Array.isArray(movie.similar_movies)
+    ? movie.similar_movies
+    : (typeof movie.similar_movies === 'string' ? JSON.parse(movie.similar_movies) : null);
+
+  // Fetch similar movies from our catalog by tmdb_id (limit 12)
+  let similarMovies: { id: number; title: string; cached_thumb_url?: string | null; thumb_url?: string | null }[] = [];
+  if (Array.isArray(similarTmdbIds) && similarTmdbIds.length > 0) {
+    const { data: similarData } = await supabaseAdmin
+      .from('movies')
+      .select('id,title,cached_thumb_url,thumb_url,tmdb_id')
+      .in('tmdb_id', similarTmdbIds.slice(0, 24))
+      .limit(24);
+    if (Array.isArray(similarData)) {
+      // Preserve original TMDB order where possible
+      const byTmdb = new Map(similarData.map((m: any) => [m.tmdb_id, m]));
+      similarMovies = similarTmdbIds
+        .map(id => byTmdb.get(id))
+        .filter(Boolean)
+        .slice(0, 12);
+    }
+  }
+
+  // Fetch awards data from Awards API (if configured and movie has imdb_id)
+  let awardsData: { badges?: string[]; nominations?: any[]; stats?: { nominations: number; wins: number } } | null = null;
+  if (movie.imdb_id && process.env.AWARDS_API_BASE_URL && process.env.AWARDS_API_KEY) {
+    try {
+      const awardsRes = await fetch(
+        `${process.env.AWARDS_API_BASE_URL}/film-awards?imdb_id=${movie.imdb_id}`,
+        { 
+          headers: { 'x-api-key': process.env.AWARDS_API_KEY },
+          next: { revalidate: 3600 } // Cache for 1 hour
+        }
+      );
+      if (awardsRes.ok) {
+        awardsData = await awardsRes.json();
+      }
+    } catch (e) {
+      console.warn('Awards API fetch failed:', e);
+    }
+  }
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   return (
-    <div className="max-w-screen-xl mx-auto px-4 py-6">
-      <div className="grid grid-cols-1 md:grid-cols-[320px,1fr] gap-6">
-        <div className="rounded-xl overflow-hidden border border-yellow-500/20 bg-gray-900/60">
+    <div className="max-w-screen-2xl mx-auto px-4 py-6">
+      {/* Hero Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-[350px,1fr] gap-8 mb-8">
+        {/* Poster */}
+        <div className="rounded-xl overflow-hidden border border-yellow-500/20 bg-gray-900/60 shadow-2xl">
           <div className="relative aspect-[2/3]">
             {poster ? (
               <Image src={poster} alt={movie.title} fill className="object-cover" />
             ) : (
-              <div className="w-full h-full bg-gray-800" />
+              <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                <FilmIcon className="w-24 h-24 text-gray-600" />
+              </div>
             )}
           </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-unbounded font-semibold text-yellow-400">{movie.title}</h1>
-          <div className="mt-1 text-gray-400">{movie.release_year}</div>
-          {movie.overview && (
-            <p className="mt-4 text-gray-200 leading-relaxed">{movie.overview}</p>
+
+        {/* Main Info */}
+        <div className="flex flex-col">
+          <div className="flex-grow">
+            <h1 className="text-4xl lg:text-5xl font-unbounded font-bold text-yellow-400 mb-2">
+              {movie.title}
+            </h1>
+            
+            {movie.tagline && (
+              <p className="text-lg text-gray-400 italic mb-4">&ldquo;{movie.tagline}&rdquo;</p>
+            )}
+
+            {/* Action Buttons */}
+            <div className="mb-6">
+              <FilmActions movieId={movie.id} />
+            </div>
+
+            {/* Quick Stats */}
+            <div className="flex flex-wrap gap-3 mb-6">
+              <div className="px-4 py-2 rounded-lg bg-gray-800/60 border border-yellow-500/10 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-yellow-400" />
+                <span className="font-semibold">{movie.release_year}</span>
+              </div>
+              
+              {movie.runtime && (
+                <div className="px-4 py-2 rounded-lg bg-gray-800/60 border border-yellow-500/10 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-yellow-400" />
+                  <span>{movie.runtime} min</span>
+                </div>
+              )}
+              
+              {movie.mpaa_rating && (
+                <div className="px-4 py-2 rounded-lg bg-gray-800/60 border border-yellow-500/10">
+                  <span className="font-semibold">Rated {movie.mpaa_rating}</span>
+                </div>
+              )}
+
+              {movie.imdb_rating && (
+                <div className="px-4 py-2 rounded-lg bg-gray-800/60 border border-yellow-500/10 flex items-center gap-2">
+                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  <span className="font-semibold">{movie.imdb_rating.toFixed(1)}</span>
+                  <span className="text-gray-500 text-sm">IMDB</span>
+                </div>
+              )}
+
+              {movie.metacritic_score && (
+                <div className="px-4 py-2 rounded-lg bg-gray-800/60 border border-yellow-500/10 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-green-400" />
+                  <span className="font-semibold">{movie.metacritic_score}</span>
+                  <span className="text-gray-500 text-sm">Metacritic</span>
+                </div>
+              )}
+            </div>
+
+            {/* Enhanced Stats */}
+            <EnhancedStats
+              popularity={movie.popularity}
+              voteCount={movie.vote_count}
+              status={movie.status}
+              originalLanguage={movie.original_language}
+              originalTitle={movie.original_title}
+              title={movie.title}
+              releaseDate={movie.release_date}
+            />
+
+            {/* Overview */}
+            {movie.overview && (
+              <div className="mb-6 mt-6">
+                <h2 className="text-xl font-unbounded font-semibold text-yellow-400 mb-3">Overview</h2>
+                <p className="text-gray-200 leading-relaxed text-lg">{movie.overview}</p>
+              </div>
+            )}
+
+            {/* Genres */}
+            {Array.isArray(movie.genres) && movie.genres.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-2">Genres</h3>
+                <div className="flex flex-wrap gap-2">
+                  {movie.genres.map((g: string, i: number) => (
+                    <span key={i} className="px-3 py-1 rounded-full text-sm bg-yellow-900/40 text-yellow-300 border border-yellow-500/20">
+                      {g}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Detailed Information Sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Cast & Crew */}
+        <div className="space-y-6">
+          {/* Director */}
+          {movie.director && (
+            <div className="p-4 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+              <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-2">Director</h3>
+              <p className="text-gray-200">{movie.director}</p>
+            </div>
           )}
 
-          <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-            {movie.runtime ? (
-              <div className="px-3 py-2 rounded-lg bg-gray-800/60 border border-yellow-500/10">{movie.runtime} min</div>
-            ) : null}
-            {movie.mpaa_rating ? (
-              <div className="px-3 py-2 rounded-lg bg-gray-800/60 border border-yellow-500/10">Rated {movie.mpaa_rating}</div>
-            ) : null}
-          </div>
-
-          <div className="mt-4 space-y-1 text-sm">
-            <div className="text-gray-400">
-              <span className="font-mono">DB ID: {movie.id}</span>
+          {/* Writer */}
+          {movie.writer && (
+            <div className="p-4 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+              <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-2">Writer</h3>
+              <p className="text-gray-200">{movie.writer}</p>
             </div>
-            {movie.tmdb_id ? (
-              <div>
-                <a
-                  href={`https://www.themoviedb.org/movie/${movie.tmdb_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-yellow-300 hover:text-yellow-200"
-                  title="Open on TMDB"
-                >
-                  TMDB: {movie.tmdb_id}
-                </a>
-              </div>
-            ) : null}
-          </div>
+          )}
 
-          {Array.isArray(movie.genres) && movie.genres.length > 0 && (
-            <div className="mt-6">
-              <div className="mb-2 text-yellow-400 font-semibold">Genres</div>
+          {/* Cast */}
+          {Array.isArray(movie.cast_list) && movie.cast_list.length > 0 && (
+            <div className="p-4 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+              <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-3 flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Cast
+              </h3>
               <div className="flex flex-wrap gap-2">
-                {movie.genres.map((g: string, i: number) => (
-                  <span key={i} className="px-2 py-1 rounded-full text-xs bg-yellow-900/40 text-yellow-300">{g}</span>
+                {movie.cast_list.map((actor: string, i: number) => (
+                  <span key={i} className="px-3 py-1 rounded-md text-sm bg-gray-800/60 text-gray-200">
+                    {actor}
+                  </span>
                 ))}
               </div>
             </div>
           )}
+
+          {/* TODO: Add cast - coming from TMDB */}
+          {(!movie.cast_list || movie.cast_list.length === 0) && (
+            <div className="p-4 rounded-lg bg-gray-900/40 border border-yellow-500/10 opacity-50">
+              <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-2 flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Cast
+              </h3>
+              <p className="text-gray-500 text-sm italic">Coming soon from TMDB</p>
+            </div>
+          )}
+        </div>
+
+        {/* Production & Financial */}
+        <div className="space-y-6">
+          {/* Production Companies */}
+          {Array.isArray(movie.production_companies) && movie.production_companies.length > 0 && (
+            <div className="p-4 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+              <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-3">Production Companies</h3>
+              <div className="space-y-1">
+                {movie.production_companies.map((company: string, i: number) => (
+                  <div key={i} className="text-gray-200">{company}</div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Production Countries */}
+          {Array.isArray(movie.production_countries) && movie.production_countries.length > 0 && (
+            <div className="p-4 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+              <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-2">Production Countries</h3>
+              <div className="flex flex-wrap gap-2">
+                {movie.production_countries.map((country: string, i: number) => (
+                  <span key={i} className="px-3 py-1 rounded-md text-sm bg-gray-800/60 text-gray-200">
+                    {country}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Languages */}
+          {Array.isArray(movie.spoken_languages) && movie.spoken_languages.length > 0 && (
+            <div className="p-4 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+              <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-2">Languages</h3>
+              <div className="flex flex-wrap gap-2">
+                {movie.spoken_languages.map((lang: string, i: number) => (
+                  <span key={i} className="px-3 py-1 rounded-md text-sm bg-gray-800/60 text-gray-200">
+                    {lang}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Budget & Revenue */}
+          {(movie.budget || movie.revenue) && (
+            <div className="p-4 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+              <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-3 flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                Box Office
+              </h3>
+              <div className="space-y-2">
+                {movie.budget && movie.budget > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Budget:</span>
+                    <span className="text-gray-200 font-semibold">{formatCurrency(movie.budget)}</span>
+                  </div>
+                )}
+                {movie.revenue && movie.revenue > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Revenue:</span>
+                    <span className="text-gray-200 font-semibold">{formatCurrency(movie.revenue)}</span>
+                  </div>
+                )}
+                {movie.budget && movie.revenue && movie.budget > 0 && movie.revenue > 0 && (
+                  <div className="flex justify-between pt-2 border-t border-gray-700">
+                    <span className="text-gray-400">Profit:</span>
+                    <span className={`font-semibold ${movie.revenue - movie.budget >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {formatCurrency(movie.revenue - movie.budget)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Alternative Titles (AKA) */}
+          {Array.isArray(altTitles) && altTitles.length > 0 && (
+            <AlternativeTitles titles={altTitles} />
+          )}
+        </div>
+      </div>
+
+      {/* Additional Metadata & IDs */}
+      <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+        <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-4">Database & External IDs</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Database ID</div>
+            <div className="font-mono text-gray-200">{movie.id}</div>
+          </div>
+          
+          {movie.tmdb_id && (
+            <div>
+              <div className="text-sm text-gray-400 mb-1">TMDB ID</div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-gray-200">{movie.tmdb_id}</span>
+                <a
+                  href={`https://www.themoviedb.org/movie/${movie.tmdb_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-yellow-400 hover:text-yellow-300 transition-colors"
+                  title="Open on TMDB"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          )}
+
+          {movie.imdb_id && (
+            <div>
+              <div className="text-sm text-gray-400 mb-1">IMDB ID</div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-gray-200">{movie.imdb_id}</span>
+                <a
+                  href={`https://www.imdb.com/title/${movie.imdb_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-yellow-400 hover:text-yellow-300 transition-colors"
+                  title="Open on IMDB"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          )}
+
+          {movie.imdb_votes && (
+            <div>
+              <div className="text-sm text-gray-400 mb-1">IMDB Votes</div>
+              <div className="text-gray-200">{movie.imdb_votes.toLocaleString()}</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Videos Section */}
+      {videos && Array.isArray(videos) && videos.length > 0 && (
+        <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+          <div className="flex items-center gap-3 mb-4">
+            <Video className="w-6 h-6 text-yellow-400" />
+            <h3 className="text-lg font-unbounded font-semibold text-yellow-400">
+              Trailers & Videos
+            </h3>
+            <span className="text-sm text-gray-400">({videos.length})</span>
+          </div>
+          <VideoPlayer videos={videos} />
+        </div>
+      )}
+
+      {/* Backdrops Gallery */}
+      {images?.backdrops && Array.isArray(images.backdrops) && images.backdrops.length > 0 && (
+        <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+          <div className="flex items-center gap-3 mb-4">
+            <ImageIcon className="w-6 h-6 text-yellow-400" />
+            <h3 className="text-lg font-unbounded font-semibold text-yellow-400">
+              Backdrops & Images
+            </h3>
+            <span className="text-sm text-gray-400">({images.backdrops.length})</span>
+          </div>
+          <BackdropGallery images={images.backdrops} />
+        </div>
+      )}
+
+      {/* Keywords */}
+      {keywords && Array.isArray(keywords) && keywords.length > 0 && (
+        <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+          <KeywordTags keywords={keywords} />
+        </div>
+      )}
+
+      {/* Awards & Recognition */}
+      <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+        <div className="flex items-center gap-3 mb-4">
+          <Award className="w-6 h-6 text-yellow-400" />
+          <h3 className="text-lg font-unbounded font-semibold text-yellow-400">Awards & Nominations</h3>
+        </div>
+        {awardsData && (awardsData.badges?.length || awardsData.nominations?.length) ? (
+          <div className="space-y-4">
+            {/* Badges */}
+            {awardsData.badges && awardsData.badges.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {awardsData.badges.map((badge, i) => (
+                  <span key={i} className="px-4 py-2 rounded-full bg-yellow-900/40 text-yellow-300 border border-yellow-500/30 font-semibold text-sm">
+                    🏆 {badge}
+                  </span>
+                ))}
+              </div>
+            )}
+            {/* Stats */}
+            {awardsData.stats && (awardsData.stats.nominations > 0 || awardsData.stats.wins > 0) && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 rounded-lg bg-gray-800/60 border border-yellow-500/10">
+                  <div className="text-2xl font-bold text-yellow-400">{awardsData.stats.wins}</div>
+                  <div className="text-sm text-gray-400">Oscar Wins</div>
+                </div>
+                <div className="p-3 rounded-lg bg-gray-800/60 border border-yellow-500/10">
+                  <div className="text-2xl font-bold text-yellow-400">{awardsData.stats.nominations}</div>
+                  <div className="text-sm text-gray-400">Nominations</div>
+                </div>
+              </div>
+            )}
+            {/* Nominations List */}
+            {awardsData.nominations && awardsData.nominations.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm text-gray-400 mb-2">Nominations by Category:</div>
+                {awardsData.nominations.slice(0, 10).map((nom: any, i: number) => (
+                  <div key={i} className="p-3 rounded-lg bg-gray-800/40 border border-yellow-500/10">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-gray-200">
+                          {nom.category_name || nom.category_slug}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          {nom.ceremony_year} {nom.ceremony_short_name || 'Academy Awards'}
+                        </div>
+                        {nom.people && Array.isArray(nom.people) && nom.people.length > 0 && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {nom.people.map((p: any) => p.name).join(', ')}
+                          </div>
+                        )}
+                      </div>
+                      {nom.is_winner && (
+                        <span className="px-2 py-1 rounded text-xs font-semibold bg-yellow-900/60 text-yellow-300 border border-yellow-500/30">
+                          WINNER
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {awardsData.nominations.length > 10 && (
+                  <div className="text-xs text-gray-500 text-center pt-2">
+                    + {awardsData.nominations.length - 10} more nominations
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-gray-400 text-sm italic">
+            {movie.imdb_id 
+              ? 'No Oscar nominations or wins recorded for this film'
+              : 'Awards data requires IMDB ID (coming soon via TMDB enrichment)'}
+          </div>
+        )}
+      </div>
+
+      {/* User Stats & Community */}
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Community Stats Stub */}
+        <div className="p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+          <div className="flex items-center gap-3 mb-4">
+            <BarChart3 className="w-6 h-6 text-yellow-400" />
+            <h3 className="text-lg font-unbounded font-semibold text-yellow-400">Community Stats</h3>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center py-2 border-b border-gray-700">
+              <span className="text-gray-400">Total Ratings</span>
+              <span className="text-gray-200 font-semibold italic text-sm">Coming soon</span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b border-gray-700">
+              <span className="text-gray-400">Average Rating</span>
+              <span className="text-gray-200 font-semibold italic text-sm">Coming soon</span>
+            </div>
+            <div className="flex justify-between items-center py-2">
+              <span className="text-gray-400">On Watchlists</span>
+              <span className="text-gray-200 font-semibold italic text-sm">Coming soon</span>
+            </div>
+          </div>
+          <p className="text-gray-500 text-xs italic mt-4">
+            Aggregate user data from ReAwarding community
+          </p>
+        </div>
+      </div>
+
+      {/* Similar Movies / Recommendations */}
+      <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+        <div className="flex items-center gap-3 mb-4">
+          <ThumbsUp className="w-6 h-6 text-yellow-400" />
+          <h3 className="text-lg font-unbounded font-semibold text-yellow-400">More Like This</h3>
+        </div>
+        {similarMovies && similarMovies.length > 0 ? (
+          <SimilarMoviesGrid items={similarMovies} />
+        ) : (
+          <p className="text-gray-500 text-sm italic">Not enough data for recommendations yet</p>
+        )}
+      </div>
+
+      {/* Technical Specs */}
+      <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+        <div className="flex items-center gap-3 mb-4">
+          <Camera className="w-6 h-6 text-yellow-400" />
+          <h3 className="text-lg font-unbounded font-semibold text-yellow-400">Technical Specifications</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 opacity-50">
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Aspect Ratio</div>
+            <div className="text-gray-500 italic">Coming from TMDB</div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Sound Mix</div>
+            <div className="text-gray-500 italic">Coming from TMDB</div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Color</div>
+            <div className="text-gray-500 italic">Coming from TMDB</div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Camera</div>
+            <div className="text-gray-500 italic">Coming from TMDB</div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Film Length</div>
+            <div className="text-gray-500 italic">Coming from TMDB</div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Negative Format</div>
+            <div className="text-gray-500 italic">Coming from TMDB</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Streaming Availability */}
+      <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+        <div className="flex items-center gap-3 mb-4">
+          <Play className="w-6 h-6 text-yellow-400" />
+          <h3 className="text-lg font-unbounded font-semibold text-yellow-400">Where to Watch</h3>
+        </div>
+        {watchProviders ? (
+          <WatchProviders providersByRegion={watchProviders} preferredRegion="US" />
+        ) : (
+          <p className="text-gray-500 text-sm italic">No provider data available</p>
+        )}
+      </div>
+
+      {/* Coming Soon Summary */}
+      <div className="mt-8 p-6 rounded-lg bg-gradient-to-r from-yellow-900/20 to-gray-900/40 border border-yellow-500/20">
+        <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-4">🚀 Upcoming Features</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <h4 className="text-yellow-300 font-semibold mb-2">Data Enrichment (TMDB)</h4>
+            <ul className="space-y-1 text-gray-400">
+              <li>• Full cast & crew details with photos</li>
+              <li>• Photo gallery & movie stills</li>
+              <li>• Official trailers & video clips</li>
+              <li>• Technical specifications</li>
+              <li>• Awards & nominations history</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-yellow-300 font-semibold mb-2">Community Features</h4>
+            <ul className="space-y-1 text-gray-400">
+              <li>• User reviews & comments</li>
+              <li>• Community rating statistics</li>
+              <li>• Similar movie recommendations (ML)</li>
+              <li>• Movie trivia & fun facts</li>
+              <li>• Streaming availability (JustWatch)</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

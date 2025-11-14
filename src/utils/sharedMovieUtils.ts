@@ -331,7 +331,7 @@ export function useMovieDataWithGuest() {
 					.range(0, 2999);
 
 				if (error) {
-					console.error("Fetch error:", error.message);
+					console.error("Fetch error (guest):", error);
 					setMovies([]);
 				} else {
 					// Apply guest data from Zustand store
@@ -357,18 +357,17 @@ export function useMovieDataWithGuest() {
 					.from("movies")
 					.select(
 						`*,
-						rankings!left (
+						rankings (
 							id,
 							seen_it,
 							ranking,
 							user_id
 						)`
 					)
-					.eq("rankings.user_id", userId)
 					.range(0, 2999);
 
 				if (error) {
-					console.error("Fetch error:", error.message);
+					console.error("Fetch error (authenticated):", error);
 					setMovies([]);
 				} else {
 					const enriched: Movie[] = data.map((movie) => {
@@ -504,6 +503,196 @@ export function useMovieDataWithGuest() {
 		updateMovieRanking,
 		isGuest,
 		hasMounted
+	};
+}
+
+// Paginated version for better performance on large lists
+export function useMovieDataPaginated(pageSize: number = 100) {
+	const [movies, setMovies] = useState<Movie[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [initialLoading, setInitialLoading] = useState(true);
+	const [hasMore, setHasMore] = useState(true);
+	const [page, setPage] = useState(0);
+	const [hasMounted, setHasMounted] = useState(false);
+	const supabase = useSupabaseClient<Database>();
+	const user = useUser();
+	const guestStore = useGuestRankingStore();
+	const userId: string = user?.id ?? "";
+	const isGuest = !user;
+
+	useEffect(() => {
+		setHasMounted(true);
+	}, []);
+
+	// Initial load
+	useEffect(() => {
+		async function fetchInitial() {
+			setInitialLoading(true);
+			const { data, error } = isGuest
+				? await supabase.from("movies").select("*").range(0, pageSize - 1)
+				: await supabase.from("movies").select(`*, rankings (id, seen_it, ranking, user_id)`).range(0, pageSize - 1);
+
+			if (error) {
+				console.error("Initial fetch error:", error);
+				setMovies([]);
+			} else if (data) {
+				const enriched = data.map(movie => {
+					if (isGuest) {
+						const guestRanking = guestStore.getRanking(movie.id);
+						return {
+							...movie,
+							rankings: guestRanking ? [{
+								id: `guest_${movie.id}`,
+								user_id: 'guest',
+								ranking: guestRanking.ranking,
+								seen_it: guestRanking.seenIt,
+							}] : [],
+							thumb_url: movie.thumb_url ?? "",
+						} as Movie;
+					} else {
+						const userRankings = Array.isArray(movie.rankings) 
+							? movie.rankings.filter((r: any) => r && r.user_id === userId)
+							: [];
+						return { ...movie, rankings: userRankings, thumb_url: movie.thumb_url ?? "" } as Movie;
+					}
+				});
+				
+				setMovies(enriched);
+				setPage(0);
+				setHasMore(data.length === pageSize);
+			}
+			setInitialLoading(false);
+		}
+
+		if (hasMounted) {
+			fetchInitial();
+		}
+	}, [hasMounted, userId, isGuest]);
+
+	// Load more function for infinite scroll
+	const loadMore = async () => {
+		if (loading || !hasMore) return;
+		
+		setLoading(true);
+		const nextPage = page + 1;
+		const start = nextPage * pageSize;
+		const end = start + pageSize - 1;
+		
+		const { data, error } = isGuest
+			? await supabase.from("movies").select("*").range(start, end)
+			: await supabase.from("movies").select(`*, rankings (id, seen_it, ranking, user_id)`).range(start, end);
+		
+		if (error) {
+			console.error("Pagination error:", error);
+		} else if (data) {
+			const enriched = data.map(movie => {
+				if (isGuest) {
+					const guestRanking = guestStore.getRanking(movie.id);
+					return {
+						...movie,
+						rankings: guestRanking ? [{
+							id: `guest_${movie.id}`,
+							user_id: 'guest',
+							ranking: guestRanking.ranking,
+							seen_it: guestRanking.seenIt,
+						}] : [],
+						thumb_url: movie.thumb_url ?? "",
+					} as Movie;
+				} else {
+					const userRankings = Array.isArray(movie.rankings) 
+						? movie.rankings.filter((r: any) => r && r.user_id === userId)
+						: [];
+					return { ...movie, rankings: userRankings, thumb_url: movie.thumb_url ?? "" } as Movie;
+				}
+			});
+			
+			setMovies(prev => [...prev, ...enriched]);
+			setPage(nextPage);
+			setHasMore(data.length === pageSize);
+		}
+		setLoading(false);
+	};
+
+	// Update ranking function (same as original)
+	const updateMovieRanking = async (movieId: number, updates: { ranking?: number | null; seen_it?: boolean }) => {
+		if (isGuest) {
+			const guestUpdates: { ranking?: number; seenIt?: boolean } = {};
+			if (updates.ranking !== undefined) guestUpdates.ranking = updates.ranking ?? 0;
+			if (updates.seen_it !== undefined) guestUpdates.seenIt = updates.seen_it;
+			
+			guestStore.updateRanking(movieId, guestUpdates);
+			
+			setMovies((prevMovies) =>
+				prevMovies.map((m) => {
+					if (m.id === movieId) {
+						const guestRanking = guestStore.getRanking(movieId);
+						if (guestRanking) {
+							return {
+								...m,
+								rankings: [{
+									id: `guest_${movieId}`,
+									user_id: 'guest',
+									ranking: guestRanking.ranking,
+									seen_it: guestRanking.seenIt,
+								}],
+							};
+						}
+					}
+					return m;
+				})
+			);
+			return;
+		}
+
+		const movie = movies.find((m) => m.id === movieId);
+		const existing = movie?.rankings?.[0];
+
+		if (updates.ranking === null) {
+			if (existing?.id) {
+				const { error } = await supabase.from("rankings").delete().eq("id", existing.id);
+				if (error) {
+					console.error("Delete error:", error.message);
+					return;
+				}
+			}
+			setMovies((prevMovies) => prevMovies.map((m) => m.id === movieId ? { ...m, rankings: [] } : m));
+		} else {
+			const payload = {
+				user_id: userId,
+				movie_id: movieId,
+				ranking: updates.ranking,
+				seen_it: updates.seen_it ?? existing?.seen_it ?? false,
+			};
+
+			const { data, error } = existing?.id
+				? await supabase.from("rankings").update(payload).eq("id", existing.id).select().single()
+				: await supabase.from("rankings").insert([payload]).select().single();
+
+			if (error) {
+				console.error("Upsert error:", error.message);
+				return;
+			}
+
+			if (data) {
+				setMovies((prevMovies) =>
+					prevMovies.map((m) => m.id === movieId ? { ...m, rankings: [data] } : m)
+				);
+			}
+		}
+	};
+
+	return { 
+		movies, 
+		loading: initialLoading || loading,
+		initialLoading,
+		loadingMore: loading,
+		user,
+		userId, 
+		updateMovieRanking,
+		isGuest,
+		hasMounted,
+		hasMore,
+		loadMore
 	};
 }
 

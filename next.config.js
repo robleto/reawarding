@@ -36,6 +36,10 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'img.youtube.com', // YouTube thumbnails
+      },
+      {
+        protocol: 'https',
         hostname: 'avatars.githubusercontent.com', // GitHub avatars
       },
       {
