@@ -75,6 +75,90 @@ export default async function MovieDetailPage({ params }: any) {
     console.error("Similar movies error:", error);
   }
 
+  // Community stats (server-side) – simple aggregation from rankings
+  let communityStats: { totalRatings: number; avgRating: number | null; seenCount: number; watchlists: number; listsTotal: number; histogram: number[] } = {
+    totalRatings: 0,
+    avgRating: null,
+    seenCount: 0,
+    watchlists: 0,
+    listsTotal: 0,
+    histogram: Array.from({ length: 10 }, () => 0),
+  };
+  try {
+    const attemptIds: any[] = [];
+    const asNumber = typeof movie.id === 'number' ? movie.id : Number(movie.id);
+    if (!Number.isNaN(asNumber)) attemptIds.push(asNumber);
+    attemptIds.push(movie.id as any);
+
+    // Try queries with numeric first (if valid), then fallback to raw id
+    let totalRatings = 0;
+    let seen = 0;
+    let ratingsRows: { ranking: number }[] = [];
+    let watchlists = 0;
+    let listsTotal = 0;
+
+    // Find IDs of default Watchlist lists via list_type flag (authoritative)
+    const watchlistListsRes = await supabaseAdmin
+      .from("movie_lists")
+      .select("id")
+      .eq("list_type", "watchlist");
+    const watchlistListIds: string[] = (watchlistListsRes.data ?? []).map((r: any) => r.id);
+
+    for (const movieId of attemptIds) {
+      const ratingsCountRes = await supabaseAdmin
+        .from("rankings")
+        .select("*", { count: "exact", head: true })
+        .eq("movie_id", movieId)
+        .not("ranking", "is", null);
+      const seenRes = await supabaseAdmin
+        .from("rankings")
+        .select("*", { count: "exact", head: true })
+        .eq("movie_id", movieId)
+        .eq("seen_it", true);
+      const ratingsRes = await supabaseAdmin
+        .from("rankings")
+        .select("ranking")
+        .eq("movie_id", movieId)
+        .not("ranking", "is", null);
+
+      const listsTotalRes = await supabaseAdmin
+        .from("movie_list_items")
+        .select("*", { count: "exact", head: true })
+        .eq("movie_id", movieId);
+      let watchRes = { count: 0 } as { count: number | null };
+      if (watchlistListIds.length > 0) {
+        watchRes = await supabaseAdmin
+          .from("movie_list_items")
+          .select("*", { count: "exact", head: true })
+          .eq("movie_id", movieId)
+          .in("list_id", watchlistListIds);
+      }
+
+      if ((ratingsCountRes.count ?? 0) > 0 || (seenRes.count ?? 0) > 0 || (ratingsRes.data?.length ?? 0) > 0 || (listsTotalRes.count ?? 0) > 0) {
+        totalRatings = ratingsCountRes.count ?? 0;
+        seen = seenRes.count ?? 0;
+        ratingsRows = (ratingsRes.data as any) || [];
+        listsTotal = listsTotalRes.count ?? 0;
+        watchlists = watchRes.count ?? 0;
+        break;
+      }
+    }
+
+    let avg: number | null = null;
+    if (ratingsRows.length > 0) {
+      const sum = ratingsRows.reduce((acc: number, row: any) => acc + (row.ranking as number), 0);
+      avg = sum / ratingsRows.length;
+    }
+    const histogram = Array.from({ length: 10 }, () => 0);
+    for (const row of ratingsRows) {
+      const v = Number(row.ranking);
+      if (Number.isFinite(v) && v >= 1 && v <= 10) histogram[v - 1] += 1;
+    }
+    communityStats = { totalRatings, avgRating: avg, seenCount: seen, watchlists, listsTotal, histogram };
+  } catch (e) {
+    console.warn("Community stats load failed:", e);
+  }
+
   // Fetch awards data from Awards API (if configured and movie has imdb_id)
   let awardsData: { badges?: string[]; nominations?: any[]; stats?: { nominations: number; wins: number } } | null = null;
   if (movie.imdb_id && process.env.AWARDS_API_BASE_URL && process.env.AWARDS_API_KEY) {
@@ -257,10 +341,53 @@ export default async function MovieDetailPage({ params }: any) {
               <p className="text-gray-500 text-sm italic">Coming soon from TMDB</p>
             </div>
           )}
+
+          {/* Community Stats moved to right column */}
         </div>
 
-        {/* Production & Financial */}
+        {/* Production & Financial (right column) */}
         <div className="space-y-6">
+          {/* Community Stats (right flanking director/cast) */}
+          <div className="p-4 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+            <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-3">Community Stats</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Total Ratings</span>
+                <span className="text-gray-200 font-semibold">{communityStats.totalRatings}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Average Rating</span>
+                <span className="text-gray-200 font-semibold">{communityStats.avgRating !== null ? communityStats.avgRating.toFixed(1) : "—"}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Seen It</span>
+                <span className="text-gray-200 font-semibold">{communityStats.seenCount}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">On Watchlist</span>
+                <span className="text-gray-200 font-semibold">{communityStats.watchlists}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">On Lists</span>
+                <span className="text-gray-200 font-semibold">{communityStats.listsTotal}</span>
+              </div>
+              <div className="mt-2">
+                <div className="text-xs text-gray-400 mb-1">Rating Distribution</div>
+                <div className="grid grid-cols-10 gap-1 items-end h-16">
+                  {communityStats.histogram.map((count, i) => {
+                    const max = Math.max(1, ...communityStats.histogram);
+                    const h = Math.round((count / max) * 100);
+                    return (
+                      <div key={i} className="flex flex-col items-center">
+                        <div className="w-2 sm:w-3 bg-yellow-500/70" style={{ height: `${h}%` }} />
+                        <div className="text-[10px] text-gray-500 mt-1">{i + 1}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
           {/* Production Companies */}
           {Array.isArray(movie.production_companies) && movie.production_companies.length > 0 && (
             <div className="p-4 rounded-lg bg-gray-900/40 border border-yellow-500/10">
@@ -340,59 +467,7 @@ export default async function MovieDetailPage({ params }: any) {
         </div>
       </div>
 
-      {/* Additional Metadata & IDs */}
-      <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
-        <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-4">Database & External IDs</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <div className="text-sm text-gray-400 mb-1">Database ID</div>
-            <div className="font-mono text-gray-200">{movie.id}</div>
-          </div>
-          
-          {movie.tmdb_id && (
-            <div>
-              <div className="text-sm text-gray-400 mb-1">TMDB ID</div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-gray-200">{movie.tmdb_id}</span>
-                <a
-                  href={`https://www.themoviedb.org/movie/${movie.tmdb_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-yellow-400 hover:text-yellow-300 transition-colors"
-                  title="Open on TMDB"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
-          )}
-
-          {movie.imdb_id && (
-            <div>
-              <div className="text-sm text-gray-400 mb-1">IMDB ID</div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-gray-200">{movie.imdb_id}</span>
-                <a
-                  href={`https://www.imdb.com/title/${movie.imdb_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-yellow-400 hover:text-yellow-300 transition-colors"
-                  title="Open on IMDB"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
-          )}
-
-          {movie.imdb_votes && (
-            <div>
-              <div className="text-sm text-gray-400 mb-1">IMDB Votes</div>
-              <div className="text-gray-200">{movie.imdb_votes.toLocaleString()}</div>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Additional Metadata & IDs moved to bottom */}
 
       {/* Videos Section */}
       {videos && Array.isArray(videos) && videos.length > 0 && (
@@ -505,33 +580,7 @@ export default async function MovieDetailPage({ params }: any) {
         )}
       </div>
 
-      {/* User Stats & Community */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Community Stats Stub */}
-        <div className="p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
-          <div className="flex items-center gap-3 mb-4">
-            <BarChart3 className="w-6 h-6 text-yellow-400" />
-            <h3 className="text-lg font-unbounded font-semibold text-yellow-400">Community Stats</h3>
-          </div>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center py-2 border-b border-gray-700">
-              <span className="text-gray-400">Total Ratings</span>
-              <span className="text-gray-200 font-semibold italic text-sm">Coming soon</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b border-gray-700">
-              <span className="text-gray-400">Average Rating</span>
-              <span className="text-gray-200 font-semibold italic text-sm">Coming soon</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-gray-400">On Watchlists</span>
-              <span className="text-gray-200 font-semibold italic text-sm">Coming soon</span>
-            </div>
-          </div>
-          <p className="text-gray-500 text-xs italic mt-4">
-            Aggregate user data from ReAwarding community
-          </p>
-        </div>
-      </div>
+      {/* User Stats & Community (removed for now; community stats moved to left column) */}
 
       {/* Similar Movies / Recommendations */}
       <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
@@ -546,39 +595,7 @@ export default async function MovieDetailPage({ params }: any) {
         )}
       </div>
 
-      {/* Technical Specs */}
-      <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
-        <div className="flex items-center gap-3 mb-4">
-          <Camera className="w-6 h-6 text-yellow-400" />
-          <h3 className="text-lg font-unbounded font-semibold text-yellow-400">Technical Specifications</h3>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 opacity-50">
-          <div>
-            <div className="text-sm text-gray-400 mb-1">Aspect Ratio</div>
-            <div className="text-gray-500 italic">Coming from TMDB</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-400 mb-1">Sound Mix</div>
-            <div className="text-gray-500 italic">Coming from TMDB</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-400 mb-1">Color</div>
-            <div className="text-gray-500 italic">Coming from TMDB</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-400 mb-1">Camera</div>
-            <div className="text-gray-500 italic">Coming from TMDB</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-400 mb-1">Film Length</div>
-            <div className="text-gray-500 italic">Coming from TMDB</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-400 mb-1">Negative Format</div>
-            <div className="text-gray-500 italic">Coming from TMDB</div>
-          </div>
-        </div>
-      </div>
+      {/* Technical Specs hidden for now */}
 
       {/* Streaming Availability */}
       <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
@@ -617,6 +634,57 @@ export default async function MovieDetailPage({ params }: any) {
               <li>• Streaming availability (JustWatch)</li>
             </ul>
           </div>
+        </div>
+      </div>
+
+      {/* Database & External IDs (bottom) */}
+      <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+        <h3 className="text-lg font-unbounded font-semibold text-yellow-400 mb-4">Database & External IDs</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <div className="text-sm text-gray-400 mb-1">Database ID</div>
+            <div className="font-mono text-gray-200">{movie.id}</div>
+          </div>
+          {movie.tmdb_id && (
+            <div>
+              <div className="text-sm text-gray-400 mb-1">TMDB ID</div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-gray-200">{movie.tmdb_id}</span>
+                <a
+                  href={`https://www.themoviedb.org/movie/${movie.tmdb_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-yellow-400 hover:text-yellow-300 transition-colors"
+                  title="Open on TMDB"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          )}
+          {movie.imdb_id && (
+            <div>
+              <div className="text-sm text-gray-400 mb-1">IMDB ID</div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-gray-200">{movie.imdb_id}</span>
+                <a
+                  href={`https://www.imdb.com/title/${movie.imdb_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-yellow-400 hover:text-yellow-300 transition-colors"
+                  title="Open on IMDB"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          )}
+          {movie.imdb_votes && (
+            <div>
+              <div className="text-sm text-gray-400 mb-1">IMDB Votes</div>
+              <div className="text-gray-200">{movie.imdb_votes.toLocaleString()}</div>
+            </div>
+          )}
         </div>
       </div>
     </div>

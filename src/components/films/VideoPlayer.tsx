@@ -1,4 +1,5 @@
 "use client";
+import HorizontalScroller from "@/components/ui/HorizontalScroller";
 
 import { useState } from "react";
 import { Play, X } from "lucide-react";
@@ -29,44 +30,43 @@ export default function VideoPlayer({ videos, className = "" }: VideoPlayerProps
 
   return (
     <div className={className}>
-      {/* Video Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Video Strip (horizontal scroll) */}
+      <HorizontalScroller>
         {displayVideos.map((video, index) => {
           if (!video.key) return null;
           
           return (
-            <button
-              key={video.key || index}
-              onClick={() => setSelectedVideo(video)}
-              className="group relative aspect-video rounded-lg overflow-hidden bg-gray-800 border border-yellow-500/20 hover:border-yellow-500/50 transition-all"
-            >
-              {/* YouTube Thumbnail */}
-              <img
-                src={`https://img.youtube.com/vi/${video.key}/mqdefault.jpg`}
-                alt={video.name || 'Video thumbnail'}
-                className="w-full h-full object-cover"
-              />
-              
-              {/* Play Overlay */}
-              <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full bg-yellow-500 group-hover:bg-yellow-400 flex items-center justify-center transition-colors">
-                  <Play className="w-6 h-6 text-gray-900 fill-gray-900" />
+            <div key={video.key || index} className="flex-shrink-0 w-[280px] sm:w-[360px] snap-start">
+              <button
+                onClick={() => setSelectedVideo(video)}
+                className="group relative aspect-video rounded-lg overflow-hidden bg-gray-800 border border-yellow-500/20 hover:border-yellow-500/50 transition-all w-full"
+              >
+                {/* YouTube Thumbnail */}
+                <img
+                  src={`https://img.youtube.com/vi/${video.key}/mqdefault.jpg`}
+                  alt={video.name || 'Video thumbnail'}
+                  className="w-full h-full object-cover"
+                />
+                {/* Play Overlay */}
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-yellow-500 group-hover:bg-yellow-400 flex items-center justify-center transition-colors">
+                    <Play className="w-6 h-6 text-gray-900 fill-gray-900" />
+                  </div>
                 </div>
-              </div>
-
-              {/* Video Info */}
-              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
-                <div className="text-sm font-medium text-white line-clamp-1">
-                  {video.name || 'Untitled'}
+                {/* Video Info */}
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
+                  <div className="text-sm font-medium text-white line-clamp-1">
+                    {video.name || 'Untitled'}
+                  </div>
+                  <div className="text-xs text-gray-300">
+                    {video.type || 'Video'}
+                  </div>
                 </div>
-                <div className="text-xs text-gray-300">
-                  {video.type || 'Video'}
-                </div>
-              </div>
-            </button>
+              </button>
+            </div>
           );
         })}
-      </div>
+      </HorizontalScroller>
 
       {/* Video Modal */}
       {selectedVideo && selectedVideo.key && (

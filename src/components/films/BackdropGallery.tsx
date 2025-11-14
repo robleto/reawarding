@@ -1,4 +1,5 @@
 "use client";
+import HorizontalScroller from "@/components/ui/HorizontalScroller";
 
 import { useState } from "react";
 import Image from "next/image";
@@ -49,36 +50,26 @@ export default function BackdropGallery({ images, className = "" }: BackdropGall
 
   return (
     <div className={className}>
-      {/* Image Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <HorizontalScroller>
         {displayImages.map((image, index) => (
-          <button
-            key={image.file_path || index}
-            onClick={() => openLightbox(index)}
-            className="group relative aspect-video rounded-lg overflow-hidden bg-gray-800 border border-yellow-500/20 hover:border-yellow-500/50 transition-all"
-          >
-            <Image
-              src={`${TMDB_IMAGE_BASE}w780${image.file_path}`}
-              alt={`Backdrop ${index + 1}`}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
-              unoptimized
-            />
-            
-            {/* Hover Overlay */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-          </button>
+          <div key={image.file_path || index} className="flex-shrink-0 w-[260px] sm:w-[320px] snap-start">
+            <button
+              onClick={() => openLightbox(index)}
+              className="group relative aspect-video rounded-lg overflow-hidden bg-gray-800 border border-yellow-500/20 hover:border-yellow-500/50 transition-all w-full"
+            >
+              <Image
+                src={`${TMDB_IMAGE_BASE}w780${image.file_path}`}
+                alt={`Backdrop ${index + 1}`}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                unoptimized
+              />
+              {/* Hover Overlay */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+            </button>
+          </div>
         ))}
-      </div>
-
-      {/* Show More Link */}
-      {validImages.length > 6 && (
-        <div className="mt-4 text-center">
-          <span className="text-sm text-gray-400">
-            + {validImages.length - 6} more images
-          </span>
-        </div>
-      )}
+      </HorizontalScroller>
 
       {/* Lightbox Modal */}
       {selectedIndex !== null && (

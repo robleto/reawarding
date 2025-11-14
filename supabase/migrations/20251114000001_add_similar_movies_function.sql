@@ -115,10 +115,17 @@ BEGIN
   WHERE 
     m.id != target_movie_id
     AND (
-      -- Must share at least one genre OR have same director OR share keywords
+      -- Prefer content-overlap candidates when data exists
       CARDINALITY(ARRAY(SELECT UNNEST(target_genres) INTERSECT SELECT UNNEST(COALESCE(m.genres, ARRAY[]::TEXT[])))) > 0
       OR m.director = target_director
       OR CARDINALITY(ARRAY(SELECT UNNEST(target_keywords) INTERSECT SELECT UNNEST(COALESCE(m.keywords, ARRAY[]::TEXT[])))) > 0
+      -- Fallback: if target has weak metadata, still allow decade+rating candidates
+      OR (
+        CARDINALITY(target_genres) = 0
+        AND CARDINALITY(target_keywords) = 0
+        AND target_director IS NULL
+        AND m.release_year IS NOT NULL
+      )
     )
   ORDER BY similarity_score DESC, m.imdb_rating DESC NULLS LAST
   LIMIT limit_count;
