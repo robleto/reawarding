@@ -2,11 +2,18 @@
 
 import React from "react";
 
-type TabKey = "best-picture"; // extendable for future tabs
+export type AwardsTabKey =
+  | "best-picture"
+  | "best-animated"
+  | "best-comedy"
+  | "best-drama";
 
-export function AwardsTabs({ value, onChange }: { value: TabKey; onChange: (v: TabKey) => void }) {
-  const tabs: { key: TabKey; label: string }[] = [
+export function AwardsTabs({ value, onChange }: { value: AwardsTabKey; onChange: (v: AwardsTabKey) => void }) {
+  const tabs: { key: AwardsTabKey; label: string }[] = [
     { key: "best-picture", label: "Best Picture" },
+    { key: "best-animated", label: "Best Animated" },
+    { key: "best-comedy", label: "Best Comedy" },
+    { key: "best-drama", label: "Best Drama" },
   ];
 
   return (

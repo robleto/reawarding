@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import EditableYearSection from "@/components/award/EditableYearSection";
-import { AwardsTabs } from "@/components/award/AwardsTabs";
+import { AwardsTabs, AwardsTabKey } from "@/components/award/AwardsTabs";
 import AwardsEmptyState from "@/components/award/AwardsEmptyState";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
@@ -19,7 +19,7 @@ interface YearData {
 export default function AwardsPage() {
 	const { movies, loading, isGuest } = useMovieDataWithGuest();
 	const [formattedYears, setFormattedYears] = useState<YearData[]>([]);
-	const [tab, setTab] = useState<"best-picture">("best-picture");
+	const [tab, setTab] = useState<AwardsTabKey>("best-picture");
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
 
@@ -36,9 +36,29 @@ export default function AwardsPage() {
 	useEffect(() => {
 		if (movies.length === 0) return;
 
-		const moviesWithRankings = movies.filter(
+		// Base: require a ranking
+		let moviesWithRankings = movies.filter(
 			(movie) => movie.rankings && movie.rankings.length > 0 && movie.rankings[0].ranking !== null
 		);
+
+		// Filter by selected tab/category
+		const hasGenre = (m: Movie, genre: string) =>
+			Array.isArray(m.genres) && m.genres.some((g) => g?.toLowerCase() === genre);
+		switch (tab) {
+			case "best-animated":
+				moviesWithRankings = moviesWithRankings.filter((m) => hasGenre(m, "animation") || hasGenre(m, "animated"));
+				break;
+			case "best-comedy":
+				moviesWithRankings = moviesWithRankings.filter((m) => hasGenre(m, "comedy"));
+				break;
+			case "best-drama":
+				moviesWithRankings = moviesWithRankings.filter((m) => hasGenre(m, "drama"));
+				break;
+			case "best-picture":
+			default:
+				// no extra filtering
+				break;
+		}
 
 		const groupedByYear = moviesWithRankings.reduce<Record<string, Movie[]>>(
 			(acc, movie) => {
@@ -77,7 +97,7 @@ export default function AwardsPage() {
 			.sort((a, b) => Number(b.year) - Number(a.year)); // Year DESC
 
 		setFormattedYears(years);
-	}, [movies]);
+	}, [movies, tab]);
 
 	if (loading) {
 		return (
@@ -128,6 +148,15 @@ export default function AwardsPage() {
 							allMoviesForYear={yearData.allMovies}
 						/>
 				))}
+				{tab !== "best-picture" && formattedYears.map((yearData) => (
+						<EditableYearSection
+							key={yearData.year}
+							year={yearData.year}
+							winner={yearData.winner}
+							movies={yearData.nominees}
+							allMoviesForYear={yearData.allMovies}
+						/>
+					))}
 			</div>
 
 			{/* Auth Modal */}
