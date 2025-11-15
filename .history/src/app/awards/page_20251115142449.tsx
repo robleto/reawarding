@@ -77,21 +77,11 @@ export default function AwardsPage() {
 					(a, b) => (b.rankings[0]?.ranking ?? 0) - (a.rankings[0]?.ranking ?? 0)
 				);
 
-				// Default nominees:
-				// - Best Picture: prefer 7+ first, then backfill to 10 with next highest
-				// - Other categories: top 10 regardless of score
-				let defaultNominees: Movie[];
-				if (tab === "best-picture") {
-					const high = sorted.filter((m) => (m.rankings[0]?.ranking ?? 0) >= 7).slice(0, 10);
-					if (high.length < 10) {
-						const remaining = sorted.filter((m) => !high.includes(m)).slice(0, 10 - high.length);
-						defaultNominees = [...high, ...remaining];
-					} else {
-						defaultNominees = high;
-					}
-				} else {
-					defaultNominees = sorted.slice(0, 10);
-				}
+				// Default nominees: Best Picture uses 7+ threshold; others use top 10 regardless
+				const defaultNominees =
+					tab === "best-picture"
+						? sorted.filter((movie) => (movie.rankings[0]?.ranking ?? 0) >= 7).slice(0, 10)
+						: sorted.slice(0, 10);
 
 				// Default winner: for Best Picture prefer highest among nominees (or highest overall if none);
 				// other categories: highest overall
@@ -154,7 +144,7 @@ export default function AwardsPage() {
 			<div className="max-w-screen-xl mx-auto">
 				{formattedYears.map((yearData) => (
 					<EditableYearSection
-						key={`${yearData.year}-${tab}`}
+						key={yearData.year}
 						year={yearData.year}
 						winner={yearData.winner}
 						movies={yearData.nominees}

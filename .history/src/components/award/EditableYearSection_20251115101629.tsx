@@ -118,22 +118,14 @@ export default function EditableYearSection({
     } finally {
       setLoadingNominations(false);
     }
-  }, [year, allMoviesForYear, movies, winner, category]);
+  }, [year, allMoviesForYear, movies, winner]);
 
   // Load custom nominations on component mount
   useEffect(() => {
     if (user) {
       loadExistingNominations();
     }
-  }, [user, year, category, loadExistingNominations]);
-
-  // Keep display state in sync when defaults change and there are no custom nominations
-  useEffect(() => {
-    if (!hasCustomNominations) {
-      setCurrentNominees(movies);
-      setCurrentWinner(winner || null);
-    }
-  }, [movies, winner, category, hasCustomNominations]);
+  }, [user, year, loadExistingNominations]);
 
   const handleStartEditing = () => {
     // Initialize edit state with current nominees/winner (could be custom or default)
@@ -417,7 +409,7 @@ export default function EditableYearSection({
                   )}
                   {!isEditing && !hasCustomNominations && (
                     <span className="px-2 py-1 text-xs font-medium text-gray-500 rounded dark:bg-gray-950 bg-gray-50">
-                      {category === 'best-picture' ? 'Default (Top 10 • 7+ first)' : 'Default (Top 10)'}
+                      Default (Top 10)
                     </span>
                   )}
                 </div>
@@ -461,7 +453,7 @@ export default function EditableYearSection({
                       <button
                         onClick={handleResetToDefault}
                         className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-orange-600 transition-colors rounded-lg bg-orange-50 hover:bg-orange-100"
-                        title={category === 'best-picture' ? 'Reset to default nominees (7+ first, then fill to 10)' : 'Reset to default nominees (top 10)'}
+                        title="Reset to default nominees (top 10)"
                       >
                         <RotateCcw className="w-4 h-4" />
                         Reset

@@ -1,0 +1,43 @@
+# Dropbox Ignore: prevent noisy build/runtime artifacts from syncing
+# Build caches
+.next/
+.turbo/
+
+# Dependencies
+node_modules/
+
+# Python virtual environment
+.venv/
+**/__pycache__/
+*.pyc
+
+# Editor and local state
+.vscode/
+.DS_Store
+
+# Environment & secrets (never sync .env* files)
+.env*
+
+# Generated / output / temp
+coverage/
+dist/
+build/
+.vercel/
+.tmp/
+.tmp*/
+.history/
+
+# Supabase temp artifacts / local state
+supabase/.temp/
+
+# OS / misc
+Thumbs.db
+
+# Logs
+*.log
+
+# Images cache folders (if any mirrors created)
+public/posters/*
+public/thumbs/*
+
+# If you need to sync posters/thumbs remove above lines.

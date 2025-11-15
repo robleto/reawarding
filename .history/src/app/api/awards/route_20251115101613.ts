@@ -208,7 +208,6 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
-    const category = (searchParams.get('category') || 'best-picture') as 'best-picture' | 'best-animated' | 'best-comedy' | 'best-drama';
     if (!year) {
       return NextResponse.json({ error: 'Year parameter is required' }, { status: 400 });
     }
@@ -242,8 +241,7 @@ export async function DELETE(request: Request) {
       .from('awards')
       .delete()
       .eq('user_id', user.id)
-      .eq('year', year)
-      .eq('category', category);
+      .eq('year', year);
     if (error) {
       return NextResponse.json({ error: error.message, details: error }, { status: 500 });
     }

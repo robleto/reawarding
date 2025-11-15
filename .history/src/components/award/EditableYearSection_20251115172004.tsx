@@ -118,22 +118,14 @@ export default function EditableYearSection({
     } finally {
       setLoadingNominations(false);
     }
-  }, [year, allMoviesForYear, movies, winner, category]);
+  }, [year, allMoviesForYear, movies, winner]);
 
   // Load custom nominations on component mount
   useEffect(() => {
     if (user) {
       loadExistingNominations();
     }
-  }, [user, year, category, loadExistingNominations]);
-
-  // Keep display state in sync when defaults change and there are no custom nominations
-  useEffect(() => {
-    if (!hasCustomNominations) {
-      setCurrentNominees(movies);
-      setCurrentWinner(winner || null);
-    }
-  }, [movies, winner, category, hasCustomNominations]);
+  }, [user, year, loadExistingNominations]);
 
   const handleStartEditing = () => {
     // Initialize edit state with current nominees/winner (could be custom or default)
