@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS movie_lists (
     name TEXT NOT NULL,
     description TEXT,
     is_public BOOLEAN DEFAULT FALSE,
+    -- Durable marker for default user watchlist
+    list_type TEXT NOT NULL DEFAULT 'custom' CHECK (list_type IN ('custom','watchlist')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -21,6 +23,7 @@ CREATE TABLE IF NOT EXISTS movie_lists (
 -- Create index for faster queries
 CREATE INDEX IF NOT EXISTS movie_lists_user_id_idx ON movie_lists(user_id);
 CREATE INDEX IF NOT EXISTS movie_lists_is_public_idx ON movie_lists(is_public);
+CREATE INDEX IF NOT EXISTS movie_lists_list_type_idx ON movie_lists(list_type);
 
 -- Enable RLS (Row Level Security)
 ALTER TABLE movie_lists ENABLE ROW LEVEL SECURITY;
@@ -131,8 +134,8 @@ CREATE TRIGGER update_movie_list_items_updated_at
 
 ```sql
 -- Insert some sample lists for testing (replace with actual user_id)
-INSERT INTO movie_lists (user_id, name, description, is_public) VALUES
-('your-user-id-here', 'My Watchlist', 'Movies I want to watch', false),
+INSERT INTO movie_lists (user_id, name, description, is_public, list_type) VALUES
+('your-user-id-here', 'Watchlist', 'Movies I want to watch', false, 'watchlist'),
 ('your-user-id-here', 'Top 10 of 2023', 'My favorite movies from 2023', true),
 ('your-user-id-here', 'Best Picture Winners', 'Collection of Best Picture Oscar winners', true);
 ```
@@ -151,6 +154,13 @@ INSERT INTO movie_lists (user_id, name, description, is_public) VALUES
    - Users can only modify their own lists and list items
 
 5. **Indexes**: The indexes are created to optimize query performance for common operations.
+6. **Watchlist Uniqueness**: Enforce at most one watchlist per user (recommended):
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_user_watchlist
+ON movie_lists(user_id)
+WHERE list_type = 'watchlist';
+```
 
 ## Testing
 

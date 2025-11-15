@@ -106,6 +106,7 @@ export interface Database {
 					name: string;
 					description: string | null;
 					is_public: boolean;
+					list_type: string;
 					created_at?: string;
 					updated_at: string;
 				};
@@ -115,6 +116,7 @@ export interface Database {
 					name: string;
 					description?: string | null;
 					is_public?: boolean;
+					list_type?: string;
 					created_at?: string;
 					updated_at?: string;
 				};
