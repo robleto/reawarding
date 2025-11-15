@@ -114,8 +114,7 @@ export async function POST(request: Request) {
       console.error('Failed to parse JSON body:', jsonErr);
       return NextResponse.json({ error: 'Invalid JSON body', details: jsonErr instanceof Error ? jsonErr.message : jsonErr }, { status: 400 });
     }
-    const { year, nominee_ids, winner_id, category: bodyCategory } = body;
-    const category = (bodyCategory || 'best-picture') as 'best-picture' | 'best-animated' | 'best-comedy' | 'best-drama';
+    const { year, nominee_ids, winner_id } = body;
     console.log('Incoming POST body:', body);
 
     if (!year || !Array.isArray(nominee_ids)) {
@@ -133,7 +132,6 @@ export async function POST(request: Request) {
     const upsertPayload = {
       user_id: user.id,
       year: Number(year),
-      category,
       nominee_ids: nominee_ids,
       winner_id: winner_id || null,
       updated_at: new Date().toISOString(),
@@ -179,7 +177,7 @@ export async function POST(request: Request) {
     // Upsert the user's custom nominations/winner for the year into awards table
     const { data, error } = await supabase
       .from('awards')
-      .upsert(upsertPayload, { onConflict: 'user_id,year,category' })
+      .upsert(upsertPayload, { onConflict: 'user_id,year' })
       .select();
 
     if (error) {
@@ -208,7 +206,6 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
-    const category = (searchParams.get('category') || 'best-picture') as 'best-picture' | 'best-animated' | 'best-comedy' | 'best-drama';
     if (!year) {
       return NextResponse.json({ error: 'Year parameter is required' }, { status: 400 });
     }
@@ -242,8 +239,7 @@ export async function DELETE(request: Request) {
       .from('awards')
       .delete()
       .eq('user_id', user.id)
-      .eq('year', year)
-      .eq('category', category);
+      .eq('year', year);
     if (error) {
       return NextResponse.json({ error: error.message, details: error }, { status: 500 });
     }

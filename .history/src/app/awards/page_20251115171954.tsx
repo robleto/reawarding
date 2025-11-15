@@ -154,7 +154,7 @@ export default function AwardsPage() {
 			<div className="max-w-screen-xl mx-auto">
 				{formattedYears.map((yearData) => (
 					<EditableYearSection
-						key={`${yearData.year}-${tab}`}
+						key={yearData.year}
 						year={yearData.year}
 						winner={yearData.winner}
 						movies={yearData.nominees}

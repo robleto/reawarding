@@ -42,8 +42,8 @@ export default function AwardsPage() {
 		);
 
 		// Filter by selected tab/category
-		const hasGenre = (m: Movie, needle: string) =>
-			Array.isArray(m.genres) && m.genres.some((g) => String(g ?? '').toLowerCase().includes(needle));
+		const hasGenre = (m: Movie, genre: string) =>
+			Array.isArray(m.genres) && m.genres.some((g) => g?.toLowerCase() === genre);
 		switch (tab) {
 			case "best-animated":
 				moviesWithRankings = moviesWithRankings.filter((m) => hasGenre(m, "animation") || hasGenre(m, "animated"));
@@ -77,28 +77,14 @@ export default function AwardsPage() {
 					(a, b) => (b.rankings[0]?.ranking ?? 0) - (a.rankings[0]?.ranking ?? 0)
 				);
 
-				// Default nominees:
-				// - Best Picture: prefer 7+ first, then backfill to 10 with next highest
-				// - Other categories: top 10 regardless of score
-				let defaultNominees: Movie[];
-				if (tab === "best-picture") {
-					const high = sorted.filter((m) => (m.rankings[0]?.ranking ?? 0) >= 7).slice(0, 10);
-					if (high.length < 10) {
-						const remaining = sorted.filter((m) => !high.includes(m)).slice(0, 10 - high.length);
-						defaultNominees = [...high, ...remaining];
-					} else {
-						defaultNominees = high;
-					}
-				} else {
-					defaultNominees = sorted.slice(0, 10);
-				}
+				// Default nominees: top 10 movies ranked 7 or above
+				const defaultNominees = sorted
+					.filter((movie) => (movie.rankings[0]?.ranking ?? 0) >= 7)
+					.slice(0, 10);
 
-				// Default winner: for Best Picture prefer highest among nominees (or highest overall if none);
-				// other categories: highest overall
+				// Default winner: highest ranked among nominees (or highest overall if no 7+ movies)
 				const defaultWinner =
-					tab === "best-picture"
-						? (defaultNominees.length > 0 ? defaultNominees[0] : sorted[0])
-						: sorted[0];
+					defaultNominees.length > 0 ? defaultNominees[0] : sorted[0];
 
 				return {
 					year,
@@ -152,16 +138,25 @@ export default function AwardsPage() {
 			</div>
 
 			<div className="max-w-screen-xl mx-auto">
-				{formattedYears.map((yearData) => (
-					<EditableYearSection
-						key={`${yearData.year}-${tab}`}
-						year={yearData.year}
-						winner={yearData.winner}
-						movies={yearData.nominees}
-						allMoviesForYear={yearData.allMovies}
-						category={tab}
-					/>
+				{/* Best Picture tab content */}
+				{tab === "best-picture" && formattedYears.map((yearData) => (
+						<EditableYearSection
+							key={yearData.year}
+							year={yearData.year}
+							winner={yearData.winner}
+							movies={yearData.nominees}
+							allMoviesForYear={yearData.allMovies}
+						/>
 				))}
+				{tab !== "best-picture" && formattedYears.map((yearData) => (
+						<EditableYearSection
+							key={yearData.year}
+							year={yearData.year}
+							winner={yearData.winner}
+							movies={yearData.nominees}
+							allMoviesForYear={yearData.allMovies}
+						/>
+					))}
 			</div>
 
 			{/* Auth Modal */}
