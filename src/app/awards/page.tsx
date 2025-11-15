@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import EditableYearSection from "@/components/award/EditableYearSection";
+import { AwardsTabs } from "@/components/award/AwardsTabs";
 import AwardsEmptyState from "@/components/award/AwardsEmptyState";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
@@ -18,6 +19,7 @@ interface YearData {
 export default function AwardsPage() {
 	const { movies, loading, isGuest } = useMovieDataWithGuest();
 	const [formattedYears, setFormattedYears] = useState<YearData[]>([]);
+	const [tab, setTab] = useState<"best-picture">("best-picture");
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
 
@@ -110,8 +112,14 @@ export default function AwardsPage() {
 				/>
 			)}
 
+			{/* Awards section tabs */}
+			<div className="max-w-screen-xl mx-auto px-2 sm:px-4">
+				<AwardsTabs value={tab} onChange={setTab} />
+			</div>
+
 			<div className="max-w-screen-xl mx-auto">
-				{formattedYears.map((yearData) => (
+				{/* Best Picture tab content */}
+				{tab === "best-picture" && formattedYears.map((yearData) => (
 						<EditableYearSection
 							key={yearData.year}
 							year={yearData.year}

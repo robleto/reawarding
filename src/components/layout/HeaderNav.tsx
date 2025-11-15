@@ -27,7 +27,7 @@ export default function HeaderNav() {
 	const { profile } = useEnsureProfile(user);
 
 	const navItems = [
-		{ label: "Best Picture", href: "/awards", match: "/awards" },
+		{ label: "Awards", href: "/awards", match: "/awards" },
 		{ label: "Rankings", href: "/rankings", match: "/rankings" },
 		{ label: "Films", href: "/films", match: "/films" },
 		{ label: "Lists", href: "/lists", match: "/lists" },
