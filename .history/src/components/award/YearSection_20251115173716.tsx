@@ -1,0 +1,114 @@
+import React from "react";
+import MovieCard from "./MovieCard";
+import WinnerCard from "./WinnerCard";
+import type { Movie } from "@/types/types";
+
+interface LocalMovie {
+	id: string;
+	title: string;
+	thumb_url: string;
+	cached_thumb_url?: string | null;
+	poster_url: string;
+	cached_poster_url?: string | null;
+	ranking: number;
+}
+
+interface YearSectionProps {
+	year: string;
+	movies: LocalMovie[];
+	winner?: LocalMovie | null;
+}
+
+export default function YearSection({
+	year,
+	movies,
+	winner,
+}: YearSectionProps) {
+	const nomineeList = movies
+		.filter((movie) => !winner || movie.id !== winner.id)
+		.filter((movie) => movie.ranking >= 7)
+		.sort((a, b) => b.ranking - a.ranking)
+		.slice(0, 10);
+
+	// Convert local movie format to global Movie type for child components
+	const convertToGlobalMovie = (localMovie: LocalMovie): Movie => ({
+		id: parseInt(localMovie.id),
+		title: localMovie.title,
+		release_year: parseInt(year),
+		poster_url: localMovie.poster_url,
+		cached_poster_url: localMovie.cached_poster_url,
+		thumb_url: localMovie.thumb_url,
+		cached_thumb_url: localMovie.cached_thumb_url,
+		created_at: new Date().toISOString(),
+		rankings: [{
+			ranking: localMovie.ranking,
+			seen_it: true,
+			user_id: ''
+		}]
+	});
+
+	return (
+		<section className="w-full max-w-screen-xl px-6 py-0 mx-auto my-0 font-sans">
+			<div className="relative flex flex-col gap-3 md:flex-row md:gap-8">
+				{/* Timeline and year label */}
+				<h2 className="hidden md:block md:absolute top-0 md:top-[125px] left-0 text-3xl font-bold text-[#A0A0A0] dark:text-[#9CA3AF] mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-widest">
+					{year}
+				</h2>
+				<div className="top-0 bottom-0 flex-col items-center hidden md:absolute md:flex left-4">
+					<div className="w-5 h-5 mt-2 rounded-full bg-[#A0A0A0] dark:bg-[#9CA3AF] border-2 border-[#F4F4F4] dark:border-gray-800" />
+					<div className="w-[2px] flex-1 bg-[#bebebe] dark:bg-gray-600" />
+				</div>
+
+				{/* Spacer to account for timeline offset */}
+				<div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
+
+				{/* Content block */}
+				<div className="flex flex-col md:flex-row w-full rounded-xl shadow-md border border-[#d6d6d3] dark:border-gray-600/50 p-3 md:p-6 mb-8 md:mb-24 gap-4 md:gap-12 transition-all duration-300 hover:shadow-lg light-glass dark:dark-glass">
+					{/* Winner */}
+					<div className="w-full md:w-1/3 max-w-[300px] mx-auto">
+						<div className="inline-flex items-center justify-center gap-2 mb-2 md:mb-4">
+							<span className="text-xl">🏆</span>
+							<h3 className="text-xl md:text-2xl font-bold text-[#cb8601] dark:text-yellow-400 font-unbounded">
+								Winner
+							</h3>
+						</div>
+						{winner ? (
+							<WinnerCard
+								movie={convertToGlobalMovie(winner)}
+							/>
+						) : (
+							<div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+								No winner selected yet.
+							</div>
+						)}
+					</div>
+
+
+					{/* Divider */}
+					<div className="hidden md:block w-px bg-[#d6d6d3] dark:bg-gray-600/50" />
+
+					{/* Nominees */}
+						<div className="w-full md:w-2/3">
+							<div className="flex items-center gap-2 mb-2 md:mb-4">
+							<span className="text-xl">✉️</span>
+
+							<h3 className="text-xl md:text-2xl font-bold text-[#7e7e7e] dark:text-gray-200">
+
+								Nominees
+							</h3>
+						</div>
+
+							<div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4">
+							{nomineeList.map((movie) => (
+								<MovieCard
+									key={movie.id}
+									movie={convertToGlobalMovie(movie)}
+								/>
+							))}
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	);
+}
