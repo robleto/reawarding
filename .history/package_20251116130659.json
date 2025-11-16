@@ -10,8 +10,6 @@
     "lint": "next lint",
     "backfill:imdb": "TS_NODE_TRANSPILE_ONLY=1 npx ts-node scripts/backfill-imdb-ids.ts",
     "backfill:tmdb": "TS_NODE_TRANSPILE_ONLY=1 npx ts-node scripts/backfill-tmdb-ids.ts",
-    "func:deploy:backfill-ids": "supabase functions deploy backfill-external-ids",
-    "func:invoke:backfill-ids": "bash -lc 'set -a; source .env >/dev/null 2>&1 || true; curl -sS -X POST \"$NEXT_PUBLIC_SUPABASE_URL/functions/v1/backfill-external-ids?mode=both&limit=300\" -H \"X-CRON-SECRET: $CRON_SECRET\"'",
     "ingest:fresh": "bash -lc 'set -a; source .env >/dev/null 2>&1 || true; curl -sS -X POST \"$NEXT_PUBLIC_SUPABASE_URL/functions/v1/tmdb-fresh-movies\" -H \"X-CRON-SECRET: $CRON_SECRET\" -H \"Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY\"'",
     "clean": "rm -rf .next .turbo && echo '✅ Cleared Next.js and Turbopack caches'",
     "rebuild": "npm run clean && npm run build"

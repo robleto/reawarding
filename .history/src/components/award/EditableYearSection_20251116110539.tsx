@@ -264,14 +264,12 @@ export default function EditableYearSection({
           statusText: response.statusText,
           errorData,
         });
-        const detailsObj = {
+        setErrorDetails({
           source: 'api',
           status: response.status,
           code: errorData?.details?.code || errorData?.code,
           details: errorData,
-        } as const;
-        setErrorDetails(detailsObj);
-        console.warn('AWARDS_SAVE_ERROR_API', detailsObj);
+        });
         throw new Error(errorMessage);
       }
 
@@ -334,9 +332,7 @@ export default function EditableYearSection({
               ? 'Permission denied by database policies. Please sign in and try again.'
               : (upsertError.message || 'Failed to save nominations');
             setError(msg);
-            const detailsObj = { source: 'client-upsert', code: upsertError.code, details: upsertError } as const;
-            setErrorDetails(detailsObj);
-            console.warn('AWARDS_SAVE_ERROR_CLIENT', detailsObj);
+            setErrorDetails({ source: 'client-upsert', code: upsertError.code, details: upsertError });
             showToast(msg, 'error');
           } else {
             console.log('Client upsert success:', data);
@@ -350,18 +346,14 @@ export default function EditableYearSection({
           console.error('Fallback upsert threw:', fallbackErr);
           const msg = fallbackErr instanceof Error ? fallbackErr.message : 'Failed to save nominations';
           setError(msg);
-          const detailsObj = { source: 'client-upsert', details: fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr) } as const;
-          setErrorDetails(detailsObj);
-          console.warn('AWARDS_SAVE_ERROR_CLIENT_THROW', detailsObj);
+          setErrorDetails({ source: 'client-upsert', details: fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr) });
           showToast(msg, 'error');
         }
       } else {
         console.error('Error saving nominations:', error);
         const msg = error instanceof Error ? error.message : 'Failed to save nominations';
         setError(msg);
-        const detailsObj = { source: 'api', details: error instanceof Error ? error.message : String(error) } as const;
-        setErrorDetails(detailsObj);
-        console.warn('AWARDS_SAVE_ERROR', detailsObj);
+        setErrorDetails({ source: 'api', details: error instanceof Error ? error.message : String(error) });
         showToast(msg, 'error');
       }
     } finally {
@@ -493,37 +485,6 @@ export default function EditableYearSection({
 {typeof errorDetails.details === 'string' ? errorDetails.details : JSON.stringify(errorDetails.details, null, 2)}
                     </pre>
                   )}
-                  <div className="pt-1">
-                    <button
-                      onClick={async () => {
-                        const payload = {
-                          status: errorDetails.status,
-                          code: errorDetails.code,
-                          source: errorDetails.source,
-                          hint: errorDetails.hint,
-                          details: errorDetails.details,
-                          year,
-                          category,
-                        };
-                        try {
-                          const text = typeof payload.details === 'string'
-                            ? JSON.stringify(payload, null, 2)
-                            : JSON.stringify(payload, null, 2);
-                          if (navigator?.clipboard?.writeText) {
-                            await navigator.clipboard.writeText(text);
-                            showToast('Error details copied', 'success');
-                          } else {
-                            showToast('Clipboard unavailable', 'error');
-                          }
-                        } catch (e) {
-                          showToast('Failed to copy details', 'error');
-                        }
-                      }}
-                      className="text-[11px] px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-100"
-                    >
-                      Copy details
-                    </button>
-                  </div>
                 </div>
               )}
             </div>

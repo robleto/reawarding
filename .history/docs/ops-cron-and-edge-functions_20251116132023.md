@@ -13,8 +13,8 @@ select jobid, schedule, command, active from cron.job order by jobid;
 
 ## Secrets and permissions
 
-- Wrappers read from `vault.decrypted_secrets` (e.g., `CRON_SECRET`, `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) via SECURITY DEFINER functions owned by `postgres`.
-- Authorization header: required in this project. Wrappers send `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` and `X-CRON-SECRET`.
+- Cron reads `vault.decrypted_secrets` (e.g., `CRON_SECRET`) via a SECURITY DEFINER wrapper owned by `postgres`.
+- Wrapper: `admin.invoke_tmdb_trending_movies()` calls `net.http_post` with the Authorization header.
 
 ## Freshness helper
 
@@ -39,7 +39,7 @@ select cron.schedule(
 
 - Edge Function: `backfill-external-ids` (deployed in `supabase/functions/backfill-external-ids/`)
 - Wrapper: `admin.invoke_backfill_external_ids(mode text default 'both', limit int default 300, offset int default 0, dry_run boolean default false)`
-- Secrets: via Vault — set `SUPABASE_URL` and `CRON_SECRET`. The function itself uses its own env (e.g., `TMDB_API_KEY`) set via `supabase functions secrets`.
+- Secrets: uses GUCs `app.settings.supabase_url`, `app.settings.cron_secret`, `app.settings.service_role_key`
 
 ### Manual runs
 
@@ -80,7 +80,6 @@ Notes:
 - Start with a dry run to gauge matches; check `imports` table rows with status `backfill_external_ids_run` for a quick pulse.
 - For very large catalogs, run multiple offsets (e.g., 0, 1000, 2000) in staggered schedules.
 - The Edge Function rate-limits TMDB calls (`delay` and `concurrency` query params) to avoid quotas.
-- Manual HTTP calls do not require Authorization header; only send `X-CRON-SECRET`.
 
 ## Troubleshooting
 

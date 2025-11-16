@@ -12,7 +12,6 @@ import SelectableMovieItem from "./SelectableMovieItem";
 import MovieDetailModal from "../movie/MovieDetailModal";
 import type { Movie } from "@/types/types";
 import type { User } from '@supabase/supabase-js';
-import { useGlobalToast } from '@/hooks/useGlobalToast';
 
 interface AwardNomination {
   nominee_ids: number[];
@@ -51,7 +50,6 @@ export default function EditableYearSection({
   category = 'best-picture',
 }: EditableYearSectionProps) {
   const user = useSupabaseUser();
-  const { showToast } = useGlobalToast();
   if (process.env.NODE_ENV === "development") {
     console.log('EditableYearSection user:', user);
   }
@@ -62,14 +60,6 @@ export default function EditableYearSection({
   const [activeId, setActiveId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [errorDetails, setErrorDetails] = useState<{
-    source?: 'api' | 'client-upsert' | 'reset' | 'load';
-    status?: number;
-    code?: string;
-    hint?: string;
-    details?: any;
-  } | null>(null);
-  const [showErrorDetails, setShowErrorDetails] = useState(false);
   const [loadingNominations, setLoadingNominations] = useState(false);
   const [hasCustomNominations, setHasCustomNominations] = useState(false);
 
@@ -121,13 +111,10 @@ export default function EditableYearSection({
         if (response.status === 503) {
           console.info('Award nominations feature not yet available');
         }
-        setError('Failed to load existing nominations');
-        setErrorDetails({ source: 'load', status: response.status, details: response.statusText });
       }
     } catch (error) {
       console.error('Error loading nominations:', error);
       setError('Failed to load existing nominations');
-      setErrorDetails({ source: 'load', details: error instanceof Error ? error.message : String(error) });
     } finally {
       setLoadingNominations(false);
     }
@@ -159,8 +146,6 @@ export default function EditableYearSection({
     
     setIsEditing(true);
     setError(null);
-    setErrorDetails(null);
-    setShowErrorDetails(false);
   };
 
   const handleCancelEditing = () => {
@@ -169,8 +154,6 @@ export default function EditableYearSection({
     setSelectedWinner(null);
     setAvailableMovies([]);
     setError(null);
-    setErrorDetails(null);
-    setShowErrorDetails(false);
   };
 
   const handleAddNominee = (movie: Movie) => {
@@ -223,17 +206,6 @@ export default function EditableYearSection({
 
     setIsSaving(true);
     setError(null);
-    setErrorDetails(null);
-    setShowErrorDetails(false);
-
-    const friendlyFromServer = (status: number, errorData: any, fallbackText: string) => {
-      if (status === 401) return 'Please sign in to save your nominations.';
-      if (status === 503) return 'Awards feature is currently unavailable. Please try later.';
-      const serverMsg = errorData?.error || errorData?.message || '';
-      if (/Winner must be among nominees/i.test(serverMsg)) return 'Winner must be among nominees.';
-      if (/Maximum 10 nominees/i.test(serverMsg)) return 'Maximum 10 nominees allowed.';
-      return fallbackText;
-    };
 
     try {
       // Primary path: use Next.js API route (server validates + ensures profile)
@@ -255,7 +227,7 @@ export default function EditableYearSection({
         let errorData = null;
         try {
           errorData = await response.json();
-          errorMessage = friendlyFromServer(response.status, errorData, errorMessage);
+          errorMessage = errorData.error || errorMessage;
         } catch {
           errorMessage = response.statusText || errorMessage;
         }
@@ -264,14 +236,6 @@ export default function EditableYearSection({
           statusText: response.statusText,
           errorData,
         });
-        const detailsObj = {
-          source: 'api',
-          status: response.status,
-          code: errorData?.details?.code || errorData?.code,
-          details: errorData,
-        } as const;
-        setErrorDetails(detailsObj);
-        console.warn('AWARDS_SAVE_ERROR_API', detailsObj);
         throw new Error(errorMessage);
       }
 
@@ -284,7 +248,6 @@ export default function EditableYearSection({
       setCurrentWinner(selectedWinner);
       setHasCustomNominations(true);
       setIsEditing(false);
-      showToast('Nominations saved', 'success');
     } catch (error) {
       // Network fallback: attempt direct Supabase upsert from the browser
       const isNetwork = error instanceof Error && (
@@ -295,8 +258,7 @@ export default function EditableYearSection({
       if (isNetwork && user) {
         console.warn('API unavailable, falling back to client Supabase upsert');
         try {
-          const doUpsert = async () => {
-            return await supabase
+          const { data, error: upsertError } = await supabase
             .from('awards')
             .upsert({
               user_id: user.id,
@@ -308,61 +270,24 @@ export default function EditableYearSection({
               created_at: new Date().toISOString(),
             }, { onConflict: 'user_id,year,category' })
             .select();
-          };
-
-          let { data, error: upsertError } = await doUpsert();
-
-          // If foreign key to profiles fails, create a minimal profile then retry
-          if (upsertError && upsertError.code === '23503') {
-            console.warn('Missing profile detected, creating a minimal profile and retrying');
-            const fallbackUsername = user.email ? user.email.split('@')[0] : user.id.slice(0, 8);
-            await supabase.from('profiles').upsert({
-              id: user.id,
-              username: fallbackUsername,
-              full_name: null,
-              avatar_url: null,
-              bio: null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
-            ({ data, error: upsertError } = await doUpsert());
-          }
 
           if (upsertError) {
             console.error('Client Supabase upsert failed:', upsertError);
-            const msg = /row-level security|RLS|permission/i.test(upsertError.message || '')
-              ? 'Permission denied by database policies. Please sign in and try again.'
-              : (upsertError.message || 'Failed to save nominations');
-            setError(msg);
-            const detailsObj = { source: 'client-upsert', code: upsertError.code, details: upsertError } as const;
-            setErrorDetails(detailsObj);
-            console.warn('AWARDS_SAVE_ERROR_CLIENT', detailsObj);
-            showToast(msg, 'error');
+            setError(upsertError.message || 'Failed to save nominations');
           } else {
             console.log('Client upsert success:', data);
             setCurrentNominees(nominees);
             setCurrentWinner(selectedWinner);
             setHasCustomNominations(true);
             setIsEditing(false);
-            showToast('Nominations saved (offline fallback)', 'success');
           }
         } catch (fallbackErr) {
           console.error('Fallback upsert threw:', fallbackErr);
-          const msg = fallbackErr instanceof Error ? fallbackErr.message : 'Failed to save nominations';
-          setError(msg);
-          const detailsObj = { source: 'client-upsert', details: fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr) } as const;
-          setErrorDetails(detailsObj);
-          console.warn('AWARDS_SAVE_ERROR_CLIENT_THROW', detailsObj);
-          showToast(msg, 'error');
+          setError(fallbackErr instanceof Error ? fallbackErr.message : 'Failed to save nominations');
         }
       } else {
         console.error('Error saving nominations:', error);
-        const msg = error instanceof Error ? error.message : 'Failed to save nominations';
-        setError(msg);
-        const detailsObj = { source: 'api', details: error instanceof Error ? error.message : String(error) } as const;
-        setErrorDetails(detailsObj);
-        console.warn('AWARDS_SAVE_ERROR', detailsObj);
-        showToast(msg, 'error');
+        setError(error instanceof Error ? error.message : 'Failed to save nominations');
       }
     } finally {
       setIsSaving(false);
@@ -392,7 +317,6 @@ export default function EditableYearSection({
       setIsEditing(false);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to reset nominations');
-      setErrorDetails({ source: 'reset', details: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsSaving(false);
     }
@@ -469,63 +393,9 @@ export default function EditableYearSection({
 
           {/* Error Message */}
           {error && (
-            <div className="p-3 mb-4 rounded-lg border border-red-200 bg-red-50">
-              <div className="flex items-center gap-2 text-red-700">
-                <AlertCircle className="w-5 h-5" />
-                <span className="text-sm">{error}</span>
-                {errorDetails && (
-                  <button
-                    onClick={() => setShowErrorDetails(v => !v)}
-                    className="ml-auto text-xs font-medium underline decoration-red-300 hover:decoration-red-500"
-                  >
-                    {showErrorDetails ? 'Hide details' : 'Why did this fail?'}
-                  </button>
-                )}
-              </div>
-              {errorDetails && showErrorDetails && (
-                <div className="mt-2 text-xs text-red-800 space-y-1">
-                  {errorDetails.status && (<div>Status: {errorDetails.status}</div>)}
-                  {errorDetails.code && (<div>Code: {errorDetails.code}</div>)}
-                  {errorDetails.source && (<div>Source: {errorDetails.source}</div>)}
-                  {errorDetails.hint && (<div>Hint: {errorDetails.hint}</div>)}
-                  {errorDetails.details && (
-                    <pre className="mt-1 max-h-40 overflow-auto bg-white/60 border border-red-200 rounded p-2 whitespace-pre-wrap break-all">
-{typeof errorDetails.details === 'string' ? errorDetails.details : JSON.stringify(errorDetails.details, null, 2)}
-                    </pre>
-                  )}
-                  <div className="pt-1">
-                    <button
-                      onClick={async () => {
-                        const payload = {
-                          status: errorDetails.status,
-                          code: errorDetails.code,
-                          source: errorDetails.source,
-                          hint: errorDetails.hint,
-                          details: errorDetails.details,
-                          year,
-                          category,
-                        };
-                        try {
-                          const text = typeof payload.details === 'string'
-                            ? JSON.stringify(payload, null, 2)
-                            : JSON.stringify(payload, null, 2);
-                          if (navigator?.clipboard?.writeText) {
-                            await navigator.clipboard.writeText(text);
-                            showToast('Error details copied', 'success');
-                          } else {
-                            showToast('Clipboard unavailable', 'error');
-                          }
-                        } catch (e) {
-                          showToast('Failed to copy details', 'error');
-                        }
-                      }}
-                      className="text-[11px] px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-100"
-                    >
-                      Copy details
-                    </button>
-                  </div>
-                </div>
-              )}
+            <div className="flex items-center gap-2 p-3 mb-4 text-red-700 border border-red-200 rounded-lg bg-red-50">
+              <AlertCircle className="w-5 h-5" />
+              <span className="text-sm">{error}</span>
             </div>
           )}
 

@@ -3,7 +3,6 @@
 This project schedules Supabase Edge Functions from the database using pg_cron.
 
 ## Where jobs live
-
 - Defined via SQL migrations under `supabase/migrations/*cron*.sql`.
 - Visible in Supabase Dashboard → Database → Cron (pg_cron), or via:
 
@@ -12,17 +11,14 @@ select jobid, schedule, command, active from cron.job order by jobid;
 ```
 
 ## Secrets and permissions
-
-- Wrappers read from `vault.decrypted_secrets` (e.g., `CRON_SECRET`, `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) via SECURITY DEFINER functions owned by `postgres`.
-- Authorization header: required in this project. Wrappers send `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` and `X-CRON-SECRET`.
+- Cron reads `vault.decrypted_secrets` (e.g., `CRON_SECRET`) via a SECURITY DEFINER wrapper owned by `postgres`.
+- Wrapper: `admin.invoke_tmdb_trending_movies()` calls `net.http_post` with the Authorization header.
 
 ## Freshness helper
-
 - Run: `select * from admin.last_updates() order by last_update desc limit 20;`
 - Helper is created by migration `20251015T0415_add_admin_helpers.sql`.
 
 ## Managing schedules
-
 - Trigger a job now: `select cron.run_job(<jobid>);`
 - Disable: `select cron.unschedule(<jobid>);`
 - Create schedule template (example for fresh movies every 4h):
@@ -36,13 +32,11 @@ select cron.schedule(
 ```
 
 ## Backfill: External IDs (tmdb_id + imdb_id)
-
 - Edge Function: `backfill-external-ids` (deployed in `supabase/functions/backfill-external-ids/`)
 - Wrapper: `admin.invoke_backfill_external_ids(mode text default 'both', limit int default 300, offset int default 0, dry_run boolean default false)`
-- Secrets: via Vault — set `SUPABASE_URL` and `CRON_SECRET`. The function itself uses its own env (e.g., `TMDB_API_KEY`) set via `supabase functions secrets`.
+- Secrets: uses GUCs `app.settings.supabase_url`, `app.settings.cron_secret`, `app.settings.service_role_key`
 
 ### Manual runs
-
 ```sql
 -- Defaults (both, 300 rows):
 select admin.invoke_backfill_external_ids();
@@ -58,7 +52,6 @@ select admin.invoke_backfill_external_ids('imdb', 300, 0, false);
 ```
 
 ### Scheduling templates
-
 ```sql
 -- Hourly small batch
 select cron.schedule(
@@ -76,20 +69,16 @@ select cron.schedule(
 ```
 
 Notes:
-
 - Start with a dry run to gauge matches; check `imports` table rows with status `backfill_external_ids_run` for a quick pulse.
 - For very large catalogs, run multiple offsets (e.g., 0, 1000, 2000) in staggered schedules.
 - The Edge Function rate-limits TMDB calls (`delay` and `concurrency` query params) to avoid quotas.
-- Manual HTTP calls do not require Authorization header; only send `X-CRON-SECRET`.
 
 ## Troubleshooting
-
 - Permission error `_crypto_aead_det_decrypt`: Ensure wrapper function owner is `postgres` and job calls the wrapper, not vault directly.
 - Edge Function OK but cron failing: check `cron.job_run_details.return_message` for HTTP errors from `net.http_post`.
 - Duplicate jobs: unschedule older ids.
 
 ## Deprecated/Retired jobs
-
 - The following ingestion functions are retired in favor of `tmdb-fresh-movies`:
   - `tmdb-now-playing`
   - `tmdb-popular-movies`
@@ -97,5 +86,4 @@ Notes:
 - If any schedules still exist for these, unschedule them. The handlers return HTTP 410 Gone to prevent continued use.
 
 ## Alternate: GitHub/Vercel scheduling
-
 If you prefer infra scheduling outside Postgres, add a GitHub Action with `on: schedule` that `curl` calls the Edge Function using a repo secret `CRON_SECRET`.

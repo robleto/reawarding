@@ -13,8 +13,8 @@ select jobid, schedule, command, active from cron.job order by jobid;
 
 ## Secrets and permissions
 
-- Wrappers read from `vault.decrypted_secrets` (e.g., `CRON_SECRET`, `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) via SECURITY DEFINER functions owned by `postgres`.
-- Authorization header: required in this project. Wrappers send `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` and `X-CRON-SECRET`.
+- Wrappers read from `vault.decrypted_secrets` (e.g., `CRON_SECRET`, `SUPABASE_URL`) via SECURITY DEFINER functions owned by `postgres`.
+- Authorization header is not required; wrappers call Edge Functions with `X-CRON-SECRET`.
 
 ## Freshness helper
 

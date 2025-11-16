@@ -13,8 +13,8 @@ select jobid, schedule, command, active from cron.job order by jobid;
 
 ## Secrets and permissions
 
-- Wrappers read from `vault.decrypted_secrets` (e.g., `CRON_SECRET`, `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) via SECURITY DEFINER functions owned by `postgres`.
-- Authorization header: required in this project. Wrappers send `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>` and `X-CRON-SECRET`.
+- Cron reads `vault.decrypted_secrets` (e.g., `CRON_SECRET`) via a SECURITY DEFINER wrapper owned by `postgres`.
+- Wrapper: `admin.invoke_tmdb_trending_movies()` calls `net.http_post` with the Authorization header.
 
 ## Freshness helper
 
