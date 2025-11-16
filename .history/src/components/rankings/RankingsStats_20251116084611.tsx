@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { useState } from "react";
 import { TrendingUp, Film, ChevronDown, ChevronUp } from "lucide-react";
 import type { Movie } from "@/types/types";
 
@@ -38,8 +38,6 @@ const RATING_TEXT_COLORS = {
 
 export default function RankingsStats({ movies, onRatingClick }: RankingsStatsProps) {
   const [showStats, setShowStats] = useState(true);
-  const leftRef = useRef<HTMLDivElement | null>(null);
-  const [leftHeight, setLeftHeight] = useState<number>(0);
   
   // Calculate stats
   const totalRated = movies.length;
@@ -65,43 +63,12 @@ export default function RankingsStats({ movies, onRatingClick }: RankingsStatsPr
 
   const maxCount = Math.max(...Object.values(distribution), 1);
 
-  // Sync chart height to left column height for perfect alignment
-  useLayoutEffect(() => {
-    const el = leftRef.current;
-    if (!el) return;
-
-    const update = () => {
-      const h = el.offsetHeight;
-      if (h && h !== leftHeight) setLeftHeight(h);
-    };
-
-    update();
-
-    // Observe size changes of the left column
-    let ro: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== "undefined") {
-      ro = new ResizeObserver(() => update());
-      ro.observe(el);
-    }
-    // Also update on window resize
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("resize", update);
-      if (ro) ro.disconnect();
-    };
-  }, [leftRef, leftHeight]);
-
-  // Reserve space for rating labels below bars (approx 28px)
-  const labelReserve = 28;
-  const containerHeight = leftHeight || 192;
-  const barAreaHeight = Math.max(80, containerHeight - labelReserve);
-
   return (
     <div className="mb-6">
       {!showStats && (
         <button
           onClick={() => setShowStats(true)}
-          className="flex items-center justify-center w-full gap-2 px-4 py-2 text-xs text-gray-500 transition-colors hover:text-gray-400"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs text-gray-500 hover:text-gray-400 transition-colors"
         >
           <ChevronDown className="w-3 h-3" />
           <span>Show Statistics</span>
@@ -109,11 +76,11 @@ export default function RankingsStats({ movies, onRatingClick }: RankingsStatsPr
       )}
 
       {showStats && (
-        <div className="relative p-4 border bg-gray-900/60 border-yellow-500/20 rounded-xl md:p-6">
+        <div className="relative bg-gray-900/60 border border-yellow-500/20 rounded-xl p-4 md:p-6">
           {/* Unified grid: stats column + distribution spanning two cols on lg */}
-          <div className="grid items-stretch grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
             {/* Compact stats stack */}
-            <div ref={leftRef} className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <p className="text-sm text-gray-400">Your Ratings Overview</p>
               <div className="flex items-center gap-3">
                 <div className="p-2">
@@ -136,8 +103,8 @@ export default function RankingsStats({ movies, onRatingClick }: RankingsStatsPr
             </div>
 
             {/* Distribution spans two columns on desktop */}
-            <div className="lg:col-span-2" style={{ height: `${containerHeight}px` }}>
-              <div className="flex items-end justify-between h-full gap-2">
+            <div className="lg:col-span-2">
+              <div className="flex items-end justify-between gap-2">
                 {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((rating) => {
                   const count = distribution[rating];
                   const heightPercent = maxCount > 0 ? (count / maxCount) * 100 : 0;
@@ -145,15 +112,15 @@ export default function RankingsStats({ movies, onRatingClick }: RankingsStatsPr
                   const textColor = RATING_TEXT_COLORS[rating as keyof typeof RATING_TEXT_COLORS];
 
                   return (
-                    <div key={rating} className="flex flex-col items-center flex-1 gap-2">
-                      <div className="relative flex flex-col items-center justify-end w-full" style={{ height: `${barAreaHeight}px` }}>
+                    <div key={rating} className="flex-1 flex flex-col items-center gap-2">
+                      <div className="relative w-full flex flex-col items-center justify-end h-40 md:h-48 lg:h-56">
                         <div
                           className={`w-full rounded-t ${color} transition-all duration-500 ease-out cursor-pointer hover:opacity-80 relative`}
                           style={{ height: `${heightPercent}%` }}
                           onClick={() => onRatingClick?.(rating)}
                         >
                           {count > 0 && (
-                            <span className="absolute text-xs font-semibold text-gray-300 -translate-x-1/2 -top-5 left-1/2 whitespace-nowrap">
+                            <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs font-semibold text-gray-300 whitespace-nowrap">
                               {count}
                             </span>
                           )}
@@ -172,7 +139,7 @@ export default function RankingsStats({ movies, onRatingClick }: RankingsStatsPr
           {/* Lower-left hide control (overlay, does not affect chart height) */}
           <button
             onClick={() => setShowStats(false)}
-            className="absolute flex items-center gap-1 px-2 py-1 text-xs text-gray-400 bottom-3 left-3 hover:text-gray-300"
+            className="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-gray-300"
           >
             <ChevronUp className="w-3 h-3" />
             <span>Hide Statistics</span>

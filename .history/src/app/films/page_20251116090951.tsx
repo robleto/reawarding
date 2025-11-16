@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieRowCard from "@/components/movie/MovieRowCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
@@ -12,13 +13,10 @@ import type { Movie } from "@/types/types";
 
 import {
 	useMovieDataWithGuest,
-	useViewMode,
-	useMovieFilters,
-	SORT_OPTIONS,
-	GROUP_OPTIONS,
 	type SortKey,
 	type GroupKey,
 	type SortOrder,
+  groupMovies,
 } from "@/utils/sharedMovieUtils";
 
 import Loader from "@/components/ui/Loading";
@@ -26,7 +24,8 @@ import Loader from "@/components/ui/Loading";
 export const dynamic = "force-dynamic";
 
 export default function FilmsPage() {
-	const { movies, loading, user, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
+	const searchParams = useSearchParams();
+	const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
 	// Films-specific view mode with grid as default for poster-based display
 	const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
 		if (typeof window !== "undefined") {
@@ -47,7 +46,6 @@ export default function FilmsPage() {
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	
 	// Films-specific filter state with custom defaults
-	const [hasMounted, setHasMounted] = useState(false);
 	const [sortBy, setSortBy] = useState<SortKey>(() => {
 		if (typeof window !== "undefined") {
 			const stored = localStorage.getItem("filmsSortBy") as SortKey;
@@ -72,16 +70,30 @@ export default function FilmsPage() {
 		return "release_year";
 	});
 	
-	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie">("none");
+	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search">("none");
 	const [filterValue, setFilterValue] = useState<string>("all");
+
+	// Apply preset from nav search (?movie=<id> or ?query=)
+	useEffect(() => {
+		const movieId = searchParams.get("movie");
+		const q = searchParams.get("query");
+		if (movieId) {
+			setFilterType("movie");
+			setFilterValue(String(movieId));
+		} else if (q) {
+			// Fallback: filter by title contains (temporary approach)
+			// We reuse movie filter by picking first matching id when movies load
+			const match = movies.find(m => m.title.toLowerCase().includes(q.toLowerCase()));
+			if (match) {
+				setFilterType("movie");
+				setFilterValue(String(match.id));
+			}
+		}
+	}, [searchParams, movies]);
 
 	// Auth modal state
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
-	
-	useEffect(() => {
-		setHasMounted(true);
-	}, []);
 	
 	// Save films-specific filter state
 	useEffect(() => {
@@ -103,65 +115,17 @@ export default function FilmsPage() {
 		if (filterType === "movie") {
 			return String(movie.id) === filterValue;
 		}
+		if (filterType === "search") {
+			return movie.title.toLowerCase().includes(filterValue.toLowerCase());
+		}
 		return true;
 	});
 	
-	// Group and sort logic for films
-	const groupedMovies = (() => {
-		if (groupBy === "none") {
-			const sorted = [...filteredMovies].sort((a, b) => {
-				if (sortBy === "ranking") {
-					const aRank = a.rankings?.[0]?.ranking || 0;
-					const bRank = b.rankings?.[0]?.ranking || 0;
-					return sortOrder === "asc" ? aRank - bRank : bRank - aRank;
-				}
-				if (sortBy === "title") {
-					return sortOrder === "asc" 
-						? a.title.localeCompare(b.title)
-						: b.title.localeCompare(a.title);
-				}
-				if (sortBy === "release_year") {
-					return sortOrder === "asc" 
-						? a.release_year - b.release_year
-						: b.release_year - a.release_year;
-				}
-				return 0;
-			});
-			return [{ key: "All Movies", movies: sorted }];
-		}
-		
-		if (groupBy === "release_year") {
-			const groups = new Map<number, Movie[]>();
-			filteredMovies.forEach(movie => {
-				const year = movie.release_year;
-				if (!groups.has(year)) {
-					groups.set(year, []);
-				}
-				groups.get(year)!.push(movie);
-			});
-			
-			return Array.from(groups.entries())
-				.sort(([a], [b]) => b - a) // Sort years descending
-				.map(([year, movies]) => ({
-					key: year.toString(),
-					movies: movies.sort((a, b) => {
-						if (sortBy === "ranking") {
-							const aRank = a.rankings?.[0]?.ranking || 0;
-							const bRank = b.rankings?.[0]?.ranking || 0;
-							return sortOrder === "asc" ? aRank - bRank : bRank - aRank;
-						}
-						return sortOrder === "asc" 
-							? a.title.localeCompare(b.title)
-							: b.title.localeCompare(a.title);
-					})
-				}));
-		}
-		
-		return [{ key: "All Movies", movies: filteredMovies }];
-	})();
+	// Group and sort logic for films: use shared util for consistency (supports Year/Ranking/None)
+	const groupedMovies = groupMovies(filteredMovies, groupBy, sortBy, sortOrder);
 	
 	// Generate unique years and ranks for filter dropdowns
-	const uniqueYears = Array.from(new Set(movies.map((m) => m.release_year).filter(Boolean))).sort((a, b) => b - a);
+	const uniqueYears = Array.from(new Set(movies.map((m) => m.release_year).filter((y): y is number => typeof y === 'number'))).sort((a, b) => b - a);
 	const uniqueRanks = Array.from(
 		new Set(
 			movies
@@ -205,40 +169,6 @@ export default function FilmsPage() {
 		return <Loader message="Loading films..." />;
 	}
 
-	// Check if user has any rated movies
-	const hasRatedMovies = movies.length > 0 && movies.some(movie => movie.rankings && movie.rankings.length > 0);
-
-	// Show empty state if no rated movies
-	if (!loading && !hasRatedMovies) {
-		return (
-			<div className="max-w-screen-xl">
-				{/* Unified Banner System for Guests */}
-				{isGuest && (
-					<UnifiedBanner 
-						onSignupClick={handleSignupClick} 
-						onLoginClick={handleLoginClick} 
-						excludeBannerTypes={['welcome']}
-					/>
-				)}
-
-				<FilmsEmptyState
-					isGuest={isGuest}
-					onSignupClick={handleSignupClick}
-				/>
-
-				{/* Auth Modal */}
-				{showAuthModal && (
-					<AuthModalManager
-						isOpen={showAuthModal}
-						onClose={() => setShowAuthModal(false)}
-						initialMode={authMode}
-						onAuthSuccess={handleAuthSuccess}
-					/>
-				)}
-			</div>
-		);
-	}
-
 	return (
 		<div className="max-w-screen-xl">
 			{/* Unified Banner System for Guests */}
@@ -247,6 +177,14 @@ export default function FilmsPage() {
 					onSignupClick={handleSignupClick} 
 					onLoginClick={handleLoginClick} 
 					excludeBannerTypes={['welcome']}
+				/>
+			)}
+
+			{/* Films Empty State for Anonymous Users - Shows at top before films */}
+			{isGuest && (
+				<FilmsEmptyState
+					isGuest={isGuest}
+					onSignupClick={handleSignupClick}
 				/>
 			)}
 
@@ -265,6 +203,9 @@ export default function FilmsPage() {
 				setFilterValue={setFilterValue}
 				uniqueYears={uniqueYears}
 				uniqueRanks={uniqueRanks}
+				localSearchMode={true}
+				availableMovies={movies}
+				searchContext="films"
 				defaults={{
 					viewMode: "grid",
 					sortBy: "title",
@@ -292,7 +233,7 @@ export default function FilmsPage() {
 									<MoviePosterCard
 										key={movie.id}
 										movie={movie}
-										currentUserId={userId}
+										currentUserId={userId ?? ""}
 										ranking={r?.ranking ?? null}
 										seenIt={r?.seen_it ?? false}
 										onUpdate={updateMovieRanking}
@@ -309,7 +250,7 @@ export default function FilmsPage() {
 									<MovieRowCard
 										key={movie.id}
 										movie={movie}
-										currentUserId={userId}
+										currentUserId={userId ?? ""}
 										ranking={r?.ranking ?? null}
 										seenIt={r?.seen_it ?? false}
 										isLast={index === movies.length - 1}
