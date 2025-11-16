@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { TrendingUp, Film, ChevronDown, ChevronUp } from "lucide-react";
 import type { Movie } from "@/types/types";
 
@@ -38,6 +38,8 @@ const RATING_TEXT_COLORS = {
 
 export default function RankingsStats({ movies, onRatingClick }: RankingsStatsProps) {
   const [showStats, setShowStats] = useState(true);
+  const leftRef = useRef<HTMLDivElement | null>(null);
+  const [leftHeight, setLeftHeight] = useState<number>(0);
   
   // Calculate stats
   const totalRated = movies.length;
@@ -63,8 +65,39 @@ export default function RankingsStats({ movies, onRatingClick }: RankingsStatsPr
 
   const maxCount = Math.max(...Object.values(distribution), 1);
 
+  // Sync chart height to left column height for perfect alignment
+  useLayoutEffect(() => {
+    const el = leftRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const h = el.offsetHeight;
+      if (h && h !== leftHeight) setLeftHeight(h);
+    };
+
+    update();
+
+    // Observe size changes of the left column
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => update());
+      ro.observe(el);
+    }
+    // Also update on window resize
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      if (ro) ro.disconnect();
+    };
+  }, [leftRef, leftHeight]);
+
+  // Reserve space for rating labels below bars (approx 28px)
+  const labelReserve = 28;
+  const containerHeight = leftHeight || 192;
+  const barAreaHeight = Math.max(80, containerHeight - labelReserve);
+
   return (
-    <div className="mb-8">
+    <div className="mb-6">
       {!showStats && (
         <button
           onClick={() => setShowStats(true)}
@@ -76,23 +109,44 @@ export default function RankingsStats({ movies, onRatingClick }: RankingsStatsPr
       )}
 
       {showStats && (
-        <div className="space-y-3">
-          {/* Mobile: Bar graph first, stats below */}
-          <div className="lg:hidden space-y-4">
-            {/* Distribution Bar Graph - Mobile First */}
-            <div className="bg-gray-900/60 border border-yellow-500/20 rounded-xl p-6">
-              <p className="text-sm text-gray-400 mb-4">Rating Distribution</p>
-              <div className="flex items-end justify-between gap-2 h-32">
+        <div className="relative bg-gray-900/60 border border-yellow-500/20 rounded-xl p-4 md:p-6">
+          {/* Unified grid: stats column + distribution spanning two cols on lg */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+            {/* Compact stats stack */}
+            <div ref={leftRef} className="flex flex-col gap-2">
+              <p className="text-sm text-gray-400">Your Ratings Overview</p>
+              <div className="flex items-center gap-3">
+                <div className="p-2">
+                  <TrendingUp className="w-5 h-5 text-yellow-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Average Rating</p>
+                  <p className="text-2xl font-bold text-yellow-400">{averageRating}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="p-2">
+                  <Film className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Total Rated Movies</p>
+                  <p className="text-2xl font-bold text-blue-400">{totalRated}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Distribution spans two columns on desktop */}
+            <div className="lg:col-span-2" style={{ height: `${containerHeight}px` }}>
+              <div className="flex items-end justify-between gap-2 h-full">
                 {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((rating) => {
                   const count = distribution[rating];
                   const heightPercent = maxCount > 0 ? (count / maxCount) * 100 : 0;
                   const color = RATING_COLORS[rating as keyof typeof RATING_COLORS];
                   const textColor = RATING_TEXT_COLORS[rating as keyof typeof RATING_TEXT_COLORS];
-                  
+
                   return (
                     <div key={rating} className="flex-1 flex flex-col items-center gap-2">
-                      {/* Bar */}
-                      <div className="relative w-full flex flex-col items-center justify-end" style={{ height: "100px" }}>
+                      <div className="relative w-full flex flex-col items-center justify-end" style={{ height: `${barAreaHeight}px` }}>
                         <div
                           className={`w-full rounded-t ${color} transition-all duration-500 ease-out cursor-pointer hover:opacity-80 relative`}
                           style={{ height: `${heightPercent}%` }}
@@ -105,115 +159,6 @@ export default function RankingsStats({ movies, onRatingClick }: RankingsStatsPr
                           )}
                         </div>
                       </div>
-                      
-                      {/* Rating Label */}
-                      <div className={`w-full text-xs font-bold ${textColor} px-1.5 py-0.5 rounded-b text-center`} style={{ backgroundColor: color.replace('bg-', '').replace('[', '').replace(']', '') }}>
-                        {rating}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Stats Cards - Mobile */}
-            <div className="space-y-3">
-              {/* Average Rating */}
-              <div className="bg-gray-900/60 border border-yellow-500/20 rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-yellow-500/10 rounded-lg">
-                    <TrendingUp className="w-5 h-5 text-yellow-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Average Rating</p>
-                    <p className="text-2xl font-bold text-yellow-400">{averageRating}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Total Rated */}
-              <div className="bg-gray-900/60 border border-blue-500/20 rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-500/10 rounded-lg">
-                    <Film className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Total Rated Movies</p>
-                    <p className="text-2xl font-bold text-blue-400">{totalRated}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Desktop: Original 3-column layout */}
-          <div className="hidden lg:grid lg:grid-cols-3 gap-4">
-            {/* Stats Cards - Desktop Stacked */}
-            <div className="space-y-4">
-              {/* Average Rating */}
-              <div className="bg-gray-900/60 border border-yellow-500/20 rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-yellow-500/10 rounded-lg">
-                    <TrendingUp className="w-5 h-5 text-yellow-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Average Rating</p>
-                    <p className="text-2xl font-bold text-yellow-400">{averageRating}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Total Rated */}
-              <div className="bg-gray-900/60 border border-blue-500/20 rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-500/10 rounded-lg">
-                    <Film className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Total Rated Movies</p>
-                    <p className="text-2xl font-bold text-blue-400">{totalRated}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Toggle Button - Desktop - Below stats */}
-              <button
-                onClick={() => setShowStats(false)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs text-gray-500 hover:text-gray-400 transition-colors"
-              >
-                <ChevronUp className="w-3 h-3" />
-                <span>Hide Statistics</span>
-              </button>
-            </div>
-
-            {/* Distribution Bar Graph - Desktop */}
-            <div className="bg-gray-900/60 border border-yellow-500/20 rounded-xl p-6 lg:col-span-2">
-              <p className="text-sm text-gray-400 mb-4">Rating Distribution</p>
-              <div className="flex items-end justify-between gap-2 h-32">
-                {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((rating) => {
-                  const count = distribution[rating];
-                  const heightPercent = maxCount > 0 ? (count / maxCount) * 100 : 0;
-                  const color = RATING_COLORS[rating as keyof typeof RATING_COLORS];
-                  const textColor = RATING_TEXT_COLORS[rating as keyof typeof RATING_TEXT_COLORS];
-                  
-                  return (
-                    <div key={rating} className="flex-1 flex flex-col items-center gap-2">
-                      {/* Bar */}
-                      <div className="relative w-full flex flex-col items-center justify-end" style={{ height: "100px" }}>
-                        <div
-                          className={`w-full rounded-t ${color} transition-all duration-500 ease-out cursor-pointer hover:opacity-80 relative`}
-                          style={{ height: `${heightPercent}%` }}
-                          onClick={() => onRatingClick?.(rating)}
-                        >
-                          {count > 0 && (
-                            <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs font-semibold text-gray-300 whitespace-nowrap">
-                              {count}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Rating Label */}
                       <div className={`w-full text-xs font-bold ${textColor} px-1.5 py-0.5 rounded-b text-center`} style={{ backgroundColor: color.replace('bg-', '').replace('[', '').replace(']', '') }}>
                         {rating}
                       </div>
@@ -224,16 +169,14 @@ export default function RankingsStats({ movies, onRatingClick }: RankingsStatsPr
             </div>
           </div>
 
-          {/* Toggle Button - Mobile - Below all stats */}
-          <div className="lg:hidden">
-            <button
-              onClick={() => setShowStats(false)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs text-gray-500 hover:text-gray-400 transition-colors"
-            >
-              <ChevronUp className="w-3 h-3" />
-              <span>Hide Statistics</span>
-            </button>
-          </div>
+          {/* Lower-left hide control (overlay, does not affect chart height) */}
+          <button
+            onClick={() => setShowStats(false)}
+            className="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-1 text-xs text-gray-400 hover:text-gray-300"
+          >
+            <ChevronUp className="w-3 h-3" />
+            <span>Hide Statistics</span>
+          </button>
         </div>
       )}
     </div>

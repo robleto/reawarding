@@ -70,7 +70,7 @@ export default function FilmsPage() {
 		return "release_year";
 	});
 	
-	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie">("none");
+	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search">("none");
 	const [filterValue, setFilterValue] = useState<string>("all");
 
 	// Apply preset from nav search (?movie=<id> or ?query=)
@@ -114,6 +114,9 @@ export default function FilmsPage() {
 		}
 		if (filterType === "movie") {
 			return String(movie.id) === filterValue;
+		}
+		if (filterType === "search") {
+			return movie.title.toLowerCase().includes(filterValue.toLowerCase());
 		}
 		return true;
 	});
@@ -200,6 +203,9 @@ export default function FilmsPage() {
 				setFilterValue={setFilterValue}
 				uniqueYears={uniqueYears}
 				uniqueRanks={uniqueRanks}
+				localSearchMode={true}
+				availableMovies={movies}
+				searchContext="films"
 				defaults={{
 					viewMode: "grid",
 					sortBy: "title",

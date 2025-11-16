@@ -21,8 +21,8 @@ interface MovieFiltersProps {
   setGroupBy: (groupBy: GroupKey) => void;
   
   // Filter controls
-  filterType: "none" | "year" | "rank" | "movie";
-  setFilterType: (type: "none" | "year" | "rank" | "movie") => void;
+  filterType: "none" | "year" | "rank" | "movie" | "search";
+  setFilterType: (type: "none" | "year" | "rank" | "movie" | "search") => void;
   filterValue: string;
   setFilterValue: (value: string) => void;
   
@@ -85,10 +85,14 @@ export default function MovieFilters({
   const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
-    setShowSuggestions(!!value);
+    setShowSuggestions(!localSearchMode && !!value);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     if (!value) {
       setSuggestions([]);
+      if (localSearchMode) {
+        setFilterType(defaults.filterType || "none");
+        setFilterValue(defaults.filterValue || "all");
+      }
       return;
     }
     
@@ -98,6 +102,8 @@ export default function MovieFilters({
         movie.title.toLowerCase().includes(value.toLowerCase())
       ).slice(0, 7);
       setSuggestions(filtered);
+      setFilterType("search");
+      setFilterValue(value);
     } else {
       // Global search: query database
       searchTimeout.current = setTimeout(async () => {
@@ -168,6 +174,7 @@ export default function MovieFilters({
     if (filterType === "year") filterLabel = `Year: ${filterValue}`;
     else if (filterType === "rank") filterLabel = `Rating: ${filterValue}`;
     else if (filterType === "movie") filterLabel = "Movie filter";
+    else if (filterType === "search") filterLabel = `Query: ${filterValue}`;
     activeFilters.push({ 
       label: filterLabel, 
       onRemove: () => { setFilterType(defaults.filterType || "none"); setFilterValue(defaults.filterValue || "all"); }
@@ -187,7 +194,7 @@ export default function MovieFilters({
               placeholder={localSearchMode ? `Search through ${searchContext}...` : "Search movies..."}
               value={searchTerm}
               onChange={handleSearchChange}
-              onFocus={() => setShowSuggestions(!!searchTerm)}
+              onFocus={() => setShowSuggestions(!localSearchMode && !!searchTerm)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
               className={`w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 text-gray-300 placeholder-gray-400 transition-all duration-300 ${
                 localSearchMode 
@@ -197,7 +204,7 @@ export default function MovieFilters({
             />
           </div>
           {showSuggestions && suggestions.length > 0 && (
-            <ul className="absolute z-30 left-0 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg mt-1 shadow-lg max-h-56 overflow-y-auto">
+            <ul className="absolute z-50 left-0 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg mt-1 shadow-lg max-h-56 overflow-y-auto">
               {suggestions.map((movie) => (
                 <li
                   key={movie.id}
