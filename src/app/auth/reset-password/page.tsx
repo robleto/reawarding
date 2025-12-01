@@ -17,18 +17,32 @@ export default function ResetPasswordPage() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Handle the auth code from email link
-    const handleAuthCode = async () => {
-      const code = searchParams.get('code');
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) {
-          setError('Invalid or expired reset link. Please request a new one.');
+    // Check if we have an active session
+    const checkSession = async () => {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // No session - check if there's a code to exchange
+        const code = searchParams.get('code');
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            console.error('Code exchange error:', error);
+            setError('Invalid or expired reset link. Please request a new password reset.');
+          }
+        } else {
+          // No session and no code - user needs to request reset link
+          setError('No active session found. Please click the password reset link from your email.');
         }
+      }
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        setError('Session error. Please try requesting a new password reset link.');
       }
     };
 
-    handleAuthCode();
+    checkSession();
   }, [searchParams]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -53,6 +67,15 @@ export default function ResetPasswordPage() {
     setLoading(true);
     
     try {
+      // Verify we have an active session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setError('Auth session missing! Please click the password reset link from your email again.');
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: password
       });
@@ -65,8 +88,8 @@ export default function ResetPasswordPage() {
           router.push('/rankings');
         }, 2000);
       }
-    } catch {
-      setError('An unexpected error occurred');
+    } catch (err) {
+      setError('An unexpected error occurred: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }
