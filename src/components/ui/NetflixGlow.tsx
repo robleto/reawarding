@@ -13,6 +13,7 @@ export function NetflixGlow() {
     '#F43F5E', // Pink
     '#F59E0B', // Orange
   ];
+  const debug = process.env.NODE_ENV !== 'production';
 
   const [currentColorIndex, setCurrentColorIndex] = useState(0);
   const prevColorIndex = useRef(0);
@@ -42,11 +43,15 @@ export function NetflixGlow() {
   }, [colors.length]);
 
   useEffect(() => {
-    console.log('[NetflixGlow] Mounted. Initial color index:', currentColorIndex);
+    if (debug) {
+      console.log('[NetflixGlow] Mounted. Initial color index:', currentColorIndex);
+    }
     setTimeout(() => {
       gradientRefs.current.forEach((ref, idx) => {
         if (ref) {
-          console.log(`[NetflixGlow] On mount: Gradient ${idx} opacity:`, ref.style.opacity);
+          if (debug) {
+            console.log(`[NetflixGlow] On mount: Gradient ${idx} opacity:`, ref.style.opacity);
+          }
         }
       });
     }, 100);
@@ -54,7 +59,9 @@ export function NetflixGlow() {
       const scrollY = window.scrollY;
       const scrollTrigger = 600;
       const newColorIndex = Math.floor(scrollY / scrollTrigger) % colors.length;
-      console.log('[NetflixGlow] ScrollY:', scrollY, 'Current:', currentColorIndex, 'New:', newColorIndex);
+      if (debug) {
+        console.log('[NetflixGlow] ScrollY:', scrollY, 'Current:', currentColorIndex, 'New:', newColorIndex);
+      }
       if (newColorIndex !== currentColorIndex) {
         prevColorIndex.current = currentColorIndex;
         setCurrentColorIndex(newColorIndex);
@@ -73,7 +80,9 @@ export function NetflixGlow() {
     }
     const prev = gradientRefs.current[prevColorIndex.current];
     const curr = gradientRefs.current[currentColorIndex];
-    console.log('[NetflixGlow] Color index changed:', prevColorIndex.current, '->', currentColorIndex);
+    if (debug) {
+      console.log('[NetflixGlow] Color index changed:', prevColorIndex.current, '->', currentColorIndex);
+    }
     if (prev && curr) {
       const targetOpacity = isDarkMode ? 1 : 0.35; // Lighten effect in light mode
       gsap.to(prev, { opacity: 0, duration: 1, ease: 'power2.out' });

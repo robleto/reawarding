@@ -157,27 +157,42 @@ export function useGuestRankingStoreWithMigration() {
         movie_id: ranking.movieId,
         ranking: ranking.ranking,
         seen_it: ranking.seenIt,
+        created_at: new Date(ranking.timestamp || Date.now()).toISOString(),
+        updated_at: new Date().toISOString(),
       }));
+
+      console.log('[GuestMigration] Attempting to migrate guest rankings', {
+        count: rankingsToInsert.length,
+        payload: rankingsToInsert,
+      });
       
       // Insert rankings into the database
-      const { error } = await supabase
-        .from('user_rankings')
+      const { error, status } = await supabase
+        .from('rankings')
         .upsert(rankingsToInsert, {
           onConflict: 'user_id,movie_id',
           ignoreDuplicates: false,
         });
       
       if (error) {
-        console.error('Error migrating guest data:', error);
+        console.error('[GuestMigration] Error migrating guest data:', error, {
+          status,
+          payload: rankingsToInsert,
+        });
         return { success: false, migratedCount: 0, error: error.message };
       }
       
+      console.log('[GuestMigration] Successfully migrated guest rankings', {
+        count: rankingsToInsert.length,
+        status,
+      });
+
       // Clear guest data after successful migration
       store.clearAllData();
       
       return { success: true, migratedCount: rankingsToInsert.length };
     } catch (error) {
-      console.error('Error migrating guest data:', error);
+      console.error('[GuestMigration] Unexpected error migrating guest data:', error);
       return { 
         success: false, 
         migratedCount: 0, 
