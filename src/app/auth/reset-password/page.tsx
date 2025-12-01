@@ -24,8 +24,12 @@ export default function ResetPasswordPage() {
       if (!session) {
         // No session - check if there's a code to exchange
         const code = searchParams.get('code');
+        const codeVerifier = searchParams.get('code_verifier');
         if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          const exchangeArgs = codeVerifier
+            ? { authCode: code, codeVerifier }
+            : code;
+          const { error } = await (supabase.auth.exchangeCodeForSession as unknown as (params: string | { authCode: string; codeVerifier: string }) => Promise<{ error: Error | null }>)(exchangeArgs);
           if (error) {
             console.error('Code exchange error:', error);
             setError('Invalid or expired reset link. Please request a new password reset.');

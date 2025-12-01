@@ -131,7 +131,7 @@ export default function LoginModal({
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: typeof window !== "undefined"
-          ? `${window.location.origin}/auth/callback?next=/auth/reset-password`
+          ? `${window.location.origin}/auth/reset-password`
           : undefined,
       });
 

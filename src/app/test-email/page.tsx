@@ -57,7 +57,9 @@ export default function EmailTestPage() {
 
     try {
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+          redirectTo: typeof window !== 'undefined'
+            ? `${window.location.origin}/auth/reset-password`
+            : undefined,
       });
 
       if (error) {

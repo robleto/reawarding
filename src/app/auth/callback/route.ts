@@ -7,8 +7,10 @@ import type { Database } from '@/types/supabase';
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const token_hash = requestUrl.searchParams.get('token_hash');
+  const token = requestUrl.searchParams.get('token');
   const type = requestUrl.searchParams.get('type');
   const code = requestUrl.searchParams.get('code');
+  const codeVerifier = requestUrl.searchParams.get('code_verifier');
   const next = requestUrl.searchParams.get('next') ?? '/rankings';
   const error = requestUrl.searchParams.get('error');
   const error_description = requestUrl.searchParams.get('error_description');
@@ -19,6 +21,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       new URL(`/auth-code-error?error=${error}&description=${error_description || 'Authentication failed'}`, requestUrl.origin)
     );
+  }
+
+  // Password recovery now uses PKCE; let the browser handle session exchange so the code verifier stays intact.
+  if (type === 'recovery' && code) {
+    const redirectUrl = new URL('/auth/reset-password', requestUrl.origin);
+    redirectUrl.searchParams.set('code', code);
+    if (codeVerifier) {
+      redirectUrl.searchParams.set('code_verifier', codeVerifier);
+    }
+    return NextResponse.redirect(redirectUrl);
   }
 
   const cookieStore = await cookies();
@@ -45,11 +57,12 @@ export async function GET(request: NextRequest) {
   );
 
   // Handle token-based verification (magic links, email confirmation, password reset)
-  if (token_hash && type) {
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      token_hash,
-      type: type as any,
-    });
+  const verificationToken = token_hash ?? token;
+  if (verificationToken && type) {
+    const verifyPayload = token_hash
+      ? { token_hash: verificationToken, type: type as any }
+      : { token: verificationToken, type: type as any };
+    const { error: verifyError } = await (supabase.auth.verifyOtp as unknown as (payload: { token_hash: string; type: any } | { token: string; type: any }) => Promise<{ error: Error | null }>)(verifyPayload);
 
     if (verifyError) {
       console.error('Error verifying token:', verifyError);
@@ -64,7 +77,15 @@ export async function GET(request: NextRequest) {
 
   // Handle OAuth code exchange
   if (code) {
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    let exchangeError;
+    if (codeVerifier) {
+      ({ error: exchangeError } = await (supabase.auth.exchangeCodeForSession as unknown as (params: { authCode: string; codeVerifier: string }) => Promise<{ error: Error | null }>)({
+        authCode: code,
+        codeVerifier,
+      }));
+    } else {
+      ({ error: exchangeError } = await supabase.auth.exchangeCodeForSession(code));
+    }
 
     if (exchangeError) {
       console.error('Error exchanging code for session:', exchangeError);
