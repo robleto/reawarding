@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { X, Mail, Eye, EyeOff } from "lucide-react";
 import type { User } from "@supabase/auth-helpers-nextjs";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
+import { useGuestRankingStoreWithMigration } from "@/hooks/useGuestRankingStore";
 import { supabase } from "@/lib/supabaseBrowser";
 
 interface LoginModalProps {
@@ -30,8 +31,34 @@ export default function LoginModal({
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [confirmationEmailSent, setConfirmationEmailSent] = useState(false);
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
+  const [migrating, setMigrating] = useState(false);
   const router = useRouter();
   const { showToast } = useGlobalToast();
+  const guestStore = useGuestRankingStoreWithMigration();
+
+  const completeLogin = async (user: User) => {
+    try {
+      console.log('[GuestMigration] Login modal invoked for user', user.id);
+      if (guestStore.hasGuestInteracted()) {
+        setMigrating(true);
+        console.log('[GuestMigration] Guest interactions detected, migrating...');
+        const result = await guestStore.migrateToSupabase(user.id);
+        console.log('[GuestMigration] Migration result', result);
+        if (result.success && result.migratedCount > 0) {
+          showToast(`Migrated ${result.migratedCount} saved picks to your account.`, "success");
+        }
+      }
+    } catch (migrationError) {
+      console.error("Guest data migration failed:", migrationError);
+    } finally {
+      setMigrating(false);
+      console.log('[GuestMigration] Completing login flow');
+      showToast("Welcome back!", "success");
+      onAuthSuccess?.(user);
+      onClose();
+      router.push("/rankings");
+    }
+  };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,11 +83,7 @@ export default function LoginModal({
         return;
       }
       if (data.user) {
-        // Success
-        showToast("Welcome back!", "success");
-        onAuthSuccess?.(data.user);
-        onClose();
-        router.push("/rankings");
+        await completeLogin(data.user);
       } else {
         setError("No user returned from Supabase");
       }
@@ -210,7 +233,7 @@ export default function LoginModal({
           
           <button
             onClick={() => handleOAuthLogin('facebook')}
-            disabled={loading}
+            disabled={loading || migrating}
             className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
@@ -221,19 +244,19 @@ export default function LoginModal({
           
           <button
             onClick={() => handleOAuthLogin('github')}
-            disabled={loading}
+            disabled={loading || migrating}
             className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.809 1.304 3.495.997.108-.775.418-1.305.762-1.605-2.665-.304-5.466-1.332-5.466-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.984-.399 3.003-.404 1.019.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.119 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.803 5.625-5.475 5.921.43.371.823 1.102.823 2.222v3.293c0 .322.218.694.825.576C20.565 21.796 24 17.297 24 12c0-6.63-5.373-12-12-12z" />
             </svg>
             Continue with Github
-          </button>
-        </div>
-
-        {/* Divider */}
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center">
+          <button
+            onClick={handlePasswordReset}
+            type="button"
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            disabled={loading || migrating}
+          >
             <div className="w-full border-t border-gray-300 dark:border-gray-600" />
           </div>
           <div className="relative flex justify-center text-sm">
@@ -281,13 +304,13 @@ export default function LoginModal({
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Forgot Password Link */}
+              <button
+                onClick={handleEmailLogin}
+                className="w-full flex items-center justify-center gap-3 px-4 py-2 bg-gold-500 hover:bg-gold-600 text-white rounded-lg transition-colors disabled:opacity-50"
+                disabled={loading || migrating}
+              >
           <div className="text-right">
-            <button
+                {loading || migrating ? "Saving..." : "Sign in"}
               type="button"
               onClick={handlePasswordReset}
               disabled={loading}
