@@ -25,17 +25,15 @@ export default function ResetPasswordPage() {
         : null;
 
       const getParam = (key: string) => searchParams.get(key) || hashParams?.get(key) || null;
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('🔐 Reset URL params', {
-          hash: typeof window !== 'undefined' ? window.location.hash : 'no-window',
-          accessToken: getParam('access_token') ? 'present' : 'missing',
-          refreshToken: getParam('refresh_token') ? 'present' : 'missing',
-          code: getParam('code') ? 'present' : 'missing',
-          codeVerifier: getParam('code_verifier') ? 'present' : 'missing',
-          tokenHash: getParam('token_hash') ? 'present' : 'missing',
-          recoveryToken: getParam('token') ? 'present' : 'missing',
-        });
-      }
+      console.log('🔐 Reset URL params', {
+        hash: typeof window !== 'undefined' ? window.location.hash : 'no-window',
+        accessToken: getParam('access_token') ? 'present' : 'missing',
+        refreshToken: getParam('refresh_token') ? 'present' : 'missing',
+        code: getParam('code') ? 'present' : 'missing',
+        codeVerifier: getParam('code_verifier') ? 'present' : 'missing',
+        tokenHash: getParam('token_hash') ? 'present' : 'missing',
+        recoveryToken: getParam('token') ? 'present' : 'missing',
+      });
 
       if (!session) {
         const accessToken = getParam('access_token');
