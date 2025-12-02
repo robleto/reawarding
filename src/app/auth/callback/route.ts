@@ -23,13 +23,12 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Password recovery now uses PKCE; let the browser handle session exchange so the code verifier stays intact.
-  if (type === 'recovery' && code) {
+  if (type === 'recovery') {
     const redirectUrl = new URL('/auth/reset-password', requestUrl.origin);
-    redirectUrl.searchParams.set('code', code);
-    if (codeVerifier) {
-      redirectUrl.searchParams.set('code_verifier', codeVerifier);
-    }
+    if (code) redirectUrl.searchParams.set('code', code);
+    if (codeVerifier) redirectUrl.searchParams.set('code_verifier', codeVerifier);
+    if (token_hash) redirectUrl.searchParams.set('token_hash', token_hash);
+    if (token) redirectUrl.searchParams.set('token', token);
     return NextResponse.redirect(redirectUrl);
   }
 
