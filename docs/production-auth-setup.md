@@ -87,6 +87,7 @@ Current SMTP (from config.toml):
 Ensure these are set in your deployment platform (Vercel/Netlify/etc):
 
 ```bash
+NEXT_PUBLIC_SITE_URL=https://your-production-domain.com
 NEXT_PUBLIC_SUPABASE_URL=https://cjrpnzwrldlxajkvznca.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -103,6 +104,10 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 1. Go to Site Settings → Environment Variables
 2. Add all production environment variables
 3. Redeploy after changes
+
+> **Why `NEXT_PUBLIC_SITE_URL` matters**
+>
+> Supabase recovery links append `#access_token=...` to the exact redirect URL you supply. If Netlify/Supabase performs any additional redirects (for example, `https://reawarding.com` → `https://www.reawarding.com`), the hash fragment is lost and password resets fail. Setting `NEXT_PUBLIC_SITE_URL` (and making sure Supabase's Site URL & redirect list match it exactly) guarantees that we always send users straight to the canonical host, preserving the hash tokens.
 
 ## 🧪 Testing Authentication
 

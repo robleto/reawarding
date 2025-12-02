@@ -7,6 +7,7 @@ import type { User } from "@supabase/auth-helpers-nextjs";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
 import { useGuestRankingStoreWithMigration } from "@/hooks/useGuestRankingStore";
 import { supabase } from "@/lib/supabaseBrowser";
+import { buildSiteUrl } from "@/utils/siteUrl";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -98,9 +99,7 @@ export default function LoginModal({
     setLoading(true);
     setError(null);
 
-    const redirectTo = typeof window !== "undefined"
-      ? `${window.location.origin}/auth/callback?next=/rankings`
-      : undefined;
+    const redirectTo = buildSiteUrl("/auth/callback?next=/rankings") || undefined;
 
     // Try Supabase redirect, fallback to manual redirect if url is returned
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -130,9 +129,7 @@ export default function LoginModal({
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: typeof window !== "undefined"
-          ? `${window.location.origin}/auth/reset-password`
-          : undefined,
+        redirectTo: buildSiteUrl("/auth/reset-password") || undefined,
       });
 
       if (error) {
@@ -162,9 +159,7 @@ export default function LoginModal({
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: typeof window !== "undefined"
-            ? `${window.location.origin}/auth/callback?next=/rankings`
-            : undefined,
+          emailRedirectTo: buildSiteUrl("/auth/callback?next=/rankings") || undefined,
         },
       });
 

@@ -6,6 +6,7 @@ import { X, Mail, Eye, EyeOff } from "lucide-react";
 import type { User } from "@supabase/auth-helpers-nextjs";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
 import { supabase } from "@/lib/supabaseBrowser";
+import { buildSiteUrl } from "@/utils/siteUrl";
 
 interface SignupModalProps {
   isOpen: boolean;
@@ -61,9 +62,7 @@ export default function SignupModal({
         password,
         options: {
           // Use auth callback to exchange code and then redirect to rankings
-          emailRedirectTo: typeof window !== "undefined"
-            ? `${window.location.origin}/auth/callback?next=/rankings`
-            : undefined,
+          emailRedirectTo: buildSiteUrl("/auth/callback?next=/rankings") || undefined,
         },
       });
       if (error) {
@@ -97,9 +96,7 @@ export default function SignupModal({
     setLoading(true);
     setError(null);
 
-    const redirectTo = typeof window !== "undefined"
-      ? `${window.location.origin}/auth/callback?next=/rankings`
-      : undefined;
+    const redirectTo = buildSiteUrl("/auth/callback?next=/rankings") || undefined;
 
     // Try Supabase redirect, fallback to manual redirect if url is returned
     const { data, error } = await supabase.auth.signInWithOAuth({

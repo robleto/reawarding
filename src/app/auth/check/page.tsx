@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseBrowser";
+import { buildSiteUrl, getSiteUrl } from "@/utils/siteUrl";
 
 export default function AuthCheckPage() {
   const [email, setEmail] = useState("");
@@ -9,7 +10,7 @@ export default function AuthCheckPage() {
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = getSiteUrl();
 
   const uniqueEmail = () => `test-${Date.now()}@example.com`;
 
@@ -64,7 +65,7 @@ export default function AuthCheckPage() {
                     type: "signup",
                     email,
                     options: {
-                      emailRedirectTo: `${origin}/auth/callback?next=/rankings`,
+                      emailRedirectTo: buildSiteUrl("/auth/callback?next=/rankings") || undefined,
                     },
                   });
                   if (error) throw error;
@@ -81,7 +82,7 @@ export default function AuthCheckPage() {
               onClick={() =>
                 run("reset", async () => {
                   const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: `${origin}/auth/reset-password`,
+                    redirectTo: buildSiteUrl("/auth/reset-password") || undefined,
                   });
                   if (error) throw error;
                   setResult(`Password reset sent: ${JSON.stringify(data)}`);
@@ -101,7 +102,7 @@ export default function AuthCheckPage() {
                     email: signupEmail,
                     password: "testpassword123",
                     options: {
-                      emailRedirectTo: `${origin}/auth/callback?next=/rankings`,
+                      emailRedirectTo: buildSiteUrl("/auth/callback?next=/rankings") || undefined,
                     },
                   });
                   if (error) throw error;

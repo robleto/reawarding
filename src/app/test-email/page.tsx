@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseBrowser";
+import { buildSiteUrl } from "@/utils/siteUrl";
 
 export default function EmailTestPage() {
   const [email, setEmail] = useState("greg@robleto.com");
@@ -34,7 +35,7 @@ export default function EmailTestPage() {
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/rankings`,
+          emailRedirectTo: buildSiteUrl('/auth/callback?next=/rankings') || undefined,
         },
       });
 
@@ -57,9 +58,7 @@ export default function EmailTestPage() {
 
     try {
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: typeof window !== 'undefined'
-            ? `${window.location.origin}/auth/reset-password`
-            : undefined,
+          redirectTo: buildSiteUrl('/auth/reset-password') || undefined,
       });
 
       if (error) {
@@ -88,7 +87,7 @@ export default function EmailTestPage() {
         email: testEmail,
         password: 'testpassword123',
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/rankings`,
+          emailRedirectTo: buildSiteUrl('/auth/callback?next=/rankings') || undefined,
         },
       });
 

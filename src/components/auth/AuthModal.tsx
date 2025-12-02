@@ -7,6 +7,7 @@ import type { Database } from "@/types/supabase";
 import { useGuestRankingStoreWithMigration } from "@/hooks/useGuestRankingStore";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
 import { supabase } from "@/lib/supabaseBrowser";
+import { buildSiteUrl } from "@/utils/siteUrl";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -80,9 +81,7 @@ export default function AuthModal({
     setError(null);
 
     try {
-      const redirectTo = typeof window !== "undefined" 
-        ? `${window.location.origin}/rankings`
-        : undefined;
+      const redirectTo = buildSiteUrl("/rankings") || undefined;
 
       if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
@@ -140,9 +139,7 @@ export default function AuthModal({
     setLoading(true);
     setError(null);
 
-    const redirectTo = typeof window !== "undefined"
-      ? `${window.location.origin}/rankings`
-      : undefined;
+    const redirectTo = buildSiteUrl("/rankings") || undefined;
 
     // Try Supabase redirect, fallback to manual redirect if url is returned
     const { data, error } = await supabase.auth.signInWithOAuth({

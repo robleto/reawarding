@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { supabase } from "@/lib/supabaseBrowser";
 import { Github, Mail, Chrome, Eye, EyeOff, User, Lock, Facebook } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
+import { buildSiteUrl } from '@/utils/siteUrl';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState<string | null>(null);
@@ -64,7 +65,7 @@ export default function LoginPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?next=/rankings`,
+            emailRedirectTo: buildSiteUrl('/auth/callback?next=/rankings') || undefined,
             data: {
               username,
               full_name: fullName || username,
@@ -103,7 +104,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/rankings`,
+          redirectTo: buildSiteUrl('/auth/callback?next=/rankings') || undefined,
         },
       });
       if (error) {
@@ -124,7 +125,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/rankings`,
+          redirectTo: buildSiteUrl('/auth/callback?next=/rankings') || undefined,
         },
       });
       if (error) {
