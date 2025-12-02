@@ -43,12 +43,11 @@ export default function ResetPasswordPage() {
             access_token: accessToken,
             refresh_token: refreshToken,
           }));
-        } else if (code) {
+        } else if (code && codeVerifier) {
           processed = true;
-          const exchangeArgs = codeVerifier
-            ? { authCode: code, codeVerifier }
-            : code;
-          ({ error: authError } = await (supabase.auth.exchangeCodeForSession as unknown as (params: string | { authCode: string; codeVerifier: string }) => Promise<{ error: Error | null }>)(exchangeArgs));
+          ({ error: authError } = await (supabase.auth.exchangeCodeForSession as unknown as (params: { authCode: string; codeVerifier: string }) => Promise<{ error: Error | null }>)(
+            { authCode: code, codeVerifier }
+          ));
         } else if (tokenHash || recoveryToken) {
           processed = true;
           const verifyPayload = tokenHash
