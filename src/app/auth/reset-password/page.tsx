@@ -33,7 +33,6 @@ export default function ResetPasswordPage() {
         const codeVerifier = getParam('code_verifier');
         const recoveryToken = getParam('token');
         const tokenHash = getParam('token_hash');
-        const type = getParam('type');
 
         let processed = false;
         let authError: Error | null = null;
@@ -53,8 +52,8 @@ export default function ResetPasswordPage() {
         } else if (tokenHash || recoveryToken) {
           processed = true;
           const verifyPayload = tokenHash
-            ? { token_hash: tokenHash, type: 'recovery' }
-            : { token: recoveryToken!, type: 'recovery' };
+            ? { token_hash: tokenHash, type: 'recovery' as const }
+            : { token: recoveryToken!, type: 'recovery' as const };
           ({ error: authError } = await (supabase.auth.verifyOtp as unknown as (payload: { token_hash: string; type: 'recovery' } | { token: string; type: 'recovery' }) => Promise<{ error: Error | null }>)(verifyPayload));
         }
 
