@@ -18,20 +18,64 @@ export default function ResetPasswordPage() {
   const { showToast } = useGlobalToast();
 
   useEffect(() => {
-    // Handle the password reset token from the URL
     const handlePasswordReset = async () => {
-      const accessToken = searchParams.get('access_token');
-      const refreshToken = searchParams.get('refresh_token');
-      
-      if (accessToken && refreshToken) {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-        
-        if (error) {
-          setError("Invalid or expired reset link. Please request a new one.");
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const hashParams = typeof window !== 'undefined' && window.location.hash
+        ? new URLSearchParams(window.location.hash.replace(/^#/, ''))
+        : null;
+      const getParam = (key: string) => searchParams.get(key) || hashParams?.get(key) || null;
+
+      if (!session) {
+        const accessToken = getParam('access_token');
+        const refreshToken = getParam('refresh_token');
+        const code = getParam('code');
+        const codeVerifier = getParam('code_verifier');
+        const recoveryToken = getParam('token');
+        const tokenHash = getParam('token_hash');
+
+        let processed = false;
+        let authError: Error | null = null;
+
+        if (accessToken && refreshToken) {
+          processed = true;
+          ({ error: authError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          }));
+        } else if (code) {
+          processed = true;
+          const exchangeArgs = codeVerifier
+            ? { authCode: code, codeVerifier }
+            : code;
+          ({ error: authError } = await (supabase.auth.exchangeCodeForSession as unknown as (params: string | { authCode: string; codeVerifier: string }) => Promise<{ error: Error | null }>)(exchangeArgs));
+        } else if (tokenHash || recoveryToken) {
+          processed = true;
+          const verifyPayload = tokenHash
+            ? { token_hash: tokenHash, type: 'recovery' as const }
+            : { token: recoveryToken!, type: 'recovery' as const };
+          ({ error: authError } = await (supabase.auth.verifyOtp as unknown as (payload: { token_hash: string; type: 'recovery' } | { token: string; type: 'recovery' }) => Promise<{ error: Error | null }>)(verifyPayload));
         }
+
+        if (authError) {
+          console.error('Password reset auth error:', authError);
+          setError('Invalid or expired reset link. Please request a new one.');
+          return;
+        }
+
+        if (!processed) {
+          setError('No active session found. Please click the password reset link from your email.');
+          return;
+        }
+
+        if (typeof window !== 'undefined') {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+        setError(null);
+      }
+
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        setError('Session error. Please try requesting a new password reset link.');
       }
     };
 
