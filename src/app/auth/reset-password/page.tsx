@@ -39,7 +39,6 @@ export default function ResetPasswordPage() {
         const accessToken = getParam('access_token');
         const refreshToken = getParam('refresh_token');
         const code = getParam('code');
-        const codeVerifier = getParam('code_verifier');
         const recoveryToken = getParam('token');
         const tokenHash = getParam('token_hash');
 
@@ -52,10 +51,11 @@ export default function ResetPasswordPage() {
             access_token: accessToken,
             refresh_token: refreshToken,
           }));
-        } else if (code && codeVerifier) {
+        } else if (code) {
           processed = true;
-          ({ error: authError } = await (supabase.auth.exchangeCodeForSession as unknown as (params: { authCode: string; codeVerifier: string }) => Promise<{ error: Error | null }>)(
-            { authCode: code, codeVerifier }
+          // Supabase stores the PKCE verifier internally, so exchanging only needs the code
+          ({ error: authError } = await (supabase.auth.exchangeCodeForSession as unknown as (params: { code: string }) => Promise<{ error: Error | null }>)(
+            { code }
           ));
         } else if (tokenHash || recoveryToken) {
           processed = true;
