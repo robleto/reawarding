@@ -53,10 +53,8 @@ export default function ResetPasswordPage() {
           }));
         } else if (code) {
           processed = true;
-          // Supabase stores the PKCE verifier internally, so exchanging only needs the code
-          ({ error: authError } = await (supabase.auth.exchangeCodeForSession as unknown as (params: { code: string }) => Promise<{ error: Error | null }>)(
-            { code }
-          ));
+          // Supabase stores the PKCE verifier internally, so we only pass the auth code
+          ({ error: authError } = await supabase.auth.exchangeCodeForSession(code));
         } else if (tokenHash || recoveryToken) {
           processed = true;
           const verifyPayload = tokenHash
