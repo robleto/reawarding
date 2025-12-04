@@ -122,22 +122,7 @@ export default function AwardsPage() {
 
 // Debug metric removed for simplicity after revert
 
-	// Debug: console sample of filtered data
-	useEffect(() => {
-		if (process.env.NODE_ENV === 'development') {
-			const sample = formattedYears
-				.flatMap((y) => y.allMovies)
-				.slice(0, 5)
-				.map((m) => ({ title: m.title, genres: m.genres }));
-			// eslint-disable-next-line no-console
-			console.log('Awards Debug', {
-				tab,
-				years: formattedYears.map((y) => y.year),
-				totalFiltered,
-				sample,
-			});
-		}
-	}, [tab, formattedYears, totalFiltered]);
+
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
 

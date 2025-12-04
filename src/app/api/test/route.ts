@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseBrowser';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 
 export async function GET() {
   try {
+    const supabase = await createSupabaseServerClient();
     // Test basic connection
     const { data, error } = await supabase
       .from('movies')

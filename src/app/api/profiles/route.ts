@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseBrowser';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createSupabaseServerClient();
     const { username, full_name, avatar_url } = await request.json();
     
     if (!username) {
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createSupabaseServerClient();
     const { searchParams } = new URL(request.url);
     const username = searchParams.get('username');
     
