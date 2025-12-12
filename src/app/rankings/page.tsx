@@ -26,6 +26,7 @@ import {
 import MovieFilters from "@/components/filters/MovieFilters";
 import RankingsStats from "@/components/rankings/RankingsStats";
 import HotTakeIndicator from "@/components/rankings/HotTakeIndicator";
+import { getRatingDefinition } from "@/lib/ratingScale";
 
 export const dynamic = "force-dynamic";
 
@@ -352,6 +353,7 @@ export default function RankingsPage() {
               {movies.map((movie) => {
                 const r = movie.rankings?.[0];
                 if (!r) return null;
+                const def = getRatingDefinition(r.ranking);
                 return (
                   <div key={movie.id} className="relative">
                     <MoviePosterCard
@@ -359,6 +361,7 @@ export default function RankingsPage() {
                       currentUserId={userId ?? ""}
                       onUpdate={updateMovieRanking}
                       ranking={r.ranking ?? null}
+                      ratingLabel={def?.label ?? null}
                       seenIt={r.seen_it ?? false}
                       onClick={() => handleOpenModal(movie)}
                     />
@@ -381,6 +384,7 @@ export default function RankingsPage() {
               {movies.map((movie, index) => {
                 const r = movie.rankings?.[0];
                 if (!r) return null;
+                const def = getRatingDefinition(r.ranking);
                 return (
                   <MovieRowCard
                     key={movie.id}
@@ -388,6 +392,7 @@ export default function RankingsPage() {
                     currentUserId={userId ?? ""}
                     onUpdate={updateMovieRanking}
                     ranking={r.ranking ?? null}
+                    ratingLabel={def?.label ?? null}
                     seenIt={r.seen_it ?? false}
                     isLast={index === movies.length - 1}
                     index={index}

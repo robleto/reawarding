@@ -29,10 +29,46 @@ export default function AuthModal({
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
+  const [confirmationEmailSent, setConfirmationEmailSent] = useState(false);
   const [migratingData, setMigratingData] = useState(false);
   const router = useRouter();
   const guestStore = useGuestRankingStoreWithMigration();
   const { showToast } = useGlobalToast();
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      setError("Please enter your email address first");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+          emailRedirectTo: buildSiteUrl("/auth/callback?next=/rankings") || undefined,
+        },
+      });
+      if (error) {
+        setError(error.message);
+        showToast(error.message, "error");
+        return;
+      }
+      setConfirmationEmailSent(true);
+      setShowResendConfirmation(false);
+      showToast("Confirmation email sent! Check your inbox.", "success");
+    } catch (err) {
+      const msg = "Failed to resend confirmation email";
+      setError(msg);
+      showToast(msg, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSuccessfulAuth = async (userId: string, isSignup: boolean = false) => {
     // Check if there's guest data to migrate
@@ -79,9 +115,11 @@ export default function AuthModal({
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setShowResendConfirmation(false);
+    setConfirmationEmailSent(false);
 
     try {
-      const redirectTo = buildSiteUrl("/rankings") || undefined;
+      const redirectTo = buildSiteUrl("/auth/callback?next=/rankings") || undefined;
 
       if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
@@ -115,8 +153,18 @@ export default function AuthModal({
           password,
         });
         if (error) {
-          setError(error.message);
-          showToast(error.message, "error");
+          const msg = error.message;
+          setError(msg);
+          showToast(msg, "error");
+
+          const lower = msg.toLowerCase();
+          if (
+            lower.includes("not confirmed") ||
+            lower.includes("confirm your email") ||
+            lower.includes("email not confirmed")
+          ) {
+            setShowResendConfirmation(true);
+          }
           setLoading(false);
           return;
         } else if (data.user) {
@@ -139,7 +187,7 @@ export default function AuthModal({
     setLoading(true);
     setError(null);
 
-    const redirectTo = buildSiteUrl("/rankings") || undefined;
+    const redirectTo = buildSiteUrl("/auth/callback?next=/rankings") || undefined;
 
     // Try Supabase redirect, fallback to manual redirect if url is returned
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -250,6 +298,17 @@ export default function AuthModal({
             }`}>
               {migratingData ? "Migrating your guest data..." : error}
             </div>
+          )}
+
+          {mode === "login" && showResendConfirmation && !confirmationEmailSent && (
+            <button
+              type="button"
+              onClick={handleResendConfirmation}
+              disabled={loading || migratingData}
+              className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+            >
+              Resend confirmation email
+            </button>
           )}
 
           <button

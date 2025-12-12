@@ -38,6 +38,59 @@ interface FanartResponse {
 function isoDate(d: Date) { return d.toISOString().slice(0, 10); }
 function daysFromToday(days: number) { const d = new Date(); d.setDate(d.getDate() + days); return d; }
 
+function parseISODate(value?: string): Date | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function isWithinDays(d: Date, days: number) {
+  const now = new Date();
+  const diffMs = Math.abs(now.getTime() - d.getTime());
+  return diffMs <= days * 24 * 60 * 60 * 1000;
+}
+
+type SourceKind = 'now_playing' | 'popular' | 'upcoming';
+
+function shouldImportCandidate(
+  movie: TMDBMovieBasic & { poster_path?: string | null; vote_count?: number; popularity?: number },
+  source: SourceKind,
+) {
+  // Hard requirement: no artwork = no feed.
+  if (!movie.poster_path) return false;
+
+  const voteCount = movie.vote_count || 0;
+  const popularity = movie.popularity || 0;
+
+  // Recency guardrail: TMDB "popular" often contains evergreen classics.
+  // Keep it focused on broadly relevant current-year titles.
+  if (source === 'popular') {
+    const releaseDate = parseISODate(movie.release_date);
+    if (!releaseDate) return false;
+    if (!isWithinDays(releaseDate, 365)) return false;
+  }
+
+  // Baseline guard against low-signal long-tail.
+  // (Note: This is intentionally permissive; the stronger gate is vote_count.)
+  if (popularity > 0 && popularity < 10) return false;
+
+  // Default quality gate: must have meaningful audience engagement.
+  if (voteCount >= 100) return true;
+
+  // “Big release” fallback: allow *very popular* titles that are very recent.
+  // This catches major releases early (when vote_count is still ramping) without
+  // opening the floodgates.
+  const releaseDate = parseISODate(movie.release_date);
+  if (!releaseDate) return false;
+
+  // Only for release-centric sources.
+  if (source === 'popular') return false;
+
+  // Tight time window + high popularity.
+  if (!isWithinDays(releaseDate, 45)) return false;
+  return popularity >= 50;
+}
+
 async function fetchJSON<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Fetch failed ${res.status} for ${url}`);
@@ -182,25 +235,27 @@ Deno.serve(async (req) => {
     const skipped: number[] = [];
     const errors: Record<number,string> = {};
 
+    const MAX_IMPORTS_PER_RUN = 120;
+
     // Quality-focused endpoints (no noisy discover date windows)
     // Note: Excludes top_rated to avoid importing classics instead of current releases
     const endpoints = [
-      { url: `https://api.themoviedb.org/3/movie/now_playing?api_key=${env.tmdbApiKey}&region=US&page=1`, pages: 3 },
-      { url: `https://api.themoviedb.org/3/movie/popular?api_key=${env.tmdbApiKey}&region=US&page=1`, pages: 3 },
-      { url: `https://api.themoviedb.org/3/movie/upcoming?api_key=${env.tmdbApiKey}&region=US&page=1`, pages: 2 }
+      { kind: 'now_playing' as const, url: `https://api.themoviedb.org/3/movie/now_playing?api_key=${env.tmdbApiKey}&region=US&page=1`, pages: 6 },
+      { kind: 'popular' as const, url: `https://api.themoviedb.org/3/movie/popular?api_key=${env.tmdbApiKey}&region=US&page=1`, pages: 5 },
+      { kind: 'upcoming' as const, url: `https://api.themoviedb.org/3/movie/upcoming?api_key=${env.tmdbApiKey}&region=US&page=1`, pages: 6 }
     ];
 
     for (const endpoint of endpoints) {
       for (let page = 1; page <= endpoint.pages; page++) {
+        if (processed.length >= MAX_IMPORTS_PER_RUN) break;
         const pageUrl = endpoint.url.replace(/page=\d+/, `page=${page}`);
         const data = await fetchJSON<{ results: (TMDBMovieBasic & { poster_path?: string | null; vote_count?: number; vote_average?: number })[] }>(pageUrl);
         
         for (const basic of data.results) {
-          // Quality gates: skip noise
-          if (!basic.poster_path) continue; // no artwork = skip
-          if ((basic.vote_count || 0) < 100) continue; // minimum audience engagement required
-          // Additional popularity check for cultural relevance (TMDB's algorithmic score)
-          if ((basic as any).popularity && (basic as any).popularity < 10) continue;
+          if (processed.length >= MAX_IMPORTS_PER_RUN) break;
+
+          // Quality gates: skip noise (with a controlled “big release” fallback)
+          if (!shouldImportCandidate(basic as any, endpoint.kind)) continue;
           if (processed.includes(basic.id) || skipped.includes(basic.id)) { skipped.push(basic.id); continue; }
           
           try {

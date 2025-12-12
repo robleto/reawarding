@@ -4,7 +4,6 @@ import Image from "next/image";
 import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import { Film, Flame, TrendingUp, TrendingDown } from "lucide-react";
-import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
 import RankingDropdown from "./RankingDropdown";
 import SeenItButton from "./SeenItButton";
@@ -13,6 +12,7 @@ type Props = {
   movie: Movie;
   currentUserId: string;
   ranking: number | null;
+  ratingLabel?: string | null;
   seenIt: boolean;
   isLast?: boolean;
   index?: number;
@@ -46,8 +46,7 @@ const ImageFallback = ({
   </div>
 );
 
-export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, seenIt, isLast = false, onClick, index, showHotTake = false }: Props) {
-  const style = getRatingStyle(ranking ?? 0);
+export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, ratingLabel = null, seenIt, isLast = false, onClick, index, showHotTake = false }: Props) {
 
   // Prefer cached thumb when available; compute normalized URL and only render Image if non-empty
   const thumbSrc = movie.cached_thumb_url?.trim() || movie.thumb_url;
@@ -158,10 +157,14 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
           )}
 
           {/* Rating */}
-          <RankingDropdown
-            ranking={ranking}
-            onChange={handleRatingSelect}
-          />
+          <div className="flex flex-col items-center">
+            <RankingDropdown ranking={ranking} onChange={handleRatingSelect} />
+            {ratingLabel && (
+              <span className="mt-0.5 text-[10px] leading-tight text-gray-400">
+                {ratingLabel}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -223,10 +226,14 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
               />
 
               {/* Rating */}
-              <RankingDropdown
-                ranking={ranking}
-                onChange={handleRatingSelect}
-              />
+              <div className="flex flex-col items-center">
+                <RankingDropdown ranking={ranking} onChange={handleRatingSelect} />
+                {ratingLabel && (
+                  <span className="mt-0.5 text-[10px] leading-tight text-gray-400">
+                    {ratingLabel}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>

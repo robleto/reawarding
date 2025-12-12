@@ -418,7 +418,10 @@ export default function EditableYearSection({
   };
 
   const handleSave = async () => {
-    if (!user) return;
+    if (!user) {
+      showToast('Please sign in to save your nominations.', 'info');
+      return;
+    }
 
     setIsSaving(true);
     setError(null);
@@ -458,7 +461,7 @@ export default function EditableYearSection({
         } catch {
           errorMessage = response.statusText || errorMessage;
         }
-        console.error('API /api/awards error:', {
+        console.warn('AWARDS_SAVE_ERROR_API_RESPONSE', {
           status: response.status,
           statusText: response.statusText,
           errorData,
@@ -471,7 +474,9 @@ export default function EditableYearSection({
         } as const;
         setErrorDetails(detailsObj);
         console.warn('AWARDS_SAVE_ERROR_API', detailsObj);
-        throw new Error(errorMessage);
+        setError(errorMessage);
+        showToast(errorMessage, response.status === 401 ? 'info' : 'error');
+        return;
       }
 
       // Parse success response
@@ -543,7 +548,7 @@ export default function EditableYearSection({
           }
 
           if (upsertError) {
-            console.error('Client Supabase upsert failed:', upsertError);
+            console.warn('Client Supabase upsert failed:', upsertError);
             const msg = /row-level security|RLS|permission/i.test(upsertError.message || '')
               ? 'Permission denied by database policies. Please sign in and try again.'
               : (upsertError.message || 'Failed to save nominations');
@@ -576,7 +581,7 @@ export default function EditableYearSection({
             showToast('Nominations saved (offline fallback)', 'success');
           }
         } catch (fallbackErr) {
-          console.error('Fallback upsert threw:', fallbackErr);
+          console.warn('Fallback upsert threw:', fallbackErr);
           const msg = fallbackErr instanceof Error ? fallbackErr.message : 'Failed to save nominations';
           setError(msg);
           const detailsObj = { source: 'client-upsert', details: fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr) } as const;
@@ -585,7 +590,7 @@ export default function EditableYearSection({
           showToast(msg, 'error');
         }
       } else {
-        console.error('Error saving nominations:', error);
+        console.warn('Error saving nominations:', error);
         const msg = error instanceof Error ? error.message : 'Failed to save nominations';
         setError(msg);
         const detailsObj = { source: 'api', details: error instanceof Error ? error.message : String(error) } as const;

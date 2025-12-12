@@ -19,11 +19,48 @@ export default function LoginPage() {
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
+  const [confirmationEmailSent, setConfirmationEmailSent] = useState(false);
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      setError('Please enter your email address first');
+      return;
+    }
+
+    setLoading('resend');
+    setError(null);
+    setMessage(null);
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: buildSiteUrl('/auth/callback?next=/rankings') || undefined,
+        },
+      });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        setConfirmationEmailSent(true);
+        setShowResendConfirmation(false);
+        setMessage('Confirmation email sent! Check your inbox.');
+      }
+    } catch {
+      setError('Failed to resend confirmation email');
+    } finally {
+      setLoading(null);
+    }
+  };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setMessage(null);
+    setShowResendConfirmation(false);
+    setConfirmationEmailSent(false);
     
     if (!email || !password) {
       setError('Please fill in all fields');
@@ -85,7 +122,13 @@ export default function LoginPage() {
         });
         
         if (error) {
-          setError(error.message);
+          const msg = error.message || 'Failed to sign in';
+          setError(msg);
+
+          const lower = msg.toLowerCase();
+          if (lower.includes('not confirmed') || lower.includes('confirm your email') || lower.includes('email not confirmed')) {
+            setShowResendConfirmation(true);
+          }
         } else {
           // Redirect on successful login
           window.location.href = '/rankings';
@@ -161,6 +204,19 @@ export default function LoginPage() {
           {error && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
               {error}
+            </div>
+          )}
+
+          {showResendConfirmation && !confirmationEmailSent && (
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={handleResendConfirmation}
+                disabled={loading !== null}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              >
+                Resend confirmation email
+              </button>
             </div>
           )}
           

@@ -37,8 +37,8 @@ export async function GET(request: Request) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      console.error('Auth error:', authError);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      // Guests (or missing session cookies) should see a zero-state, not a hard error.
+      return NextResponse.json({ nominations: { nominee_ids: [], winner_id: null } });
     }
 
     // Fetch user's custom nominations/winner for the year+category from awards table

@@ -32,32 +32,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch (error) {
-            // Cookie setting may fail in Server Components
-            console.error('Failed to set cookie:', error);
-          }
-        },
-      },
-    }
-  );
-
   // Handle token-based verification (magic links, email confirmation, password reset)
   const verificationToken = token_hash ?? token;
   if (verificationToken && type) {
+    const cookieStore = await cookies();
+    const response = NextResponse.redirect(new URL(next, requestUrl.origin));
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options);
+            });
+          },
+        },
+      }
+    );
+
     const verifyPayload = token_hash
       ? { token_hash: verificationToken, type: type as any }
       : { token: verificationToken, type: type as any };
@@ -71,11 +67,30 @@ export async function GET(request: NextRequest) {
     }
 
     // Successful verification - redirect to intended destination
-    return NextResponse.redirect(new URL(next, requestUrl.origin));
+    return response;
   }
 
   // Handle OAuth code exchange
   if (code) {
+    const cookieStore = await cookies();
+    const response = NextResponse.redirect(new URL(next, requestUrl.origin));
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options);
+            });
+          },
+        },
+      }
+    );
+
     let exchangeError;
     if (codeVerifier) {
       ({ error: exchangeError } = await (supabase.auth.exchangeCodeForSession as unknown as (params: { authCode: string; codeVerifier: string }) => Promise<{ error: Error | null }>)({
@@ -94,7 +109,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Successful authentication - redirect to intended destination
-    return NextResponse.redirect(new URL(next, requestUrl.origin));
+    return response;
   }
 
   // No code, token, or error - redirect to home

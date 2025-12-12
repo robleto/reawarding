@@ -65,6 +65,8 @@ export default function LoginModal({
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setShowResendConfirmation(false);
+    setConfirmationEmailSent(false);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -72,13 +74,18 @@ export default function LoginModal({
         password,
       });
       if (error) {
-        setError(error.message);
-        // Check if error is related to email confirmation
-        if (error.message.toLowerCase().includes('email not confirmed') || 
-            error.message.toLowerCase().includes('confirm your email') ||
-            error.message.toLowerCase().includes('verification') ||
-            error.message.toLowerCase().includes('invalid login credentials')) {
+        const msg = error.message || "Failed to sign in";
+        const lower = msg.toLowerCase();
+        const isUnconfirmed =
+          lower.includes("email not confirmed") ||
+          lower.includes("confirm your email") ||
+          lower.includes("not confirmed");
+
+        if (isUnconfirmed) {
+          setError("Email not confirmed. Please confirm your email, or resend the confirmation link.");
           setShowResendConfirmation(true);
+        } else {
+          setError(msg);
         }
         setLoading(false);
         return;

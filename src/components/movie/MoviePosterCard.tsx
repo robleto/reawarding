@@ -14,6 +14,7 @@ type Props = {
   movie: Movie;
   currentUserId: string;
   ranking: number | null;
+  ratingLabel?: string | null;
   seenIt: boolean;
   onUpdate: (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => void;
   onClick?: () => void;
@@ -47,7 +48,7 @@ const PosterFallback = ({
 </div>
 );
 
-export default function MoviePosterCard({ movie, currentUserId, onUpdate, ranking, seenIt, onClick }: Props) {
+export default function MoviePosterCard({ movie, currentUserId, onUpdate, ranking, ratingLabel = null, seenIt, onClick }: Props) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -104,10 +105,17 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
             onClick={() => onUpdate(movie.id, { seen_it: !seenIt })}
           />
           {/* Ranking Dropdown */}
-          <RankingDropdown
-            ranking={ranking}
-            onChange={(value) => onUpdate(movie.id, { ranking: value })}
-          />
+          <div className="flex flex-col items-center">
+            <RankingDropdown
+              ranking={ranking}
+              onChange={(value) => onUpdate(movie.id, { ranking: value })}
+            />
+            {ratingLabel && (
+              <span className="mt-0.5 text-[10px] leading-tight text-gray-300">
+                {ratingLabel}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
