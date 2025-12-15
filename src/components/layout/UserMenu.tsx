@@ -4,7 +4,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { LogOut, List, User, Settings } from 'lucide-react';
+import { LogOut, List, User, Settings, Users, Activity } from 'lucide-react';
 import { useEnsureProfile } from '@/hooks/useEnsureProfile';
 import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
 import type { Database } from '@/types/supabase';
@@ -127,6 +127,27 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
         </div>
         <div className="mt-2 space-y-3">
           <Link
+            href="/leaderboard"
+            className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            <Activity className="w-4 h-4" />
+            Leaderboard
+          </Link>
+          <Link
+            href="/friends"
+            className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            <Users className="w-4 h-4" />
+            Friends
+          </Link>
+          <Link
+            href="/activity"
+            className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            <Activity className="w-4 h-4" />
+            Activity
+          </Link>
+          <Link
             href="/profile"
             className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
           >
@@ -191,6 +212,33 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
                 </p>
               )}
             </div>
+
+            <Link
+              href="/leaderboard"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              onClick={() => setOpen(false)}
+            >
+              <Activity className="w-4 h-4" />
+              Leaderboard
+            </Link>
+
+            <Link
+              href="/friends"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              onClick={() => setOpen(false)}
+            >
+              <Users className="w-4 h-4" />
+              Friends
+            </Link>
+
+            <Link
+              href="/activity"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              onClick={() => setOpen(false)}
+            >
+              <Activity className="w-4 h-4" />
+              Activity
+            </Link>
             
             <Link
               href="/profile"

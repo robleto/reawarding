@@ -31,6 +31,7 @@ export default function HeaderNav() {
 		{ label: "Rankings", href: "/rankings", match: "/rankings" },
 		{ label: "Films", href: "/films", match: "/films" },
 		{ label: "Lists", href: "/lists", match: "/lists" },
+		{ label: "Leaderboard", href: "/leaderboard", match: "/leaderboard" },
 	];
 
 	const handleLoginClick = () => {
