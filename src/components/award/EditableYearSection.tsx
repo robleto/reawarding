@@ -446,8 +446,8 @@ export default function EditableYearSection({
         },
         body: JSON.stringify({
           year,
-          nominee_ids: nominees.map(m => m.id),
-          winner_id: selectedWinner ? selectedWinner.id : null,
+          nominee_ids: nominees.map((m) => String(m.id)),
+          winner_id: selectedWinner ? String(selectedWinner.id) : null,
           category: resolvedCategory,
         }),
       });
@@ -521,8 +521,8 @@ export default function EditableYearSection({
               user_id: user.id,
               year: Number(year),
               category: resolvedCategory,
-              nominee_ids: nominees.map(m => m.id),
-              winner_id: selectedWinner ? selectedWinner.id : null,
+              nominee_ids: nominees.map((m) => String(m.id)),
+              winner_id: selectedWinner ? String(selectedWinner.id) : null,
               updated_at: new Date().toISOString(),
               created_at: new Date().toISOString(),
             }, { onConflict: 'user_id,year,category' })
@@ -646,9 +646,9 @@ export default function EditableYearSection({
     setIsModalOpen(false);
   };
 
-  const handleModalUpdate = (movieId: number, newRanking: number | null, newSeenIt: boolean) => {
+  const handleModalUpdate = (movieId: string | number, newRanking: number | null, newSeenIt: boolean) => {
     // Track if movie was just marked as seen
-    if (newSeenIt === true) {
+    if (newSeenIt === true && typeof movieId === 'number') {
       setJustSeen((prev) => new Set(prev).add(movieId));
     }
     

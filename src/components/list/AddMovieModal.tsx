@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import type { Database } from "@/types/supabase";
-import type { Movie } from "@/types/types";
 import { Search, X, Film } from "lucide-react";
+
+type MovieRow = Database["public"]["Tables"]["movies"]["Row"];
 
 // Fallback component for missing images
 const ImageFallback = ({ 
@@ -48,12 +49,13 @@ export default function AddMovieModal({
   listId,
 }: AddMovieModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [suggestions, setSuggestions] = useState<Movie[]>([]);
+  const [suggestions, setSuggestions] = useState<MovieRow[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedMovies, setSelectedMovies] = useState<Movie[]>([]);
+  const [selectedMovies, setSelectedMovies] = useState<MovieRow[]>([]);
   const [loading, setLoading] = useState(false);
   
   const supabase = useSupabaseClient<Database>();
+  const user = useUser();
 
   // Search for movie suggestions
   useEffect(() => {
@@ -82,12 +84,7 @@ export default function AddMovieModal({
         console.error("Error searching movies:", error.message);
         setSuggestions([]);
       } else {
-        const moviesWithEmptyRankings = (data || []).map(movie => ({
-          ...movie,
-          rankings: [],
-          thumb_url: movie.thumb_url || "",
-        })) as Movie[];
-        setSuggestions(moviesWithEmptyRankings);
+        setSuggestions(data || []);
       }
       setLoading(false);
     };
@@ -102,7 +99,7 @@ export default function AddMovieModal({
     setShowSuggestions(!!value);
   };
 
-  const handleSuggestionClick = (movie: Movie) => {
+  const handleSuggestionClick = (movie: MovieRow) => {
     setSelectedMovies(prev => {
       const isSelected = prev.some(m => m.id === movie.id);
       if (isSelected) {
@@ -115,7 +112,7 @@ export default function AddMovieModal({
     setShowSuggestions(false);
   };
 
-  const handleRemoveSelected = (movieId: number) => {
+  const handleRemoveSelected = (movieId: string) => {
     setSelectedMovies(prev => prev.filter(m => m.id !== movieId));
   };
 
@@ -153,6 +150,20 @@ export default function AddMovieModal({
 
       // Notify parent component about the added movies
       onAddMovie();
+
+      // Activity (best-effort)
+      if (user) {
+        try {
+          await supabase.from("activity_events").insert({
+            actor_id: user.id,
+            event_type: "list_item_added",
+            list_id: listId,
+            metadata: { count: itemsToInsert.length, movie_ids: itemsToInsert.map((i) => i.movie_id) },
+          });
+        } catch {
+          // ignore
+        }
+      }
       
       // Close modal and reset state
       handleClose();
@@ -214,7 +225,8 @@ export default function AddMovieModal({
               <ul className="absolute z-30 left-0 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg mt-1 shadow-lg max-h-64 overflow-y-auto">
                 {suggestions.map((movie) => {
                   const isSelected = selectedMovies.some(m => m.id === movie.id);
-                  const hasValidImage = movie.thumb_url && movie.thumb_url !== "";
+                  const thumbUrl = movie.thumb_url ?? "";
+                  const hasValidImage = thumbUrl !== "";
                   
                   return (
                     <li
@@ -230,7 +242,7 @@ export default function AddMovieModal({
                       <div className="flex-shrink-0">
                         {hasValidImage ? (
                           <img
-                            src={movie.thumb_url}
+                            src={thumbUrl}
                             alt={movie.title}
                             className="w-16 h-12 object-contain rounded shadow-sm bg-gray-100 dark:bg-gray-700"
                             onError={(e) => {
@@ -307,7 +319,8 @@ export default function AddMovieModal({
               </h3>
               <div className="space-y-3">
                 {selectedMovies.map((movie) => {
-                  const hasValidImage = movie.thumb_url && movie.thumb_url !== "";
+                  const thumbUrl = movie.thumb_url ?? "";
+                  const hasValidImage = thumbUrl !== "";
                   
                   return (
                     <div
@@ -318,7 +331,7 @@ export default function AddMovieModal({
                       <div className="flex-shrink-0">
                         {hasValidImage ? (
                           <img
-                            src={movie.thumb_url}
+                            src={thumbUrl}
                             alt={movie.title}
                             className="w-16 h-12 object-contain rounded shadow-sm bg-gray-100 dark:bg-gray-700"
                             onError={(e) => {

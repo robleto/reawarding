@@ -6,11 +6,16 @@ import type { Database } from '@/types/supabase';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const year = searchParams.get('year');
+    const yearParam = searchParams.get('year');
     const category = (searchParams.get('category') || 'best-picture') as 'best-picture' | 'best-animated' | 'best-comedy' | 'best-drama';
     
-    if (!year) {
+    if (!yearParam) {
       return NextResponse.json({ error: 'Year parameter is required' }, { status: 400 });
+    }
+
+    const year = Number(yearParam);
+    if (!Number.isFinite(year)) {
+      return NextResponse.json({ error: 'Invalid year parameter' }, { status: 400 });
     }
     const cookieStore = await cookies();
     const supabase = createServerClient<Database>(
@@ -207,10 +212,15 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const year = searchParams.get('year');
+    const yearParam = searchParams.get('year');
     const category = (searchParams.get('category') || 'best-picture') as 'best-picture' | 'best-animated' | 'best-comedy' | 'best-drama';
-    if (!year) {
+    if (!yearParam) {
       return NextResponse.json({ error: 'Year parameter is required' }, { status: 400 });
+    }
+
+    const year = Number(yearParam);
+    if (!Number.isFinite(year)) {
+      return NextResponse.json({ error: 'Invalid year parameter' }, { status: 400 });
     }
     const cookieStore = await cookies();
     const supabase = createServerClient<Database>(

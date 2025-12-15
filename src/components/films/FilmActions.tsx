@@ -8,10 +8,11 @@ import RankingDropdown from "@/components/movie/RankingDropdown";
 import useGuestRankingStore from "@/hooks/useGuestRankingStore";
 
 type Props = {
-  movieId: number;
+  movieId: string;
+  guestMovieId?: number | null;
 };
 
-export default function FilmActions({ movieId }: Props) {
+export default function FilmActions({ movieId, guestMovieId = null }: Props) {
   const { user } = useUser();
   const [ranking, setRanking] = useState<number | null>(null);
   const [seenIt, setSeenIt] = useState(false);
@@ -24,9 +25,14 @@ export default function FilmActions({ movieId }: Props) {
   useEffect(() => {
     if (!user) {
       // Guest mode - check localStorage
-      const guestRanking = getRanking(movieId);
-      setRanking(guestRanking?.ranking ?? null);
-      setSeenIt(guestRanking?.seenIt ?? false);
+      if (typeof guestMovieId === "number" && Number.isFinite(guestMovieId)) {
+        const guestRanking = getRanking(guestMovieId);
+        setRanking(guestRanking?.ranking ?? null);
+        setSeenIt(guestRanking?.seenIt ?? false);
+      } else {
+        setRanking(null);
+        setSeenIt(false);
+      }
       setLoading(false);
       return;
     }
@@ -42,21 +48,23 @@ export default function FilmActions({ movieId }: Props) {
 
       if (!error && data) {
         setRanking(data.ranking);
-        setSeenIt(data.seen_it);
+        setSeenIt(data.seen_it ?? false);
       }
       setLoading(false);
     };
 
     fetchRanking();
-  }, [user, movieId, getRanking]);
+  }, [user, movieId, guestMovieId, getRanking]);
 
   const handleUpdate = async (updates: { seen_it?: boolean; ranking?: number | null }) => {
     if (!user) {
       // Guest mode
-      updateGuestRankingStore(movieId, {
-        ranking: updates.ranking !== undefined ? updates.ranking : ranking,
-        seenIt: updates.seen_it !== undefined ? updates.seen_it : seenIt,
-      });
+      if (typeof guestMovieId === "number" && Number.isFinite(guestMovieId)) {
+        updateGuestRankingStore(guestMovieId, {
+          ranking: updates.ranking !== undefined ? updates.ranking : ranking,
+          seenIt: updates.seen_it !== undefined ? updates.seen_it : seenIt,
+        });
+      }
       if (updates.ranking !== undefined) setRanking(updates.ranking);
       if (updates.seen_it !== undefined) setSeenIt(updates.seen_it);
       return;

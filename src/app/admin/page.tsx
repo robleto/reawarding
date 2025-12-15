@@ -7,9 +7,9 @@ import Image from "next/image";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 
 type MovieFromDB = {
-  id: number;
+  id: string;
   title: string;
-  release_year: number;
+  release_year: number | null;
   tmdb_id?: number | null;
   poster_url: string | null;
   thumb_url: string | null;
@@ -26,7 +26,7 @@ export default function AdminBrokenImagesPage() {
   const [movies, setMovies] = useState<BrokenImageMovie[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "poster" | "thumb" | "both">("all");
-  const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     loadMovies();
@@ -81,7 +81,7 @@ export default function AdminBrokenImagesPage() {
     }
   });
 
-  const copyToClipboard = (text: string, id: number) => {
+  const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);

@@ -49,6 +49,18 @@ export default function ListsHomePage() {
         return;
       }
 
+      // Activity (best-effort)
+      try {
+        await supabase.from("activity_events").insert({
+          actor_id: userId,
+          event_type: "list_created",
+          list_id: data.id,
+          metadata: { name: data.name, is_public: data.is_public },
+        });
+      } catch {
+        // ignore
+      }
+
       // Navigate to the new list
       router.push(`/lists/${data.id}`);
     } catch (err) {

@@ -15,7 +15,7 @@ interface MovieDetailModalProps {
   movie: Movie;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (movieId: number, newRanking: number | null, newSeenIt: boolean) => void;
+  onUpdate: (movieId: string | number, newRanking: number | null, newSeenIt: boolean) => void;
   initialRanking?: number | null;
   initialSeenIt?: boolean;
 }
@@ -88,12 +88,14 @@ export default function MovieDetailModal({
       return;
     }
 
+    const movieId = movie.id as unknown as string;
+
     setIsLoading(true);
     try {
       // Upsert ranking
       const { error } = await supabase.from('rankings').upsert({
         user_id: user.id,
-        movie_id: movie.id,
+        movie_id: movieId,
         ranking: newRanking,
         seen_it: newSeenIt,
       }, { onConflict: 'user_id,movie_id' });
@@ -110,7 +112,7 @@ export default function MovieDetailModal({
         .from('rankings')
         .select('ranking, seen_it')
         .eq('user_id', user.id)
-        .eq('movie_id', movie.id)
+        .eq('movie_id', movieId)
         .single();
 
       if (fetchError || !rankingData) {
@@ -123,7 +125,7 @@ export default function MovieDetailModal({
       setRanking(rankingData.ranking ?? null);
       setSeenIt(rankingData.seen_it ?? false);
       // On success, call the onUpdate callback
-      onUpdate(movie.id, rankingData.ranking ?? null, rankingData.seen_it ?? false);
+      onUpdate(movieId, rankingData.ranking ?? null, rankingData.seen_it ?? false);
     } catch (error) {
       console.error('Caught exception updating ranking:', error);
       setRanking(initialRanking);

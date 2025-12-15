@@ -5,6 +5,14 @@ import { supabase } from "@/lib/supabaseBrowser";
 import type { Movie } from "@/types/types";
 import { Search, Filter, SortAsc, SortDesc, Grid3X3, List, X, ChevronDown, ArrowUpDown } from "lucide-react";
 
+type MovieSuggestion = {
+  id: string | number;
+  title: string;
+  release_year: number | null;
+  poster_url: string | null;
+  thumb_url: string | null;
+};
+
 interface MovieFiltersProps {
   // View mode controls
   viewMode: "grid" | "list";
@@ -76,7 +84,7 @@ export default function MovieFilters({
   // --- Movie search state ---
   const [searchTerm, setSearchTerm] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
-  const [suggestions, setSuggestions] = useState<Movie[]>([]);
+  const [suggestions, setSuggestions] = useState<MovieSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -98,9 +106,16 @@ export default function MovieFilters({
     
     if (localSearchMode) {
       // Local search: filter within availableMovies
-      const filtered = availableMovies.filter(movie =>
-        movie.title.toLowerCase().includes(value.toLowerCase())
-      ).slice(0, 7);
+      const filtered: MovieSuggestion[] = availableMovies
+        .filter(movie => movie.title.toLowerCase().includes(value.toLowerCase()))
+        .slice(0, 7)
+        .map((movie) => ({
+          id: movie.id,
+          title: movie.title,
+          release_year: movie.release_year ?? null,
+          poster_url: movie.poster_url ?? null,
+          thumb_url: movie.thumb_url ?? null,
+        }));
       setSuggestions(filtered);
       setFilterType("search");
       setFilterValue(value);
@@ -112,14 +127,14 @@ export default function MovieFilters({
           .select("id, title, release_year, poster_url, thumb_url")
           .ilike("title", `%${value}%`)
           .limit(7);
-        if (!error && data) setSuggestions(data as Movie[]);
+        if (!error && data) setSuggestions(data as MovieSuggestion[]);
         else setSuggestions([]);
       }, 200);
     }
   };
 
   // Handle suggestion selection
-  const handleSuggestionClick = (movie: Movie) => {
+  const handleSuggestionClick = (movie: MovieSuggestion) => {
     setSearchTerm(movie.title);
     setShowSuggestions(false);
     setFilterType("movie"); // Use a dedicated filter type for movie search

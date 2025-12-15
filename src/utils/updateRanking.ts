@@ -1,5 +1,4 @@
 import { supabase } from "@/lib/supabaseBrowser";
-import type { Database } from "@/types/supabase";
 
 export async function updateRanking({
   movie_id,
@@ -24,7 +23,7 @@ export async function updateRanking({
 
   const payload = {
     user_id: user.id,
-    movie_id: Number(movie_id),
+    movie_id: String(movie_id),
     seen_it: seen_it,
     ranking: ranking,
   };

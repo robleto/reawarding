@@ -3,17 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabaseBrowser";
+import type { Database } from '@/types/supabase';
 import { User, Save, Check, X } from 'lucide-react';
 
-interface Profile {
-  id: string;
-  username: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  bio: string | null;
-  created_at: string;
-  updated_at: string;
-}
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export default function ProfileSetupPage() {
   const router = useRouter();

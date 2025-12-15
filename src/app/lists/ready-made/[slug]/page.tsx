@@ -9,7 +9,7 @@ import { normalizeImageUrl } from '@/utils/imageUrl';
 import ReadyMadeDetailClient from '@/components/lists/ReadyMadeDetailClient';
 
 type MovieItem = {
-  id: number;
+  id: string;
   title: string;
   release_year: number | null;
   poster_url: string | null;
@@ -67,7 +67,7 @@ async function getData(slug: string): Promise<ReadyMadeData> {
     if (director) {
       const bucket = byDirector.get(director) || [];
       bucket.push({
-        id: m.id as number,
+        id: m.id as string,
         title: m.title as string,
         release_year: (m.release_year as number | null) ?? null,
         poster_url: (m.cached_poster_url as string | null) ?? (m.poster_url as string | null),
@@ -80,7 +80,7 @@ async function getData(slug: string): Promise<ReadyMadeData> {
       for (const g of genres) {
         const gb = byGenre.get(g) || [];
         gb.push({
-          id: m.id as number,
+          id: m.id as string,
           title: m.title as string,
           release_year: (m.release_year as number | null) ?? null,
           poster_url: (m.cached_poster_url as string | null) ?? (m.poster_url as string | null),
@@ -94,7 +94,7 @@ async function getData(slug: string): Promise<ReadyMadeData> {
       const start = Math.floor(year / 10) * 10;
       const db = byDecade.get(start) || [];
       db.push({
-        id: m.id as number,
+        id: m.id as string,
         title: m.title as string,
         release_year: (m.release_year as number | null) ?? null,
         poster_url: (m.cached_poster_url as string | null) ?? (m.poster_url as string | null),
@@ -136,8 +136,8 @@ async function saveDirectorList(formData: FormData) {
   const publishNow = String(formData.get('publish') || '0') === '1';
   let ids = String(formData.get('movie_ids') || '')
     .split(',')
-    .map((s) => Number(s))
-    .filter((n) => Number.isFinite(n));
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   const cookieStore = await cookies();
   const supabase = createServerClient<Database>(
@@ -164,7 +164,7 @@ async function saveDirectorList(formData: FormData) {
       .from('movies')
       .select('id')
       .eq('director', director);
-    const movieIds = (movieRows || []).map((m) => m.id as number);
+    const movieIds = (movieRows || []).map((m) => m.id).filter((id): id is string => typeof id === 'string');
     if (movieIds.length) {
       // 2) Intersect with user's seen rankings and sort by ranking desc
       const { data: rankRows } = await supabase
@@ -177,7 +177,8 @@ async function saveDirectorList(formData: FormData) {
         new Set(
           (rankRows || [])
             .sort((a, b) => ((b.ranking ?? 0) - (a.ranking ?? 0)))
-            .map((r) => r.movie_id as number)
+            .map((r) => r.movie_id)
+            .filter((id): id is string => typeof id === 'string')
         )
       );
     }
@@ -234,8 +235,8 @@ async function saveGenreList(formData: FormData) {
   const totalSeen = Number(formData.get('total_seen') || 0);
   let ids = String(formData.get('movie_ids') || '')
     .split(',')
-    .map((s) => Number(s))
-    .filter((n) => Number.isFinite(n));
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   const cookieStore = await cookies();
   const supabase = createServerClient<Database>(
@@ -248,7 +249,10 @@ async function saveGenreList(formData: FormData) {
 
   if (ids.length === 0 && genre) {
     const { data: movieRows } = await supabase.from('movies').select('id, genres');
-    const candidateIds = (movieRows || []).filter((m: any) => Array.isArray(m.genres) && m.genres.includes(genre)).map((m: any) => m.id as number);
+    const candidateIds = (movieRows || [])
+      .filter((m: any) => Array.isArray(m.genres) && m.genres.includes(genre))
+      .map((m: any) => m.id)
+      .filter((id: any): id is string => typeof id === 'string');
     if (candidateIds.length) {
       const { data: rankRows } = await supabase
         .from('rankings')
@@ -258,7 +262,14 @@ async function saveGenreList(formData: FormData) {
         .in('movie_id', candidateIds);
       const rows = (rankRows || []);
       const filtered = totalSeen > 100 ? rows.filter((r) => (r.ranking ?? 0) >= 9) : rows;
-      ids = Array.from(new Set(filtered.sort((a, b) => ((b.ranking ?? 0) - (a.ranking ?? 0))).map((r) => r.movie_id as number)));
+      ids = Array.from(
+        new Set(
+          filtered
+            .sort((a, b) => ((b.ranking ?? 0) - (a.ranking ?? 0)))
+            .map((r) => r.movie_id)
+            .filter((id): id is string => typeof id === 'string')
+        )
+      );
     }
   }
   const name = formatGenreListName(genre, count);
@@ -301,8 +312,8 @@ async function saveDecadeList(formData: FormData) {
   const totalSeen = Number(formData.get('total_seen') || 0);
   let ids = String(formData.get('movie_ids') || '')
     .split(',')
-    .map((s) => Number(s))
-    .filter((n) => Number.isFinite(n));
+    .map((s) => s.trim())
+    .filter(Boolean);
   const cookieStore = await cookies();
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -315,7 +326,8 @@ async function saveDecadeList(formData: FormData) {
     const { data: movieRows } = await supabase.from('movies').select('id, release_year');
     const candidateIds = (movieRows || [])
       .filter((m: any) => typeof m.release_year === 'number' && m.release_year >= startYear && m.release_year < startYear + 10)
-      .map((m: any) => m.id as number);
+      .map((m: any) => m.id)
+      .filter((id: any): id is string => typeof id === 'string');
     if (candidateIds.length) {
       const { data: rankRows } = await supabase
         .from('rankings')
@@ -325,7 +337,14 @@ async function saveDecadeList(formData: FormData) {
         .in('movie_id', candidateIds);
       const rows = (rankRows || []);
       const filtered = totalSeen > 100 ? rows.filter((r) => (r.ranking ?? 0) >= 9) : rows;
-      ids = Array.from(new Set(filtered.sort((a, b) => ((b.ranking ?? 0) - (a.ranking ?? 0))).map((r) => r.movie_id as number)));
+      ids = Array.from(
+        new Set(
+          filtered
+            .sort((a, b) => ((b.ranking ?? 0) - (a.ranking ?? 0)))
+            .map((r) => r.movie_id)
+            .filter((id): id is string => typeof id === 'string')
+        )
+      );
     }
   }
   const name = formatDecadeListName(decade, count);

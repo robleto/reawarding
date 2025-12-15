@@ -406,7 +406,7 @@ export default function HomePage() {
 				isOpen={!!selectedMovie}
 				onClose={() => setSelectedMovie(null)}
 				onUpdate={(movieId, newRanking, newSeenIt) => {
-					updateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
+					updateMovieRanking(movieId as unknown as number, { ranking: newRanking, seen_it: newSeenIt });
 				}}
 				initialRanking={
 					(selectedMovie.rankings && selectedMovie.rankings[0]?.ranking) ?? null

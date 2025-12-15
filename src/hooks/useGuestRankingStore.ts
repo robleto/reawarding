@@ -150,16 +150,51 @@ export function useGuestRankingStoreWithMigration() {
       if (rankings.length === 0) {
         return { success: true, migratedCount: 0 };
       }
+
+      // Map guest movieIds (TMDB numeric) -> DB movies.id (uuid)
+      const tmdbIds = Array.from(new Set(rankings.map((r) => r.movieId)));
+      const { data: movieRows, error: movieLookupError } = await supabase
+        .from("movies")
+        .select("id, tmdb_id")
+        .in("tmdb_id", tmdbIds);
+
+      if (movieLookupError) {
+        console.error("[GuestMigration] Error looking up movies by tmdb_id:", movieLookupError);
+        return { success: false, migratedCount: 0, error: movieLookupError.message };
+      }
+
+      const tmdbToUuid = new Map<number, string>();
+      for (const row of movieRows || []) {
+        if (row.tmdb_id != null) tmdbToUuid.set(row.tmdb_id, row.id);
+      }
       
       // Convert guest rankings to database format
-      const rankingsToInsert = rankings.map((ranking) => ({
-        user_id: userId,
-        movie_id: ranking.movieId,
-        ranking: ranking.ranking,
-        seen_it: ranking.seenIt,
-        created_at: new Date(ranking.timestamp || Date.now()).toISOString(),
-        updated_at: new Date().toISOString(),
-      }));
+      const rankingsToInsertRaw: Array<Database["public"]["Tables"]["rankings"]["Insert"] | null> =
+        rankings.map((ranking) => {
+          const movieId = tmdbToUuid.get(ranking.movieId);
+          if (!movieId) return null;
+          return {
+            user_id: userId,
+            movie_id: movieId,
+            ranking: ranking.ranking,
+            seen_it: ranking.seenIt,
+            created_at: new Date(ranking.timestamp || Date.now()).toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+        });
+
+      const rankingsToInsert: Database["public"]["Tables"]["rankings"]["Insert"][] =
+        rankingsToInsertRaw.filter(
+          (r): r is Database["public"]["Tables"]["rankings"]["Insert"] => r !== null
+        );
+
+      if (rankingsToInsert.length === 0) {
+        return {
+          success: false,
+          migratedCount: 0,
+          error: "No matching movies found to migrate guest rankings.",
+        };
+      }
 
       console.log('[GuestMigration] Attempting to migrate guest rankings', {
         count: rankingsToInsert.length,
@@ -187,8 +222,10 @@ export function useGuestRankingStoreWithMigration() {
         status,
       });
 
-      // Clear guest data after successful migration
-      store.clearAllData();
+      // Only clear guest data if we migrated everything (avoid data loss).
+      if (rankingsToInsert.length === rankings.length) {
+        store.clearAllData();
+      }
       
       return { success: true, migratedCount: rankingsToInsert.length };
     } catch (error) {

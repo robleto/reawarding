@@ -4,8 +4,15 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
-import type { Movie } from "@/types/types";
 import { movieSlug } from "@/utils/slug";
+
+type NavMovieSuggestion = {
+  id: string;
+  title: string;
+  release_year: number | null;
+  thumb_url: string | null;
+  poster_url: string | null;
+};
 
 type Props = {
   className?: string;
@@ -16,7 +23,7 @@ export default function NavSearch({ className = "" }: Props) {
   const pathname = usePathname();
   const [term, setTerm] = useState("");
   const [expanded, setExpanded] = useState(false);
-  const [suggestions, setSuggestions] = useState<Movie[]>([]);
+  const [suggestions, setSuggestions] = useState<NavMovieSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -38,7 +45,7 @@ export default function NavSearch({ className = "" }: Props) {
       .select("id, title, release_year, thumb_url, poster_url")
       .ilike("title", `%${value}%`)
       .limit(7);
-    if (!error) setSuggestions((data || []) as Movie[]);
+    if (!error) setSuggestions((data || []) as NavMovieSuggestion[]);
   };
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,7 +56,7 @@ export default function NavSearch({ className = "" }: Props) {
     timeoutRef.current = setTimeout(() => doSearch(value), 200);
   };
 
-  const onSelectMovie = (movie: Movie) => {
+  const onSelectMovie = (movie: NavMovieSuggestion) => {
     setShowSuggestions(false);
     setExpanded(false);
     setTerm("");

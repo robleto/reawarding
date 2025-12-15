@@ -33,19 +33,12 @@ import { Edit2, Plus, Globe, Lock, MoreVertical, ArrowLeft, Trash } from "lucide
 
 export const dynamic = "force-dynamic";
 
-type MovieList = {
-  id: string;
-  user_id: string;
-  name: string;
-  description: string | null;
-  is_public: boolean;
-  updated_at: string;
-};
+type MovieList = Database["public"]["Tables"]["movie_lists"]["Row"];
 
 type ListItem = {
   id: string;
   list_id: string;
-  movie_id: number;
+  movie_id: string;
   ranking: number; // list position
   movie: Movie;
   // These will be merged in from global rankings
@@ -268,6 +261,9 @@ export default function ListDetailPage() {
     if (!listId || !userId) return;
 
     async function fetchListData() {
+      const uid = userId;
+      if (!uid) return;
+
       setLoading(true);
       setError(null);
 
@@ -286,7 +282,7 @@ export default function ListDetailPage() {
         }
 
         // Check if user has access to this list
-        if (!listData.is_public && listData.user_id !== userId) {
+        if (!listData.is_public && listData.user_id !== uid) {
           setError("You don't have permission to view this list");
           setLoading(false);
           return;
@@ -329,7 +325,7 @@ export default function ListDetailPage() {
           const { data: rankings, error: rankingsError } = await supabase
             .from("rankings")
             .select("id, movie_id, seen_it, ranking")
-            .eq("user_id", userId)
+            .eq("user_id", uid)
             .in("movie_id", movieIds);
           if (rankingsError) {
             console.error("Error fetching user rankings:", rankingsError.message);
@@ -339,16 +335,18 @@ export default function ListDetailPage() {
         }
 
         // Map movie_id to ranking info
-        const rankingMap = new Map<number, any>();
+        const rankingMap = new Map<string, any>();
         for (const r of rankingsData) {
-          rankingMap.set(r.movie_id, r);
+          rankingMap.set(String(r.movie_id), r);
         }
 
+        const rows = (itemsData || []) as any[];
+
         // Transform the data to match our expected structure, merging in global ranking/seen_it
-        const transformedItems: ListItem[] = (itemsData || [])
+        const transformedItems: ListItem[] = rows
           .filter(item => item.movies)
           .map(item => {
-            const global = rankingMap.get(item.movie_id) || {};
+            const global = rankingMap.get(String(item.movie_id)) || {};
             return {
               ...item,
               seen_it: global.seen_it ?? false,
@@ -378,6 +376,8 @@ export default function ListDetailPage() {
   // Refetch list items and rankings after update
   const refetchListItems = async () => {
     if (!listId || !userId) return;
+    const uid = userId;
+    if (!uid) return;
     setLoading(true);
     setError(null);
     try {
@@ -400,22 +400,24 @@ export default function ListDetailPage() {
         const { data: rankings, error: rankingsError } = await supabase
           .from("rankings")
           .select("id, movie_id, seen_it, ranking")
-          .eq("user_id", userId)
+          .eq("user_id", uid)
           .in("movie_id", movieIds);
         if (!rankingsError && rankings) {
           rankingsData = rankings;
         }
       }
       // Map movie_id to ranking info
-      const rankingMap = new Map<number, any>();
+      const rankingMap = new Map<string, any>();
       for (const r of rankingsData) {
-        rankingMap.set(r.movie_id, r);
+        rankingMap.set(String(r.movie_id), r);
       }
+      const rows = (itemsData || []) as any[];
+
       // Transform the data to match our expected structure, merging in global ranking/seen_it
-      const transformedItems: ListItem[] = (itemsData || [])
+      const transformedItems: ListItem[] = rows
         .filter(item => item.movies)
         .map(item => {
-          const global = rankingMap.get(item.movie_id) || {};
+          const global = rankingMap.get(String(item.movie_id)) || {};
           return {
             ...item,
             seen_it: global.seen_it ?? false,
@@ -440,6 +442,8 @@ export default function ListDetailPage() {
     itemId: string,
     updates: { seen_it?: boolean; score?: number | null }
   ) => {
+    if (!userId) return;
+
     // Find the movie_id for this item
     const item = listItems.find(i => i.id === itemId);
     if (!item) return;
@@ -463,6 +467,19 @@ export default function ListDetailPage() {
       return;
     }
 
+    // Activity (best-effort)
+    try {
+      await supabase.from("activity_events").insert({
+        actor_id: userId,
+        event_type: updates.score === null ? "ranking_cleared" : "ranking_set",
+        movie_id: movieId,
+        list_id: listId,
+        metadata: { ranking: updates.score ?? undefined, seen_it: updates.seen_it ?? undefined },
+      });
+    } catch {
+      // ignore
+    }
+
     // Optimistically update local state
     setListItems(prevItems =>
       prevItems.map(item =>
@@ -474,6 +491,8 @@ export default function ListDetailPage() {
   };
 
   const handleRemoveItem = async (itemId: string) => {
+    if (!userId) return;
+    const existingItem = listItems.find((i) => i.id === itemId);
     const { error } = await supabase
       .from("movie_list_items")
       .delete()
@@ -486,6 +505,21 @@ export default function ListDetailPage() {
 
     // Update local state
     setListItems(prevItems => prevItems.filter(item => item.id !== itemId));
+
+    // Activity (best-effort)
+    if (existingItem) {
+      try {
+        await supabase.from("activity_events").insert({
+          actor_id: userId,
+          event_type: "list_item_removed",
+          movie_id: existingItem.movie_id,
+          list_id: listId,
+          metadata: {},
+        });
+      } catch {
+        // ignore
+      }
+    }
 
     // Update the list's updated_at timestamp
     await supabase
@@ -514,7 +548,9 @@ export default function ListDetailPage() {
         .order("ranking");
 
       if (!itemsError && itemsData) {
-        const transformedItems: ListItem[] = itemsData
+        const rows = itemsData as any[];
+
+        const transformedItems: ListItem[] = rows
           .filter(item => item.movies)
           .map(item => ({
             ...item,
@@ -578,6 +614,18 @@ export default function ListDetailPage() {
   const handleDeleteList = async () => {
     if (!list || !isOwner) return;
     try {
+      // Activity (best-effort) — insert before delete (FK will set null)
+      try {
+        await supabase.from("activity_events").insert({
+          actor_id: userId,
+          event_type: "list_deleted",
+          list_id: list.id,
+          metadata: { name: list.name },
+        });
+      } catch {
+        // ignore
+      }
+
       // Delete items first to avoid FK issues (if cascade not enabled)
       await supabase.from("movie_list_items").delete().eq("list_id", list.id);
       // Delete the list

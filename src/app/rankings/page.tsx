@@ -235,8 +235,8 @@ export default function RankingsPage() {
     setIsModalOpen(false);
   };
 
-  const handleModalUpdate = (movieId: number, newRanking: number | null, newSeenIt: boolean) => {
-    updateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
+  const handleModalUpdate = (movieId: string | number, newRanking: number | null, newSeenIt: boolean) => {
+    updateMovieRanking(movieId as unknown as number, { ranking: newRanking, seen_it: newSeenIt });
   };
 
   const isDataReady =

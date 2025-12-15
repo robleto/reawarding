@@ -360,17 +360,17 @@ export function useMovieDataWithGuest() {
 					} else {
 						// Apply guest data from Zustand store
 						const moviesWithGuestData = data.map(movie => {
-							const guestRanking = guestStore.getRanking(movie.id);
+							const guestRanking = movie.tmdb_id != null ? guestStore.getRanking(movie.tmdb_id) : null;
 							return {
 								...movie,
 								rankings: guestRanking ? [{
-									id: `guest_${movie.id}`,
+									id: `guest_${movie.tmdb_id ?? movie.id}`,
 									user_id: 'guest',
 									ranking: guestRanking.ranking,
 									seen_it: guestRanking.seenIt,
 								}] : [],
 								thumb_url: movie.thumb_url ?? "",
-							} as Movie;
+							} as unknown as Movie;
 						});
 						
 						setMovies(moviesWithGuestData);
@@ -415,7 +415,7 @@ export function useMovieDataWithGuest() {
 								...movie,
 								rankings: ranking ? [ranking] : [],
 								thumb_url: movie.thumb_url ?? "",
-							} as Movie;
+							} as unknown as Movie;
 						});
 						setMovies(enriched);
 					}
@@ -432,10 +432,11 @@ export function useMovieDataWithGuest() {
 	}, [userId, supabase, user, isGuest]);
 
 	const updateMovieRanking = async (
-		movieId: number,
+		movieId: number | string,
 		updates: { seen_it?: boolean; ranking?: number | null }
 	) => {
 		if (isGuest) {
+			if (typeof movieId !== "number") return;
 			// For guests, update Zustand store - need to map seen_it to seenIt
 			const guestUpdates: { ranking?: number | null; seenIt?: boolean } = {};
 			if (updates.ranking !== undefined) guestUpdates.ranking = updates.ranking;
@@ -446,7 +447,7 @@ export function useMovieDataWithGuest() {
 			// Update local state immediately for better UX
 			setMovies((prevMovies) =>
 				prevMovies.map((m) => {
-					if (m.id === movieId) {
+					if (String(m.id) === String(movieId)) {
 						const guestRanking = guestStore.getRanking(movieId);
 						if (guestRanking) {
 							return {
@@ -467,7 +468,8 @@ export function useMovieDataWithGuest() {
 		}
 
 		// For authenticated users, use the existing logic
-		const movie = movies.find((m) => m.id === movieId);
+		const movieIdStr = String(movieId);
+		const movie = movies.find((m) => String(m.id) === movieIdStr);
 		const existing = movie?.rankings?.[0];
 
 		if (updates.ranking === null) {
@@ -485,19 +487,40 @@ export function useMovieDataWithGuest() {
 
 			setMovies((prevMovies) =>
 				prevMovies.map((m) => {
-					if (m.id === movieId) {
+					if (String(m.id) === movieIdStr) {
 						return { ...m, rankings: [] };
 					}
 					return m;
 				})
 			);
+
+			// Activity (best-effort)
+			try {
+				const movieIdMaybe = movieId as unknown;
+				const movieIdForActivity =
+					typeof movieIdMaybe === "string" &&
+					/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+						movieIdMaybe
+					)
+						? movieIdMaybe
+						: null;
+
+				await supabase.from("activity_events").insert({
+						actor_id: userId,
+						event_type: "ranking_cleared",
+						movie_id: movieIdForActivity,
+						metadata: { previous_ranking: existing?.ranking ?? null },
+					});
+			} catch {
+				// ignore
+			}
 			return;
 		}
 
 		const payload = {
 			...(existing?.id ? { id: existing.id } : {}),
 			user_id: userId!,
-			movie_id: movieId,
+			movie_id: movieIdStr,
 			seen_it: updates.seen_it ?? existing?.seen_it ?? false,
 			ranking: updates.ranking ?? existing?.ranking ?? 0,
 		};
@@ -513,7 +536,7 @@ export function useMovieDataWithGuest() {
 
 		setMovies((prevMovies) =>
 			prevMovies.map((m) => {
-				if (m.id === movieId) {
+				if (String(m.id) === movieIdStr) {
 					const updatedRankings = [...m.rankings];
 					if (updatedRankings.length === 0) {
 						updatedRankings.push({
@@ -534,6 +557,30 @@ export function useMovieDataWithGuest() {
 				return m;
 			})
 		);
+
+		// Activity (best-effort)
+		try {
+			const movieIdMaybe = movieId as unknown;
+			const movieIdForActivity =
+				typeof movieIdMaybe === "string" &&
+				/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+					movieIdMaybe
+				)
+					? movieIdMaybe
+					: null;
+
+			await supabase.from("activity_events").insert({
+					actor_id: userId,
+					event_type: "ranking_set",
+					movie_id: movieIdForActivity,
+					metadata: {
+						ranking: payload.ranking,
+						seen_it: payload.seen_it,
+					},
+				});
+		} catch {
+			// ignore
+		}
 	};
 
 	return { 

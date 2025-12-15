@@ -9,18 +9,7 @@ import type { Database } from "@/types/supabase";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import StatsSummary from "@/components/stats/StatsSummary";
 
-interface Profile {
-  id: string;
-  username: string;
-  first_name: string | null;
-  last_name: string | null;
-  full_name: string | null;
-  preferred_name: string | null;
-  avatar_url: string | null;
-  bio: string | null;
-  created_at: string;
-  updated_at: string;
-}
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 export default function ProfilePage() {
   const user = useUser();

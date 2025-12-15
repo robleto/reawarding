@@ -59,17 +59,20 @@ export default async function MovieDetailPage({ params }: any) {
   // Fetch similar movies using content-based filtering (non-blocking - don't fail if slow)
   let similarMovies: SimilarMovie[] = [];
   try {
-    const result = await Promise.race([
-      supabaseAdmin.rpc("get_similar_movies", {
-        target_movie_id: id,
-        limit_count: 12,
-      }),
-      new Promise<{ data: SimilarMovie[] | null; error: null }>((resolve) =>
-        setTimeout(() => resolve({ data: null, error: null }), 2000)
-      ),
-    ]);
+    type SimilarMoviesRpcResult = { data: SimilarMovie[] | null; error: unknown | null };
 
-    if (result.data && Array.isArray(result.data)) {
+    const rpcPromise = supabaseAdmin.rpc("get_similar_movies", {
+      target_movie_id: id,
+      limit_count: 12,
+    }) as unknown as Promise<SimilarMoviesRpcResult>;
+
+    const timeoutPromise = new Promise<SimilarMoviesRpcResult>((resolve) =>
+      setTimeout(() => resolve({ data: null, error: null }), 2000)
+    );
+
+    const result = await Promise.race([rpcPromise, timeoutPromise]);
+
+    if (Array.isArray(result.data)) {
       similarMovies = result.data;
     }
   } catch (error) {
@@ -219,7 +222,7 @@ export default async function MovieDetailPage({ params }: any) {
 
             {/* Action Buttons */}
             <div className="mb-6">
-              <FilmActions movieId={movie.id} />
+              <FilmActions movieId={movie.id} guestMovieId={movie.tmdb_id ?? null} />
             </div>
 
             {/* Quick Stats */}

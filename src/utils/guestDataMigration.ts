@@ -13,29 +13,59 @@ export async function migrateGuestData(
       return { success: true, migratedCount: 0 };
     }
 
-    // Convert guest rankings to database format
-    const rankingsToInsert = guestData.rankings.map((ranking) => ({
-      user_id: userId,
-      movie_id: ranking.movieId,
-      ranking: ranking.ranking,
-      seen_it: ranking.seenIt,
-    }));
+    // Map guest movieIds (TMDB numeric) -> DB movies.id (uuid)
+    const tmdbIds = Array.from(new Set(guestData.rankings.map((r) => r.movieId)));
+    const { data: movieRows, error: movieLookupError } = await supabase
+      .from("movies")
+      .select("id, tmdb_id")
+      .in("tmdb_id", tmdbIds);
+
+    if (movieLookupError) {
+      console.error("Error looking up movies by tmdb_id:", movieLookupError);
+      return { success: false, migratedCount: 0, error: movieLookupError.message };
+    }
+
+    const tmdbToUuid = new Map<number, string>();
+    for (const row of movieRows || []) {
+      if (row.tmdb_id != null) tmdbToUuid.set(row.tmdb_id, row.id);
+    }
+
+    const rankingsToInsertRaw: Array<Database["public"]["Tables"]["rankings"]["Insert"] | null> =
+      guestData.rankings.map((ranking) => {
+        const movieId = tmdbToUuid.get(ranking.movieId);
+        if (!movieId) return null;
+        return {
+          user_id: userId,
+          movie_id: movieId,
+          ranking: ranking.ranking,
+          seen_it: ranking.seenIt,
+        };
+      });
+
+    const rankingsToInsert: Database["public"]["Tables"]["rankings"]["Insert"][] =
+      rankingsToInsertRaw.filter(
+        (r): r is Database["public"]["Tables"]["rankings"]["Insert"] => r !== null
+      );
+
+    if (rankingsToInsert.length === 0) {
+      return { success: false, migratedCount: 0, error: "No matching movies found to migrate guest rankings." };
+    }
 
     // Insert rankings into the database
-    const { error } = await supabase
-      .from("user_rankings")
-      .upsert(rankingsToInsert, {
-        onConflict: "user_id,movie_id",
-        ignoreDuplicates: false,
-      });
+    const { error } = await supabase.from("rankings").upsert(rankingsToInsert, {
+      onConflict: "user_id,movie_id",
+      ignoreDuplicates: false,
+    });
 
     if (error) {
       console.error("Error migrating guest data:", error);
       return { success: false, migratedCount: 0, error: error.message };
     }
 
-    // Clear guest data after successful migration
-    clearGuestData();
+    // Only clear guest data if we migrated everything (avoid data loss).
+    if (rankingsToInsert.length === guestData.rankings.length) {
+      clearGuestData();
+    }
 
     return { success: true, migratedCount: rankingsToInsert.length };
   } catch (error) {
