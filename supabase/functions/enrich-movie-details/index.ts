@@ -17,15 +17,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Initialize Supabase client with auth from request
+    // Initialize Supabase client with service role key for admin access
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! }
-        }
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
     // Get the movie from the database
@@ -86,8 +81,8 @@ Deno.serve(async (req) => {
       runtime: movieDetails.runtime,
       genres,
       director: director?.name || null,
-      cast_list: cast.map(actor => actor.name),
-      cached_at: new Date().toISOString()
+      cast_list: cast.map((actor: any) => actor.name),
+      updated_at: new Date().toISOString()
     }
 
     // Update the movie in the database

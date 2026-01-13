@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieRowCard from "@/components/movie/MovieRowCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
@@ -9,6 +10,8 @@ import MovieFilters from "@/components/filters/MovieFilters";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import FilmsEmptyState from "@/components/films/FilmsEmptyState";
+import CollectionCard from "@/components/films/CollectionCard";
+import { getFeaturedCollections } from "@/data/filmCollections";
 import type { Movie } from "@/types/types";
 
 import {
@@ -25,7 +28,18 @@ export const dynamic = "force-dynamic";
 
 export default function FilmsPage() {
 	const searchParams = useSearchParams();
+	const router = useRouter();
 	const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
+	
+	// Films view toggle: "all" or "collections"
+	const [filmsView, setFilmsView] = useState<"all" | "collections">(() => {
+		if (typeof window !== "undefined") {
+			const stored = localStorage.getItem("filmsView") as "all" | "collections" | null;
+			return stored || "all";
+		}
+		return "all";
+	});
+	
 	// Films-specific view mode with grid as default for poster-based display
 	const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
 		if (typeof window !== "undefined") {
@@ -34,6 +48,13 @@ export default function FilmsPage() {
 		}
 		return "grid";
 	});
+	
+	// Save films view preference
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			localStorage.setItem("filmsView", filmsView);
+		}
+	}, [filmsView]);
 	
 	// Save films-specific view mode preference
 	useEffect(() => {
@@ -188,16 +209,74 @@ export default function FilmsPage() {
 				/>
 			)}
 
-			<MovieFilters
-				viewMode={viewMode}
-				setViewMode={setViewMode}
-				sortBy={sortBy}
-				setSortBy={setSortBy}
-				sortOrder={sortOrder}
-				setSortOrder={setSortOrder}
-				groupBy={groupBy}
-				setGroupBy={setGroupBy}
-				filterType={filterType}
+			{/* View Toggle: All Films vs Collections */}
+			<div className="mb-6">
+				<div className="inline-flex rounded-lg bg-gray-900/60 border border-gray-700/40 p-1">
+					<button
+						onClick={() => setFilmsView("all")}
+						className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+							filmsView === "all"
+								? "bg-gold text-charcoal-900 shadow-lg"
+								: "text-gray-300 hover:text-white"
+						}`}
+					>
+						All Films
+					</button>
+					<button
+						onClick={() => setFilmsView("collections")}
+						className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+							filmsView === "collections"
+								? "bg-gold text-charcoal-900 shadow-lg"
+								: "text-gray-300 hover:text-white"
+						}`}
+					>
+						Collections
+					</button>
+				</div>
+			</div>
+
+			{/* Conditionally render based on view */}
+			{filmsView === "collections" ? (
+				<div>
+					<div className="mb-6">
+						<h2 className="text-3xl font-bold text-white mb-2 font-unbounded">
+							Featured Collections
+						</h2>
+						<p className="text-gray-400">
+							Popular and frequently used film collections
+						</p>
+					</div>
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+						{getFeaturedCollections().map((collection) => (
+							<CollectionCard
+								key={collection.slug}
+								collection={collection}
+								movieCount={collection.tmdbIds.length}
+							/>
+						))}
+					</div>
+					<div className="text-center">
+						<Link 
+							href="/films/collections"
+							className="inline-flex items-center gap-2 px-6 py-3 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/50 rounded-lg text-gold font-medium transition-all"
+						>
+							View All Collections
+							<span className="text-sm">→</span>
+						</Link>
+					</div>
+				</div>
+			) : (
+				<>
+					<MovieFilters
+						viewMode={viewMode}
+						setViewMode={setViewMode}
+						sortBy={sortBy}
+						setSortBy={setSortBy}
+						sortOrder={sortOrder}
+						setSortOrder={setSortOrder}
+						groupBy={groupBy}
+						setGroupBy={setGroupBy}
+						filterType={filterType}
 				setFilterType={setFilterType}
 				filterValue={filterValue}
 				setFilterValue={setFilterValue}
@@ -216,57 +295,59 @@ export default function FilmsPage() {
 				}}
 			/>
 
-			{groupedMovies.map(({ key, movies }: { key: string; movies: import("@/types/types").Movie[] }) => (
-				<div key={key} className="mb-10">
-					{groupBy !== "none" && (
-            <h2
-              className="mb-6 text-4xl font-unbounded font-regular text-gray-800 dark:text-gray-100 tracking-wider"
-            >
-              {key}
-            </h2>
-					)}
-					{viewMode === "grid" ? (
-						<div className="grid grid-cols-2 gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
-							{movies.map((movie) => {
-								const r = movie.rankings?.[0];
-								return (
-									<MoviePosterCard
-										key={movie.id}
-										movie={movie}
-										currentUserId={userId ?? ""}
-										ranking={r?.ranking ?? null}
-										seenIt={r?.seen_it ?? false}
-										onUpdate={updateMovieRanking}
-										onClick={() => handleOpenModal(movie)}
-									/>
-								);
-							})}
-						</div>
-					) : (
-						<div className="flex flex-col">
-							{movies.map((movie, index) => {
-								const r = movie.rankings?.[0];
-								return (
-									<MovieRowCard
-										key={movie.id}
-										movie={movie}
-										currentUserId={userId ?? ""}
-										ranking={r?.ranking ?? null}
-										seenIt={r?.seen_it ?? false}
-										isLast={index === movies.length - 1}
-										onUpdate={updateMovieRanking}
-										onClick={() => handleOpenModal(movie)}
-										index={index}
-									/>
-								);
-							})}
-						</div>
-					)}
-				</div>
-			))}
+				{groupedMovies.map(({ key, movies }: { key: string; movies: import("@/types/types").Movie[] }) => (
+					<div key={key} className="mb-10">
+						{groupBy !== "none" && (
+							<h2
+								className="mb-6 text-4xl font-unbounded font-regular text-gray-800 dark:text-gray-100 tracking-wider"
+							>
+								{key}
+							</h2>
+						)}
+						{viewMode === "grid" ? (
+							<div className="grid grid-cols-2 gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
+								{movies.map((movie) => {
+									const r = movie.rankings?.[0];
+									return (
+										<MoviePosterCard
+											key={movie.id}
+											movie={movie}
+											currentUserId={userId ?? ""}
+											ranking={r?.ranking ?? null}
+											seenIt={r?.seen_it ?? false}
+											onUpdate={updateMovieRanking}
+											onClick={() => handleOpenModal(movie)}
+										/>
+									);
+								})}
+							</div>
+						) : (
+							<div className="flex flex-col">
+								{movies.map((movie, index) => {
+									const r = movie.rankings?.[0];
+									return (
+										<MovieRowCard
+											key={movie.id}
+											movie={movie}
+											currentUserId={userId ?? ""}
+											ranking={r?.ranking ?? null}
+											seenIt={r?.seen_it ?? false}
+											isLast={index === movies.length - 1}
+											onUpdate={updateMovieRanking}
+											onClick={() => handleOpenModal(movie)}
+											index={index}
+										/>
+									);
+								})}
+							</div>
+						)}
+					</div>
+				))}
+				</>
+			)}
 
 			{/* Movie Detail Modal */}
-			{selectedMovie && (
+			{selectedMovie && isModalOpen && (
 				<MovieDetailModal
 					movie={selectedMovie}
 					isOpen={isModalOpen}
