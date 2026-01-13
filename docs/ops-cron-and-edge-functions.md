@@ -2,6 +2,11 @@
 
 This project schedules Supabase Edge Functions from the database using pg_cron.
 
+## Quick Links
+- **Telemetry & Feedback**: See [telemetry-triage-guide.md](./telemetry-triage-guide.md) for monitoring error logs and user feedback
+- **Error Logging Dashboard**: Supabase → Database → SQL Editor → Run saved queries for error trends
+- **Feedback Dashboard**: Supabase → Database → SQL Editor → Run saved queries for user feedback
+
 ## Where jobs live
 
 - Defined via SQL migrations under `supabase/migrations/*cron*.sql`.
