@@ -4,11 +4,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { LogOut, List, User, Settings } from 'lucide-react';
+import { LogOut, List, User, Settings, Shield } from 'lucide-react';
 import { useEnsureProfile } from '@/hooks/useEnsureProfile';
 import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
 import type { Database } from '@/types/supabase';
 import { normalizeImageUrl } from '@/utils/imageUrl';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 interface UserMenuProps {
   onLoginClick?: () => void;
@@ -30,6 +31,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
   // console.log("UserMenu - useSupabaseClient configured:", !!supabase);
 
   const { profile, loading: profileLoading, error: profileError } = useEnsureProfile(user);
+  const { isAdmin } = useIsAdmin();
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -147,6 +149,15 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
             <List className="w-4 h-4" />
             My Lists
           </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gold-600 dark:text-gold-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              <Shield className="w-4 h-4" />
+              Admin Dashboard
+            </Link>
+          )}
           <button
             onClick={handleSignOut}
             className="flex items-center gap-2 w-full px-3 py-2.5 rounded-md text-sm font-medium text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -209,6 +220,17 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
               <Settings className="w-4 h-4" />
               Settings
             </Link>
+            
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gold-600 dark:text-gold-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <Shield className="w-4 h-4" />
+                Admin Dashboard
+              </Link>
+            )}
             
             <Link
               href="/lists"

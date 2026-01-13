@@ -1,0 +1,1858 @@
+{
+  "scraped_at": "2026-01-07T05:35:29.897Z",
+  "total_films": 250,
+  "matched": 250,
+  "unique_tmdb_ids": 250,
+  "tmdb_ids": [
+    278,
+    238,
+    155,
+    240,
+    389,
+    122,
+    424,
+    120,
+    680,
+    429,
+    121,
+    13,
+    550,
+    27205,
+    1891,
+    603,
+    769,
+    157336,
+    510,
+    807,
+    1585,
+    274,
+    346,
+    857,
+    497,
+    598,
+    637,
+    280,
+    11,
+    105,
+    129,
+    423,
+    98,
+    496243,
+    539,
+    12477,
+    8587,
+    14537,
+    1422,
+    244786,
+    1124,
+    73,
+    101,
+    569094,
+    11216,
+    289,
+    77338,
+    629,
+    348,
+    3082,
+    567,
+    68718,
+    335,
+    901,
+    28,
+    10681,
+    77,
+    693134,
+    85,
+    299536,
+    582,
+    324857,
+    599,
+    37257,
+    975,
+    694,
+    914,
+    16869,
+    1163258,
+    679,
+    12493,
+    49026,
+    354912,
+    299534,
+    489,
+    279,
+    862,
+    372058,
+    387,
+    670,
+    935,
+    197,
+    128,
+    14,
+    20453,
+    517814,
+    475557,
+    872,
+    311,
+    25237,
+    641,
+    1892,
+    10193,
+    103663,
+    3782,
+    46738,
+    38,
+    284,
+    947,
+    62,
+    500,
+    111,
+    949,
+    996,
+    14160,
+    213,
+    7508,
+    600,
+    832,
+    15,
+    194,
+    426,
+    60243,
+    562,
+    595,
+    9277,
+    89,
+    185,
+    19,
+    107,
+    530915,
+    2118,
+    613,
+    360814,
+    5156,
+    106646,
+    872585,
+    37165,
+    490132,
+    11324,
+    272,
+    556574,
+    821,
+    103,
+    938,
+    239,
+    329,
+    7345,
+    10098,
+    600354,
+    705,
+    745,
+    11645,
+    524,
+    6977,
+    1091,
+    361743,
+    146233,
+    1417,
+    24,
+    33,
+    453,
+    3090,
+    31534,
+    4935,
+    12,
+    11878,
+    508965,
+    5925,
+    1955,
+    762,
+    11659,
+    521,
+    1311031,
+    770,
+    25376,
+    829,
+    100,
+    752,
+    150540,
+    548,
+    640,
+    359940,
+    627,
+    826,
+    12445,
+    207,
+    275,
+    1578,
+    59440,
+    1184918,
+    3175,
+    665,
+    70,
+    76341,
+    13223,
+    8392,
+    21334,
+    324786,
+    120467,
+    76203,
+    76,
+    78,
+    2062,
+    11423,
+    634649,
+    10191,
+    210577,
+    585,
+    578,
+    7984,
+    359724,
+    265195,
+    962,
+    992,
+    24238,
+    11778,
+    204,
+    961,
+    263115,
+    3083,
+    1366,
+    654,
+    18148,
+    614,
+    22,
+    314365,
+    1118224,
+    1092,
+    406,
+    855400,
+    218,
+    15121,
+    115,
+    378064,
+    887,
+    490,
+    264644,
+    80,
+    205,
+    1218925,
+    792,
+    9806,
+    9552,
+    28178,
+    96721,
+    630,
+    235,
+    10386,
+    780,
+    13393,
+    17295,
+    290098,
+    10774,
+    117691,
+    352173,
+    596,
+    198,
+    635302,
+    534780
+  ],
+  "films": [
+    {
+      "title": "The Shawshank Redemption",
+      "year": null,
+      "imdb_id": "tt0111161",
+      "tmdb_id": 278
+    },
+    {
+      "title": "The Godfather",
+      "year": null,
+      "imdb_id": "tt0068646",
+      "tmdb_id": 238
+    },
+    {
+      "title": "The Dark Knight",
+      "year": null,
+      "imdb_id": "tt0468569",
+      "tmdb_id": 155
+    },
+    {
+      "title": "The Godfather Part II",
+      "year": null,
+      "imdb_id": "tt0071562",
+      "tmdb_id": 240
+    },
+    {
+      "title": "12 Angry Men",
+      "year": null,
+      "imdb_id": "tt0050083",
+      "tmdb_id": 389
+    },
+    {
+      "title": "The Lord of the Rings: The Return of the King",
+      "year": null,
+      "imdb_id": "tt0167260",
+      "tmdb_id": 122
+    },
+    {
+      "title": "Schindler&apos;s List",
+      "year": null,
+      "imdb_id": "tt0108052",
+      "tmdb_id": 424
+    },
+    {
+      "title": "The Lord of the Rings: The Fellowship of the Ring",
+      "year": null,
+      "imdb_id": "tt0120737",
+      "tmdb_id": 120
+    },
+    {
+      "title": "Pulp Fiction",
+      "year": null,
+      "imdb_id": "tt0110912",
+      "tmdb_id": 680
+    },
+    {
+      "title": "Il buono, il brutto, il cattivo",
+      "year": null,
+      "imdb_id": "tt0060196",
+      "tmdb_id": 429
+    },
+    {
+      "title": "The Lord of the Rings: The Two Towers",
+      "year": null,
+      "imdb_id": "tt0167261",
+      "tmdb_id": 121
+    },
+    {
+      "title": "Forrest Gump",
+      "year": null,
+      "imdb_id": "tt0109830",
+      "tmdb_id": 13
+    },
+    {
+      "title": "Fight Club",
+      "year": null,
+      "imdb_id": "tt0137523",
+      "tmdb_id": 550
+    },
+    {
+      "title": "Inception",
+      "year": null,
+      "imdb_id": "tt1375666",
+      "tmdb_id": 27205
+    },
+    {
+      "title": "Star Wars: Episode V - The Empire Strikes Back",
+      "year": null,
+      "imdb_id": "tt0080684",
+      "tmdb_id": 1891
+    },
+    {
+      "title": "The Matrix",
+      "year": null,
+      "imdb_id": "tt0133093",
+      "tmdb_id": 603
+    },
+    {
+      "title": "GoodFellas",
+      "year": null,
+      "imdb_id": "tt0099685",
+      "tmdb_id": 769
+    },
+    {
+      "title": "Interstellar",
+      "year": null,
+      "imdb_id": "tt0816692",
+      "tmdb_id": 157336
+    },
+    {
+      "title": "One Flew Over the Cuckoo&apos;s Nest",
+      "year": null,
+      "imdb_id": "tt0073486",
+      "tmdb_id": 510
+    },
+    {
+      "title": "Se7en",
+      "year": null,
+      "imdb_id": "tt0114369",
+      "tmdb_id": 807
+    },
+    {
+      "title": "It&apos;s a Wonderful Life",
+      "year": null,
+      "imdb_id": "tt0038650",
+      "tmdb_id": 1585
+    },
+    {
+      "title": "The Silence of the Lambs",
+      "year": null,
+      "imdb_id": "tt0102926",
+      "tmdb_id": 274
+    },
+    {
+      "title": "Shichinin no samurai",
+      "year": null,
+      "imdb_id": "tt0047478",
+      "tmdb_id": 346
+    },
+    {
+      "title": "Saving Private Ryan",
+      "year": null,
+      "imdb_id": "tt0120815",
+      "tmdb_id": 857
+    },
+    {
+      "title": "The Green Mile",
+      "year": null,
+      "imdb_id": "tt0120689",
+      "tmdb_id": 497
+    },
+    {
+      "title": "Cidade de Deus",
+      "year": null,
+      "imdb_id": "tt0317248",
+      "tmdb_id": 598
+    },
+    {
+      "title": "La vita è bella",
+      "year": null,
+      "imdb_id": "tt0118799",
+      "tmdb_id": 637
+    },
+    {
+      "title": "Terminator 2: Judgment Day",
+      "year": null,
+      "imdb_id": "tt0103064",
+      "tmdb_id": 280
+    },
+    {
+      "title": "Star Wars",
+      "year": null,
+      "imdb_id": "tt0076759",
+      "tmdb_id": 11
+    },
+    {
+      "title": "Back to the Future",
+      "year": null,
+      "imdb_id": "tt0088763",
+      "tmdb_id": 105
+    },
+    {
+      "title": "Sen to Chihiro no kamikakushi",
+      "year": null,
+      "imdb_id": "tt0245429",
+      "tmdb_id": 129
+    },
+    {
+      "title": "The Pianist",
+      "year": null,
+      "imdb_id": "tt0253474",
+      "tmdb_id": 423
+    },
+    {
+      "title": "Gladiator",
+      "year": null,
+      "imdb_id": "tt0172495",
+      "tmdb_id": 98
+    },
+    {
+      "title": "Gisaengchung",
+      "year": null,
+      "imdb_id": "tt6751668",
+      "tmdb_id": 496243
+    },
+    {
+      "title": "Psycho",
+      "year": null,
+      "imdb_id": "tt0054215",
+      "tmdb_id": 539
+    },
+    {
+      "title": "Hotaru no haka",
+      "year": null,
+      "imdb_id": "tt0095327",
+      "tmdb_id": 12477
+    },
+    {
+      "title": "The Lion King",
+      "year": null,
+      "imdb_id": "tt0110357",
+      "tmdb_id": 8587
+    },
+    {
+      "title": "Seppuku",
+      "year": null,
+      "imdb_id": "tt0056058",
+      "tmdb_id": 14537
+    },
+    {
+      "title": "The Departed",
+      "year": null,
+      "imdb_id": "tt0407887",
+      "tmdb_id": 1422
+    },
+    {
+      "title": "Whiplash",
+      "year": null,
+      "imdb_id": "tt2582802",
+      "tmdb_id": 244786
+    },
+    {
+      "title": "The Prestige",
+      "year": null,
+      "imdb_id": "tt0482571",
+      "tmdb_id": 1124
+    },
+    {
+      "title": "American History X",
+      "year": null,
+      "imdb_id": "tt0120586",
+      "tmdb_id": 73
+    },
+    {
+      "title": "Léon",
+      "year": null,
+      "imdb_id": "tt0110413",
+      "tmdb_id": 101
+    },
+    {
+      "title": "Spider-Man: Across the Spider-Verse",
+      "year": null,
+      "imdb_id": "tt9362722",
+      "tmdb_id": 569094
+    },
+    {
+      "title": "Nuovo Cinema Paradiso",
+      "year": null,
+      "imdb_id": "tt0095765",
+      "tmdb_id": 11216
+    },
+    {
+      "title": "Casablanca",
+      "year": null,
+      "imdb_id": "tt0034583",
+      "tmdb_id": 289
+    },
+    {
+      "title": "Intouchables",
+      "year": null,
+      "imdb_id": "tt1675434",
+      "tmdb_id": 77338
+    },
+    {
+      "title": "The Usual Suspects",
+      "year": null,
+      "imdb_id": "tt0114814",
+      "tmdb_id": 629
+    },
+    {
+      "title": "Alien",
+      "year": null,
+      "imdb_id": "tt0078748",
+      "tmdb_id": 348
+    },
+    {
+      "title": "Modern Times",
+      "year": null,
+      "imdb_id": "tt0027977",
+      "tmdb_id": 3082
+    },
+    {
+      "title": "Rear Window",
+      "year": null,
+      "imdb_id": "tt0047396",
+      "tmdb_id": 567
+    },
+    {
+      "title": "Django Unchained",
+      "year": null,
+      "imdb_id": "tt1853728",
+      "tmdb_id": 68718
+    },
+    {
+      "title": "C&apos;era una volta il West",
+      "year": null,
+      "imdb_id": "tt0064116",
+      "tmdb_id": 335
+    },
+    {
+      "title": "City Lights",
+      "year": null,
+      "imdb_id": "tt0021749",
+      "tmdb_id": 901
+    },
+    {
+      "title": "Apocalypse Now",
+      "year": null,
+      "imdb_id": "tt0078788",
+      "tmdb_id": 28
+    },
+    {
+      "title": "WALL·E",
+      "year": null,
+      "imdb_id": "tt0910970",
+      "tmdb_id": 10681
+    },
+    {
+      "title": "Memento",
+      "year": null,
+      "imdb_id": "tt0209144",
+      "tmdb_id": 77
+    },
+    {
+      "title": "Dune: Part Two",
+      "year": null,
+      "imdb_id": "tt15239678",
+      "tmdb_id": 693134
+    },
+    {
+      "title": "Raiders of the Lost Ark",
+      "year": null,
+      "imdb_id": "tt0082971",
+      "tmdb_id": 85
+    },
+    {
+      "title": "Avengers: Infinity War",
+      "year": null,
+      "imdb_id": "tt4154756",
+      "tmdb_id": 299536
+    },
+    {
+      "title": "Das Leben der Anderen",
+      "year": null,
+      "imdb_id": "tt0405094",
+      "tmdb_id": 582
+    },
+    {
+      "title": "Spider-Man: Into the Spider-Verse",
+      "year": null,
+      "imdb_id": "tt4633694",
+      "tmdb_id": 324857
+    },
+    {
+      "title": "Sunset Blvd.",
+      "year": null,
+      "imdb_id": "tt0043014",
+      "tmdb_id": 599
+    },
+    {
+      "title": "Witness for the Prosecution",
+      "year": null,
+      "imdb_id": "tt0051201",
+      "tmdb_id": 37257
+    },
+    {
+      "title": "Paths of Glory",
+      "year": null,
+      "imdb_id": "tt0050825",
+      "tmdb_id": 975
+    },
+    {
+      "title": "The Shining",
+      "year": null,
+      "imdb_id": "tt0081505",
+      "tmdb_id": 694
+    },
+    {
+      "title": "The Great Dictator",
+      "year": null,
+      "imdb_id": "tt0032553",
+      "tmdb_id": 914
+    },
+    {
+      "title": "Inglourious Basterds",
+      "year": null,
+      "imdb_id": "tt0361748",
+      "tmdb_id": 16869
+    },
+    {
+      "title": "12th Fail",
+      "year": null,
+      "imdb_id": "tt23849204",
+      "tmdb_id": 1163258
+    },
+    {
+      "title": "Aliens",
+      "year": null,
+      "imdb_id": "tt0090605",
+      "tmdb_id": 679
+    },
+    {
+      "title": "Tengoku to jigoku",
+      "year": null,
+      "imdb_id": "tt0057565",
+      "tmdb_id": 12493
+    },
+    {
+      "title": "The Dark Knight Rises",
+      "year": null,
+      "imdb_id": "tt1345836",
+      "tmdb_id": 49026
+    },
+    {
+      "title": "Coco",
+      "year": null,
+      "imdb_id": "tt2380307",
+      "tmdb_id": 354912
+    },
+    {
+      "title": "Avengers: Endgame",
+      "year": null,
+      "imdb_id": "tt4154796",
+      "tmdb_id": 299534
+    },
+    {
+      "title": "Good Will Hunting",
+      "year": null,
+      "imdb_id": "tt0119217",
+      "tmdb_id": 489
+    },
+    {
+      "title": "Amadeus",
+      "year": null,
+      "imdb_id": "tt0086879",
+      "tmdb_id": 279
+    },
+    {
+      "title": "Toy Story",
+      "year": null,
+      "imdb_id": "tt0114709",
+      "tmdb_id": 862
+    },
+    {
+      "title": "Kimi no na wa.",
+      "year": null,
+      "imdb_id": "tt5311514",
+      "tmdb_id": 372058
+    },
+    {
+      "title": "Das Boot",
+      "year": null,
+      "imdb_id": "tt0082096",
+      "tmdb_id": 387
+    },
+    {
+      "title": "Oldeuboi",
+      "year": null,
+      "imdb_id": "tt0364569",
+      "tmdb_id": 670
+    },
+    {
+      "title": "Dr. Strangelove or: How I Learned to Stop Worrying and Love the Bomb",
+      "year": null,
+      "imdb_id": "tt0057012",
+      "tmdb_id": 935
+    },
+    {
+      "title": "Braveheart",
+      "year": null,
+      "imdb_id": "tt0112573",
+      "tmdb_id": 197
+    },
+    {
+      "title": "Mononoke-hime",
+      "year": null,
+      "imdb_id": "tt0119698",
+      "tmdb_id": 128
+    },
+    {
+      "title": "American Beauty",
+      "year": null,
+      "imdb_id": "tt0169547",
+      "tmdb_id": 14
+    },
+    {
+      "title": "3 Idiots",
+      "year": null,
+      "imdb_id": "tt1187043",
+      "tmdb_id": 20453
+    },
+    {
+      "title": "Capharnaüm",
+      "year": null,
+      "imdb_id": "tt8267604",
+      "tmdb_id": 517814
+    },
+    {
+      "title": "Joker",
+      "year": null,
+      "imdb_id": "tt7286456",
+      "tmdb_id": 475557
+    },
+    {
+      "title": "Singin&apos; in the Rain",
+      "year": null,
+      "imdb_id": "tt0045152",
+      "tmdb_id": 872
+    },
+    {
+      "title": "C&apos;era una volta in America",
+      "year": null,
+      "imdb_id": "tt0087843",
+      "tmdb_id": 311
+    },
+    {
+      "title": "Idi i smotri",
+      "year": null,
+      "imdb_id": "tt0091251",
+      "tmdb_id": 25237
+    },
+    {
+      "title": "Requiem for a Dream",
+      "year": null,
+      "imdb_id": "tt0180093",
+      "tmdb_id": 641
+    },
+    {
+      "title": "Star Wars: Episode VI - Return of the Jedi",
+      "year": null,
+      "imdb_id": "tt0086190",
+      "tmdb_id": 1892
+    },
+    {
+      "title": "Toy Story 3",
+      "year": null,
+      "imdb_id": "tt0435761",
+      "tmdb_id": 10193
+    },
+    {
+      "title": "Jagten",
+      "year": null,
+      "imdb_id": "tt2106476",
+      "tmdb_id": 103663
+    },
+    {
+      "title": "Ikiru",
+      "year": null,
+      "imdb_id": "tt0044741",
+      "tmdb_id": 3782
+    },
+    {
+      "title": "Incendies",
+      "year": null,
+      "imdb_id": "tt1255953",
+      "tmdb_id": 46738
+    },
+    {
+      "title": "Eternal Sunshine of the Spotless Mind",
+      "year": null,
+      "imdb_id": "tt0338013",
+      "tmdb_id": 38
+    },
+    {
+      "title": "The Apartment",
+      "year": null,
+      "imdb_id": "tt0053604",
+      "tmdb_id": 284
+    },
+    {
+      "title": "Lawrence of Arabia",
+      "year": null,
+      "imdb_id": "tt0056172",
+      "tmdb_id": 947
+    },
+    {
+      "title": "2001: A Space Odyssey",
+      "year": null,
+      "imdb_id": "tt0062622",
+      "tmdb_id": 62
+    },
+    {
+      "title": "Reservoir Dogs",
+      "year": null,
+      "imdb_id": "tt0105236",
+      "tmdb_id": 500
+    },
+    {
+      "title": "Scarface",
+      "year": null,
+      "imdb_id": "tt0086250",
+      "tmdb_id": 111
+    },
+    {
+      "title": "Heat",
+      "year": null,
+      "imdb_id": "tt0113277",
+      "tmdb_id": 949
+    },
+    {
+      "title": "Double Indemnity",
+      "year": null,
+      "imdb_id": "tt0036775",
+      "tmdb_id": 996
+    },
+    {
+      "title": "Up",
+      "year": null,
+      "imdb_id": "tt1049413",
+      "tmdb_id": 14160
+    },
+    {
+      "title": "North by Northwest",
+      "year": null,
+      "imdb_id": "tt0053125",
+      "tmdb_id": 213
+    },
+    {
+      "title": "Taare Zameen Par",
+      "year": null,
+      "imdb_id": "tt0986264",
+      "tmdb_id": 7508
+    },
+    {
+      "title": "Full Metal Jacket",
+      "year": null,
+      "imdb_id": "tt0093058",
+      "tmdb_id": 600
+    },
+    {
+      "title": "M - Eine Stadt sucht einen Mörder",
+      "year": null,
+      "imdb_id": "tt0022100",
+      "tmdb_id": 832
+    },
+    {
+      "title": "Citizen Kane",
+      "year": null,
+      "imdb_id": "tt0033467",
+      "tmdb_id": 15
+    },
+    {
+      "title": "Le fabuleux destin d&apos;Amélie Poulain",
+      "year": null,
+      "imdb_id": "tt0211915",
+      "tmdb_id": 194
+    },
+    {
+      "title": "Vertigo",
+      "year": null,
+      "imdb_id": "tt0052357",
+      "tmdb_id": 426
+    },
+    {
+      "title": "Jodaeiye Nader az Simin",
+      "year": null,
+      "imdb_id": "tt1832382",
+      "tmdb_id": 60243
+    },
+    {
+      "title": "Die Hard",
+      "year": null,
+      "imdb_id": "tt0095016",
+      "tmdb_id": 562
+    },
+    {
+      "title": "To Kill a Mockingbird",
+      "year": null,
+      "imdb_id": "tt0056592",
+      "tmdb_id": 595
+    },
+    {
+      "title": "The Sting",
+      "year": null,
+      "imdb_id": "tt0070735",
+      "tmdb_id": 9277
+    },
+    {
+      "title": "Indiana Jones and the Last Crusade",
+      "year": null,
+      "imdb_id": "tt0097576",
+      "tmdb_id": 89
+    },
+    {
+      "title": "A Clockwork Orange",
+      "year": null,
+      "imdb_id": "tt0066921",
+      "tmdb_id": 185
+    },
+    {
+      "title": "Metropolis",
+      "year": null,
+      "imdb_id": "tt0017136",
+      "tmdb_id": 19
+    },
+    {
+      "title": "Snatch",
+      "year": null,
+      "imdb_id": "tt0208092",
+      "tmdb_id": 107
+    },
+    {
+      "title": "1917",
+      "year": null,
+      "imdb_id": "tt8579674",
+      "tmdb_id": 530915
+    },
+    {
+      "title": "L.A. Confidential",
+      "year": null,
+      "imdb_id": "tt0119488",
+      "tmdb_id": 2118
+    },
+    {
+      "title": "Der Untergang",
+      "year": null,
+      "imdb_id": "tt0363163",
+      "tmdb_id": 613
+    },
+    {
+      "title": "Dangal",
+      "year": null,
+      "imdb_id": "tt5074352",
+      "tmdb_id": 360814
+    },
+    {
+      "title": "Ladri di biciclette",
+      "year": null,
+      "imdb_id": "tt0040522",
+      "tmdb_id": 5156
+    },
+    {
+      "title": "The Wolf of Wall Street",
+      "year": null,
+      "imdb_id": "tt0993846",
+      "tmdb_id": 106646
+    },
+    {
+      "title": "Oppenheimer",
+      "year": null,
+      "imdb_id": "tt15398776",
+      "tmdb_id": 872585
+    },
+    {
+      "title": "The Truman Show",
+      "year": null,
+      "imdb_id": "tt0120382",
+      "tmdb_id": 37165
+    },
+    {
+      "title": "Green Book",
+      "year": null,
+      "imdb_id": "tt6966692",
+      "tmdb_id": 490132
+    },
+    {
+      "title": "Shutter Island",
+      "year": null,
+      "imdb_id": "tt1130884",
+      "tmdb_id": 11324
+    },
+    {
+      "title": "Batman Begins",
+      "year": null,
+      "imdb_id": "tt0372784",
+      "tmdb_id": 272
+    },
+    {
+      "title": "Hamilton",
+      "year": null,
+      "imdb_id": "tt8503618",
+      "tmdb_id": 556574
+    },
+    {
+      "title": "Judgment at Nuremberg",
+      "year": null,
+      "imdb_id": "tt0055031",
+      "tmdb_id": 821
+    },
+    {
+      "title": "Taxi Driver",
+      "year": null,
+      "imdb_id": "tt0075314",
+      "tmdb_id": 103
+    },
+    {
+      "title": "Per qualche dollaro in più",
+      "year": null,
+      "imdb_id": "tt0059578",
+      "tmdb_id": 938
+    },
+    {
+      "title": "Some Like It Hot",
+      "year": null,
+      "imdb_id": "tt0053291",
+      "tmdb_id": 239
+    },
+    {
+      "title": "Jurassic Park",
+      "year": null,
+      "imdb_id": "tt0107290",
+      "tmdb_id": 329
+    },
+    {
+      "title": "There Will Be Blood",
+      "year": null,
+      "imdb_id": "tt0469494",
+      "tmdb_id": 7345
+    },
+    {
+      "title": "The Kid",
+      "year": null,
+      "imdb_id": "tt0012349",
+      "tmdb_id": 10098
+    },
+    {
+      "title": "The Father",
+      "year": null,
+      "imdb_id": "tt10272386",
+      "tmdb_id": 600354
+    },
+    {
+      "title": "All About Eve",
+      "year": null,
+      "imdb_id": "tt0042192",
+      "tmdb_id": 705
+    },
+    {
+      "title": "The Sixth Sense",
+      "year": null,
+      "imdb_id": "tt0167404",
+      "tmdb_id": 745
+    },
+    {
+      "title": "Ran",
+      "year": null,
+      "imdb_id": "tt0089881",
+      "tmdb_id": 11645
+    },
+    {
+      "title": "Casino",
+      "year": null,
+      "imdb_id": "tt0112641",
+      "tmdb_id": 524
+    },
+    {
+      "title": "No Country for Old Men",
+      "year": null,
+      "imdb_id": "tt0477348",
+      "tmdb_id": 6977
+    },
+    {
+      "title": "The Thing",
+      "year": null,
+      "imdb_id": "tt0084787",
+      "tmdb_id": 1091
+    },
+    {
+      "title": "Top Gun: Maverick",
+      "year": null,
+      "imdb_id": "tt1745960",
+      "tmdb_id": 361743
+    },
+    {
+      "title": "Prisoners",
+      "year": null,
+      "imdb_id": "tt1392214",
+      "tmdb_id": 146233
+    },
+    {
+      "title": "El laberinto del fauno",
+      "year": null,
+      "imdb_id": "tt0457430",
+      "tmdb_id": 1417
+    },
+    {
+      "title": "Kill Bill: Vol. 1",
+      "year": null,
+      "imdb_id": "tt0266697",
+      "tmdb_id": 24
+    },
+    {
+      "title": "Unforgiven",
+      "year": null,
+      "imdb_id": "tt0105695",
+      "tmdb_id": 33
+    },
+    {
+      "title": "A Beautiful Mind",
+      "year": null,
+      "imdb_id": "tt0268978",
+      "tmdb_id": 453
+    },
+    {
+      "title": "The Treasure of the Sierra Madre",
+      "year": null,
+      "imdb_id": "tt0040897",
+      "tmdb_id": 3090
+    },
+    {
+      "title": "Hababam Sinifi: Sinifta Kaldi",
+      "year": null,
+      "imdb_id": "tt0252488",
+      "tmdb_id": 31534
+    },
+    {
+      "title": "Hauru no ugoku shiro",
+      "year": null,
+      "imdb_id": "tt0347149",
+      "tmdb_id": 4935
+    },
+    {
+      "title": "Finding Nemo",
+      "year": null,
+      "imdb_id": "tt0266543",
+      "tmdb_id": 12
+    },
+    {
+      "title": "Yôjinbô",
+      "year": null,
+      "imdb_id": "tt0055630",
+      "tmdb_id": 11878
+    },
+    {
+      "title": "Klaus",
+      "year": null,
+      "imdb_id": "tt4729430",
+      "tmdb_id": 508965
+    },
+    {
+      "title": "The Great Escape",
+      "year": null,
+      "imdb_id": "tt0057115",
+      "tmdb_id": 5925
+    },
+    {
+      "title": "The Elephant Man",
+      "year": null,
+      "imdb_id": "tt0080678",
+      "tmdb_id": 1955
+    },
+    {
+      "title": "Monty Python and the Holy Grail",
+      "year": null,
+      "imdb_id": "tt0071853",
+      "tmdb_id": 762
+    },
+    {
+      "title": "La meglio gioventù",
+      "year": null,
+      "imdb_id": "tt0346336",
+      "tmdb_id": 11659
+    },
+    {
+      "title": "Dial M for Murder",
+      "year": null,
+      "imdb_id": "tt0046912",
+      "tmdb_id": 521
+    },
+    {
+      "title": "Gekijô-ban Kimetsu no Yaiba Mugen Jô-hen",
+      "year": null,
+      "imdb_id": "tt32820897",
+      "tmdb_id": 1311031
+    },
+    {
+      "title": "Gone with the Wind",
+      "year": null,
+      "imdb_id": "tt0031381",
+      "tmdb_id": 770
+    },
+    {
+      "title": "El secreto de sus ojos",
+      "year": null,
+      "imdb_id": "tt1305806",
+      "tmdb_id": 25376
+    },
+    {
+      "title": "Chinatown",
+      "year": null,
+      "imdb_id": "tt0071315",
+      "tmdb_id": 829
+    },
+    {
+      "title": "Lock, Stock and Two Smoking Barrels",
+      "year": null,
+      "imdb_id": "tt0120735",
+      "tmdb_id": 100
+    },
+    {
+      "title": "V for Vendetta",
+      "year": null,
+      "imdb_id": "tt0434409",
+      "tmdb_id": 752
+    },
+    {
+      "title": "Inside Out",
+      "year": null,
+      "imdb_id": "tt2096673",
+      "tmdb_id": 150540
+    },
+    {
+      "title": "Rashômon",
+      "year": null,
+      "imdb_id": "tt0042876",
+      "tmdb_id": 548
+    },
+    {
+      "title": "Catch Me If You Can",
+      "year": null,
+      "imdb_id": "tt0264464",
+      "tmdb_id": 640
+    },
+    {
+      "title": "Three Billboards Outside Ebbing, Missouri",
+      "year": null,
+      "imdb_id": "tt5027774",
+      "tmdb_id": 359940
+    },
+    {
+      "title": "Trainspotting",
+      "year": null,
+      "imdb_id": "tt0117951",
+      "tmdb_id": 627
+    },
+    {
+      "title": "The Bridge on the River Kwai",
+      "year": null,
+      "imdb_id": "tt0050212",
+      "tmdb_id": 826
+    },
+    {
+      "title": "Harry Potter and the Deathly Hallows: Part 2",
+      "year": null,
+      "imdb_id": "tt1201607",
+      "tmdb_id": 12445
+    },
+    {
+      "title": "Dead Poets Society",
+      "year": null,
+      "imdb_id": "tt0097165",
+      "tmdb_id": 207
+    },
+    {
+      "title": "Fargo",
+      "year": null,
+      "imdb_id": "tt0116282",
+      "tmdb_id": 275
+    },
+    {
+      "title": "Raging Bull",
+      "year": null,
+      "imdb_id": "tt0081398",
+      "tmdb_id": 1578
+    },
+    {
+      "title": "Warrior",
+      "year": null,
+      "imdb_id": "tt1291584",
+      "tmdb_id": 59440
+    },
+    {
+      "title": "The Wild Robot",
+      "year": null,
+      "imdb_id": "tt29623480",
+      "tmdb_id": 1184918
+    },
+    {
+      "title": "Barry Lyndon",
+      "year": null,
+      "imdb_id": "tt0072684",
+      "tmdb_id": 3175
+    },
+    {
+      "title": "Ben-Hur",
+      "year": null,
+      "imdb_id": "tt0052618",
+      "tmdb_id": 665
+    },
+    {
+      "title": "Million Dollar Baby",
+      "year": null,
+      "imdb_id": "tt0405159",
+      "tmdb_id": 70
+    },
+    {
+      "title": "Mad Max: Fury Road",
+      "year": null,
+      "imdb_id": "tt1392190",
+      "tmdb_id": 76341
+    },
+    {
+      "title": "Gran Torino",
+      "year": null,
+      "imdb_id": "tt1205489",
+      "tmdb_id": 13223
+    },
+    {
+      "title": "Tonari no Totoro",
+      "year": null,
+      "imdb_id": "tt0096283",
+      "tmdb_id": 8392
+    },
+    {
+      "title": "Bacheha-ye aseman",
+      "year": null,
+      "imdb_id": "tt0118849",
+      "tmdb_id": 21334
+    },
+    {
+      "title": "Hacksaw Ridge",
+      "year": null,
+      "imdb_id": "tt2119532",
+      "tmdb_id": 324786
+    },
+    {
+      "title": "The Grand Budapest Hotel",
+      "year": null,
+      "imdb_id": "tt2278388",
+      "tmdb_id": 120467
+    },
+    {
+      "title": "12 Years a Slave",
+      "year": null,
+      "imdb_id": "tt2024544",
+      "tmdb_id": 76203
+    },
+    {
+      "title": "Before Sunrise",
+      "year": null,
+      "imdb_id": "tt0112471",
+      "tmdb_id": 76
+    },
+    {
+      "title": "Blade Runner",
+      "year": null,
+      "imdb_id": "tt0083658",
+      "tmdb_id": 78
+    },
+    {
+      "title": "Ratatouille",
+      "year": null,
+      "imdb_id": "tt0382932",
+      "tmdb_id": 2062
+    },
+    {
+      "title": "Salinui chueok",
+      "year": null,
+      "imdb_id": "tt0353969",
+      "tmdb_id": 11423
+    },
+    {
+      "title": "Spider-Man: No Way Home",
+      "year": null,
+      "imdb_id": "tt10872600",
+      "tmdb_id": 634649
+    },
+    {
+      "title": "How to Train Your Dragon",
+      "year": null,
+      "imdb_id": "tt0892769",
+      "tmdb_id": 10191
+    },
+    {
+      "title": "Gone Girl",
+      "year": null,
+      "imdb_id": "tt2267998",
+      "tmdb_id": 210577
+    },
+    {
+      "title": "Monsters, Inc.",
+      "year": null,
+      "imdb_id": "tt0198781",
+      "tmdb_id": 585
+    },
+    {
+      "title": "Jaws",
+      "year": null,
+      "imdb_id": "tt0073195",
+      "tmdb_id": 578
+    },
+    {
+      "title": "In the Name of the Father",
+      "year": null,
+      "imdb_id": "tt0107207",
+      "tmdb_id": 7984
+    },
+    {
+      "title": "Ford v Ferrari",
+      "year": null,
+      "imdb_id": "tt1950186",
+      "tmdb_id": 359724
+    },
+    {
+      "title": "Relatos salvajes",
+      "year": null,
+      "imdb_id": "tt3011894",
+      "tmdb_id": 265195
+    },
+    {
+      "title": "The Gold Rush",
+      "year": null,
+      "imdb_id": "tt0015864",
+      "tmdb_id": 962
+    },
+    {
+      "title": "Sherlock Jr.",
+      "year": null,
+      "imdb_id": "tt0015324",
+      "tmdb_id": 992
+    },
+    {
+      "title": "Mary and Max.",
+      "year": null,
+      "imdb_id": "tt0978762",
+      "tmdb_id": 24238
+    },
+    {
+      "title": "The Deer Hunter",
+      "year": null,
+      "imdb_id": "tt0077416",
+      "tmdb_id": 11778
+    },
+    {
+      "title": "Le salaire de la peur",
+      "year": null,
+      "imdb_id": "tt0046268",
+      "tmdb_id": 204
+    },
+    {
+      "title": "The General",
+      "year": null,
+      "imdb_id": "tt0017925",
+      "tmdb_id": 961
+    },
+    {
+      "title": "Logan",
+      "year": null,
+      "imdb_id": "tt3315342",
+      "tmdb_id": 263115
+    },
+    {
+      "title": "Mr. Smith Goes to Washington",
+      "year": null,
+      "imdb_id": "tt0031679",
+      "tmdb_id": 3083
+    },
+    {
+      "title": "Rocky",
+      "year": null,
+      "imdb_id": "tt0075148",
+      "tmdb_id": 1366
+    },
+    {
+      "title": "On the Waterfront",
+      "year": null,
+      "imdb_id": "tt0047296",
+      "tmdb_id": 654
+    },
+    {
+      "title": "Tôkyô monogatari",
+      "year": null,
+      "imdb_id": "tt0046438",
+      "tmdb_id": 18148
+    },
+    {
+      "title": "Smultronstället",
+      "year": null,
+      "imdb_id": "tt0050986",
+      "tmdb_id": 614
+    },
+    {
+      "title": "Pirates of the Caribbean: The Curse of the Black Pearl",
+      "year": null,
+      "imdb_id": "tt0325980",
+      "tmdb_id": 22
+    },
+    {
+      "title": "Spotlight",
+      "year": null,
+      "imdb_id": "tt1895587",
+      "tmdb_id": 314365
+    },
+    {
+      "title": "Maharaja",
+      "year": null,
+      "imdb_id": "tt26548265",
+      "tmdb_id": 1118224
+    },
+    {
+      "title": "The Third Man",
+      "year": null,
+      "imdb_id": "tt0041959",
+      "tmdb_id": 1092
+    },
+    {
+      "title": "La haine",
+      "year": null,
+      "imdb_id": "tt0113247",
+      "tmdb_id": 406
+    },
+    {
+      "title": "Jai Bhim",
+      "year": null,
+      "imdb_id": "tt15097216",
+      "tmdb_id": 855400
+    },
+    {
+      "title": "The Terminator",
+      "year": null,
+      "imdb_id": "tt0088247",
+      "tmdb_id": 218
+    },
+    {
+      "title": "The Sound of Music",
+      "year": null,
+      "imdb_id": "tt0059742",
+      "tmdb_id": 15121
+    },
+    {
+      "title": "The Big Lebowski",
+      "year": null,
+      "imdb_id": "tt0118715",
+      "tmdb_id": 115
+    },
+    {
+      "title": "Koe no katachi",
+      "year": null,
+      "imdb_id": "tt5323662",
+      "tmdb_id": 378064
+    },
+    {
+      "title": "The Best Years of Our Lives",
+      "year": null,
+      "imdb_id": "tt0036868",
+      "tmdb_id": 887
+    },
+    {
+      "title": "Det sjunde inseglet",
+      "year": null,
+      "imdb_id": "tt0050976",
+      "tmdb_id": 490
+    },
+    {
+      "title": "Room",
+      "year": null,
+      "imdb_id": "tt3170832",
+      "tmdb_id": 264644
+    },
+    {
+      "title": "Before Sunset",
+      "year": null,
+      "imdb_id": "tt0381681",
+      "tmdb_id": 80
+    },
+    {
+      "title": "Hotel Rwanda",
+      "year": null,
+      "imdb_id": "tt0395169",
+      "tmdb_id": 205
+    },
+    {
+      "title": "Gekijô-ban Chensô Man Reze-hen",
+      "year": null,
+      "imdb_id": "tt30472557",
+      "tmdb_id": 1218925
+    },
+    {
+      "title": "Platoon",
+      "year": null,
+      "imdb_id": "tt0091763",
+      "tmdb_id": 792
+    },
+    {
+      "title": "The Incredibles",
+      "year": null,
+      "imdb_id": "tt0317705",
+      "tmdb_id": 9806
+    },
+    {
+      "title": "The Exorcist",
+      "year": null,
+      "imdb_id": "tt0070047",
+      "tmdb_id": 9552
+    },
+    {
+      "title": "Hachi: A Dog&apos;s Tale",
+      "year": null,
+      "imdb_id": "tt1028532",
+      "tmdb_id": 28178
+    },
+    {
+      "title": "Rush",
+      "year": null,
+      "imdb_id": "tt1979320",
+      "tmdb_id": 96721
+    },
+    {
+      "title": "The Wizard of Oz",
+      "year": null,
+      "imdb_id": "tt0032138",
+      "tmdb_id": 630
+    },
+    {
+      "title": "Stand by Me",
+      "year": null,
+      "imdb_id": "tt0092005",
+      "tmdb_id": 235
+    },
+    {
+      "title": "The Iron Giant",
+      "year": null,
+      "imdb_id": "tt0129167",
+      "tmdb_id": 10386
+    },
+    {
+      "title": "La passion de Jeanne d&apos;Arc",
+      "year": null,
+      "imdb_id": "tt0019254",
+      "tmdb_id": 780
+    },
+    {
+      "title": "Babam ve Oglum",
+      "year": null,
+      "imdb_id": "tt0476735",
+      "tmdb_id": 13393
+    },
+    {
+      "title": "La battaglia di Algeri",
+      "year": null,
+      "imdb_id": "tt0058946",
+      "tmdb_id": 17295
+    },
+    {
+      "title": "Ah-ga-ssi",
+      "year": null,
+      "imdb_id": "tt4016934",
+      "tmdb_id": 290098
+    },
+    {
+      "title": "Network",
+      "year": null,
+      "imdb_id": "tt0074958",
+      "tmdb_id": 10774
+    },
+    {
+      "title": "Gangs of Wasseypur",
+      "year": null,
+      "imdb_id": "tt1954470",
+      "tmdb_id": 117691
+    },
+    {
+      "title": "Drishyam",
+      "year": null,
+      "imdb_id": "tt4430212",
+      "tmdb_id": 352173
+    },
+    {
+      "title": "The Grapes of Wrath",
+      "year": null,
+      "imdb_id": "tt0032551",
+      "tmdb_id": 596
+    },
+    {
+      "title": "To Be or Not to Be",
+      "year": null,
+      "imdb_id": "tt0035446",
+      "tmdb_id": 198
+    },
+    {
+      "title": "Gekijô-ban Kimetsu no Yaiba Mugen Ressha-hen",
+      "year": null,
+      "imdb_id": "tt11032374",
+      "tmdb_id": 635302
+    },
+    {
+      "title": "Andhadhun",
+      "year": null,
+      "imdb_id": "tt8108198",
+      "tmdb_id": 534780
+    }
+  ],
+  "missing_from_db": [
+    {
+      "title": "12th Fail",
+      "year": null,
+      "tmdb_id": 1163258,
+      "imdb_id": "tt23849204"
+    },
+    {
+      "title": "Jagten",
+      "year": null,
+      "tmdb_id": 103663,
+      "imdb_id": "tt2106476"
+    },
+    {
+      "title": "Taare Zameen Par",
+      "year": null,
+      "tmdb_id": 7508,
+      "imdb_id": "tt0986264"
+    },
+    {
+      "title": "M - Eine Stadt sucht einen Mörder",
+      "year": null,
+      "tmdb_id": 832,
+      "imdb_id": "tt0022100"
+    },
+    {
+      "title": "Jodaeiye Nader az Simin",
+      "year": null,
+      "tmdb_id": 60243,
+      "imdb_id": "tt1832382"
+    },
+    {
+      "title": "Dangal",
+      "year": null,
+      "tmdb_id": 360814,
+      "imdb_id": "tt5074352"
+    },
+    {
+      "title": "Hababam Sinifi: Sinifta Kaldi",
+      "year": null,
+      "tmdb_id": 31534,
+      "imdb_id": "tt0252488"
+    },
+    {
+      "title": "La meglio gioventù",
+      "year": null,
+      "tmdb_id": 11659,
+      "imdb_id": "tt0346336"
+    },
+    {
+      "title": "Maharaja",
+      "year": null,
+      "tmdb_id": 1118224,
+      "imdb_id": "tt26548265"
+    },
+    {
+      "title": "La haine",
+      "year": null,
+      "tmdb_id": 406,
+      "imdb_id": "tt0113247"
+    },
+    {
+      "title": "Koe no katachi",
+      "year": null,
+      "tmdb_id": 378064,
+      "imdb_id": "tt5323662"
+    },
+    {
+      "title": "Babam ve Oglum",
+      "year": null,
+      "tmdb_id": 13393,
+      "imdb_id": "tt0476735"
+    },
+    {
+      "title": "Gangs of Wasseypur",
+      "year": null,
+      "tmdb_id": 117691,
+      "imdb_id": "tt1954470"
+    },
+    {
+      "title": "Drishyam",
+      "year": null,
+      "tmdb_id": 352173,
+      "imdb_id": "tt4430212"
+    },
+    {
+      "title": "Gekijô-ban Kimetsu no Yaiba Mugen Ressha-hen",
+      "year": null,
+      "tmdb_id": 635302,
+      "imdb_id": "tt11032374"
+    },
+    {
+      "title": "Andhadhun",
+      "year": null,
+      "tmdb_id": 534780,
+      "imdb_id": "tt8108198"
+    }
+  ]
+}
