@@ -4,3 +4,4 @@ export { default as AuthModalManager } from './AuthModalManager';
 export { default as SignupPrompt } from './SignupPrompt';
 export { default as SavePromptBanner } from './SavePromptBanner';
 export { default as GuestDataBanner } from './GuestDataBanner';
+export { default as GuestWelcomeBanner } from './GuestWelcomeBanner';

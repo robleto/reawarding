@@ -252,10 +252,11 @@ export default function SignupModal({
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Create a password"
+                    placeholder="Create a password (min 6 characters)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    minLength={6}
                     className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
                   />
                   <button
@@ -270,6 +271,18 @@ export default function SignupModal({
                     )}
                   </button>
                 </div>
+                {password && (
+                  <div className="mt-1">
+                    <div className="flex gap-1 mb-1">
+                      <div className={`h-1 flex-1 rounded ${password.length >= 6 ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                      <div className={`h-1 flex-1 rounded ${password.length >= 8 ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                      <div className={`h-1 flex-1 rounded ${password.length >= 10 && /[A-Z]/.test(password) && /[0-9]/.test(password) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {password.length < 6 ? 'Too short' : password.length < 8 ? 'Good' : password.length >= 10 && /[A-Z]/.test(password) && /[0-9]/.test(password) ? 'Strong' : 'Better'}
+                    </p>
+                  </div>
+                )}
               </div>
               <div>
                 <label
@@ -305,7 +318,9 @@ export default function SignupModal({
               </div>
 
               {error && (
-                <p className="text-red-500 text-sm text-center">{error}</p>
+                <div className="p-3 text-sm bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg">
+                  {error}
+                </div>
               )}
 
               <button

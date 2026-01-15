@@ -67,23 +67,23 @@ export default function GuestDataBanner({ onSignupClick, onLoginClick }: GuestDa
             <p className="text-sm text-blue-900 dark:text-blue-100 mb-2">
               {isReturningUser ? (
                 <>
-                  <span className="font-medium">Welcome back!</span> You have {interactionCount} movie ratings stored locally. 
-                  They'll be lost if you clear your browser data.
+                  <span className="font-medium">💾 Save your progress!</span> You have {interactionCount} movie ratings stored only in your browser. 
+                  Create an account to keep them safe and sync across all your devices.
                 </>
               ) : (
                 <>
-                  <span className="font-medium">Great start!</span> You're building your movie preferences. 
-                  Create an account to save them permanently across devices.
+                  <span className="font-medium">🎯 You're on a roll!</span> You're building your movie collection. 
+                  Sign up now to save your progress permanently and access it from anywhere.
                 </>
               )}
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={onSignupClick}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors shadow-sm"
               >
                 <UserPlus className="w-3.5 h-3.5" />
-                Sign up to save data
+                Sign up — keep my {interactionCount} ratings
               </button>
               {isReturningUser && onLoginClick && (
                 <button
@@ -91,7 +91,7 @@ export default function GuestDataBanner({ onSignupClick, onLoginClick }: GuestDa
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800 hover:bg-blue-200 dark:hover:bg-blue-700 rounded-md transition-colors"
                 >
                   <User className="w-3.5 h-3.5" />
-                  Already have an account?
+                  Sign in to existing account
                 </button>
               )}
             </div>
