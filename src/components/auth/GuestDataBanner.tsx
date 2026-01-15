@@ -16,8 +16,15 @@ export default function GuestDataBanner({ onSignupClick, onLoginClick }: GuestDa
   const [show, setShow] = useState(false);
   const [isReturningUser, setIsReturningUser] = useState(false);
   const [interactionCount, setInteractionCount] = useState(0);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const checkBannerStatus = () => {
+    if (!hasMounted) return;
+    
     // Check if user has interacted and banner should be shown
     const hasInteracted = hasGuestInteracted();
     const shouldShow = shouldShowSignupPrompt();
@@ -39,7 +46,7 @@ export default function GuestDataBanner({ onSignupClick, onLoginClick }: GuestDa
     const interval = setInterval(checkBannerStatus, 1000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [hasMounted]);
 
   const handleDismiss = () => {
     setShow(false);
@@ -52,7 +59,8 @@ export default function GuestDataBanner({ onSignupClick, onLoginClick }: GuestDa
     localStorage.setItem(BANNER_DISMISSED_KEY, "true");
   };
 
-  if (!show) return null;
+  // Prevent hydration mismatch
+  if (!hasMounted || !show) return null;
 
   return (
     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6 shadow-sm">

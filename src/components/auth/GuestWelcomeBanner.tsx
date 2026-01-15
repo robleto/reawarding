@@ -11,8 +11,15 @@ const WELCOME_BANNER_KEY = "oscarworthy_guest_welcome_dismissed";
 
 export default function GuestWelcomeBanner({ onSignupClick }: GuestWelcomeBannerProps) {
   const [show, setShow] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasMounted) return;
+    
     // Check if banner was previously dismissed
     const wasDismissed = localStorage.getItem(WELCOME_BANNER_KEY) === "true";
     
@@ -24,14 +31,15 @@ export default function GuestWelcomeBanner({ onSignupClick }: GuestWelcomeBanner
       
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [hasMounted]);
 
   const handleDismiss = () => {
     setShow(false);
     localStorage.setItem(WELCOME_BANNER_KEY, "true");
   };
 
-  if (!show) return null;
+  // Prevent hydration mismatch
+  if (!hasMounted || !show) return null;
 
   return (
     <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-4 mb-6 shadow-sm animate-in fade-in slide-in-from-top-2 duration-500">

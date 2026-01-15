@@ -133,8 +133,8 @@ export default function SignupModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 my-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -158,7 +158,7 @@ export default function SignupModal({
             </p>
             <button
               onClick={handleClose}
-              className="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="mt-6 w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 font-medium touch-manipulation min-h-[44px]"
             >
               Close
             </button>
@@ -326,7 +326,7 @@ export default function SignupModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 font-medium touch-manipulation min-h-[44px]"
               >
                 {loading ? "Creating account..." : "Create Account"}
               </button>
