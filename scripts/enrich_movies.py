@@ -49,6 +49,14 @@ def main():
             imdb_id = tmdb.get('external_ids', {}).get('imdb_id') or tmdb.get('imdb_id')
             title = tmdb.get('title') or tmdb.get('original_title')
             release_year = int(tmdb.get('release_date', '0000')[:4]) if tmdb.get('release_date') else None
+            
+            # Capture TMDB collection data for franchise grouping
+            tmdb_collection_id = None
+            tmdb_collection_name = None
+            if tmdb.get('belongs_to_collection'):
+                tmdb_collection_id = tmdb['belongs_to_collection'].get('id')
+                tmdb_collection_name = tmdb['belongs_to_collection'].get('name')
+            
             mpaa_rating = None
             if tmdb.get('release_dates', {}).get('results'):
                 us = next((r for r in tmdb['release_dates']['results'] if r['iso_3166_1'] == 'US'), None)
@@ -84,6 +92,8 @@ def main():
                 'genres': genres,
                 'director': director,
                 'cast_list': cast_list,
+                'tmdb_collection_id': tmdb_collection_id,
+                'tmdb_collection_name': tmdb_collection_name,
                 'cached_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                 'updated_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
             }

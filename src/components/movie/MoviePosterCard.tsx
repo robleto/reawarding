@@ -32,17 +32,14 @@ const PosterFallback = ({
 }) => (
 <div 
 	className={`flex flex-col items-center justify-center w-full aspect-[2/3] rounded-xl bg-gray-100 dark:bg-gray-900 ${className}`}
-	style={{ width: '210px', height: '325px' }}
 >
 <img
 	src="/reawarding.svg"
 	alt="Reawarding Logo"
-	width={80}
-	height={120}
-	className="mb-2 filter grayscale"
+	className="w-16 sm:w-20 h-auto mb-2 filter grayscale"
 	draggable={false}
 />
-	<div className="text-md font-unbounded text-center text-gray-800 dark:text-gray-400 px-2 leading-tight">
+	<div className="text-xs sm:text-sm font-unbounded text-center text-gray-800 dark:text-gray-400 px-2 leading-tight">
 		{title}
 	</div>
 </div>
@@ -57,7 +54,12 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
   // Use poster_url directly (cached_poster_url doesn't exist in schema)
   const posterSrc = movie.poster_url;
   const normalizedPoster = normalizeImageUrl(posterSrc);
-  const hasValidPoster = !!normalizedPoster && !imageError;
+  // Ensure we have a valid absolute URL or proper relative path (not just "/" or malformed)
+  const isValidUrl = normalizedPoster && 
+    (normalizedPoster.startsWith('http://') || 
+     normalizedPoster.startsWith('https://') || 
+     (normalizedPoster.startsWith('/') && normalizedPoster.length > 1));
+  const hasValidPoster = isValidUrl && !imageError;
 
   const handleClick = (e: React.MouseEvent) => {
     // Only trigger onClick if not clicking overlay or its children

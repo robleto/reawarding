@@ -15,16 +15,21 @@ import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import HomeEmptyState from "@/components/home/HomeEmptyState";
+import FeaturedCollectionsSection from "@/components/home/FeaturedCollectionsSection";
+import OnboardingProgress from "@/components/home/OnboardingProgress";
 import PublicListsHomeSection from "@/components/list/PublicListsHomeSection";
-import { Film } from "lucide-react";
+import { Film, Lock } from "lucide-react";
 import { AwardsTabs, AwardsTabKey } from "@/components/award/AwardsTabs";
+import Banner from "@/components/ui/Banner";
+import { useOnboardingProgress, getOnboardingMessage } from "@/hooks/useOnboardingProgress";
 
 import type { Movie as BaseMovie } from "@/types/types";
 import { AuthChecker } from "@/components/auth/AuthChecker";
 import StatsSummary from "@/components/stats/StatsSummary";
 
 export default function HomePage() {
-	const { movies, loading, user, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
+	const { movies, loading, user, userId, updateMovieRanking, isGuest, authChecked } = useMovieDataWithGuest();
+	const allMovies = movies ?? [];
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
 	const [selectedMovie, setSelectedMovie] = useState<BaseMovie | null>(null);
@@ -36,6 +41,11 @@ export default function HomePage() {
 		preferred_name?: string | null;
 		last_login?: string;
 	} | null>(null);
+
+	// Calculate onboarding progress at top level (hooks must be called unconditionally)
+	const onboardingProgress = useOnboardingProgress(allMovies);
+	const onboardingMessage = getOnboardingMessage(onboardingProgress);
+	const shouldShowOnboarding = onboardingProgress.totalRanked < 25;
 	const router = useRouter();
 	const supabase = useSupabaseClient();
 
@@ -157,11 +167,18 @@ export default function HomePage() {
 		);
 	}
 
-	const unseen = sortForYourConsideration(filterUnseenMovies(movies));
+	const unseen = sortForYourConsideration(filterUnseenMovies(allMovies));
 	const currentYear = new Date().getFullYear();
+	const currentYearRankedCount = allMovies.filter((movie) => {
+		const releaseYear = movie.release_year ?? (movie.release_year && new Date(movie.release_year).getFullYear());
+		const ranking = movie.rankings?.[0]?.ranking;
+		return releaseYear === currentYear && typeof ranking === "number" && ranking > 0;
+	}).length;
+	const awardsUnlockThreshold = 5;
+	const awardsYear = currentYearRankedCount >= awardsUnlockThreshold ? currentYear : currentYear - 1;
 
 	// Check if user has rated any movies
-	const ratedMovies = movies.filter(
+	const ratedMovies = allMovies.filter(
 		(movie) => movie.rankings && movie.rankings.length > 0 && movie.rankings[0].ranking !== null
 	);
 	const hasRatedMovies = ratedMovies.length > 0;
@@ -196,11 +213,14 @@ export default function HomePage() {
 	if (shouldShowEmptyState) { 
 		return ( 
 			<div>
-				<HomeEmptyState /> 
+				<HomeEmptyState progress={onboardingProgress} /> 
 				
-				{/* Include the movies section below for when they scroll */}
-				<section id="movies-section" className="mt-16">
-					<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">For Your Consideration</h2>
+				{/* For Your Consideration */}
+				<section className="mt-6">
+					<h2 className="text-xl font-bold text-gray-900 dark:text-white">For Your Consideration</h2>
+					<p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
+						New releases and acclaimed films curated for easy discovery.
+					</p>
 					{unseen.length > 0 ? (
 						<div className="-mx-10 sm:-mx-6 px-10 sm:px-6">
 							<div className="flex gap-4 pb-4 overflow-x-auto snap-x snap-mandatory pr-8 sm:pr-10">
@@ -230,11 +250,13 @@ export default function HomePage() {
 						</div>
 					)}
 				</section>
-
-				{/* Stats Summary at bottom */}
-				<div className="mt-12 px-4">
-					<StatsSummary />
-				</div>
+				{/* Featured Collections Section */}
+				<FeaturedCollectionsSection 
+					movies={allMovies}
+					userId={userId}
+					updateMovieRanking={updateMovieRanking}
+					setSelectedMovie={setSelectedMovie}
+				/>
 
 				{/* Auth Modal */}
 				<AuthModalManager
@@ -248,7 +270,7 @@ export default function HomePage() {
 	}
 
 	return (
-		<div className="py-8">
+		<div className="py-4">
 			{/* Unified Banner System for Guests */}
 			{isGuest && (
 				<UnifiedBanner 
@@ -258,21 +280,51 @@ export default function HomePage() {
 			)}
 			
 
-			{/* Authenticated User Welcome */}
+			{/* Authenticated User Welcome - Compact */}
 			{!isGuest && hasRatedMovies && (
-				<div className="text-center mb-8">
-					<h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+				<div className="text-center mb-6">
+					<h2 className="text-xl font-semibold text-gray-900 dark:text-white">
 						{greeting}
 					</h2>
-					<p className="text-gray-600 dark:text-gray-300">
+					<p className="text-sm text-gray-600 dark:text-gray-300">
 						{subtext}
 					</p>
 				</div>
 			)}
 
-			{/* Start Watching Section */}
-			<section id="movies-section">
-				<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">For Your Consideration</h2>
+			{/* Onboarding or Stats Line */}
+			{!authChecked ? (
+				<div className="mb-6">
+					<div className="light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 px-3 sm:px-4 py-2.5 sm:py-3 animate-pulse">
+						<div className="flex items-center gap-3">
+							<div className="hidden sm:block h-3 w-16 rounded bg-gray-300/40 dark:bg-gray-700/40" />
+							<div className="flex-1 flex items-center gap-3 sm:gap-4">
+								<div className="h-6 w-24 rounded bg-gray-300/40 dark:bg-gray-700/40" />
+								<div className="h-6 w-24 rounded bg-gray-300/40 dark:bg-gray-700/40" />
+								<div className="h-6 w-24 rounded bg-gray-300/40 dark:bg-gray-700/40" />
+								<div className="h-6 w-24 rounded bg-gray-300/40 dark:bg-gray-700/40" />
+								<div className="h-6 w-24 rounded bg-gray-300/40 dark:bg-gray-700/40" />
+							</div>
+						</div>
+					</div>
+				</div>
+			) : shouldShowOnboarding ? (
+				<OnboardingProgress
+					progress={onboardingProgress}
+					onboardingMessage={onboardingMessage}
+				/>
+			) : (
+				<div className="mb-6">
+					<StatsSummary variant="compact" />
+				</div>
+			)}
+
+			{/* For Your Consideration */}
+			<section className="mt-6">
+				<h2 className="text-xl font-bold text-gray-900 dark:text-white">For Your Consideration</h2>
+				<p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
+					New releases and acclaimed films curated for easy discovery.
+				</p>
 				{unseen.length > 0 ? (
 					<div className="-mx-10 sm:-mx-6 px-10 sm:px-6">
 						<div className="flex gap-4 pb-4 overflow-x-auto snap-x snap-mandatory pr-8 sm:pr-10">
@@ -303,12 +355,31 @@ export default function HomePage() {
 
 		{/* Current Best Picture (reuse the Awards layout for visual parity) */}
 		<section className="py-4 md:py-8">
-			<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">Your {currentYear} Awards</h2>
+			{awardsYear !== currentYear && (
+				<div className="mb-4">
+					<Banner
+						variant="gold"
+						icon={Lock}
+						title={`${currentYear} Awards locked`}
+						message={
+							<>
+								Rate {awardsUnlockThreshold - currentYearRankedCount} more {currentYear} {awardsUnlockThreshold - currentYearRankedCount === 1 ? 'film' : 'films'} to unlock.
+								<span className="ml-2 text-xs font-medium text-yellow-300">
+									{currentYearRankedCount}/{awardsUnlockThreshold}
+								</span>
+							</>
+						}
+					/>
+				</div>
+			)}
+			
+			<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">Your {awardsYear} Awards</h2>
+			
 			<AwardsTabs value={previewCategory} onChange={setPreviewCategory} />
 				{(() => {
-					const currentYearMovies = movies.filter((m) => {
+					const currentYearMovies = allMovies.filter((m) => {
 						const y = m.release_year || (m.release_year && new Date(m.release_year).getFullYear());
-						return y === currentYear;
+						return y === awardsYear;
 					});
 					
 					// Apply category filtering (same logic as awards page)
@@ -362,7 +433,7 @@ export default function HomePage() {
 				return (
 					<div className="relative">
 						<EditableYearSection
-							year={String(currentYear)}
+							year={String(awardsYear)}
 							movies={defaultNominees}
 							winner={defaultWinner || undefined}
 							allMoviesForYear={sorted}
@@ -384,15 +455,12 @@ export default function HomePage() {
 					</div>
 				);
 			})()}
-		</section>		   {/* Public Lists Horizontal Table */}
-		   <PublicListsHomeSection />
+		</section>
+		
+		{/* Public Lists Horizontal Table */}
+		<PublicListsHomeSection />
 
-		   {/* Stats Summary at bottom */}
-		   <div className="mt-12">
-		     <StatsSummary />
-		   </div>
-
-		   {/* Auth Modal */}
+		{/* Auth Modal */}
 		   <AuthModalManager
 			   isOpen={showAuthModal}
 			   onClose={() => setShowAuthModal(false)}

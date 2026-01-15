@@ -51,7 +51,7 @@ const COLLECTION_QUERIES: CollectionQuery[] = [
   { slug: 'marvel-cinematic-universe', type: 'title-pattern', titlePatterns: ['Avengers', 'Iron Man', 'Captain America', 'Thor', 'Guardians', 'Black Panther', 'Spider-Man', 'Doctor Strange', 'Ant-Man', 'Captain Marvel', 'Eternals', 'Shang-Chi', 'Black Widow'] },
   { slug: 'star-wars-saga', type: 'title-pattern', titlePatterns: ['Star Wars'] },
   { slug: 'dc-universe', type: 'title-pattern', titlePatterns: ['Batman', 'Superman', 'Wonder Woman', 'Aquaman', 'Justice League', 'Suicide Squad', 'Shazam', 'Black Adam', 'Harley Quinn', 'Joker'] },
-  { slug: 'fast-and-furious', type: 'title-pattern', titlePatterns: ['Fast', 'Furious', 'F9', 'Hobbs'] },
+  { slug: 'fast-and-furious', type: 'title-pattern', titlePatterns: ['The Fast and the Furious', 'Fast & Furious', 'Fast Five', 'Fast and Furious', 'Furious 7', 'F9', 'Hobbs & Shaw'] },
   { slug: 'x-men', type: 'title-pattern', titlePatterns: ['X-Men', 'Wolverine', 'Deadpool', 'Logan', 'New Mutants'] },
   { slug: 'star-trek', type: 'title-pattern', titlePatterns: ['Star Trek'] },
   { slug: 'the-muppets', type: 'title-pattern', titlePatterns: ['Muppet'] },

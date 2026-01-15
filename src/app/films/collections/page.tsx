@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createBrowserClient } from "@/lib/supabaseBrowser";
-import CollectionCard from "@/components/films/CollectionCard";
+import { supabase } from "@/lib/supabaseBrowser";
+import CollectionRow from "@/components/films/CollectionRow";
+import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import Loader from "@/components/ui/Loading";
+import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
+import type { Movie } from "@/types/types";
 
 type CollectionCategory = 'awards' | 'lists' | 'franchises' | 'actors' | 'directors' | 'studios';
 
@@ -20,9 +23,11 @@ interface FilmCollection {
 }
 
 export default function CollectionsPage() {
+  const { movies, loading: moviesLoading, userId, updateMovieRanking } = useMovieDataWithGuest();
   const [activeCategory, setActiveCategory] = useState<CollectionCategory | 'all' | 'featured'>('featured');
   const [collections, setCollections] = useState<FilmCollection[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [collectionsLoading, setCollectionsLoading] = useState(true);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
   const categories: Array<{ key: CollectionCategory | 'all' | 'featured'; label: string }> = [
     { key: 'featured', label: 'Featured' },
@@ -37,8 +42,7 @@ export default function CollectionsPage() {
 
   useEffect(() => {
     async function fetchCollections() {
-      setLoading(true);
-      const supabase = createBrowserClient();
+      setCollectionsLoading(true);
       
       let query = supabase.from('film_collections_with_counts').select('*');
       
@@ -56,11 +60,13 @@ export default function CollectionsPage() {
         setCollections(data || []);
       }
       
-      setLoading(false);
+      setCollectionsLoading(false);
     }
     
     fetchCollections();
   }, [activeCategory]);
+
+  const loading = moviesLoading || collectionsLoading;
 
   return (
     <div className="min-h-screen py-8">
@@ -80,7 +86,22 @@ export default function CollectionsPage() {
           <div className="inline-flex rounded-xl bg-gray-900/60 border border-gray-700/40 p-1 gap-1">
             {categories.map((category) => (
               <button
-        {loading ? (
+                key={category.key}
+                onClick={() => setActiveCategory(category.key)}
+                className={`px-6 py-2.5 rounded-lg font-medium transition-all whitespace-nowrap ${
+                  activeCategory === category.key
+                    ? 'bg-yellow-500 text-gray-900'
+                    : 'text-gray-300 hover:text-white hover:bg-gray-800/60'
+                }`}
+              >
+                {category.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Collections as Horizontal Rows */}
+        {collectionsLoading ? (
           <div className="flex justify-center items-center min-h-[400px]">
             <Loader />
           </div>
@@ -89,39 +110,34 @@ export default function CollectionsPage() {
             No collections found in this category.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="space-y-4">
             {collections.map((collection) => (
-              <CollectionCard
+              <CollectionRow
                 key={collection.slug}
                 collection={collection}
-                movieCount={collection.movie_count}
+                movies={movies}
+                userId={userId}
+                onUpdateMovie={updateMovieRanking}
+                onMovieClick={setSelectedMovie}
               />
             ))}
           </div>
-        )}  {category.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Collections Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {collections.map((collection) => (
-            <CollectionCard
-              key={collection.slug}
-              collection={collection}
-              movieCount={collection.tmdbIds.length}
-            />
-          ))}
-        </div>
-
-        {/* Empty state */}
-        {collections.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-gray-400 text-lg">No collections in this category yet</p>
-          </div>
         )}
       </div>
+
+      {/* Movie Detail Modal */}
+      {selectedMovie && (
+        <MovieDetailModal
+          movie={selectedMovie}
+          isOpen={!!selectedMovie}
+          onClose={() => setSelectedMovie(null)}
+          onUpdate={(movieId, newRanking, newSeenIt) => {
+            updateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
+          }}
+          initialRanking={selectedMovie.rankings?.[0]?.ranking ?? null}
+          initialSeenIt={selectedMovie.rankings?.[0]?.seen_it ?? false}
+        />
+      )}
     </div>
   );
 }

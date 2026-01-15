@@ -2,17 +2,20 @@
 
 import Link from "next/link";
 import * as LucideIcons from "lucide-react";
+import type { FilmCollection as DataFilmCollection } from "@/data/filmCollections";
 
-interface FilmCollection {
+interface DbFilmCollection {
   slug: string;
   title: string;
   description: string | null;
   icon: string;
-  color: string;
+  color?: string;
   category: string;
   featured: boolean;
   movie_count?: number;
 }
+
+type FilmCollection = DataFilmCollection | DbFilmCollection;
 
 interface CollectionCardProps {
   collection: FilmCollection;
@@ -41,7 +44,7 @@ export default function CollectionCard({ collection, movieCount }: CollectionCar
     sky: 'from-sky-500/20 to-blue-600/20 border-sky-500/30 hover:border-sky-400/50',
   };
 
-  const gradientClass = colorClasses[collection.color as keyof typeof colorClasses] || colorClasses.gold;
+  const gradientClass = colorClasses[(collection.color || 'gold') as keyof typeof colorClasses] || colorClasses.gold;
 
   // Get the Lucide icon component dynamically
   const IconComponent = (LucideIcons as any)[collection.icon] || LucideIcons.Film;

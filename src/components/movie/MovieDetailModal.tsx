@@ -58,7 +58,12 @@ export default function MovieDetailModal({
       setRanking(initialRanking);
       const raw = (movie.cached_poster_url?.trim() || movie.poster_url || '').trim();
       const normalized = normalizeImageUrl(raw);
-      setHasValidImage(Boolean(normalized && !normalized.includes('placeholder')));
+      // Ensure we have a valid absolute URL or proper relative path
+      const isValidUrl = normalized && 
+        (normalized.startsWith('http://') || 
+         normalized.startsWith('https://') || 
+         (normalized.startsWith('/') && normalized.length > 1));
+      setHasValidImage(Boolean(isValidUrl && !normalized.includes('placeholder')));
     }
   }, [isOpen, movie, initialRanking, initialSeenIt]);
 

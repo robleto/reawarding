@@ -51,7 +51,12 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
   // Prefer cached thumb when available; compute normalized URL and only render Image if non-empty
   const thumbSrc = movie.cached_thumb_url?.trim() || movie.thumb_url;
   const normalizedThumb = normalizeImageUrl(thumbSrc);
-  const hasValidImage = !!normalizedThumb && !(thumbSrc?.includes('placeholder'));
+  // Ensure we have a valid absolute URL or proper relative path (not just "/" or malformed)
+  const isValidUrl = normalizedThumb && 
+    (normalizedThumb.startsWith('http://') || 
+     normalizedThumb.startsWith('https://') || 
+     (normalizedThumb.startsWith('/') && normalizedThumb.length > 1));
+  const hasValidImage = isValidUrl && !(thumbSrc?.includes('placeholder'));
 
   // Calculate hot take info
   const myRating = ranking ?? 0;

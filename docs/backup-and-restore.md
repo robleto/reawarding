@@ -8,10 +8,7 @@ This document covers automated daily exports to Supabase Storage and how to rest
 - Location: Storage bucket `backups/YYYYMMDD/<table>.json`
 
 ## How it works
-- Edge Function `backup-export` reads tables using the Service Role and writes JSON files to a private `backups` bucket.
-- Triggered daily by either:
-  - pg_cron job: `admin.invoke_backup_export()` at 03:30 UTC
-  - GitHub Actions: `.github/workflows/backup-export.yml` at 04:15 UTC
+- Self-managed exports are currently **not scheduled**. If you want automated backups again, add a GitHub Action or script-based exporter.
 
 ## One-time setup
 1. Ensure secrets:
@@ -24,14 +21,7 @@ This document covers automated daily exports to Supabase Storage and how to rest
      - Supabase Dashboard → Edge Functions → Secrets → add the same `CRON_SECRET`
      - GitHub repo → Settings → Secrets and variables → Actions → add `CRON_SECRET` and `SUPABASE_URL`
 
-2. Deploy the Edge Function:
-   - `supabase functions deploy backup-export`
-
-3. (Optional) Create pg_cron schedule (Pro plan):
-   - Run the migration `20251016001500_backup_wrapper_and_cron.sql` or:
-     ```sql
-     select cron.schedule('daily-backup-export','30 3 * * *', $$select admin.invoke_backup_export();$$);
-     ```
+2. (Optional) Re-enable automation with a GitHub Action or a local script.
 
 ## Verify
 - Check Storage → `backups/` for dated folders and JSON files
@@ -60,9 +50,9 @@ When DB is down and managed backups are unavailable:
    for i in range(0, len(rows), batch):
        upsert('movies', rows[i:i+batch])
    ```
-3. Then run enrichment if needed (Edge Function `update-all-movies` or `scripts/enrich_movies.py`).
+3. Then run enrichment if needed (use `scripts/enrich_movies.py`).
 
 ## Notes
 - This export does not include schema—use migrations for schema.
 - For very large tables, adjust pagination in the function.
-- Keep GitHub Action off if pg_cron is your primary scheduler to avoid duplication.
+- If you re-enable automation, avoid running multiple schedulers for the same job.

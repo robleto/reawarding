@@ -1,6 +1,6 @@
 # Disaster Recovery Playbook (No Backups)
 
-This playbook restores the `movies` table using existing local assets and TMDB, then enriches metadata via Edge Functions.
+This playbook restores the `movies` table using existing local assets and TMDB, then enriches metadata via local scripts.
 
 ## 0) Prereqs
 - .env/.env.local has:
@@ -43,20 +43,7 @@ Notes:
 - Script fills poster_url as `/posters/<file>` and thumb_url if `/thumbs/<file>` exists
 
 ## 3) Enrich metadata for all movies
-Pick one of the two methods:
-
-### A) Edge Function (update-all-movies)
-```bash
-# Requires NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY or service role bearer if protected
-# Uses Service Role inside the function
-curl -s -X POST \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
-  "$NEXT_PUBLIC_SUPABASE_URL/functions/v1/update-all-movies" \
-  -d '{"limit":1900, "requestDelay":300}'
-```
-
-### B) Local script
+Use the local script:
 ```bash
 python3 scripts/enrich_movies.py
 ```
@@ -67,16 +54,7 @@ select * from admin.last_updates() order by last_update desc limit 20;
 select count(*) from movies;
 ```
 
-## 5) Optional: resume trending ingestion
-- Ensure CRON_SECRET exists in Vault and cron points to the working job
-- Run the trending scraper manually once:
-```bash
-curl -s -X POST \
-  -H "Authorization: Bearer $CRON_SECRET" \
-  "$NEXT_PUBLIC_SUPABASE_URL/functions/v1/tmdb-trending-scraper"
-```
-
-## 6) Next steps
+## 5) Next steps
 - Re-import rankings if you have CSVs: `python3 imports/import_rankings.py`
 - Add any custom SQL to rebuild derived tables
 - If you regain a backup or Supabase can restore, stop and use that instead

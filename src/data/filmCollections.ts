@@ -3,7 +3,7 @@
  * Similar to ready-made lists but static, curated collections
  */
 
-export type CollectionCategory = 'featured' | 'awards' | 'lists' | 'franchises' | 'directors' | 'studios';
+export type CollectionCategory = 'featured' | 'awards' | 'lists' | 'franchises' | 'actors' | 'directors' | 'studios';
 
 export type FilmCollection = {
   slug: string;

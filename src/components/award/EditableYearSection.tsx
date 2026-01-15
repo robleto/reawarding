@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from '@/lib/supabaseBrowser';
-import { useUser } from '@supabase/auth-helpers-react';
+import { useUser, useSupabaseClient, useSessionContext } from '@supabase/auth-helpers-react';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2 } from "lucide-react";
@@ -91,8 +91,16 @@ export default function EditableYearSection({
   category,
 }: EditableYearSectionProps) {
   const user = useUser();
+  const { isLoading: sessionLoading } = useSessionContext();
   const { showToast } = useGlobalToast();
   const resolvedCategory = category ?? 'best-picture';
+
+  if (process.env.NODE_ENV === "development") {
+    console.log('EditableYearSection DEBUG:', { 
+      user: user ? { id: user.id, email: user.email } : null, 
+      sessionLoading 
+    });
+  }
 
   const initialCache = React.useMemo(() => {
     if (typeof window === 'undefined') return null;
@@ -206,7 +214,9 @@ export default function EditableYearSection({
   const loadExistingNominations = React.useCallback(async () => {
     setLoadingNominations(true);
     try {
-      const response = await fetch(`/api/awards?year=${year}&category=${resolvedCategory}`);
+      const response = await fetch(`/api/awards?year=${year}&category=${resolvedCategory}`, {
+        credentials: 'same-origin',
+      });
       if (response.ok) {
         // Clear any previous load errors on success
         setError(null);
@@ -318,16 +328,24 @@ export default function EditableYearSection({
 
   // Load custom nominations on component mount
   useEffect(() => {
+    // Don't do anything while session is loading
+    if (sessionLoading) {
+      console.log('Session loading, waiting to load nominations...');
+      return;
+    }
+
     if (typeof window !== 'undefined' && user?.id) {
       window.localStorage.setItem(LAST_USER_KEY, user.id);
     }
 
     if (user) {
+      console.log('User detected, loading nominations:', user.email);
       if (!hasLoadedInitialRef.current) {
         hasLoadedInitialRef.current = true;
         loadExistingNominations();
       }
     } else {
+      console.log('No user detected, resetting to defaults');
       hasLoadedInitialRef.current = false;
       setHasCustomNominations(false);
       setCustomNominees(null);
@@ -338,7 +356,7 @@ export default function EditableYearSection({
       isUsingCustomViewRef.current = false;
       syncView('default');
     }
-  }, [user, loadExistingNominations, syncView]);
+  }, [user, sessionLoading, loadExistingNominations, syncView]);
 
   // Keep display state in sync when defaults change and there are no custom nominations
   useEffect(() => {
@@ -418,11 +436,19 @@ export default function EditableYearSection({
   };
 
   const handleSave = async () => {
+    // Wait for session to load before checking user
+    if (sessionLoading) {
+      console.log('Session still loading, waiting...');
+      return;
+    }
+    
     if (!user) {
+      console.log('No user found, showing sign-in prompt');
       showToast('Please sign in to save your nominations.', 'info');
       return;
     }
 
+    console.log('Saving nominations for user:', user.email);
     setIsSaving(true);
     setError(null);
     setErrorDetails(null);
@@ -441,6 +467,7 @@ export default function EditableYearSection({
       // Primary path: use Next.js API route (server validates + ensures profile)
       const response = await fetch('/api/awards', {
         method: 'POST',
+        credentials: 'same-origin', // Ensure cookies are sent
         headers: {
           'Content-Type': 'application/json',
         },
@@ -609,6 +636,7 @@ export default function EditableYearSection({
     try {
       const response = await fetch(`/api/awards?year=${year}&category=${resolvedCategory}`, {
         method: 'DELETE',
+        credentials: 'same-origin',
       });
       if (!response.ok) {
         let errorMessage = 'Failed to reset nominations';

@@ -58,6 +58,12 @@ export function normalizeImageUrl(url: string | null | undefined): string {
     return `https://${trimmed}`;
   }
 
+  // Reject invalid local paths (just "/" or malformed)
+  const localPath = "/" + trimmed.replace(/^\/+/, "");
+  if (localPath === "/" || localPath.length < 2) {
+    return "";
+  }
+
   // Ensure local paths start with a single leading slash
-  return "/" + trimmed.replace(/^\/+/, "");
+  return localPath;
 }

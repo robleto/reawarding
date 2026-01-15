@@ -307,17 +307,42 @@ export function useMovieDataWithGuest() {
 	const [movies, setMovies] = useState<Movie[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [hasMounted, setHasMounted] = useState(false);
+	const [authChecked, setAuthChecked] = useState(false);
+	const [sessionUserId, setSessionUserId] = useState<string | null>(null);
 	const supabase = useSupabaseClient<Database>();
 	const user = useUser();
 	const guestStore = useGuestRankingStore();
 	// Determine auth state
 	// Always provide a string for userId; guests will have an empty string
-	const userId: string = user?.id ?? "";
-	const isGuest = !user;
+	const effectiveUserId: string = user?.id ?? sessionUserId ?? "";
+	const userId: string = effectiveUserId;
+	const isGuest = !effectiveUserId;
 
 	useEffect(() => {
 		setHasMounted(true);
 	}, []);
+
+	useEffect(() => {
+		let mounted = true;
+		const checkSession = async () => {
+			const { data } = await supabase.auth.getSession();
+			if (!mounted) return;
+			setSessionUserId(data.session?.user?.id ?? null);
+			setAuthChecked(true);
+		};
+		checkSession();
+
+		const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+			if (!mounted) return;
+			setSessionUserId(session?.user?.id ?? null);
+			setAuthChecked(true);
+		});
+
+		return () => {
+			mounted = false;
+			authListener?.subscription.unsubscribe();
+		};
+	}, [supabase]);
 
 	const MOVIE_LIST_FIELDS = `
 		id,
@@ -343,6 +368,7 @@ export function useMovieDataWithGuest() {
 	`;
 
 	useEffect(() => {
+		if (!authChecked) return;
 		async function fetchData() {
 			setLoading(true);
 			
@@ -429,7 +455,7 @@ export function useMovieDataWithGuest() {
 		}
 		
 		fetchData();
-	}, [userId, supabase, user, isGuest]);
+	}, [authChecked, userId, supabase, isGuest]);
 
 	const updateMovieRanking = async (
 		movieId: number,
@@ -543,7 +569,8 @@ export function useMovieDataWithGuest() {
 		userId, 
 		updateMovieRanking,
 		isGuest,
-		hasMounted
+		hasMounted,
+		authChecked
 	};
 }
 

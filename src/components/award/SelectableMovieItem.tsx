@@ -32,7 +32,13 @@ export default function SelectableMovieItem({
   const ranking = movie.rankings?.[0]?.ranking ?? 0;
   const ratingStyle = getRatingStyle(ranking);
   const thumbSrcRaw = movie.thumb_url || movie.poster_url;
-  const hasValidImage = thumbSrcRaw && thumbSrcRaw.trim() !== '' && !thumbSrcRaw.includes('placeholder');
+  const normalizedThumb = normalizeImageUrl(thumbSrcRaw);
+  // Ensure we have a valid absolute URL or proper relative path
+  const isValidUrl = normalizedThumb && 
+    (normalizedThumb.startsWith('http://') || 
+     normalizedThumb.startsWith('https://') || 
+     (normalizedThumb.startsWith('/') && normalizedThumb.length > 1));
+  const hasValidImage = isValidUrl && !thumbSrcRaw?.includes('placeholder');
 
   return (
     <div className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow min-h-[80px]">
@@ -40,7 +46,7 @@ export default function SelectableMovieItem({
       <div className="flex-shrink-0">
         {hasValidImage ? (
           <Image
-            src={normalizeImageUrl(thumbSrcRaw)}
+            src={normalizedThumb}
             alt={movie.title}
             width={80}
             height={60}

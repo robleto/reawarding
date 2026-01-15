@@ -15,7 +15,13 @@ type StatItem = {
   hint?: string;
 };
 
-export default function StatsSummary({ className = "" }: { className?: string }) {
+export default function StatsSummary({
+  className = "",
+  variant = "default",
+}: {
+  className?: string;
+  variant?: "default" | "compact";
+}) {
   const supabase = useSupabaseClient();
   const user = useUser();
   // Subscribe to guest rankings so UI updates after persist rehydration
@@ -33,6 +39,7 @@ export default function StatsSummary({ className = "" }: { className?: string })
     listsCount: 0,
     awardsCount: 0,
   });
+  const iconClassName = variant === "compact" ? "w-4 h-4" : "w-5 h-5";
 
   // Compute guest stats from local store
   const guestStatsAll = useMemo(() => {
@@ -162,107 +169,145 @@ export default function StatsSummary({ className = "" }: { className?: string })
       key: "rated",
       label: "Movies Rated",
       value: stats.ratedCount,
-      icon: <Star className="w-5 h-5" />,
+      icon: <Star className={iconClassName} />,
       hint: isGuest ? "Save your ratings by signing up" : undefined,
     },
     {
       key: "avg",
       label: "Avg Rating",
       value: stats.avgRating !== null ? `${stats.avgRating.toFixed(1)}/10` : "—",
-      icon: <Trophy className="w-5 h-5" />,
+      icon: <Trophy className={iconClassName} />,
     },
     {
       key: "seen",
       label: "Movies Seen",
       value: stats.seenCount,
-      icon: <Eye className="w-5 h-5" />,
+      icon: <Eye className={iconClassName} />,
     },
     {
       key: "lists",
       label: "Lists Created",
       value: stats.listsCount,
-      icon: <List className="w-5 h-5" />,
+      icon: <List className={iconClassName} />,
     },
     {
       key: "awards",
       label: "Awards Made",
       value: stats.awardsCount,
-      icon: <Trophy className="w-5 h-5" />,
+      icon: <Trophy className={iconClassName} />,
     },
   ];
 
   return (
     <section className={`max-w-screen-xl mx-auto ${className}`}>
-      {/* Scope toggle */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base sm:text-sm font-semibold text-gray-800 dark:text-gray-200">Your Stats</h3>
-        <div className="inline-flex rounded-lg overflow-hidden border border-gray-300/60 dark:border-gray-600/60">
-          <button
-            className={`px-3 py-1 text-xs font-medium transition-colors ${scope === "all" ? "bg-blue-600 text-white" : "bg-transparent text-gray-700 dark:text-gray-300"}`}
-            onClick={() => setScope("all")}
-          >
-            All-time
-          </button>
-          <button
-            className={`px-3 py-1 text-xs font-medium transition-colors ${scope === "year" ? "bg-blue-600 text-white" : "bg-transparent text-gray-700 dark:text-gray-300"}`}
-            onClick={() => setScope("year")}
-          >
-            This Year
-          </button>
+      {variant === "compact" ? (
+        <div className="light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 px-3 sm:px-4 py-2.5 sm:py-3">
+          {loading ? (
+            <div className="text-xs text-gray-600 dark:text-gray-300">
+              Loading your stats...
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+              <span className="hidden sm:inline text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold">
+                Your Stats
+              </span>
+              <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-4 md:gap-5 lg:gap-6 flex-1">
+                {items.map((item) => (
+                  <div key={item.key} className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="text-[#ba7a00] dark:text-yellow-500 bg-yellow-500/10 p-1 sm:p-1.5 rounded flex-shrink-0">
+                      {item.icon}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white leading-tight truncate">
+                        {item.value}
+                      </span>
+                      <span className="text-[9px] sm:text-[10px] text-gray-600 dark:text-gray-400 uppercase tracking-wide leading-tight truncate">
+                        {item.label}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {error && (
+            <div className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</div>
+          )}
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-        {loading ? (
-          <div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-5">
-            <div className="light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 p-3 sm:p-4">
-              <Loader message="Loading your stats..." />
+      ) : (
+        <>
+          {/* Scope toggle */}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base sm:text-sm font-semibold text-gray-800 dark:text-gray-200">Your Stats</h3>
+            <div className="inline-flex rounded-lg overflow-hidden border border-gray-300/60 dark:border-gray-600/60">
+              <button
+                className={`px-3 py-1 text-xs font-medium transition-colors ${scope === "all" ? "bg-blue-600 text-white" : "bg-transparent text-gray-700 dark:text-gray-300"}`}
+                onClick={() => setScope("all")}
+              >
+                All-time
+              </button>
+              <button
+                className={`px-3 py-1 text-xs font-medium transition-colors ${scope === "year" ? "bg-blue-600 text-white" : "bg-transparent text-gray-700 dark:text-gray-300"}`}
+                onClick={() => setScope("year")}
+              >
+                This Year
+              </button>
             </div>
           </div>
-        ) : (
-          items.map((item) => {
-            // Build links for specific cards
-            let href: string | null = null;
-            if (item.key === "awards") {
-              href = scope === "year" ? `/awards?year=${currentYear}` : "/awards";
-            } else if (item.key === "lists") {
-              href = scope === "year" ? `/lists?year=${currentYear}` : "/lists";
-            }
 
-            const Card = (
-              <div
-                key={item.key}
-                className={`light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 p-3 sm:p-4 flex items-center justify-between ${href ? "hover:shadow-md transition-shadow" : ""}`}
-              >
-                <div>
-                  <div className="text-[11px] sm:text-xs uppercase tracking-wide text-gray-600 dark:text-gray-400">{item.label}</div>
-                  <div className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">{item.value}</div>
-                  {item.hint && (
-                    <div className="mt-1 hidden sm:flex text-xs text-gray-500 dark:text-gray-400 items-center gap-1">
-                      <UserPlus className="w-3.5 h-3.5" />
-                      {item.hint}
-                    </div>
-                  )}
-                </div>
-                <div className="shrink-0 text-[#ba7a00] dark:text-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/10 p-1.5 sm:p-2 rounded-lg">
-                  {item.icon}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            {loading ? (
+              <div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-5">
+                <div className="light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 p-3 sm:p-4">
+                  <Loader message="Loading your stats..." />
                 </div>
               </div>
-            );
-
-            return href ? (
-              <Link key={item.key} href={href} className="block focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-xl">
-                {Card}
-              </Link>
             ) : (
-              <div key={item.key}>{Card}</div>
-            );
-          })
-        )}
-      </div>
+              items.map((item) => {
+                // Build links for specific cards
+                let href: string | null = null;
+                if (item.key === "awards") {
+                  href = scope === "year" ? `/awards?year=${currentYear}` : "/awards";
+                } else if (item.key === "lists") {
+                  href = scope === "year" ? `/lists?year=${currentYear}` : "/lists";
+                }
 
-      {error && (
-        <div className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</div>
+                const Card = (
+                  <div
+                    key={item.key}
+                    className={`light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 p-3 sm:p-4 flex items-center justify-between ${href ? "hover:shadow-md transition-shadow" : ""}`}
+                  >
+                    <div>
+                      <div className="text-[11px] sm:text-xs uppercase tracking-wide text-gray-600 dark:text-gray-400">{item.label}</div>
+                      <div className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">{item.value}</div>
+                      {item.hint && (
+                        <div className="mt-1 hidden sm:flex text-xs text-gray-500 dark:text-gray-400 items-center gap-1">
+                          <UserPlus className="w-3.5 h-3.5" />
+                          {item.hint}
+                        </div>
+                      )}
+                    </div>
+                    <div className="shrink-0 text-[#ba7a00] dark:text-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/10 p-1.5 sm:p-2 rounded-lg">
+                      {item.icon}
+                    </div>
+                  </div>
+                );
+
+                return href ? (
+                  <Link key={item.key} href={href} className="block focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-xl">
+                    {Card}
+                  </Link>
+                ) : (
+                  <div key={item.key}>{Card}</div>
+                );
+              })
+            )}
+          </div>
+
+          {error && (
+            <div className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</div>
+          )}
+        </>
       )}
     </section>
   );

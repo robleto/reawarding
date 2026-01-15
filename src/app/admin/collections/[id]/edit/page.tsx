@@ -10,13 +10,15 @@ export const dynamic = 'force-dynamic';
 export default async function EditCollectionPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const isAdmin = await isUserAdmin();
 
   if (!isAdmin) {
     redirect('/admin/unauthorized');
   }
+
+  const { id } = await params;
 
   const cookieStore = await cookies();
   const supabase = createServerClient<Database>(
@@ -39,7 +41,7 @@ export default async function EditCollectionPage({
   const { data: collection } = await supabase
     .from('film_collections')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (!collection) {

@@ -11,7 +11,13 @@ type PosterThumbProps = {
 
 export default function PosterThumb({ id, title, imageUrl }: PosterThumbProps) {
   const href = `/films/${slugifyTitle(title)}/${id}`;
-  const src = normalizeImageUrl(imageUrl || undefined);
+  const normalized = normalizeImageUrl(imageUrl || undefined);
+  // Ensure we have a valid absolute URL or proper relative path
+  const isValidUrl = normalized && 
+    (normalized.startsWith('http://') || 
+     normalized.startsWith('https://') || 
+     (normalized.startsWith('/') && normalized.length > 1));
+  const src = isValidUrl ? normalized : null;
 
   return (
     <Link href={href} className="group block">

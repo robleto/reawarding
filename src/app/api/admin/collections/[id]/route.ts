@@ -6,7 +6,7 @@ import { isUserAdmin } from '@/lib/adminAuth';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Check admin access
   const isAdmin = await isUserAdmin();
@@ -14,6 +14,7 @@ export async function PUT(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
+  const { id } = await params;
   const { slug, title, description, icon, color, category, featured } = await request.json();
 
   // Use service role for admin operations
@@ -46,7 +47,7 @@ export async function PUT(
       category,
       featured,
     })
-    .eq('id', params.id)
+    .eq('id', id)
     .select()
     .single();
 

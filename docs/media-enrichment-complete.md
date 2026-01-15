@@ -148,7 +148,7 @@ After finding movie IDs from the query above, visit pages like:
 
 ### Future Improvements
 - [ ] Batch enrich remaining movies (100+ at a time)
-- [ ] Schedule regular enrichment updates (Edge Function + pg_cron)
+- [ ] Schedule regular enrichment updates (GitHub Actions)
 - [ ] Add image lazy loading for performance
 - [ ] Implement infinite scroll for large image galleries
 - [ ] Add video playlist mode (auto-advance)

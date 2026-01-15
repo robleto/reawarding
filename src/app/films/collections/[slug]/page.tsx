@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createBrowserClient } from "@/lib/supabaseBrowser";
+import { supabase } from "@/lib/supabaseBrowser";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieRowCard from "@/components/movie/MovieRowCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
@@ -24,7 +24,7 @@ interface FilmCollection {
   title: string;
   description: string;
   icon: string;
-  color: string;
+  color?: string;
   category: string;
   featured: boolean;
 }
@@ -54,9 +54,9 @@ export default function CollectionDetailPage() {
   const [sortBy, setSortBy] = useState<SortKey>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("collectionSortBy");
-      return (stored as SortKey) || "year_desc";
+      return (stored as SortKey) || "release_year";
     }
-    return "year_desc";
+    return "release_year";
   });
 
   const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
@@ -105,6 +105,10 @@ export default function CollectionDetailPage() {
     return "all";
   });
 
+  const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search">("none");
+  const [filterValue, setFilterValue] = useState("all");
+  const [groupBy, setGroupBy] = useState<"release_year" | "ranking" | "none">("none");
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("collectionViewMode", viewMode);
@@ -147,7 +151,43 @@ export default function CollectionDetailPage() {
     }
   }, [seenFilter]);
 
-  // FcollectionLoading) {
+  // Fetch collection data
+  useEffect(() => {
+    async function fetchCollection() {
+      
+      const { data: collectionData, error: collectionError } = await supabase
+        .from('film_collections')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+      
+      if (collectionError) {
+        console.error('Error fetching collection:', collectionError);
+        setCollectionLoading(false);
+        return;
+      }
+      
+      setCollection(collectionData);
+      
+      // Fetch collection items (TMDB IDs)
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('film_collection_items')
+        .select('tmdb_id')
+        .eq('collection_id', collectionData.id);
+      
+      if (itemsError) {
+        console.error('Error fetching collection items:', itemsError);
+      } else {
+        setCollectionTmdbIds(itemsData?.map(item => item.tmdb_id) || []);
+      }
+      
+      setCollectionLoading(false);
+    }
+    
+    fetchCollection();
+  }, [slug]);
+
+  if (loading || collectionLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader />
@@ -173,47 +213,7 @@ export default function CollectionDetailPage() {
 
   // Filter movies to only include those in this collection
   const collectionMovies = movies.filter((movie) =>
-    collectionT
-      
-      setCollection(collectionData);
-      
-      // Fetch collection items (TMDB IDs)
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('film_collection_items')
-        .select('tmdb_id')
-        .eq('collection_id', collectionData.id);
-      
-      if (itemsError) {
-        console.error('Error fetching collection items:', itemsError);
-      } else {
-        setCollectionTmdbIds(itemsData?.map(item => item.tmdb_id) || []);
-      }
-      
-      setCollectionLoading(false);
-    }
-    
-    fetchCollection();
-  }, [slug]);
-
-  if (!collection) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Collection not found</h1>
-          <Link href="/films/collections" className="text-gold hover:text-gold-light">
-            Back to Collections
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // Get the Lucide icon component dynamically
-  const IconComponent = (LucideIcons as any)[collection.icon] || LucideIcons.Film;
-
-  // Filter movies to only include those in this collection
-  const collectionMovies = movies.filter((movie) =>
-    collection.tmdbIds.includes(movie.tmdb_id)
+    collectionTmdbIds.includes(movie.tmdb_id!)
   );
 
   // Apply filters
@@ -251,19 +251,13 @@ export default function CollectionDetailPage() {
   filteredMovies.sort((a, b) => {
     let comparison = 0;
     switch (sortBy) {
-      case "year_desc":
-        comparison = (b.release_year || 0) - (a.release_year || 0);
-        break;
-      case "year_asc":
+      case "release_year":
         comparison = (a.release_year || 0) - (b.release_year || 0);
         break;
       case "title":
         comparison = a.title.localeCompare(b.title);
         break;
-      case "rating":
-        comparison = (b.tmdb_rating || 0) - (a.tmdb_rating || 0);
-        break;
-      case "my_ranking":
+      case "ranking":
         const aRank = a.rankings.find((r) => r.user_id === userId)?.ranking || 999;
         const bRank = b.rankings.find((r) => r.user_id === userId)?.ranking || 999;
         comparison = aRank - bRank;
@@ -277,10 +271,6 @@ export default function CollectionDetailPage() {
   const handleMovieClick = (movie: Movie) => {
     setSelectedMovie(movie);
     setIsModalOpen(true);
-  };
-
-  const handleRatingChange = async (movieId: number, newRating: number) => {
-    await updateMovieRanking(movieId, newRating);
   };
 
   if (loading) {
@@ -323,23 +313,22 @@ export default function CollectionDetailPage() {
         {/* Filters */}
         <MovieFilters
           viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          setViewMode={setViewMode}
           sortBy={sortBy}
-          onSortByChange={setSortBy}
+          setSortBy={setSortBy}
           sortOrder={sortOrder}
-          onSortOrderChange={setSortOrder}
-          yearFilter={yearFilter}
-          onYearFilterChange={setYearFilter}
-          genreFilter={genreFilter}
-          onGenreFilterChange={setGenreFilter}
-          ratingFilter={ratingFilter}
-          onRatingFilterChange={setRatingFilter}
-          seenFilter={seenFilter}
-          onSeenFilterChange={setSeenFilter}
-          groupBy={null}
-          onGroupByChange={() => {}}
-          totalCount={filteredMovies.length}
-          showGroupBy={false}
+          setSortOrder={setSortOrder}
+          groupBy={groupBy}
+          setGroupBy={setGroupBy}
+          filterType={filterType}
+          setFilterType={setFilterType}
+          filterValue={filterValue}
+          setFilterValue={setFilterValue}
+          uniqueYears={collectionMovies.map(m => m.release_year).filter((y): y is number => y !== null && y !== undefined)}
+          uniqueRanks={collectionMovies.map(m => m.rankings[0]?.ranking).filter((r): r is number => r !== null && r !== undefined)}
+          localSearchMode={true}
+          availableMovies={collectionMovies}
+          searchContext="this collection"
         />
 
         {/* Movies Grid/List */}
@@ -361,19 +350,21 @@ export default function CollectionDetailPage() {
                 <MoviePosterCard
                   key={movie.id}
                   movie={movie}
+                  currentUserId={userId || 'guest'}
+                  ranking={userRanking?.ranking || null}
+                  seenIt={userRanking?.seen_it || false}
+                  onUpdate={(movieId, updates) => updateMovieRanking(movieId, updates)}
                   onClick={() => handleMovieClick(movie)}
-                  currentRating={userRanking?.ranking}
-                  onRatingChange={(rating) => handleRatingChange(movie.id, rating)}
-                  showRating={true}
                 />
               ) : (
                 <MovieRowCard
                   key={movie.id}
                   movie={movie}
+                  currentUserId={userId || 'guest'}
+                  ranking={userRanking?.ranking || null}
+                  seenIt={userRanking?.seen_it || false}
+                  onUpdate={(movieId, updates) => updateMovieRanking(movieId, updates)}
                   onClick={() => handleMovieClick(movie)}
-                  currentRating={userRanking?.ranking}
-                  onRatingChange={(rating) => handleRatingChange(movie.id, rating)}
-                  showRating={true}
                 />
               );
             })}
@@ -390,7 +381,11 @@ export default function CollectionDetailPage() {
             setIsModalOpen(false);
             setSelectedMovie(null);
           }}
-          onRatingChange={handleRatingChange}
+          onUpdate={(movieId, newRanking, newSeenIt) => {
+            updateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
+          }}
+          initialRanking={selectedMovie.rankings.find(r => r.user_id === userId)?.ranking || null}
+          initialSeenIt={selectedMovie.rankings.find(r => r.user_id === userId)?.seen_it || false}
         />
       )}
     </div>

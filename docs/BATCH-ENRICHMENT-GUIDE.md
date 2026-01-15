@@ -57,16 +57,10 @@ python3 scripts/enrich_movies_enhanced.py
 
 ---
 
-## Option 3: Supabase Edge Function (Coming Soon)
+## Option 3: GitHub Actions (Scheduled)
 
-For automated daily enrichment, you can schedule an Edge Function with pg_cron.
-
-This would:
-- Run daily at 2 AM UTC
-- Enrich 100 movies per run
-- Automatically handle new movies as they're imported
-
-*Setup instructions in `docs/ops-cron-and-edge-functions.md`*
+If you want automated runs, use the GitHub Actions pipeline that runs discovery + enrichment on a schedule.
+See `.github/workflows/ingest-discover-enrich.yml`.
 
 ---
 
@@ -132,11 +126,9 @@ LIMIT 20;
 - Script auto-skips movies without `tmdb_id`
 
 ### If movies don't have TMDB IDs
-Run the TMDB import functions first:
+Run the TMDB discovery importer first:
 ```bash
-# Import fresh movies (last 30 days + next 7 days releases)
-curl -X POST "https://your-project.supabase.co/functions/v1/tmdb-fresh-movies?pages=5" \
-  -H "X-CRON-SECRET: your-cron-secret"
+npm run ingest:discover
 ```
 
 ### If videos/images don't show on film pages

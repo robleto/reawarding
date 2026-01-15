@@ -46,6 +46,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'placehold.co', // fallback avatar
       },
+      {
+        protocol: 'https',
+        hostname: 'cjrpnzwrldlxajkvznca.supabase.co', // Supabase Storage
+      },
     ],
   },
   webpack: (config, { isServer }) => {

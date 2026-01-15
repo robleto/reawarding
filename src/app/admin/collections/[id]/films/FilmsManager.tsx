@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Database } from '@/types/supabase';
 import type { Movie } from '@/types/types';
 import Link from 'next/link';
@@ -30,6 +30,8 @@ export default function FilmsManager({ collection }: FilmsManagerProps) {
   const [searching, setSearching] = useState(false);
   const supabase = createClientComponentClient<Database>();
 
+  const filmTmdbIds = useMemo(() => new Set(films.map(f => f.tmdb_id).filter(Boolean)), [films]);
+
   useEffect(() => {
     fetchCollectionFilms();
   }, [collection.id]);
@@ -42,35 +44,29 @@ export default function FilmsManager({ collection }: FilmsManagerProps) {
 
     const searchMovies = async () => {
       setSearching(true);
-      
-      console.log('Searching for:', searchTerm);
-      console.log('Films in collection:', films.length);
-      
-      // Get ALL movies matching search term
+
+      // Query the full movies table (not limited to current collection)
       const { data, error } = await supabase
         .from('movies')
         .select('*')
         .ilike('title', `%${searchTerm}%`)
-        .limit(20);
+        .order('title', { ascending: true })
+        .limit(100);
 
-      console.log('Raw search results:', data?.length, 'Error:', error);
-      
-      if (data) {
-        // Filter out films already in collection on the client side
-        const filmTmdbIds = films.map(f => f.tmdb_id).filter(Boolean);
-        const filtered = data.filter(movie => !filmTmdbIds.includes(movie.tmdb_id));
-        console.log('After filtering out collection films:', filtered.length);
-        setSearchResults(filtered as Movie[]);
-      } else {
+      if (error) {
+        console.error('Search error:', error);
         setSearchResults([]);
+        setSearching(false);
+        return;
       }
-      
+
+      setSearchResults((data || []) as Movie[]);
       setSearching(false);
     };
 
     const debounce = setTimeout(searchMovies, 300);
     return () => clearTimeout(debounce);
-  }, [searchTerm, films]);
+  }, [searchTerm, collection.id]);
 
   async function fetchCollectionFilms() {
     setLoading(true);
@@ -232,10 +228,14 @@ export default function FilmsManager({ collection }: FilmsManagerProps) {
                     </div>
                     <Button
                       variant="primary"
-                      onClick={() => addFilm(movie)}
-                      className="w-full rounded-t-none text-sm py-2"
+                      onClick={() => {
+                        if (filmTmdbIds.has(movie.tmdb_id)) return;
+                        addFilm(movie);
+                      }}
+                      disabled={filmTmdbIds.has(movie.tmdb_id)}
+                      className="w-full rounded-t-none text-sm py-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      Add
+                      {filmTmdbIds.has(movie.tmdb_id) ? 'In Collection' : 'Add'}
                     </Button>
                   </div>
                 ))}

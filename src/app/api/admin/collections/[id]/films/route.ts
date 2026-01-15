@@ -6,7 +6,7 @@ import { isUserAdmin } from '@/lib/adminAuth';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Check admin access
   const isAdmin = await isUserAdmin();
@@ -14,6 +14,7 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
+  const { id } = await params;
   const { tmdb_id } = await request.json();
 
   // Use service role for admin operations
@@ -38,7 +39,7 @@ export async function POST(
   const { error } = await supabase
     .from('film_collection_items')
     .insert({
-      collection_id: params.id,
+      collection_id: id,
       tmdb_id,
     });
 
@@ -51,13 +52,15 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Check admin access
   const isAdmin = await isUserAdmin();
   if (!isAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
+
+  const { id } = await params;
 
   const { searchParams } = new URL(request.url);
   const tmdb_id = searchParams.get('tmdb_id');
@@ -88,7 +91,7 @@ export async function DELETE(
   const { data, error } = await supabase
     .from('film_collection_items')
     .delete()
-    .eq('collection_id', params.id)
+    .eq('collection_id', id)
     .eq('tmdb_id', parseInt(tmdb_id))
     .select();
 

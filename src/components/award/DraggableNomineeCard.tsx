@@ -51,7 +51,13 @@ export default function DraggableNomineeCard({
   const ranking = movie.rankings?.[0]?.ranking ?? 0;
   const ratingStyle = getRatingStyle(ranking);
   const thumbSrc = movie.thumb_url || movie.poster_url;
-  const hasValidImage = thumbSrc && thumbSrc.trim() !== '' && !thumbSrc.includes('placeholder');
+  const normalizedThumb = normalizeImageUrl(thumbSrc);
+  // Ensure we have a valid absolute URL or proper relative path
+  const isValidUrl = normalizedThumb && 
+    (normalizedThumb.startsWith('http://') || 
+     normalizedThumb.startsWith('https://') || 
+     (normalizedThumb.startsWith('/') && normalizedThumb.length > 1));
+  const hasValidImage = isValidUrl && !thumbSrc?.includes('placeholder');
 
   return (
     <div
@@ -77,7 +83,7 @@ export default function DraggableNomineeCard({
       <div className="flex-shrink-0">
         {hasValidImage ? (
           <Image
-            src={normalizeImageUrl(thumbSrc)}
+            src={normalizedThumb}
             alt={movie.title}
             width={64}
             height={48}

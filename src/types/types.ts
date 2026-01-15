@@ -21,6 +21,7 @@ export type Movie = {
 	spoken_languages?: string[];
 	budget?: number;
 	revenue?: number;
+	tmdb_rating?: number;
 	imdb_rating?: number;
 	imdb_votes?: number;
 	metacritic_score?: number;
