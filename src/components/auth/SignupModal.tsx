@@ -16,6 +16,22 @@ interface SignupModalProps {
   onSwitchToLogin?: () => void;
 }
 
+// Password strength helper to avoid code duplication
+function getPasswordStrength(password: string): { level: 'weak' | 'good' | 'strong'; text: string } {
+  if (!password) return { level: 'weak', text: '' };
+  if (password.length < 6) return { level: 'weak', text: 'Too short' };
+  if (password.length < 8) return { level: 'good', text: 'Good' };
+  
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  
+  if (password.length >= 10 && hasUppercase && hasNumber) {
+    return { level: 'strong', text: 'Strong' };
+  }
+  
+  return { level: 'good', text: 'Better' };
+}
+
 export default function SignupModal({
   isOpen,
   onClose,
@@ -133,8 +149,8 @@ export default function SignupModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 my-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -158,7 +174,7 @@ export default function SignupModal({
             </p>
             <button
               onClick={handleClose}
-              className="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="mt-6 w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 font-medium touch-manipulation min-h-[44px]"
             >
               Close
             </button>
@@ -252,10 +268,11 @@ export default function SignupModal({
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Create a password"
+                    placeholder="Create a password (min 6 characters)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    minLength={6}
                     className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
                   />
                   <button
@@ -270,6 +287,29 @@ export default function SignupModal({
                     )}
                   </button>
                 </div>
+                {password && (
+                  <div className="mt-1">
+                    <div className="flex gap-1 mb-1">
+                      {(() => {
+                        const strength = getPasswordStrength(password);
+                        const bars = [
+                          password.length >= 6,
+                          password.length >= 8,
+                          strength.level === 'strong'
+                        ];
+                        return bars.map((active, i) => (
+                          <div 
+                            key={i} 
+                            className={`h-1 flex-1 rounded ${active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} 
+                          />
+                        ));
+                      })()}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {getPasswordStrength(password).text}
+                    </p>
+                  </div>
+                )}
               </div>
               <div>
                 <label
@@ -305,13 +345,15 @@ export default function SignupModal({
               </div>
 
               {error && (
-                <p className="text-red-500 text-sm text-center">{error}</p>
+                <div className="p-3 text-sm bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg">
+                  {error}
+                </div>
               )}
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 font-medium touch-manipulation min-h-[44px]"
               >
                 {loading ? "Creating account..." : "Create Account"}
               </button>

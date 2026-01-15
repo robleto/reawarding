@@ -474,7 +474,7 @@ export default function MovieFilters({
               <button
                 onClick={handleClearAll}
                 disabled={isDefault}
-                className={`flex-1 px-4 py-2.5 rounded-lg border transition-colors ${
+                className={`flex-1 px-4 py-3 rounded-lg border transition-colors touch-manipulation min-h-[44px] font-medium ${
                   isDefault
                     ? "opacity-50 cursor-not-allowed text-gray-400 border-gray-600/50 bg-gray-800/30"
                     : "text-gray-200 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30"
@@ -484,7 +484,7 @@ export default function MovieFilters({
               </button>
               <button
                 onClick={() => setShowFiltersModal(false)}
-                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors touch-manipulation min-h-[44px] font-medium"
               >
                 Apply Filters
               </button>
