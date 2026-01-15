@@ -12,7 +12,7 @@ import SeenItButton from "@/components/movie/SeenItButton";
 
 type Props = {
   movie: Movie;
-  currentUserId: string;
+  currentUserId: string | null;
   ranking: number | null;
   ratingLabel?: string | null;
   seenIt: boolean;

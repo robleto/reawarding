@@ -2,11 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseBrowser";
-import CollectionRow from "@/components/films/CollectionRow";
-import MovieDetailModal from "@/components/movie/MovieDetailModal";
+import CollectionCard from "@/components/films/CollectionCard";
 import Loader from "@/components/ui/Loading";
-import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
-import type { Movie } from "@/types/types";
 
 type CollectionCategory = 'awards' | 'lists' | 'franchises' | 'actors' | 'directors' | 'studios';
 
@@ -23,11 +20,9 @@ interface FilmCollection {
 }
 
 export default function CollectionsPage() {
-  const { movies, loading: moviesLoading, userId, updateMovieRanking } = useMovieDataWithGuest();
   const [activeCategory, setActiveCategory] = useState<CollectionCategory | 'all' | 'featured'>('featured');
   const [collections, setCollections] = useState<FilmCollection[]>([]);
   const [collectionsLoading, setCollectionsLoading] = useState(true);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
   const categories: Array<{ key: CollectionCategory | 'all' | 'featured'; label: string }> = [
     { key: 'featured', label: 'Featured' },
@@ -66,7 +61,6 @@ export default function CollectionsPage() {
     fetchCollections();
   }, [activeCategory]);
 
-  const loading = moviesLoading || collectionsLoading;
 
   return (
     <div className="min-h-screen py-8">
@@ -100,7 +94,7 @@ export default function CollectionsPage() {
           </div>
         </div>
 
-        {/* Collections as Horizontal Rows */}
+        {/* Collections Grid */}
         {collectionsLoading ? (
           <div className="flex justify-center items-center min-h-[400px]">
             <Loader />
@@ -110,34 +104,17 @@ export default function CollectionsPage() {
             No collections found in this category.
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {collections.map((collection) => (
-              <CollectionRow
+              <CollectionCard
                 key={collection.slug}
                 collection={collection}
-                movies={movies}
-                userId={userId}
-                onUpdateMovie={updateMovieRanking}
-                onMovieClick={setSelectedMovie}
+                movieCount={collection.movie_count}
               />
             ))}
           </div>
         )}
       </div>
-
-      {/* Movie Detail Modal */}
-      {selectedMovie && (
-        <MovieDetailModal
-          movie={selectedMovie}
-          isOpen={!!selectedMovie}
-          onClose={() => setSelectedMovie(null)}
-          onUpdate={(movieId, newRanking, newSeenIt) => {
-            updateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
-          }}
-          initialRanking={selectedMovie.rankings?.[0]?.ranking ?? null}
-          initialSeenIt={selectedMovie.rankings?.[0]?.seen_it ?? false}
-        />
-      )}
     </div>
   );
 }

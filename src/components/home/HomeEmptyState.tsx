@@ -41,26 +41,26 @@ export default function HomeEmptyState({ progress }: HomeEmptyStateProps) {
           {/* Next Milestone - Compact Single Card */}
           {nextMilestone && (
             <div className="max-w-3xl mx-auto mb-6">
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 backdrop-blur-sm border border-blue-200 dark:border-blue-800 rounded-xl p-4 md:p-3 shadow-md">
+              <div className="bg-gray-900/60 border border-yellow-500/20 backdrop-blur-sm rounded-xl p-4 md:p-3 shadow-md">
                 {/* Mobile: Stacked Layout */}
                 <div className="flex md:hidden items-start gap-3">
-                  <div className="w-9 h-9 rounded-full bg-blue-600 dark:bg-blue-500 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-5 h-5 text-white" />
+                  <div className="w-9 h-9 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-5 h-5 text-yellow-400" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-sm text-gray-900 dark:text-white mb-1">
+                    <h4 className="font-semibold text-sm text-white mb-1">
                       Next: {nextMilestone.title}
                     </h4>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                    <p className="text-xs text-gray-400 mb-2">
                       {nextMilestone.description}
                     </p>
-                    <div className="flex items-center justify-between text-xs text-gray-700 dark:text-gray-300 mb-1.5">
+                    <div className="flex items-center justify-between text-xs text-gray-300 mb-1.5">
                       <span className="font-medium">{nextMilestone.current} / {nextMilestone.threshold}</span>
-                      <span className="text-blue-600 dark:text-blue-400 font-semibold">{Math.round((nextMilestone.current / nextMilestone.threshold) * 100)}%</span>
+                      <span className="text-yellow-400 font-semibold">{Math.round((nextMilestone.current / nextMilestone.threshold) * 100)}%</span>
                     </div>
-                    <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-gray-700/50 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-500"
+                        className="h-full bg-yellow-400 transition-all duration-500"
                         style={{ width: `${Math.min(100, (nextMilestone.current / nextMilestone.threshold) * 100)}%` }}
                       />
                     </div>
@@ -69,27 +69,27 @@ export default function HomeEmptyState({ progress }: HomeEmptyStateProps) {
                 
                 {/* Desktop: Single Line Layout */}
                 <div className="hidden md:flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 dark:bg-blue-500 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-4 h-4 text-white" />
+                  <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-4 h-4 text-yellow-400" />
                   </div>
                   <div className="flex-shrink-0">
-                    <h4 className="font-semibold text-xs text-gray-900 dark:text-white leading-tight">
+                    <h4 className="font-semibold text-xs text-white leading-tight">
                       Next: {nextMilestone.title}
                     </h4>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-tight">
+                    <p className="text-xs text-gray-400 leading-tight">
                       {nextMilestone.description}
                     </p>
                   </div>
                   <div className="flex-1 flex items-center gap-3">
-                    <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="flex-1 h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-500"
+                        className="h-full bg-yellow-400 transition-all duration-500"
                         style={{ width: `${Math.min(100, (nextMilestone.current / nextMilestone.threshold) * 100)}%` }}
                       />
                     </div>
-                    <div className="flex-shrink-0 flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                    <div className="flex-shrink-0 flex items-center gap-2 text-xs text-gray-300">
                       <span className="font-medium">{nextMilestone.current}/{nextMilestone.threshold}</span>
-                      <span className="text-blue-600 dark:text-blue-400 font-semibold">{Math.round((nextMilestone.current / nextMilestone.threshold) * 100)}%</span>
+                      <span className="text-yellow-400 font-semibold">{Math.round((nextMilestone.current / nextMilestone.threshold) * 100)}%</span>
                     </div>
                   </div>
                 </div>

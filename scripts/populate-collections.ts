@@ -179,10 +179,10 @@ async function getTopGrossingSince2020(): Promise<number[]> {
     .select('tmdb_id, revenue, release_date')
     .gte('release_date', '2020-01-01')
     .order('revenue', { ascending: false, nullsFirst: false })
-    .limit(40);
+    .limit(50);
 
   if (error) {
-    console.error('Top 40 since 2020 query error:', error);
+    console.error('Top 50 since 2020 query error:', error);
     return [];
   }
 
@@ -207,9 +207,9 @@ async function populateCollections() {
   collections['top-50-grossing-all-time'] = await getTopGrossingAllTime();
   console.log(`  ✓ Found ${collections['top-50-grossing-all-time'].length} films\n`);
 
-  console.log('Querying top-40-since-2020...');
-  collections['top-40-since-2020'] = await getTopGrossingSince2020();
-  console.log(`  ✓ Found ${collections['top-40-since-2020'].length} films\n`);
+  console.log('Querying top-50-since-2020...');
+  collections['top-50-since-2020'] = await getTopGrossingSince2020();
+  console.log(`  ✓ Found ${collections['top-50-since-2020'].length} films\n`);
 
   // Update the filmCollections.ts file
   const filePath = path.join(__dirname, '../src/data/filmCollections.ts');

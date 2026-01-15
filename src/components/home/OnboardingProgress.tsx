@@ -30,13 +30,13 @@ export default function OnboardingProgressComponent({ progress, onboardingMessag
   return (
     <div className="mb-8">
       {/* Main Message Card */}
-      <div className="bg-gray-900/60 border-yellow-500/20 border rounded-2xl p-6 mb-6">
+      <div className="bg-gray-900/60 border border-yellow-500/20 backdrop-blur-sm rounded-2xl p-6 mb-6 shadow-md hover:shadow-lg transition-all duration-200">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-yellow-300 mb-2">
+            <h2 className="text-2xl font-bold text-white mb-2">
               {onboardingMessage.title}
             </h2>
-            <p className="text-gray-200 mb-4">
+            <p className="text-gray-300 mb-4">
               {onboardingMessage.message}
             </p>
             <Link
@@ -99,12 +99,12 @@ export default function OnboardingProgressComponent({ progress, onboardingMessag
             <div
               key={milestone.id}
               className={`
-                relative p-4 rounded-xl border-2 transition-all
+                bg-gray-900/60 border backdrop-blur-sm relative p-4 rounded-xl shadow-md transition-all
                 ${milestone.isUnlocked
-                  ? 'bg-green-900/20 border-green-700'
+                  ? 'border-green-500/30 ring-2 ring-green-500/20'
                   : isNext
-                  ? 'bg-yellow-500/10 border-yellow-500/30 ring-2 ring-yellow-500/50'
-                  : 'bg-gray-800/50 border-gray-700 opacity-60'
+                  ? 'border-yellow-500/30 ring-2 ring-yellow-500/30'
+                  : 'border-gray-700/40 opacity-60'
                 }
               `}
             >
@@ -113,10 +113,10 @@ export default function OnboardingProgressComponent({ progress, onboardingMessag
                   className={`
                     w-10 h-10 rounded-full flex items-center justify-center
                     ${milestone.isUnlocked
-                      ? 'bg-green-800'
+                      ? 'bg-green-500/20'
                       : isNext
                       ? 'bg-yellow-500/20'
-                      : 'bg-gray-700'
+                      : 'bg-gray-700/50'
                     }
                   `}
                 >
@@ -146,7 +146,7 @@ export default function OnboardingProgressComponent({ progress, onboardingMessag
                     <span>{milestone.current}/{milestone.threshold}</span>
                     <span>{Math.round((milestone.current / milestone.threshold) * 100)}%</span>
                   </div>
-                  <div className="w-full h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
                     <div
                       className={`h-full transition-all duration-500 ${
                         isNext

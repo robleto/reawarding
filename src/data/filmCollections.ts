@@ -158,8 +158,8 @@ export const FILM_COLLECTIONS: FilmCollection[] = [
     ],
   },
   {
-    slug: 'top-40-since-2020',
-    title: 'Top 40 Since 2020',
+    slug: 'top-50-since-2020',
+    title: 'Top 50 Since 2020',
     description: 'The highest-grossing films released since 2020',
     icon: 'Calendar',
     color: 'blue',

@@ -51,34 +51,34 @@ export default function CollectionCard({ collection, movieCount }: CollectionCar
 
   return (
     <Link href={`/films/collections/${collection.slug}`}>
-      <div className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${gradientClass} backdrop-blur-sm border transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl h-full flex flex-col`}>
-        <div className="p-6 flex-1 flex flex-col">
-          {/* Icon */}
-          <div className="mb-4 transform group-hover:scale-110 transition-transform duration-300">
-            <IconComponent className="w-12 h-12 text-white/90" strokeWidth={1.5} />
+      <div className="light-glass dark:dark-glass group rounded-xl shadow-md h-[200px] flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg">
+        <div className="p-5 flex-1 flex flex-col">
+          {/* Icon and Title Row */}
+          <div className="flex items-start gap-3 mb-3">
+            <div className="flex-shrink-0">
+              <IconComponent className="w-8 h-8 text-yellow-400" strokeWidth={1.5} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-bold text-white line-clamp-2 group-hover:text-yellow-300 transition-colors">
+                {collection.title}
+              </h3>
+            </div>
           </div>
 
-          {/* Title */}
-          <h3 className="text-xl font-bold text-white mb-2 font-unbounded">
-            {collection.title}
-          </h3>
-
           {/* Description */}
-          <p className="text-sm text-gray-300 leading-relaxed mb-4 line-clamp-2 flex-1">
+          <p className="text-sm text-gray-400 leading-relaxed line-clamp-3 flex-1">
             {collection.description}
           </p>
 
-          {/* Movie count */}
+          {/* Footer with count */}
           {movieCount !== undefined && (
-            <div className="flex items-center gap-2 text-xs text-gray-400 mt-auto">
-              <span className="font-medium">{movieCount} films</span>
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-700/50">
+              <span className="text-xs text-gray-500 font-medium">{movieCount} films</span>
+              <svg className="w-4 h-4 text-gray-500 group-hover:text-yellow-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </div>
           )}
-        </div>
-
-        {/* Shine effect on hover */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
         </div>
       </div>
     </Link>

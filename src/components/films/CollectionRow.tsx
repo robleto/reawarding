@@ -72,7 +72,7 @@ export default function CollectionRow({
   const IconComponent = (LucideIcons as any)[collection.icon] || LucideIcons.Film;
 
   return (
-    <div className="mb-6">
+    <div>
       {/* Collection Header */}
       <div className="flex items-center justify-between mb-4 px-2">
         <div>
@@ -122,7 +122,7 @@ export default function CollectionRow({
             href={`/films/collections/${collection.slug}`}
             className="flex-shrink-0 w-[140px] sm:w-[160px] snap-start"
           >
-            <div className="h-full min-h-[240px] sm:min-h-[280px] rounded-lg border-2 border-dashed border-gray-600 hover:border-blue-500 bg-gray-900/40 hover:bg-gray-800/60 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group">
+            <div className="aspect-[2/3] rounded-lg border-2 border-dashed border-gray-600 hover:border-blue-500 bg-gray-900/40 hover:bg-gray-800/60 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group">
               <ChevronRight className="w-8 h-8 text-gray-500 group-hover:text-blue-400 transition-colors" />
               <span className="text-sm font-medium text-gray-400 group-hover:text-blue-400 transition-colors">
                 See All

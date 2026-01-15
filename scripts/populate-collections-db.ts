@@ -487,8 +487,8 @@ const COLLECTIONS: CollectionQuery[] = [
   },
   {
     metadata: {
-      slug: 'top-40-since-2020',
-      title: 'Top 40 Since 2020',
+      slug: 'top-50-since-2020',
+      title: 'Top 50 Since 2020',
       description: 'Biggest hits from recent years',
       icon: 'Calendar',
       color: 'blue',
@@ -497,7 +497,7 @@ const COLLECTIONS: CollectionQuery[] = [
     },
     type: 'top-recent',
     sinceYear: 2020,
-    limit: 40
+    limit: 50
   },
 ];
 
@@ -588,15 +588,24 @@ async function queryMovies(config: CollectionQuery): Promise<number[]> {
       data = results || [];
     }
     else if (config.type === 'top-recent' && config.sinceYear) {
+      // Fetch all movies since year with vote data, then sort by combined score in-memory
       const { data: results, error } = await supabase
         .from('movies')
-        .select('tmdb_id, revenue, release_date')
+        .select('tmdb_id, vote_count, tmdb_rating, release_date')
         .gte('release_date', `${config.sinceYear}-01-01`)
-        .order('revenue', { ascending: false, nullsFirst: false })
-        .limit(config.limit || 40);
+        .not('vote_count', 'is', null)
+        .not('tmdb_rating', 'is', null)
+        .gte('vote_count', 100); // Minimum votes to be considered
 
       if (error) throw error;
-      data = results || [];
+      
+      // Calculate combined score (rating * log(votes)) and sort
+      const scored = results?.map(m => ({
+        ...m,
+        score: m.tmdb_rating * Math.log10(m.vote_count)
+      })).sort((a, b) => b.score - a.score).slice(0, config.limit || 50);
+      
+      data = scored || [];
     }
   } catch (error) {
     console.error(`❌ Query error for ${config.metadata.slug}:`, error);

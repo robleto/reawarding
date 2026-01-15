@@ -15,7 +15,7 @@ import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import HomeEmptyState from "@/components/home/HomeEmptyState";
-import FeaturedCollectionsSection from "@/components/home/FeaturedCollectionsSection";
+import CollectionsHomeSection from "@/components/home/CollectionsHomeSection";
 import OnboardingProgress from "@/components/home/OnboardingProgress";
 import PublicListsHomeSection from "@/components/list/PublicListsHomeSection";
 import { Film, Lock } from "lucide-react";
@@ -250,8 +250,8 @@ export default function HomePage() {
 						</div>
 					)}
 				</section>
-				{/* Featured Collections Section */}
-				<FeaturedCollectionsSection 
+				{/* Film Collections */}
+				<CollectionsHomeSection
 					movies={allMovies}
 					userId={userId}
 					updateMovieRanking={updateMovieRanking}
@@ -355,6 +355,8 @@ export default function HomePage() {
 
 		{/* Current Best Picture (reuse the Awards layout for visual parity) */}
 		<section className="py-4 md:py-8">
+			<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">Your Awards</h2>
+			
 			{awardsYear !== currentYear && (
 				<div className="mb-4">
 					<Banner
@@ -372,8 +374,6 @@ export default function HomePage() {
 					/>
 				</div>
 			)}
-			
-			<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">Your {awardsYear} Awards</h2>
 			
 			<AwardsTabs value={previewCategory} onChange={setPreviewCategory} />
 				{(() => {
@@ -456,6 +456,14 @@ export default function HomePage() {
 				);
 			})()}
 		</section>
+		
+		{/* Film Collections */}
+		<CollectionsHomeSection
+			movies={allMovies}
+			userId={userId}
+			updateMovieRanking={updateMovieRanking}
+			setSelectedMovie={setSelectedMovie}
+		/>
 		
 		{/* Public Lists Horizontal Table */}
 		<PublicListsHomeSection />
