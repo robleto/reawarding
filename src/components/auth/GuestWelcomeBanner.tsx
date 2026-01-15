@@ -8,6 +8,7 @@ interface GuestWelcomeBannerProps {
 }
 
 const WELCOME_BANNER_KEY = "oscarworthy_guest_welcome_dismissed";
+const BANNER_SHOW_DELAY_MS = 1000; // Delay before showing banner for better UX
 
 export default function GuestWelcomeBanner({ onSignupClick }: GuestWelcomeBannerProps) {
   const [show, setShow] = useState(false);
@@ -27,7 +28,7 @@ export default function GuestWelcomeBanner({ onSignupClick }: GuestWelcomeBanner
       // Show banner after a brief delay for better UX
       const timer = setTimeout(() => {
         setShow(true);
-      }, 1000);
+      }, BANNER_SHOW_DELAY_MS);
       
       return () => clearTimeout(timer);
     }

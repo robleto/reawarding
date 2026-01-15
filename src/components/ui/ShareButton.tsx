@@ -12,6 +12,22 @@ interface ShareButtonProps {
   className?: string;
 }
 
+// Helper to sanitize URL by removing sensitive parameters
+function getSafeShareUrl(url?: string): string {
+  const shareUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
+  
+  try {
+    const urlObj = new URL(shareUrl);
+    // Remove potentially sensitive query parameters
+    const sensitiveParams = ['token', 'session', 'auth', 'key', 'secret'];
+    sensitiveParams.forEach(param => urlObj.searchParams.delete(param));
+    return urlObj.toString();
+  } catch {
+    // If URL parsing fails, return as-is
+    return shareUrl;
+  }
+}
+
 export default function ShareButton({ 
   url, 
   title = "Check this out!", 
@@ -21,7 +37,7 @@ export default function ShareButton({
 }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
   const { showToast } = useGlobalToast();
-  const shareUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
+  const shareUrl = getSafeShareUrl(url);
 
   const handleShare = async () => {
     // Try native share API first (mobile)

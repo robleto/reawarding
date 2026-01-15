@@ -28,6 +28,10 @@ import RankingsStats from "@/components/rankings/RankingsStats";
 import HotTakeIndicator from "@/components/rankings/HotTakeIndicator";
 import { getRatingDefinition } from "@/lib/ratingScale";
 
+// Loading skeleton constants
+const GRID_SKELETON_COUNT = 12;
+const LIST_SKELETON_COUNT = 8;
+
 export const dynamic = "force-dynamic";
 
 export default function RankingsPage() {
@@ -254,7 +258,7 @@ export default function RankingsPage() {
         </div>
         {viewMode === "grid" ? (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
-            {Array.from({ length: 12 }).map((_, i) => (
+            {Array.from({ length: GRID_SKELETON_COUNT }).map((_, i) => (
               <div key={i} className="animate-pulse">
                 <div className="aspect-[2/3] bg-gray-200 dark:bg-gray-700 rounded-lg mb-2" />
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2" />
@@ -264,7 +268,7 @@ export default function RankingsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {Array.from({ length: 8 }).map((_, i) => (
+            {Array.from({ length: LIST_SKELETON_COUNT }).map((_, i) => (
               <div key={i} className="flex gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 animate-pulse">
                 <div className="w-20 h-28 bg-gray-200 dark:bg-gray-700 rounded flex-shrink-0" />
                 <div className="flex-1">

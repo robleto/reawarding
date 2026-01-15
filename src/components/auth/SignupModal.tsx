@@ -16,6 +16,22 @@ interface SignupModalProps {
   onSwitchToLogin?: () => void;
 }
 
+// Password strength helper to avoid code duplication
+function getPasswordStrength(password: string): { level: 'weak' | 'good' | 'strong'; text: string } {
+  if (!password) return { level: 'weak', text: '' };
+  if (password.length < 6) return { level: 'weak', text: 'Too short' };
+  if (password.length < 8) return { level: 'good', text: 'Good' };
+  
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  
+  if (password.length >= 10 && hasUppercase && hasNumber) {
+    return { level: 'strong', text: 'Strong' };
+  }
+  
+  return { level: 'good', text: 'Better' };
+}
+
 export default function SignupModal({
   isOpen,
   onClose,
@@ -274,12 +290,23 @@ export default function SignupModal({
                 {password && (
                   <div className="mt-1">
                     <div className="flex gap-1 mb-1">
-                      <div className={`h-1 flex-1 rounded ${password.length >= 6 ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
-                      <div className={`h-1 flex-1 rounded ${password.length >= 8 ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
-                      <div className={`h-1 flex-1 rounded ${password.length >= 10 && /[A-Z]/.test(password) && /[0-9]/.test(password) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                      {(() => {
+                        const strength = getPasswordStrength(password);
+                        const bars = [
+                          password.length >= 6,
+                          password.length >= 8,
+                          strength.level === 'strong'
+                        ];
+                        return bars.map((active, i) => (
+                          <div 
+                            key={i} 
+                            className={`h-1 flex-1 rounded ${active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} 
+                          />
+                        ));
+                      })()}
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {password.length < 6 ? 'Too short' : password.length < 8 ? 'Good' : password.length >= 10 && /[A-Z]/.test(password) && /[0-9]/.test(password) ? 'Strong' : 'Better'}
+                      {getPasswordStrength(password).text}
                     </p>
                   </div>
                 )}
