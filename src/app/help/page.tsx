@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { RefreshCw, Plus, HelpCircle, User } from "lucide-react";
+import { RefreshCw, Plus, HelpCircle, User, MessageCircle } from "lucide-react";
 
 export default function HelpPage() {
   return (
@@ -69,6 +69,26 @@ export default function HelpPage() {
               </h2>
               <p className="text-sm text-gray-400">
                 Manually add a movie to the database by TMDB ID if it's not showing up in search or the main catalog.
+              </p>
+            </div>
+          </div>
+        </Link>
+
+        {/* Send Feedback */}
+        <Link
+          href="/feedback"
+          className="group bg-gray-900/60 border border-yellow-500/20 rounded-xl p-6 hover:border-yellow-500/40 transition-all"
+        >
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-yellow-500/10 rounded-lg group-hover:bg-yellow-500/20 transition-colors">
+              <MessageCircle className="w-6 h-6 text-yellow-400" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-yellow-400 mb-2">
+                Send Feedback
+              </h2>
+              <p className="text-sm text-gray-400">
+                Report bugs, suggest features, or share your thoughts about ReAwarding with our team.
               </p>
             </div>
           </div>

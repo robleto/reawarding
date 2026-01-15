@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabaseBrowser';
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { ToastProvider } from '@/components/providers/ToastProvider';
+import { ErrorBoundary } from '@/components/error/ErrorBoundary';
+import { setupGlobalErrorHandlers } from '@/utils/errorLogger';
 import type { Database } from '@/types/supabase';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -35,18 +37,23 @@ export function Providers({ children, initialUser }: ProvidersProps) {
     };
     
     getSession();
+
+    // Set up global error handlers (only on client)
+    setupGlobalErrorHandlers();
   }, []);
   
   return (
-    <SessionContextProvider 
-      supabaseClient={supabase} 
-      initialSession={initialSession}
-    >
-      <ThemeProvider>
-        <ToastProvider>
-          {children}
-        </ToastProvider>
-      </ThemeProvider>
-    </SessionContextProvider>
+    <ErrorBoundary componentName="AppRoot">
+      <SessionContextProvider 
+        supabaseClient={supabase} 
+        initialSession={initialSession}
+      >
+        <ThemeProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </ThemeProvider>
+      </SessionContextProvider>
+    </ErrorBoundary>
   );
 }
