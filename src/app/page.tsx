@@ -17,7 +17,6 @@ import AuthModalManager from "@/components/auth/AuthModalManager";
 import HomeEmptyState from "@/components/home/HomeEmptyState";
 import OnboardingProgress from "@/components/home/OnboardingProgress";
 import { Film, Lock } from "lucide-react";
-import Link from "next/link";
 import { useOnboardingProgress, getOnboardingMessage } from "@/hooks/useOnboardingProgress";
 
 import type { Movie as BaseMovie } from "@/types/types";
@@ -341,26 +340,6 @@ export default function HomePage() {
 					<p className="text-sm text-gray-600 dark:text-gray-300">
 						{subtext}
 					</p>
-					<div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-						<Link
-							href="/films"
-							className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300/50 dark:border-gray-600/50 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-						>
-							Add or Rate Films
-						</Link>
-						<Link
-							href="/rankings"
-							className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300/50 dark:border-gray-600/50 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-						>
-							Review Rankings
-						</Link>
-						<Link
-							href="/awards"
-							className="px-3 py-1.5 text-xs font-medium rounded-lg border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/20 transition-colors"
-						>
-							View Awards
-						</Link>
-					</div>
 				</div>
 			)}
 
@@ -402,13 +381,6 @@ export default function HomePage() {
 					</div>
 				)}
 			</section>
-
-			{/* Stats bar for established users */}
-			{authChecked && !shouldShowOnboarding && (
-				<div className="mt-6">
-					<StatsSummary variant="compact" />
-				</div>
-			)}
 
 		{/* Current Best Picture (reuse the Awards layout for visual parity) */}
 		<section className="py-4 md:py-8">
@@ -480,6 +452,9 @@ export default function HomePage() {
 		{/* Your All-Timers */}
 		<section className="mt-6">
 			<h2 className="text-xl font-bold text-gray-900 dark:text-white">Your All-Timers</h2>
+			<p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
+				Your 10/10 films, in one quick row.
+			</p>
 			{allTimerMovies.length > 0 ? (
 				<div className="-mx-10 sm:-mx-6 px-10 sm:px-6">
 					<div className="flex gap-4 pb-4 overflow-x-auto snap-x snap-mandatory pr-8 sm:pr-10">
@@ -510,6 +485,9 @@ export default function HomePage() {
 		{/* Hot Takes */}
 		<section className="mt-2 mb-6">
 			<h2 className="text-xl font-bold text-gray-900 dark:text-white">Hot Takes</h2>
+			<p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
+				From your strongest positive gaps (3.0+) straight to your strongest negative gaps (-3.0 and below).
+			</p>
 			{hotTakeMovies.length > 0 ? (
 				<div className="-mx-10 sm:-mx-6 px-10 sm:px-6">
 					<div className="flex gap-4 pb-4 overflow-x-auto snap-x snap-mandatory pr-8 sm:pr-10">
@@ -538,6 +516,13 @@ export default function HomePage() {
 				</div>
 			)}
 		</section>
+
+		{/* Stats bar (moved to bottom of homepage flow) */}
+		{authChecked && !shouldShowOnboarding && (
+			<div className="mt-8">
+				<StatsSummary variant="compact" />
+			</div>
+		)}
 
 		{/* Auth Modal */}
 		   <AuthModalManager

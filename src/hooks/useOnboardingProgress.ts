@@ -129,28 +129,28 @@ export function getOnboardingMessage(progress: OnboardingProgress): {
   // Brand new user (0 ratings)
   if (totalRanked === 0) {
     return {
-      title: 'Start with one great film',
-      message: 'Pick your best movie from 1994 or 2019, rate it, and build your ceremony from there.',
-      cta: 'Pick a Film',
-      ctaLink: '/films',
+      title: 'Welcome to ReAwarding!',
+      message: 'Start by rating a few movies to unlock personalized rankings and awards.',
+      cta: 'Browse Curated Collections',
+      ctaLink: '/films/collections',
     };
   }
 
   // 1-4 ratings (working toward Rankings unlock)
   if (totalRanked < 5) {
     return {
-      title: 'Great start, keep the streak going',
-      message: `Add ${5 - totalRanked} more ratings so your first rankings view starts to take shape.`,
-      cta: 'Rate More Films',
-      ctaLink: '/films',
+      title: `Great start! ${5 - totalRanked} more to unlock Rankings`,
+      message: 'Keep rating movies to see your personalized rankings page.',
+      cta: 'Continue Rating',
+      ctaLink: '/films/collections',
     };
   }
 
   // 5-9 ratings (Rankings unlocked, working toward Awards)
   if (totalRanked >= 5 && maxInYear < 10) {
     return {
-      title: 'Your rankings are live',
-      message: `Now go deeper in one year. Rate ${10 - maxInYear} more films from the same year to unlock awards.`,
+      title: 'Rankings unlocked! 🎉',
+      message: `Rate ${10 - maxInYear} more movies from the same year to create your first awards ceremony.`,
       cta: 'View My Rankings',
       ctaLink: '/rankings',
     };
@@ -159,9 +159,9 @@ export function getOnboardingMessage(progress: OnboardingProgress): {
   // 10+ in a year (Awards unlocked)
   if (maxInYear >= 10) {
     return {
-      title: 'Your first awards are ready',
-      message: 'Nominees are generated from your rankings and you can edit the final slate anytime.',
-      cta: 'View Awards',
+      title: 'Awards unlocked! 🏆',
+      message: 'You can now create custom award ceremonies for years with 10+ rated movies.',
+      cta: 'Create Awards',
       ctaLink: '/awards',
     };
   }

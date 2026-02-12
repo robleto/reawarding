@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
 import RankingDropdown from "@/components/movie/RankingDropdown";
@@ -132,13 +133,9 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
                   }`}
                 >
                   {isPositiveVariance ? (
-                    <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M1 11L5 7L8 10L14 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <ChevronUp className="w-3 h-3" />
                   ) : (
-                    <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M1 5L5 9L8 6L14 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <ChevronDown className="w-3 h-3" />
                   )}
                   <span>{ratingLabel}</span>
                 </span>
