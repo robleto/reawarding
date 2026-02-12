@@ -10,6 +10,7 @@ import {
 import { getGreeting, getGreetingSubtext } from "@/utils/greeting";
 import { useCreateAward } from "@/hooks/useCreateAward";
 import { useUserAwards } from "@/hooks/useUserAwards";
+import { markStorageWarningShown, shouldShowStorageWarningOnce } from "@/hooks/useGuestRankingStore";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
@@ -44,6 +45,7 @@ export default function HomePage() {
 	const [awardMovieTitle, setAwardMovieTitle] = useState("");
 	const [awardMoviePoster, setAwardMoviePoster] = useState<string | undefined>();
 	const [explorerYear, setExplorerYear] = useState<number | null>(null);
+	const [showStorageWarning, setShowStorageWarning] = useState(false);
 
 	const { createAward, createFromRatings } = useCreateAward();
 	const { awards, awardCount, loading: awardsLoading, refetch: refetchAwards } = useUserAwards();
@@ -102,6 +104,13 @@ export default function HomePage() {
 		};
 		handleAuthCode();
 	}, [supabase]);
+
+	useEffect(() => {
+		if (!isGuest) return;
+		if (!shouldShowStorageWarningOnce()) return;
+		setShowStorageWarning(true);
+		markStorageWarningShown();
+	}, [isGuest]);
 
 	const handleAuthSuccess = () => {
 		setShowAuthModal(false);
@@ -228,6 +237,11 @@ export default function HomePage() {
 				{isGuest && (
 					<UnifiedBanner onSignupClick={handleSignupClick} onLoginClick={handleLoginClick} />
 				)}
+				{showStorageWarning && (
+					<div className="mb-4 px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-200 text-xs">
+						Your picks are temporary in this browser mode and will disappear on refresh. Sign up to save them.
+					</div>
+				)}
 				<AwardCreatedMoment
 					result={awardResult}
 					movieTitle={awardMovieTitle}
@@ -265,6 +279,11 @@ export default function HomePage() {
 		return (
 			<div>
 				<HomeEmptyState onMovieSelected={handleMovieSelected} />
+				{showStorageWarning && isGuest && (
+					<div className="mb-4 px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-200 text-xs">
+						Your picks are temporary in this browser mode and will disappear on refresh. Sign up to save them.
+					</div>
+				)}
 
 				{/* For Your Consideration */}
 				<section className="mt-6">
@@ -328,6 +347,11 @@ export default function HomePage() {
 			{/* Unified Banner System for Guests */}
 			{isGuest && (
 				<UnifiedBanner onSignupClick={handleSignupClick} onLoginClick={handleLoginClick} />
+			)}
+			{showStorageWarning && isGuest && (
+				<div className="mb-4 px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-200 text-xs">
+					Your picks are temporary in this browser mode and will disappear on refresh. Sign up to save them.
+				</div>
 			)}
 
 			{/* Greeting (all states for authenticated users) */}

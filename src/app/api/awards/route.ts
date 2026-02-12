@@ -114,7 +114,7 @@ export async function POST(request: Request) {
       console.error('Failed to parse JSON body:', jsonErr);
       return NextResponse.json({ error: 'Invalid JSON body', details: jsonErr instanceof Error ? jsonErr.message : jsonErr }, { status: 400 });
     }
-    const { year, nominee_ids, winner_id, category: bodyCategory } = body;
+    const { year, nominee_ids, winner_id, category: bodyCategory, source, revision_number } = body;
     const category = (bodyCategory || 'best-picture') as 'best-picture' | 'best-animated' | 'best-comedy' | 'best-drama';
     console.log('Incoming POST body:', body);
 
@@ -130,12 +130,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Winner must be among nominees', details: { winner_id, nominee_ids } }, { status: 400 });
     }
 
-    const upsertPayload = {
+    const upsertPayload: Record<string, any> = {
       user_id: user.id,
       year: Number(year),
       category,
       nominee_ids: nominee_ids,
       winner_id: winner_id || null,
+      source: source || 'manual',
+      revision_number: typeof revision_number === 'number' ? revision_number : 1,
       updated_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
     };
@@ -177,10 +179,31 @@ export async function POST(request: Request) {
     }
 
     // Upsert the user's custom nominations/winner for the year into awards table
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('awards')
       .upsert(upsertPayload, { onConflict: 'user_id,year,category' })
       .select();
+
+    if (error) {
+      // Graceful fallback for older schemas that don't yet have source/revision columns
+      if (error.code === '42703') {
+        const legacyPayload = {
+          user_id: user.id,
+          year: Number(year),
+          category,
+          nominee_ids: nominee_ids,
+          winner_id: winner_id || null,
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        };
+        const retry = await supabase
+          .from('awards')
+          .upsert(legacyPayload, { onConflict: 'user_id,year,category' })
+          .select();
+        data = retry.data;
+        error = retry.error;
+      }
+    }
 
     if (error) {
       console.error('Supabase upsert error:', error, 'Payload:', upsertPayload);

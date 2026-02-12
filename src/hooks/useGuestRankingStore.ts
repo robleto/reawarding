@@ -63,6 +63,7 @@ function isLocalStorageAvailable(): boolean {
 }
 
 const localStorageAvailable = typeof window !== 'undefined' ? isLocalStorageAvailable() : true;
+const STORAGE_WARNING_SESSION_KEY = "oscarworthy_storage_warning_shown";
 
 const useGuestRankingStore = create<GuestRankingStore>()(
   persist(
@@ -230,6 +231,16 @@ const useGuestRankingStore = create<GuestRankingStore>()(
 export default useGuestRankingStore;
 export { localStorageAvailable };
 
+export function shouldShowStorageWarningOnce(): boolean {
+  if (typeof window === "undefined" || localStorageAvailable) return false;
+  return sessionStorage.getItem(STORAGE_WARNING_SESSION_KEY) !== "true";
+}
+
+export function markStorageWarningShown(): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(STORAGE_WARNING_SESSION_KEY, "true");
+}
+
 // Hook that provides the migration functionality with Supabase access
 export function useGuestRankingStoreWithMigration() {
   const supabase = useSupabaseClient<Database>();
@@ -238,10 +249,7 @@ export function useGuestRankingStoreWithMigration() {
   const migrateToSupabase = async (userId: string) => {
     try {
       const rankings = store.getAllRankings();
-      
-      if (rankings.length === 0) {
-        return { success: true, migratedCount: 0 };
-      }
+      const awards = store.getAllAwards();
       
       // Convert guest rankings to database format
       const rankingsToInsert = rankings.map((ranking) => ({
@@ -253,34 +261,35 @@ export function useGuestRankingStoreWithMigration() {
         updated_at: new Date().toISOString(),
       }));
 
-      console.log('[GuestMigration] Attempting to migrate guest rankings', {
-        count: rankingsToInsert.length,
-        payload: rankingsToInsert,
-      });
-      
-      // Insert rankings into the database
-      const { error, status } = await supabase
-        .from('rankings')
-        .upsert(rankingsToInsert, {
-          onConflict: 'user_id,movie_id',
-          ignoreDuplicates: false,
-        });
-      
-      if (error) {
-        console.error('[GuestMigration] Error migrating guest data:', error, {
-          status,
+      if (rankingsToInsert.length > 0) {
+        console.log('[GuestMigration] Attempting to migrate guest rankings', {
+          count: rankingsToInsert.length,
           payload: rankingsToInsert,
         });
-        return { success: false, migratedCount: 0, error: error.message };
+
+        // Insert rankings into the database
+        const { error, status } = await supabase
+          .from('rankings')
+          .upsert(rankingsToInsert, {
+            onConflict: 'user_id,movie_id',
+            ignoreDuplicates: false,
+          });
+
+        if (error) {
+          console.error('[GuestMigration] Error migrating guest data:', error, {
+            status,
+            payload: rankingsToInsert,
+          });
+          return { success: false, migratedCount: 0, error: error.message };
+        }
+
+        console.log('[GuestMigration] Successfully migrated guest rankings', {
+          count: rankingsToInsert.length,
+          status,
+        });
       }
-      
-      console.log('[GuestMigration] Successfully migrated guest rankings', {
-        count: rankingsToInsert.length,
-        status,
-      });
 
       // Migrate guest awards
-      const awards = store.getAllAwards();
       let awardsMigrated = 0;
       for (const award of awards) {
         try {
@@ -292,6 +301,8 @@ export function useGuestRankingStoreWithMigration() {
               category: award.category,
               nominee_ids: award.nomineeIds,
               winner_id: award.winnerId,
+              source: award.source,
+              revision_number: award.revisionNumber,
             }),
           });
           if (res.ok) {
