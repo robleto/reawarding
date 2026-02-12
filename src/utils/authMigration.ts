@@ -29,13 +29,14 @@ export function useAuthMigration(onMigrationSuccess?: (count: number) => void) {
         try {
           const result = await guestStore.migrateToSupabase(user.id);
           if (result.success && result.migratedCount > 0) {
-            console.log(`Successfully migrated ${result.migratedCount} guest ratings`);
+            console.log(`Successfully migrated ${result.migratedCount} guest items`);
             onMigrationSuccess?.(result.migratedCount);
             if (window.location.pathname === '/' || window.location.pathname.includes('callback')) {
               setTimeout(() => {
                 onMigrationSuccess?.(result.migratedCount);
               }, 100);
-              router.push('/rankings');
+              // Redirect to homepage (awards-first experience) instead of /rankings
+              router.push('/');
             }
           }
         } catch (error) {
