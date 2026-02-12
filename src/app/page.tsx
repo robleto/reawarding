@@ -15,12 +15,9 @@ import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import HomeEmptyState from "@/components/home/HomeEmptyState";
-import CollectionsHomeSection from "@/components/home/CollectionsHomeSection";
 import OnboardingProgress from "@/components/home/OnboardingProgress";
-import PublicListsHomeSection from "@/components/list/PublicListsHomeSection";
 import { Film, Lock } from "lucide-react";
-import { AwardsTabs, AwardsTabKey } from "@/components/award/AwardsTabs";
-import Banner from "@/components/ui/Banner";
+import Link from "next/link";
 import { useOnboardingProgress, getOnboardingMessage } from "@/hooks/useOnboardingProgress";
 
 import type { Movie as BaseMovie } from "@/types/types";
@@ -33,7 +30,6 @@ export default function HomePage() {
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
 	const [selectedMovie, setSelectedMovie] = useState<BaseMovie | null>(null);
-	const [previewCategory, setPreviewCategory] = useState<AwardsTabKey>("best-picture");
 	const [userProfile, setUserProfile] = useState<{
 		first_name?: string;
 		last_name?: string;
@@ -169,13 +165,80 @@ export default function HomePage() {
 
 	const unseen = sortForYourConsideration(filterUnseenMovies(allMovies));
 	const currentYear = new Date().getFullYear();
-	const currentYearRankedCount = allMovies.filter((movie) => {
-		const releaseYear = movie.release_year ?? (movie.release_year && new Date(movie.release_year).getFullYear());
-		const ranking = movie.rankings?.[0]?.ranking;
-		return releaseYear === currentYear && typeof ranking === "number" && ranking > 0;
-	}).length;
 	const awardsUnlockThreshold = 5;
-	const awardsYear = currentYearRankedCount >= awardsUnlockThreshold ? currentYear : currentYear - 1;
+	const awardsPreviewYears = [currentYear, currentYear - 1];
+	const allTimersLimit = 30;
+	const hotTakeThreshold = 3;
+
+	const getYearFromMovie = (movie: BaseMovie) => {
+		if (typeof movie.release_year === "number") return movie.release_year;
+		if (!movie.release_year) return null;
+		const parsedYear = new Date(String(movie.release_year)).getFullYear();
+		return Number.isFinite(parsedYear) ? parsedYear : null;
+	};
+
+	const getAwardsDataForYear = (year: number) => {
+		const rankedMoviesForYear = allMovies.filter((movie) => {
+			const releaseYear = getYearFromMovie(movie);
+			const ranking = movie.rankings?.[0]?.ranking;
+			return releaseYear === year && typeof ranking === "number" && ranking > 0;
+		});
+
+		const sortedMovies = [...rankedMoviesForYear].sort(
+			(a, b) => (b.rankings?.[0]?.ranking ?? 0) - (a.rankings?.[0]?.ranking ?? 0)
+		);
+		const nominees = sortedMovies.filter((movie) => (movie.rankings?.[0]?.ranking ?? 0) >= 7).slice(0, 10);
+		const winner = nominees[0] ?? sortedMovies[0] ?? null;
+
+		return {
+			rankedCount: rankedMoviesForYear.length,
+			unlocked: rankedMoviesForYear.length >= awardsUnlockThreshold,
+			sortedMovies,
+			nominees,
+			winner,
+		};
+	};
+
+	const getConsensusRating = (movie: BaseMovie): number | null => {
+		if (typeof movie.tmdb_rating === "number" && movie.tmdb_rating > 0) return movie.tmdb_rating;
+		if (typeof movie.imdb_rating === "number" && movie.imdb_rating > 0) return movie.imdb_rating;
+		if (typeof movie.metacritic_score === "number" && movie.metacritic_score > 0) return movie.metacritic_score / 10;
+		return null;
+	};
+
+	const ratedMoviesWithScores = allMovies
+		.map((movie) => {
+			const myRating = movie.rankings?.[0]?.ranking;
+			return {
+				movie,
+				myRating: typeof myRating === "number" ? myRating : null,
+				consensusRating: getConsensusRating(movie),
+			};
+		})
+		.filter((entry) => entry.myRating !== null);
+
+	const allTimerMovies = ratedMoviesWithScores
+		.filter((entry) => entry.myRating === 10)
+		.sort((a, b) => (b.consensusRating ?? 0) - (a.consensusRating ?? 0))
+		.slice(0, allTimersLimit);
+
+	const hotTakePositive = ratedMoviesWithScores
+		.map((entry) => ({
+			...entry,
+			difference: (entry.myRating ?? 0) - (entry.consensusRating ?? 0),
+		}))
+		.filter((entry) => entry.consensusRating !== null && entry.difference >= hotTakeThreshold)
+		.sort((a, b) => b.difference - a.difference);
+
+	const hotTakeNegative = ratedMoviesWithScores
+		.map((entry) => ({
+			...entry,
+			difference: (entry.myRating ?? 0) - (entry.consensusRating ?? 0),
+		}))
+		.filter((entry) => entry.consensusRating !== null && entry.difference <= -hotTakeThreshold)
+		.sort((a, b) => b.difference - a.difference);
+
+	const hotTakeMovies = [...hotTakePositive, ...hotTakeNegative];
 
 	// Check if user has rated any movies
 	const ratedMovies = allMovies.filter(
@@ -218,13 +281,10 @@ export default function HomePage() {
 				{/* For Your Consideration */}
 				<section className="mt-6">
 					<h2 className="text-xl font-bold text-gray-900 dark:text-white">For Your Consideration</h2>
-					<p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
-						New releases and acclaimed films curated for easy discovery.
-					</p>
 					{unseen.length > 0 ? (
 						<div className="-mx-10 sm:-mx-6 px-10 sm:px-6">
 							<div className="flex gap-4 pb-4 overflow-x-auto snap-x snap-mandatory pr-8 sm:pr-10">
-							{unseen.map((movie, idx) => {
+								{unseen.map((movie) => {
 								const r = movie.rankings?.[0];
 								return (
 										<div key={movie.id} className="flex-shrink-0 w-[140px] sm:w-[160px] snap-start">
@@ -250,15 +310,7 @@ export default function HomePage() {
 						</div>
 					)}
 				</section>
-				{/* Film Collections */}
-				<CollectionsHomeSection
-					movies={allMovies}
-					userId={userId}
-					updateMovieRanking={updateMovieRanking}
-					setSelectedMovie={setSelectedMovie}
-				/>
-
-				{/* Auth Modal */}
+					{/* Auth Modal */}
 				<AuthModalManager
 					isOpen={showAuthModal} 
 					onClose={() => setShowAuthModal(false)} 
@@ -289,42 +341,40 @@ export default function HomePage() {
 					<p className="text-sm text-gray-600 dark:text-gray-300">
 						{subtext}
 					</p>
+					<div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
+						<Link
+							href="/films"
+							className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300/50 dark:border-gray-600/50 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+						>
+							Add or Rate Films
+						</Link>
+						<Link
+							href="/rankings"
+							className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300/50 dark:border-gray-600/50 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+						>
+							Review Rankings
+						</Link>
+						<Link
+							href="/awards"
+							className="px-3 py-1.5 text-xs font-medium rounded-lg border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/20 transition-colors"
+						>
+							View Awards
+						</Link>
+					</div>
 				</div>
 			)}
 
-			{/* Onboarding or Stats Line */}
-			{!authChecked ? (
-				<div className="mb-6">
-					<div className="light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 px-3 sm:px-4 py-2.5 sm:py-3 animate-pulse">
-						<div className="flex items-center gap-3">
-							<div className="hidden sm:block h-3 w-16 rounded bg-gray-300/40 dark:bg-gray-700/40" />
-							<div className="flex-1 flex items-center gap-3 sm:gap-4">
-								<div className="h-6 w-24 rounded bg-gray-300/40 dark:bg-gray-700/40" />
-								<div className="h-6 w-24 rounded bg-gray-300/40 dark:bg-gray-700/40" />
-								<div className="h-6 w-24 rounded bg-gray-300/40 dark:bg-gray-700/40" />
-								<div className="h-6 w-24 rounded bg-gray-300/40 dark:bg-gray-700/40" />
-								<div className="h-6 w-24 rounded bg-gray-300/40 dark:bg-gray-700/40" />
-							</div>
-						</div>
-					</div>
-				</div>
-			) : shouldShowOnboarding ? (
+			{/* Onboarding */}
+			{authChecked && shouldShowOnboarding ? (
 				<OnboardingProgress
 					progress={onboardingProgress}
 					onboardingMessage={onboardingMessage}
 				/>
-			) : (
-				<div className="mb-6">
-					<StatsSummary variant="compact" />
-				</div>
-			)}
+			) : null}
 
 			{/* For Your Consideration */}
 			<section className="mt-6">
 				<h2 className="text-xl font-bold text-gray-900 dark:text-white">For Your Consideration</h2>
-				<p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
-					New releases and acclaimed films curated for easy discovery.
-				</p>
 				{unseen.length > 0 ? (
 					<div className="-mx-10 sm:-mx-6 px-10 sm:px-6">
 						<div className="flex gap-4 pb-4 overflow-x-auto snap-x snap-mandatory pr-8 sm:pr-10">
@@ -353,120 +403,141 @@ export default function HomePage() {
 				)}
 			</section>
 
+			{/* Stats bar for established users */}
+			{authChecked && !shouldShowOnboarding && (
+				<div className="mt-6">
+					<StatsSummary variant="compact" />
+				</div>
+			)}
+
 		{/* Current Best Picture (reuse the Awards layout for visual parity) */}
 		<section className="py-4 md:py-8">
 			<h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">Your Awards</h2>
-			
-			{awardsYear !== currentYear && (
-				<div className="mb-4">
-					<Banner
-						variant="gold"
-						icon={Lock}
-						title={`${currentYear} Awards locked`}
-						message={
-							<>
-								Rate {awardsUnlockThreshold - currentYearRankedCount} more {currentYear} {awardsUnlockThreshold - currentYearRankedCount === 1 ? 'film' : 'films'} to unlock.
-								<span className="ml-2 text-xs font-medium text-yellow-300">
-									{currentYearRankedCount}/{awardsUnlockThreshold}
-								</span>
-							</>
-						}
-					/>
-				</div>
-			)}
-			
-			<AwardsTabs value={previewCategory} onChange={setPreviewCategory} />
-				{(() => {
-					const currentYearMovies = allMovies.filter((m) => {
-						const y = m.release_year || (m.release_year && new Date(m.release_year).getFullYear());
-						return y === awardsYear;
-					});
-					
-					// Apply category filtering (same logic as awards page)
-					const hasGenre = (m: BaseMovie, needle: string) =>
-						Array.isArray(m.genres) && m.genres.some((g) => String(g ?? '').toLowerCase().includes(needle));
-					
-					const isActionBlockbuster = (m: BaseMovie) => 
-						hasGenre(m, "action") || 
-						hasGenre(m, "adventure") || 
-						hasGenre(m, "superhero") || 
-						hasGenre(m, "sci-fi") || 
-						hasGenre(m, "science fiction") || 
-						hasGenre(m, "fantasy");
-					
-					let filteredMovies = currentYearMovies;
-					
-					switch (previewCategory) {
-						case "best-animated":
-							filteredMovies = currentYearMovies.filter((m) => hasGenre(m, "animation") || hasGenre(m, "animated"));
-							break;
-						case "best-comedy":
-							filteredMovies = currentYearMovies.filter((m) => 
-								hasGenre(m, "comedy") && 
-								!hasGenre(m, "animation") && 
-								!hasGenre(m, "animated")
-							);
-							break;
-						case "best-blockbuster":
-							filteredMovies = currentYearMovies.filter((m) => 
-								isActionBlockbuster(m) && 
-								!hasGenre(m, "animation") && 
-								!hasGenre(m, "animated") &&
-								!hasGenre(m, "comedy")
-							);
-							break;
-						case "best-picture":
-						default:
-							// No genre filtering for Best Picture
-							break;
-					}
-					
-					const sorted = [...filteredMovies].sort(
-						(a, b) => (b.rankings?.[0]?.ranking ?? 0) - (a.rankings?.[0]?.ranking ?? 0)
-					);
-					
-					// Apply ranking threshold: 7+ for best-picture, 5+ for others
-					const rankingThreshold = previewCategory === "best-picture" ? 7 : 5;
-					const defaultNominees = sorted.filter(m => (m.rankings?.[0]?.ranking ?? 0) >= rankingThreshold).slice(0, 10);
-					const defaultWinner = defaultNominees.length > 0 ? defaultNominees[0] : sorted[0] ?? null;
 
-				return (
-					<div className="relative">
-						<EditableYearSection
-							year={String(awardsYear)}
-							movies={defaultNominees}
-							winner={defaultWinner || undefined}
-							allMoviesForYear={sorted}
-							category={previewCategory}
-						/>
-						
-						{/* See More CTA - positioned to align with timeline end on desktop */}
-						<div className="mt-6 md:absolute md:bottom-0 md:right-0 md:mt-0 text-center md:text-right">
-							<button
-								onClick={() => router.push('/awards')}
-								className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30 rounded-lg font-medium transition-colors"
-							>
-								See All Years & Awards
-								<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-								</svg>
-							</button>
-						</div>
-					</div>
-				);
-			})()}
+			<div className="relative">
+				{awardsPreviewYears.map((year) => {
+					const data = getAwardsDataForYear(year);
+					if (data.unlocked) {
+						return (
+							<EditableYearSection
+								key={`awards-${year}`}
+								year={String(year)}
+								movies={data.nominees}
+								winner={data.winner || undefined}
+								allMoviesForYear={data.sortedMovies}
+								category="best-picture"
+							/>
+						);
+					}
+
+					const remainingToUnlock = Math.max(awardsUnlockThreshold - data.rankedCount, 0);
+					return (
+						<section
+							key={`awards-${year}`}
+							className="w-full max-w-screen-xl px-0 py-0 mx-auto my-0 font-sans md:px-6"
+						>
+							<div className="relative flex flex-col gap-6 md:flex-row md:gap-8">
+								<h2 className="md:absolute block top-0 md:top-[125px] left-0 text-3xl font-bold text-[#A0A0A0] mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-widest">
+									{year}
+								</h2>
+								<div className="top-0 bottom-0 flex-col items-center hidden md:absolute md:flex left-4">
+									<div className="w-5 h-5 mt-2 bg-gray-400 border-2 border-gray-100 rounded-full dark:bg-gray-700 dark:border-gray-900" />
+									<div className="w-[2px] flex-1 bg-gray-300 dark:bg-gray-700" />
+								</div>
+								<div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
+								<div className="award-editable-section flex flex-col w-full rounded-xl shadow-md light-glass dark:dark-glass p-4 md:p-6 mb-24">
+									<div className="inline-flex items-center gap-2 text-yellow-400 mb-2">
+										<Lock className="w-4 h-4" />
+										<span className="text-sm font-semibold">{year} Awards locked</span>
+									</div>
+									<p className="text-sm text-gray-700 dark:text-gray-300">
+										Rate {remainingToUnlock} more {year} {remainingToUnlock === 1 ? "film" : "films"} to unlock nominees and winner.
+									</p>
+									<p className="mt-2 text-xs font-medium text-yellow-300">
+										{data.rankedCount}/{awardsUnlockThreshold}
+									</p>
+								</div>
+							</div>
+						</section>
+					);
+				})}
+
+				{/* See More CTA - positioned to align with timeline end on desktop */}
+				<div className="mt-6 md:absolute md:bottom-0 md:right-0 md:mt-0 text-center md:text-right">
+					<button
+						onClick={() => router.push('/awards')}
+						className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30 rounded-lg font-medium transition-colors"
+					>
+						See All Years & Awards
+						<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+						</svg>
+					</button>
+				</div>
+			</div>
 		</section>
 		
-		{/* Film Collections */}
-		<CollectionsHomeSection
-			movies={allMovies}
-			userId={userId}
-			updateMovieRanking={updateMovieRanking}
-			setSelectedMovie={setSelectedMovie}
-		/>
-		
-		{/* Public Lists Horizontal Table */}
-		<PublicListsHomeSection />
+		{/* Your All-Timers */}
+		<section className="mt-6">
+			<h2 className="text-xl font-bold text-gray-900 dark:text-white">Your All-Timers</h2>
+			{allTimerMovies.length > 0 ? (
+				<div className="-mx-10 sm:-mx-6 px-10 sm:px-6">
+					<div className="flex gap-4 pb-4 overflow-x-auto snap-x snap-mandatory pr-8 sm:pr-10">
+						{allTimerMovies.map(({ movie }) => {
+							const ranking = movie.rankings?.[0];
+							return (
+								<div key={`all-timer-${movie.id}`} className="flex-shrink-0 w-[140px] sm:w-[160px] snap-start">
+									<MoviePosterCard
+										movie={movie}
+										currentUserId={userId}
+										ranking={ranking?.ranking ?? null}
+										seenIt={ranking?.seen_it ?? false}
+										onUpdate={updateMovieRanking}
+										onClick={() => setSelectedMovie(movie as BaseMovie)}
+									/>
+								</div>
+							);
+						})}
+					</div>
+				</div>
+			) : (
+				<div className="text-center py-8 text-gray-500 dark:text-gray-400">
+					<p>No all-timers yet. Start dropping 10s and this row will fill in.</p>
+				</div>
+			)}
+		</section>
+
+		{/* Hot Takes */}
+		<section className="mt-2 mb-6">
+			<h2 className="text-xl font-bold text-gray-900 dark:text-white">Hot Takes</h2>
+			{hotTakeMovies.length > 0 ? (
+				<div className="-mx-10 sm:-mx-6 px-10 sm:px-6">
+					<div className="flex gap-4 pb-4 overflow-x-auto snap-x snap-mandatory pr-8 sm:pr-10">
+						{hotTakeMovies.map(({ movie, difference }) => {
+							const ranking = movie.rankings?.[0];
+							const diffLabel = `${difference > 0 ? "+" : ""}${difference.toFixed(1)}`;
+							return (
+								<div key={`hot-take-${movie.id}`} className="flex-shrink-0 w-[140px] sm:w-[160px] snap-start">
+									<MoviePosterCard
+										movie={movie}
+										currentUserId={userId}
+										ranking={ranking?.ranking ?? null}
+										ratingLabel={diffLabel}
+										seenIt={ranking?.seen_it ?? false}
+										onUpdate={updateMovieRanking}
+										onClick={() => setSelectedMovie(movie as BaseMovie)}
+									/>
+								</div>
+							);
+						})}
+					</div>
+				</div>
+			) : (
+				<div className="text-center py-8 text-gray-500 dark:text-gray-400">
+					<p>No hot takes yet. Rate more films and we&apos;ll surface your biggest swings.</p>
+				</div>
+			)}
+		</section>
 
 		{/* Auth Modal */}
 		   <AuthModalManager

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
-import { Trophy, List, Star, Eye, UserPlus } from "lucide-react";
+import { Trophy, Star, Eye, UserPlus } from "lucide-react";
 import Loader from "@/components/ui/Loading";
 import useGuestRankingStore from "@/hooks/useGuestRankingStore";
 
@@ -32,11 +32,10 @@ export default function StatsSummary({
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<{ ratedCount: number; avgRating: number | null; seenCount: number; listsCount: number; awardsCount: number }>({
+  const [stats, setStats] = useState<{ ratedCount: number; avgRating: number | null; seenCount: number; awardsCount: number }>({
     ratedCount: 0,
     avgRating: null,
     seenCount: 0,
-    listsCount: 0,
     awardsCount: 0,
   });
   const iconClassName = variant === "compact" ? "w-4 h-4" : "w-5 h-5";
@@ -47,7 +46,7 @@ export default function StatsSummary({
     const rated = all.filter((r) => typeof r.ranking === "number");
     const seen = all.filter((r) => r.seenIt);
     const avg = rated.length > 0 ? rated.reduce((sum, r) => sum + (r.ranking || 0), 0) / rated.length : null;
-    return { ratedCount: rated.length, avgRating: avg, seenCount: seen.length, listsCount: 0, awardsCount: 0 };
+    return { ratedCount: rated.length, avgRating: avg, seenCount: seen.length, awardsCount: 0 };
   }, [guestRankingsMap]);
 
   // For guests: year-scoped stats require knowing which movie IDs are from current year
@@ -88,36 +87,32 @@ export default function StatsSummary({
 
         const userId = user.id;
         if (scope === "all") {
-          const [rankingsResp, listsCountResp, awardsCountResp] = await Promise.all([
+          const [rankingsResp, awardsYearsResp] = await Promise.all([
             supabase
               .from("rankings")
               .select("ranking, seen_it")
               .eq("user_id", userId),
             supabase
-              .from("movie_lists")
-              .select("id", { count: "exact", head: true })
-              .eq("user_id", userId),
-            supabase
               .from("awards")
-              .select("id", { count: "exact", head: true })
+              .select("year")
               .eq("user_id", userId),
           ]);
 
           if (rankingsResp.error) throw rankingsResp.error;
+          if (awardsYearsResp.error) throw awardsYearsResp.error;
           const rows = rankingsResp.data || [];
           const ratedRows = rows.filter((r: any) => typeof r.ranking === "number");
           const ratedCount = ratedRows.length;
           const avgRating = ratedCount > 0 ? ratedRows.reduce((sum: number, r: any) => sum + (r.ranking || 0), 0) / ratedCount : null;
           const seenCount = rows.filter((r: any) => r.seen_it).length;
 
-          const listsCount = listsCountResp.count || 0;
-          const awardsCount = awardsCountResp.count || 0;
+          const awardsCount = new Set((awardsYearsResp.data || []).map((a: any) => a.year)).size;
           if (mounted) {
-            setStats({ ratedCount, avgRating, seenCount, listsCount, awardsCount });
+            setStats({ ratedCount, avgRating, seenCount, awardsCount });
           }
         } else {
           // This Year scope
-          const [moviesYearResp, listsYearCountResp, awardsYearCountResp] = await Promise.all([
+          const [moviesYearResp, awardsYearCountResp] = await Promise.all([
             supabase
               .from("movies")
               .select(
@@ -125,11 +120,6 @@ export default function StatsSummary({
               )
               .eq("release_year", currentYear)
               .eq("rankings.user_id", userId),
-            supabase
-              .from("movie_lists")
-              .select("id", { count: "exact", head: true })
-              .eq("user_id", userId)
-              .gte("updated_at", `${currentYear}-01-01`),
             supabase
               .from("awards")
               .select("id", { count: "exact", head: true })
@@ -143,11 +133,10 @@ export default function StatsSummary({
           const seenCount = moviesRows.filter((m: any) => m.rankings?.[0]?.seen_it).length;
           const ratedRows = moviesRows.filter((m: any) => typeof m.rankings?.[0]?.ranking === "number");
           const avgRating = ratedRows.length > 0 ? ratedRows.reduce((sum: number, m: any) => sum + (m.rankings?.[0]?.ranking || 0), 0) / ratedRows.length : null;
-          const listsCount = listsYearCountResp.count || 0;
-          const awardsCount = awardsYearCountResp.count || 0;
+          const awardsCount = awardsYearCountResp.count ? 1 : 0;
 
           if (mounted) {
-            setStats({ ratedCount, avgRating, seenCount, listsCount, awardsCount });
+            setStats({ ratedCount, avgRating, seenCount, awardsCount });
           }
         }
       } catch (err) {
@@ -185,14 +174,8 @@ export default function StatsSummary({
       icon: <Eye className={iconClassName} />,
     },
     {
-      key: "lists",
-      label: "Lists Created",
-      value: stats.listsCount,
-      icon: <List className={iconClassName} />,
-    },
-    {
       key: "awards",
-      label: "Awards Made",
+      label: "Years Awarded",
       value: stats.awardsCount,
       icon: <Trophy className={iconClassName} />,
     },
@@ -255,9 +238,9 @@ export default function StatsSummary({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {loading ? (
-              <div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-5">
+              <div className="col-span-1 sm:col-span-2 lg:col-span-4">
                 <div className="light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 p-3 sm:p-4">
                   <Loader message="Loading your stats..." />
                 </div>
@@ -268,8 +251,6 @@ export default function StatsSummary({
                 let href: string | null = null;
                 if (item.key === "awards") {
                   href = scope === "year" ? `/awards?year=${currentYear}` : "/awards";
-                } else if (item.key === "lists") {
-                  href = scope === "year" ? `/lists?year=${currentYear}` : "/lists";
                 }
 
                 const Card = (

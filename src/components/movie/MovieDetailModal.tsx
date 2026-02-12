@@ -3,13 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
 import Image from "next/image";
-import { X, Eye, EyeOff, Film, Clock, Users, Clapperboard, Maximize2, ExternalLink, Copy } from "lucide-react";
-import Link from "next/link";
-import { movieSlug } from "@/utils/slug";
+import { X, Eye, EyeOff, Film, Clock, Users, Clapperboard, ExternalLink, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import RankingDropdown from "@/components/movie/RankingDropdown";
 import type { Movie } from "@/types/types";
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 interface MovieDetailModalProps {
   movie: Movie;
@@ -45,6 +44,7 @@ export default function MovieDetailModal({
   initialSeenIt = false,
 }: MovieDetailModalProps) {
   const user = useUser();
+  const { isAdmin } = useIsAdmin();
   const [seenIt, setSeenIt] = useState(initialSeenIt);
   const [ranking, setRanking] = useState(initialRanking);
   const [isLoading, setIsLoading] = useState(false);
@@ -183,13 +183,6 @@ export default function MovieDetailModal({
             <p className="text-gray-400 text-md">{movie.release_year}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Link
-              href={`/films/${movieSlug(movie.title, movie.id)}`}
-              className="p-2 transition-colors rounded-full hover:bg-gray-700/50"
-              title="Open full page"
-            >
-              <Maximize2 className="w-5 h-5 text-gray-300" />
-            </Link>
             <button
               onClick={onClose}
               className="p-2 transition-colors rounded-full hover:bg-gray-700/50"
@@ -294,37 +287,36 @@ export default function MovieDetailModal({
                 )}
               </div>
 
-              {/* External Links / IDs */}
-              <div className="space-y-2 text-sm">
-                {/* Database ID */}
-                <div className="flex items-center gap-2 text-gray-400">
-                  <span className="font-mono">DB ID: {movie.id}</span>
-                </div>
-                
-                {/* TMDB ID */}
-                {movie.tmdb_id && (
-                  <div className="flex items-center gap-3">
-                    <Link
-                      href={`https://www.themoviedb.org/movie/${movie.tmdb_id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-yellow-300 hover:text-yellow-200"
-                      title="Open on TMDB"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      TMDB: {movie.tmdb_id}
-                    </Link>
-                    <button
-                      onClick={handleCopyTmdb}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-yellow-500/10 bg-gray-800/50 hover:bg-gray-700/50 text-xs text-gray-200"
-                      title="Copy TMDB ID"
-                    >
-                      <Copy className="w-3 h-3" />
-                      {copiedTmdb ? 'Copied' : 'Copy'}
-                    </button>
+              {/* External Links / IDs (Admin only) */}
+              {isAdmin && (
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <span className="font-mono">DB ID: {movie.id}</span>
                   </div>
-                )}
-              </div>
+                  {movie.tmdb_id && (
+                    <div className="flex items-center gap-3">
+                      <a
+                        href={`https://www.themoviedb.org/movie/${movie.tmdb_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-yellow-300 hover:text-yellow-200"
+                        title="Open on TMDB"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        TMDB: {movie.tmdb_id}
+                      </a>
+                      <button
+                        onClick={handleCopyTmdb}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded border border-yellow-500/10 bg-gray-800/50 hover:bg-gray-700/50 text-xs text-gray-200"
+                        title="Copy TMDB ID"
+                      >
+                        <Copy className="w-3 h-3" />
+                        {copiedTmdb ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Genres */}
               {movie.genres && movie.genres.length > 0 && (
@@ -353,8 +345,8 @@ export default function MovieDetailModal({
                 </div>
               )}
 
-              {/* Scores */}
-              {(movie.imdb_rating || movie.metacritic_score) && (
+              {/* Scores (Admin only) */}
+              {isAdmin && (movie.imdb_rating || movie.metacritic_score) && (
                 <div>
                   <h4 className="mb-2 font-semibold text-yellow-400">Scores</h4>
                   <div className="grid grid-cols-2 gap-4">

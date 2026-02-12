@@ -4,15 +4,15 @@ import React, { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Clapperboard, LineChart, Menu, Plus, Trophy, X } from "lucide-react";
 import { UserMenu } from "@/components/layout/UserMenu";
-import NavSearch from "@/components/layout/NavSearch";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import { Logo } from "@/components/ui/Logo";
 import { useScrollBackground } from "@/hooks/useScrollBackground";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useEnsureProfile } from "@/hooks/useEnsureProfile";
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import AddMovieByTmdbModal from "@/components/movie/AddMovieByTmdbModal";
 
 export default function HeaderNav() {
 	const pathname = usePathname();
@@ -20,6 +20,7 @@ export default function HeaderNav() {
 	const [authMode, setAuthMode] = useState<"login" | "signup">("login");
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 	const [mobileUserOpen, setMobileUserOpen] = useState(false);
+	const [showAddMovieModal, setShowAddMovieModal] = useState(false);
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 	const navRefs = useRef<(HTMLLIElement | null)[]>([]);
 	const hasScrolled = useScrollBackground();
@@ -27,10 +28,9 @@ export default function HeaderNav() {
 	const { profile } = useEnsureProfile(user);
 
 	const navItems = [
-		{ label: "Awards", href: "/awards", match: "/awards" },
-		{ label: "Rankings", href: "/rankings", match: "/rankings" },
-		{ label: "Films", href: "/films", match: "/films" },
-		{ label: "Lists", href: "/lists", match: "/lists" },
+		{ label: "Films", href: "/films", match: "/films", icon: Clapperboard },
+		{ label: "Rankings", href: "/rankings", match: "/rankings", icon: LineChart },
+		{ label: "Awards", href: "/awards", match: "/awards", icon: Trophy },
 	];
 
 	const handleLoginClick = () => {
@@ -97,6 +97,7 @@ export default function HeaderNav() {
 								/>
 								<ul className="flex items-center font-medium text-sm font-inter relative z-10">
 									{navItems.map((item, index) => {
+										const Icon = item.icon;
 										const isActive =
 											pathname === item.match ||
 											(item.match === "/" && pathname === "");
@@ -116,7 +117,10 @@ export default function HeaderNav() {
 															: "text-black dark:text-gray-300"
 													} hover:text-gold dark:hover:text-gold`}
 												>
-													{item.label}
+													<span className="inline-flex items-center gap-1.5">
+														<Icon className="w-3.5 h-3.5" />
+														<span>{item.label}</span>
+													</span>
 												</Link>
 											</li>
 										);
@@ -125,16 +129,29 @@ export default function HeaderNav() {
 							</div>
 						</nav>
 
-						{/* Controls: Search + UserMenu */}
+						{/* Controls: Add + UserMenu */}
 						<div className="flex items-center gap-3 flex-shrink-0 ml-auto">
-							<div className="hidden md:block">
-								<NavSearch />
-							</div>
+							<button
+								onClick={() => setShowAddMovieModal(true)}
+								className="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+								aria-label="Add movie by TMDB ID"
+								title="Add movie by TMDB ID"
+							>
+								<Plus className="w-4 h-4" />
+							</button>
 							<div className="hidden md:block">
 								<UserMenu onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
 							</div>
 
 							{/* Mobile avatar button opens a full-width panel */}
+							<button
+								onClick={() => setShowAddMovieModal(true)}
+								className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+								aria-label="Add movie by TMDB ID"
+								title="Add movie by TMDB ID"
+							>
+								<Plus className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+							</button>
 							<button
 								className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
 								aria-label="Open user menu"
@@ -170,10 +187,8 @@ export default function HeaderNav() {
 					<div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-800/50 transition-colors duration-300">
 						<nav className="px-6 py-4">
 							<ul className="space-y-3">
-								<li>
-									<NavSearch />
-								</li>
 								{navItems.map((item) => {
+									const Icon = item.icon;
 									const isActive =
 										pathname === item.match ||
 										(item.match === "/" && pathname === "");
@@ -189,7 +204,10 @@ export default function HeaderNav() {
 												}`}
 												onClick={() => setMobileMenuOpen(false)}
 											>
-												{item.label}
+												<span className="inline-flex items-center gap-2">
+													<Icon className="w-4 h-4" />
+													<span>{item.label}</span>
+												</span>
 											</Link>
 										</li>
 									);
@@ -222,6 +240,10 @@ export default function HeaderNav() {
 					setShowAuthModal(false);
 					// Handle successful auth (data migration is handled automatically)
 				}}
+			/>
+			<AddMovieByTmdbModal
+				isOpen={showAddMovieModal}
+				onClose={() => setShowAddMovieModal(false)}
 			/>
 		</>
 	);

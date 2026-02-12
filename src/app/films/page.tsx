@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { Plus } from "lucide-react";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieRowCard from "@/components/movie/MovieRowCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
@@ -10,8 +10,7 @@ import MovieFilters from "@/components/filters/MovieFilters";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import FilmsEmptyState from "@/components/films/FilmsEmptyState";
-import CollectionCard from "@/components/films/CollectionCard";
-import { getFeaturedCollections } from "@/data/filmCollections";
+import AddMovieByTmdbModal from "@/components/movie/AddMovieByTmdbModal";
 import type { Movie } from "@/types/types";
 
 import {
@@ -31,15 +30,6 @@ export default function FilmsPage() {
 	const router = useRouter();
 	const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
 	
-	// Films view toggle: "all" or "collections"
-	const [filmsView, setFilmsView] = useState<"all" | "collections">(() => {
-		if (typeof window !== "undefined") {
-			const stored = localStorage.getItem("filmsView") as "all" | "collections" | null;
-			return stored || "all";
-		}
-		return "all";
-	});
-	
 	// Films-specific view mode with grid as default for poster-based display
 	const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
 		if (typeof window !== "undefined") {
@@ -48,13 +38,6 @@ export default function FilmsPage() {
 		}
 		return "grid";
 	});
-	
-	// Save films view preference
-	useEffect(() => {
-		if (typeof window !== "undefined") {
-			localStorage.setItem("filmsView", filmsView);
-		}
-	}, [filmsView]);
 	
 	// Save films-specific view mode preference
 	useEffect(() => {
@@ -115,6 +98,7 @@ export default function FilmsPage() {
 	// Auth modal state
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
+	const [showAddMovieModal, setShowAddMovieModal] = useState(false);
 	
 	// Save films-specific filter state
 	useEffect(() => {
@@ -209,65 +193,7 @@ export default function FilmsPage() {
 				/>
 			)}
 
-			{/* View Toggle: All Films vs Collections */}
-			<div className="mb-6">
-				<div className="inline-flex rounded-lg bg-gray-900/60 border border-gray-700/40 p-1">
-					<button
-						onClick={() => setFilmsView("all")}
-						className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-							filmsView === "all"
-								? "bg-gold text-charcoal-900 shadow-lg"
-								: "text-gray-300 hover:text-white"
-						}`}
-					>
-						All Films
-					</button>
-					<button
-						onClick={() => setFilmsView("collections")}
-						className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-							filmsView === "collections"
-								? "bg-gold text-charcoal-900 shadow-lg"
-								: "text-gray-300 hover:text-white"
-						}`}
-					>
-						Collections
-					</button>
-				</div>
-			</div>
-
-			{/* Conditionally render based on view */}
-			{filmsView === "collections" ? (
-				<div>
-					<div className="mb-6">
-						<h2 className="text-3xl font-bold text-white mb-2 font-unbounded">
-							Featured Collections
-						</h2>
-						<p className="text-gray-400">
-							Popular and frequently used film collections
-						</p>
-					</div>
-					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-						{getFeaturedCollections().map((collection) => (
-							<CollectionCard
-								key={collection.slug}
-								collection={collection}
-								movieCount={collection.tmdbIds.length}
-							/>
-						))}
-					</div>
-					<div className="text-center">
-						<Link 
-							href="/films/collections"
-							className="inline-flex items-center gap-2 px-6 py-3 bg-gold/10 hover:bg-gold/20 border border-gold/30 hover:border-gold/50 rounded-lg text-gold font-medium transition-all"
-						>
-							View All Collections
-							<span className="text-sm">→</span>
-						</Link>
-					</div>
-				</div>
-			) : (
-				<>
-					<MovieFilters
+			<MovieFilters
 						viewMode={viewMode}
 						setViewMode={setViewMode}
 						sortBy={sortBy}
@@ -294,8 +220,25 @@ export default function FilmsPage() {
 					filterValue: "all"
 				}}
 			/>
-
-				{groupedMovies.map(({ key, movies }: { key: string; movies: import("@/types/types").Movie[] }) => (
+			{filteredMovies.length === 0 && (filterType === "search" || filterType === "movie") ? (
+				<div className="mt-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-8 text-center">
+					<h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No films found</h3>
+					<p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+						We couldn&apos;t find a film matching your search.
+					</p>
+					<p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+						Use the <span className="font-medium">+</span> next to your profile image to add a movie by TMDB ID.
+					</p>
+					<button
+						onClick={() => setShowAddMovieModal(true)}
+						className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+					>
+						<Plus className="w-4 h-4" />
+						Add movie by TMDB ID
+					</button>
+				</div>
+			) : (
+				groupedMovies.map(({ key, movies }: { key: string; movies: import("@/types/types").Movie[] }) => (
 					<div key={key} className="mb-10">
 						{groupBy !== "none" && (
 							<h2
@@ -342,8 +285,7 @@ export default function FilmsPage() {
 							</div>
 						)}
 					</div>
-				))}
-				</>
+				))
 			)}
 
 			{/* Movie Detail Modal */}
@@ -367,6 +309,14 @@ export default function FilmsPage() {
 					onAuthSuccess={handleAuthSuccess}
 				/>
 			)}
+			<AddMovieByTmdbModal
+				isOpen={showAddMovieModal}
+				onClose={() => setShowAddMovieModal(false)}
+				onImported={() => {
+					setShowAddMovieModal(false);
+					router.refresh();
+				}}
+			/>
 		</div>
 	);
 }

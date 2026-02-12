@@ -10,10 +10,7 @@ export type AwardsTabKey =
 
 export function AwardsTabs({ value, onChange }: { value: AwardsTabKey; onChange: (v: AwardsTabKey) => void }) {
   const tabs: { key: AwardsTabKey; label: string; separator?: boolean }[] = [
-    { key: "best-picture", label: "Best Picture", separator: true },
-    { key: "best-animated", label: "Best Animated" },
-    { key: "best-comedy", label: "Best Comedy" },
-    { key: "best-blockbuster", label: "Best Blockbuster" },
+    { key: "best-picture", label: "Best Picture" },
   ];
 
   return (

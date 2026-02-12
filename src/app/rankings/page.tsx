@@ -24,7 +24,6 @@ import {
   groupMovies,
 } from "@/utils/sharedMovieUtils";
 import MovieFilters from "@/components/filters/MovieFilters";
-import RankingsStats from "@/components/rankings/RankingsStats";
 import HotTakeIndicator from "@/components/rankings/HotTakeIndicator";
 import { getRatingDefinition } from "@/lib/ratingScale";
 
@@ -122,21 +121,6 @@ export default function RankingsPage() {
   
   const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search">("none");
   const [filterValue, setFilterValue] = useState<string>("all");
-  const [selectedRating, setSelectedRating] = useState<number | null>(null);
-
-  // Handle rating filter from bar graph
-  const handleRatingClick = (rating: number) => {
-    if (selectedRating === rating) {
-      // Toggle off if clicking same rating
-      setSelectedRating(null);
-      setFilterType("none");
-      setFilterValue("all");
-    } else {
-      setSelectedRating(rating);
-      setFilterType("rank");
-      setFilterValue(String(rating));
-    }
-  };
 
   // Apply preset from nav search (?movie=<id> or ?query=)
   useEffect(() => {
@@ -316,9 +300,6 @@ export default function RankingsPage() {
           onLoginClick={handleLoginClick} 
         />
       )}
-
-      {/* Rankings Statistics */}
-      <RankingsStats movies={moviesWithRankings} onRatingClick={handleRatingClick} />
 
       {/* Tab Navigation */}
       <div className="mb-6 flex gap-2 border-b border-gray-700">

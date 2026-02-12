@@ -47,6 +47,7 @@ export default function SignupModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  const [emailOptIn, setEmailOptIn] = useState(false);
   const router = useRouter();
   const { showToast } = useGlobalToast();
 
@@ -79,6 +80,9 @@ export default function SignupModal({
         options: {
           // Use auth callback to exchange code and then redirect to rankings
           emailRedirectTo: buildSiteUrl("/auth/callback?next=/rankings") || undefined,
+          data: {
+            email_opt_in: emailOptIn,
+          },
         },
       });
       if (error) {
@@ -137,6 +141,7 @@ export default function SignupModal({
     setConfirmPassword("");
     setShowPassword(false);
     setShowConfirmPassword(false);
+    setEmailOptIn(false);
     setError(null);
     setEmailSent(false);
   };
@@ -343,6 +348,15 @@ export default function SignupModal({
                   </button>
                 </div>
               </div>
+              <label className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={emailOptIn}
+                  onChange={(e) => setEmailOptIn(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span>Send me product updates by email (optional).</span>
+              </label>
 
               {error && (
                 <div className="p-3 text-sm bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg">

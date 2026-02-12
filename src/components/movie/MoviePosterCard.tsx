@@ -4,7 +4,6 @@ import { useState } from "react";
 import Image from "next/image";
 import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
 import { normalizeImageUrl } from "@/utils/imageUrl";
-import { Eye, EyeOff } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
 import RankingDropdown from "@/components/movie/RankingDropdown";
@@ -71,6 +70,17 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
     }
   };
 
+  const numericVariance = (() => {
+    if (!ratingLabel) return null;
+    const clean = ratingLabel.trim();
+    const parsed = Number(clean);
+    if (!Number.isFinite(parsed)) return null;
+    return parsed;
+  })();
+
+  const showVariancePill = numericVariance !== null && numericVariance !== 0;
+  const isPositiveVariance = (numericVariance ?? 0) > 0;
+
   return (
     <div
       className={`group relative flex flex-col overflow-visible rounded-lg ${onClick ? 'cursor-pointer' : ''} light-glass dark:dark-glass border border-gray-300/40`}
@@ -113,9 +123,30 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
               onChange={(value) => onUpdate(movie.id, { ranking: value })}
             />
             {ratingLabel && (
-              <span className="mt-0.5 text-[10px] leading-tight text-gray-300">
-                {ratingLabel}
-              </span>
+              showVariancePill ? (
+                <span
+                  className={`mt-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold leading-tight ${
+                    isPositiveVariance
+                      ? "bg-green-500/20 text-green-300 border border-green-500/30"
+                      : "bg-red-500/20 text-red-300 border border-red-500/30"
+                  }`}
+                >
+                  {isPositiveVariance ? (
+                    <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M1 11L5 7L8 10L14 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M1 5L5 9L8 6L14 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                  <span>{ratingLabel}</span>
+                </span>
+              ) : (
+                <span className="mt-0.5 text-[10px] leading-tight text-gray-300">
+                  {ratingLabel}
+                </span>
+              )
             )}
           </div>
         </div>

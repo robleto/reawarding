@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import EditableYearSection from "@/components/award/EditableYearSection";
-import { AwardsTabs, AwardsTabKey } from "@/components/award/AwardsTabs";
 import AwardsEmptyState from "@/components/award/AwardsEmptyState";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
@@ -10,241 +9,203 @@ import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
 import type { Movie } from "@/types/types";
 
 interface YearData {
-	year: string;
-	winner: Movie | undefined;
-	nominees: Movie[];
-	allMovies: Movie[]; // All movies for the year
+  year: string;
+  winner: Movie | undefined;
+  nominees: Movie[];
+  allMovies: Movie[];
 }
 
 export default function AwardsPage() {
-	const { movies, loading, isGuest, hasMounted } = useMovieDataWithGuest();
-	const [tab, setTab] = useState<AwardsTabKey>("best-picture");
-	const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());
-	const observerRef = useRef<IntersectionObserver | null>(null);
-	// Derived year data instead of storing in state to avoid stale tab/category mismatches
-	const formattedYears = useMemo<YearData[]>(() => {
-		if (!hasMounted || movies.length === 0) return [];
+  const { movies, loading, isGuest, hasMounted } = useMovieDataWithGuest();
+  const tab = "best-picture" as const;
+  const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const yearElementsRef = useRef<Record<string, HTMLDivElement | null>>({});
 
-		// Base: require a ranking
-		let moviesWithRankings = movies.filter(
-			(movie) => movie.rankings && movie.rankings.length > 0 && movie.rankings[0].ranking !== null
-		);
+  const formattedYears = useMemo<YearData[]>(() => {
+    if (!hasMounted || movies.length === 0) return [];
 
-		// Filter by selected tab/category
-		const hasGenre = (m: Movie, needle: string) =>
-			Array.isArray(m.genres) && m.genres.some((g) => String(g ?? '').toLowerCase().includes(needle));
-		
-		// Helper to identify action/blockbuster films (Golden Globes Cinematic Achievement style)
-		const isActionBlockbuster = (m: Movie) => 
-			hasGenre(m, "action") || 
-			hasGenre(m, "adventure") || 
-			hasGenre(m, "superhero") || 
-			hasGenre(m, "sci-fi") || 
-			hasGenre(m, "science fiction") || 
-			hasGenre(m, "fantasy");
-		
-		switch (tab) {
-		case "best-animated":
-			moviesWithRankings = moviesWithRankings.filter((m) => hasGenre(m, "animation") || hasGenre(m, "animated"));
-			break;
-		case "best-comedy":
-			moviesWithRankings = moviesWithRankings.filter((m) => 
-				hasGenre(m, "comedy") && 
-				!hasGenre(m, "animation") && 
-				!hasGenre(m, "animated")
-			);
-			break;
-		case "best-blockbuster":
-			moviesWithRankings = moviesWithRankings.filter((m) => 
-				isActionBlockbuster(m) && 
-				!hasGenre(m, "animation") && 
-				!hasGenre(m, "animated") &&
-				!hasGenre(m, "comedy")
-			);
-			break;
-		case "best-picture":
-		default:
-			// Best Picture: NO genre filtering. Return full ranked movie set.
-				break;
-		}
+    const moviesWithRankings = movies.filter(
+      (movie) => movie.rankings && movie.rankings.length > 0 && movie.rankings[0].ranking !== null
+    );
 
-		const groupedByYear = moviesWithRankings.reduce<Record<string, Movie[]>>(
-			(acc, movie) => {
-				const year = String(movie.release_year);
-				if (!acc[year]) acc[year] = [];
-				acc[year].push(movie);
-				return acc;
-			},
-			{}
-		);
+    const groupedByYear = moviesWithRankings.reduce<Record<string, Movie[]>>((acc, movie) => {
+      const year = String(movie.release_year);
+      if (!acc[year]) acc[year] = [];
+      acc[year].push(movie);
+      return acc;
+    }, {});
 
-		const years: YearData[] = Object.entries(groupedByYear)
-			.map(([year, moviesInYear]) => {
-				// Sort by ranking DESC
-				const sorted = [...moviesInYear].sort(
-					(a, b) => (b.rankings[0]?.ranking ?? 0) - (a.rankings[0]?.ranking ?? 0)
-				);
+    return Object.entries(groupedByYear)
+      .map(([year, moviesInYear]) => {
+        const sorted = [...moviesInYear].sort(
+          (a, b) => (b.rankings[0]?.ranking ?? 0) - (a.rankings[0]?.ranking ?? 0)
+        );
 
-				// Default nominees logic
-				const rankingThreshold = tab === "best-picture" ? 7 : 5;
-				const highRanked = sorted.filter((m) => (m.rankings[0]?.ranking ?? 0) >= rankingThreshold).slice(0, 10);
-				let defaultNominees: Movie[] = highRanked;
-				// Only fill to 10 nominees for non-Best-Picture categories
-				if (tab !== "best-picture" && defaultNominees.length < 10) {
-					const remaining = sorted
-						.filter((m) => !defaultNominees.includes(m))
-						.slice(0, 10 - defaultNominees.length);
-					defaultNominees = [...defaultNominees, ...remaining];
-				}
+        const defaultNominees = sorted
+          .filter((movie) => (movie.rankings[0]?.ranking ?? 0) >= 7)
+          .slice(0, 10);
 
-				const defaultWinner =
-					tab === "best-picture"
-						? (defaultNominees.length > 0 ? defaultNominees[0] : sorted[0])
-						: (defaultNominees.length > 0 ? defaultNominees[0] : sorted[0]);
+        const defaultWinner = defaultNominees.length > 0 ? defaultNominees[0] : sorted[0];
 
-				return {
-					year,
-					winner: defaultWinner,
-					nominees: defaultNominees,
-					allMovies: sorted,
-				};
-			})
-			.filter((yearData) => yearData.allMovies.length >= 1)
-			.sort((a, b) => Number(b.year) - Number(a.year));
+        return {
+          year,
+          winner: defaultWinner,
+          nominees: defaultNominees,
+          allMovies: sorted,
+        };
+      })
+      .filter((yearData) => yearData.allMovies.length >= 1)
+      .sort((a, b) => Number(b.year) - Number(a.year));
+  }, [movies, hasMounted]);
 
-		return years;
-	}, [movies, tab, hasMounted]);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
 
-	// Debug: aggregate total movies after category filter
-	const totalFiltered = useMemo(() => {
-		return formattedYears.reduce((acc, y) => acc + y.allMovies.length, 0);
-	}, [formattedYears]);
+  const handleSignupClick = () => {
+    setAuthMode("signup");
+    setShowAuthModal(true);
+  };
 
-// Debug metric removed for simplicity after revert
+  const handleLoginClick = () => {
+    setAuthMode("login");
+    setShowAuthModal(true);
+  };
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
-	const [showAuthModal, setShowAuthModal] = useState(false);
-	const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const year = entry.target.getAttribute("data-year");
+          if (year && entry.isIntersecting) {
+            setVisibleYears((prev) => new Set(prev).add(year));
+          }
+        });
+      },
+      {
+        rootMargin: "400px",
+        threshold: 0,
+      }
+    );
 
-	const handleSignupClick = () => {
-		setAuthMode("signup");
-		setShowAuthModal(true);
-	};
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, []);
 
-	const handleLoginClick = () => {
-		setAuthMode("login");
-		setShowAuthModal(true);
-	};
+  const yearContainerRef = useCallback((element: HTMLDivElement | null, year: string) => {
+    yearElementsRef.current[year] = element;
+    if (!element || !observerRef.current) return;
+    observerRef.current.observe(element);
+  }, []);
 
-	// Initialize intersection observer for lazy loading year sections
-	useEffect(() => {
-		if (typeof window === 'undefined') return;
+  useEffect(() => {
+    let mounted = true;
+    let cleanup = () => {};
 
-		observerRef.current = new IntersectionObserver(
-			(entries) => {
-				entries.forEach((entry) => {
-					const year = entry.target.getAttribute('data-year');
-					if (year) {
-						if (entry.isIntersecting) {
-							setVisibleYears((prev) => new Set(prev).add(year));
-						}
-					}
-				});
-			},
-			{
-				rootMargin: '400px', // Load sections 400px before they enter viewport
-				threshold: 0,
-			}
-		);
+    (async () => {
+      const [{ gsap }, { ScrollTrigger }] = await Promise.all([
+        import("gsap"),
+        import("gsap/ScrollTrigger"),
+      ]);
 
-		return () => {
-			if (observerRef.current) {
-				observerRef.current.disconnect();
-			}
-		};
-	}, []);
+      if (!mounted) return;
 
-	// Observe year container refs
-	const yearContainerRef = useCallback((element: HTMLDivElement | null, year: string) => {
-		if (!element || !observerRef.current) return;
-		observerRef.current.observe(element);
-	}, []);
+      gsap.registerPlugin(ScrollTrigger);
 
+      const orderedElements = formattedYears
+        .map((yearData) => yearElementsRef.current[yearData.year])
+        .filter((el): el is HTMLDivElement => Boolean(el));
 
-	if (loading) {
-		return (
-			<div className="flex items-center justify-center min-h-[400px]">
-				<div className="text-center">
-					<div className="w-12 h-12 mx-auto mb-4 border-b-2 border-blue-600 rounded-full animate-spin dark:border-blue-400"></div>
-					<p className="text-gray-600 dark:text-gray-300">Loading your awards...</p>
-				</div>
-			</div>
-		);
-	}
+      const triggers = orderedElements.slice(1).map((currentEl, index) => {
+        const prevEl = orderedElements[index];
+        return ScrollTrigger.create({
+          trigger: currentEl,
+          start: "top 72%",
+          end: "top 40%",
+          onEnter: () => {
+            gsap.to(prevEl, { y: -26, scale: 0.985, duration: 0.35, ease: "power2.out" });
+          },
+          onLeaveBack: () => {
+            gsap.to(prevEl, { y: 0, scale: 1, duration: 0.35, ease: "power2.out" });
+          },
+        });
+      });
 
-	// Count total rated movies for empty state
-	const totalRatedMovies = movies.filter(
-		(movie) => movie.rankings && movie.rankings.length > 0 && movie.rankings[0].ranking !== null
-	).length;
+      cleanup = () => {
+        triggers.forEach((trigger) => trigger.kill());
+        gsap.set(orderedElements, { clearProps: "transform" });
+      };
 
-	// Show empty state if no years have enough movies
-	if (formattedYears.length === 0) {
-		return (
-			<AwardsEmptyState ratedMoviesCount={totalRatedMovies} />
-		);
-	}
+      ScrollTrigger.refresh();
+    })();
 
-	return (
-		<>
-			{/* Unified Banner System for Guests */}
-			{isGuest && (
-				<UnifiedBanner 
-					onSignupClick={handleSignupClick} 
-					onLoginClick={handleLoginClick} 
-				/>
-			)}
+    return () => {
+      mounted = false;
+      cleanup();
+    };
+  }, [formattedYears]);
 
-			{/* Awards section tabs */}
-			<div className="max-w-screen-xl mx-auto px-2 sm:px-4">
-				<AwardsTabs value={tab} onChange={setTab} />
-			</div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-4 border-b-2 border-blue-600 rounded-full animate-spin dark:border-blue-400" />
+          <p className="text-gray-600 dark:text-gray-300">Loading your awards...</p>
+        </div>
+      </div>
+    );
+  }
 
+  const totalRatedMovies = movies.filter(
+    (movie) => movie.rankings && movie.rankings.length > 0 && movie.rankings[0].ranking !== null
+  ).length;
 
+  if (formattedYears.length === 0) {
+    return <AwardsEmptyState ratedMoviesCount={totalRatedMovies} />;
+  }
 
-			<div className="max-w-screen-xl mx-auto">
-				{formattedYears.map((yearData) => {
-					const isVisible = visibleYears.has(yearData.year);
-					return (
-						<div
-							key={`${yearData.year}-${tab}`}
-							data-year={yearData.year}
-							ref={(el) => yearContainerRef(el, yearData.year)}
-							style={{ minHeight: isVisible ? 'auto' : '600px' }}
-						>
-							{isVisible ? (
-								<EditableYearSection
-									year={yearData.year}
-									winner={yearData.winner}
-									movies={yearData.nominees}
-									allMoviesForYear={yearData.allMovies}
-									category={tab}
-								/>
-							) : (
-								<div className="flex items-center justify-center" style={{ minHeight: '600px' }}>
-									<div className="text-gray-400 text-sm">Loading {yearData.year}...</div>
-								</div>
-							)}
-						</div>
-					);
-				})}
-			</div>
+  return (
+    <>
+      {isGuest && <UnifiedBanner onSignupClick={handleSignupClick} onLoginClick={handleLoginClick} />}
 
-			{/* Auth Modal */}
-			<AuthModalManager
-				isOpen={showAuthModal}
-				onClose={() => setShowAuthModal(false)}
-				initialMode={authMode}
-			/>
-		</>
-	);
+      <div className="max-w-screen-xl mx-auto">
+        {formattedYears.map((yearData) => {
+          const isVisible = visibleYears.has(yearData.year);
+          return (
+            <div
+              key={`${yearData.year}-${tab}`}
+              data-year={yearData.year}
+              ref={(el) => yearContainerRef(el, yearData.year)}
+              style={{ minHeight: isVisible ? "auto" : "600px" }}
+            >
+              {isVisible ? (
+                <EditableYearSection
+                  year={yearData.year}
+                  winner={yearData.winner}
+                  movies={yearData.nominees}
+                  allMoviesForYear={yearData.allMovies}
+                  category={tab}
+                />
+              ) : (
+                <div className="flex items-center justify-center" style={{ minHeight: "600px" }}>
+                  <div className="text-gray-400 text-sm">Loading {yearData.year}...</div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <AuthModalManager
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialMode={authMode}
+      />
+    </>
+  );
 }
