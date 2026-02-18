@@ -40,8 +40,6 @@ interface Props {
   onEditingChange?: (editing: boolean) => void;
 }
 
-const INITIAL_LOAD = 24;
-
 export default function YearExplorer({
   year,
   allMovies,
@@ -56,7 +54,6 @@ export default function YearExplorer({
   const [isEditing, setIsEditing] = useState(false);
   const [yearMovies, setYearMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
-  const [visibleCount, setVisibleCount] = useState(INITIAL_LOAD);
   const [searchQuery, setSearchQuery] = useState("");
   const [showYearHelp, setShowYearHelp] = useState(false);
   const [recentlyNominated, setRecentlyNominated] = useState<Set<number>>(new Set());
@@ -148,7 +145,6 @@ export default function YearExplorer({
     }
 
     fetchYearMovies();
-    setVisibleCount(INITIAL_LOAD);
     setSearchQuery("");
   }, [year, allMovies]);
 
@@ -161,8 +157,10 @@ export default function YearExplorer({
   const contenderMovies = useMemo(
     () =>
       filteredYearMovies.filter((movie) => {
+        const seenIt = movie.rankings?.[0]?.seen_it === true;
         const ranking = movie.rankings?.[0]?.ranking;
         return (
+          seenIt &&
           typeof ranking === "number" &&
           ranking >= 5 &&
           !activeNomineeIdSet.has(movie.id)
@@ -171,19 +169,65 @@ export default function YearExplorer({
     [filteredYearMovies, activeNomineeIdSet]
   );
 
-  // "More" grid excludes both nominees AND contenders
-  const contenderIdSet = useMemo(
-    () => new Set(contenderMovies.map((m) => m.id)),
-    [contenderMovies]
+  const isAcclaimedMovie = useCallback((movie: Movie) => {
+    return (
+      (movie.tmdb_rating != null && movie.tmdb_rating >= 7) ||
+      (movie.imdb_rating != null && movie.imdb_rating >= 7) ||
+      (movie.metacritic_score != null && movie.metacritic_score >= 65)
+    );
+  }, []);
+
+  const acclaimedMovies = useMemo(
+    () =>
+      filteredYearMovies
+        .filter((movie) => {
+          const seenIt = movie.rankings?.[0]?.seen_it === true;
+          return !seenIt && !activeNomineeIdSet.has(movie.id) && isAcclaimedMovie(movie);
+        })
+        .sort((a, b) => {
+          const aScore = Math.max(a.tmdb_rating ?? 0, a.imdb_rating ?? 0, (a.metacritic_score ?? 0) / 10);
+          const bScore = Math.max(b.tmdb_rating ?? 0, b.imdb_rating ?? 0, (b.metacritic_score ?? 0) / 10);
+          if (bScore !== aScore) return bScore - aScore;
+          return ((b as any).vote_count ?? 0) - ((a as any).vote_count ?? 0);
+        }),
+    [filteredYearMovies, activeNomineeIdSet, isAcclaimedMovie]
   );
-  const moreMovies = useMemo(
-    () => filteredYearMovies.filter(
-      (m) => !activeNomineeIdSet.has(m.id) && !contenderIdSet.has(m.id)
-    ),
-    [filteredYearMovies, activeNomineeIdSet, contenderIdSet]
+
+  const acclaimedIdSet = useMemo(
+    () => new Set(acclaimedMovies.map((m) => m.id)),
+    [acclaimedMovies]
   );
-  const visibleMoreMovies = moreMovies.slice(0, visibleCount);
-  const hasMore = visibleCount < moreMovies.length;
+
+  const unseenMovies = useMemo(
+    () =>
+      filteredYearMovies.filter((movie) => {
+        const seenIt = movie.rankings?.[0]?.seen_it === true;
+        return !seenIt && !activeNomineeIdSet.has(movie.id) && !acclaimedIdSet.has(movie.id);
+      }),
+    [filteredYearMovies, activeNomineeIdSet, acclaimedIdSet]
+  );
+
+  const lowRatedMovies = useMemo(
+    () =>
+      filteredYearMovies
+        .filter((movie) => {
+          const seenIt = movie.rankings?.[0]?.seen_it === true;
+          const ranking = movie.rankings?.[0]?.ranking;
+          return (
+            seenIt &&
+            typeof ranking === "number" &&
+            ranking < 5 &&
+            !activeNomineeIdSet.has(movie.id)
+          );
+        })
+        .sort((a, b) => {
+          const aRanking = a.rankings?.[0]?.ranking ?? 0;
+          const bRanking = b.rankings?.[0]?.ranking ?? 0;
+          if (aRanking !== bRanking) return aRanking - bRanking;
+          return a.title.localeCompare(b.title);
+        }),
+    [filteredYearMovies, activeNomineeIdSet]
+  );
 
   const focusContenders = useCallback(() => {
     contendersSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -215,30 +259,6 @@ export default function YearExplorer({
     [onUpdateMovieRanking, onCreateAward, activeNomineeIdSet, displayNomineeCount]
   );
 
-  const nominateFromGrid = useCallback(
-    (movie: Movie) => {
-      if (activeNomineeIdSet.has(movie.id)) return;
-      if (displayNomineeCount >= 10) return;
-
-      // Flash green check confirmation
-      setRecentlyNominated((prev) => new Set(prev).add(movie.id));
-      setTimeout(() => {
-        setRecentlyNominated((prev) => {
-          const next = new Set(prev);
-          next.delete(movie.id);
-          return next;
-        });
-      }, 1200);
-
-      if (workshopRef.current) {
-        workshopRef.current.addNominee(movie);
-      } else {
-        onCreateAward(movie);
-      }
-    },
-    [onCreateAward, activeNomineeIdSet, displayNomineeCount]
-  );
-
   useEffect(() => {
     if (displayNomineeCount >= 10) return;
     for (const movie of contenderMovies) {
@@ -254,6 +274,69 @@ export default function YearExplorer({
       }
     }
   }, [contenderMovies, activeNomineeIdSet, displayNomineeCount, onCreateAward]);
+
+  const renderMovieRow = useCallback(
+    (rowTitle: string, movies: Movie[], rowKey: string, attachRef = false) => {
+      if (movies.length === 0) return null;
+
+      return (
+        <div className="mb-6" ref={attachRef ? contendersSectionRef : undefined}>
+          <p className="text-xs uppercase tracking-wide text-gray-400 font-medium mb-2">
+            {rowTitle}
+          </p>
+          <div className="flex gap-3 overflow-x-auto pb-2 pr-1">
+            {movies.map((movie) => {
+              const justNominated = recentlyNominated.has(movie.id);
+              const canNominate = !activeNomineeIdSet.has(movie.id) && displayNomineeCount < 10;
+
+              return (
+                <div key={`${rowKey}-${movie.id}`} className="group relative w-[120px] sm:w-[140px] md:w-[160px] shrink-0">
+                  {justNominated ? (
+                    <div className="absolute inset-0 z-30 rounded-lg bg-emerald-900/70 flex flex-col items-center justify-center pointer-events-none animate-in fade-in duration-200">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center mb-1.5">
+                        <Check className="w-5 h-5 text-white" />
+                      </div>
+                      <span className="text-xs font-semibold text-emerald-200">Nominated</span>
+                    </div>
+                  ) : canNominate ? (
+                    <>
+                      <div className="absolute inset-0 z-20 rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          promoteToNominee(movie);
+                        }}
+                        className="absolute inset-x-0 top-0 z-30 h-8 flex items-center justify-center rounded-t-lg bg-black/70 text-amber-200 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        + Nominate
+                      </button>
+                    </>
+                  ) : null}
+
+                  <MoviePosterCard
+                    movie={movie}
+                    currentUserId={currentUserId}
+                    ranking={movie.rankings?.[0]?.ranking ?? null}
+                    seenIt={movie.rankings?.[0]?.seen_it ?? false}
+                    onUpdate={onUpdateMovieRanking}
+                    onClick={() => setSelectedMovie(movie)}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    },
+    [
+      activeNomineeIdSet,
+      currentUserId,
+      displayNomineeCount,
+      onUpdateMovieRanking,
+      promoteToNominee,
+      recentlyNominated,
+    ]
+  );
 
   // ─── Sticky nominee strip visibility ───────────────────────────
   useEffect(() => {
@@ -402,7 +485,6 @@ export default function YearExplorer({
                 value={searchQuery}
                 onChange={(event) => {
                   setSearchQuery(event.target.value);
-                  setVisibleCount(INITIAL_LOAD);
                 }}
                 placeholder={`Filter ${year} movies...`}
                 className="w-full rounded-lg border border-gray-700/50 bg-gray-900/60 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500/40"
@@ -410,56 +492,10 @@ export default function YearExplorer({
             </div>
           </div>
 
-          {/* ─── Contenders from {year} (Rating 5+) — flex grid ─── */}
-          {contenderMovies.length > 0 && (
-            <div className="mb-6" ref={contendersSectionRef}>
-              <p className="text-xs uppercase tracking-wide text-gray-400 font-medium mb-2">
-                Contenders from {year} (Rating 5+)
-              </p>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                {contenderMovies.map((movie) => {
-                  const justNominated = recentlyNominated.has(movie.id);
-                  const canNominate = !activeNomineeIdSet.has(movie.id) && displayNomineeCount < 10;
-
-                  return (
-                    <div key={`contender-${movie.id}`} className="group relative">
-                      {/* Nominate button spanning top */}
-                      {justNominated ? (
-                        <div className="absolute inset-0 z-30 rounded-lg bg-emerald-900/70 flex flex-col items-center justify-center pointer-events-none animate-in fade-in duration-200">
-                          <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center mb-1.5">
-                            <Check className="w-5 h-5 text-white" />
-                          </div>
-                          <span className="text-xs font-semibold text-emerald-200">Nominated</span>
-                        </div>
-                      ) : canNominate ? (
-                        <>
-                          <div className="absolute inset-0 z-20 rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              promoteToNominee(movie);
-                            }}
-                            className="absolute inset-x-0 top-0 z-30 h-8 flex items-center justify-center rounded-t-lg bg-black/70 text-amber-200 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            + Nominate
-                          </button>
-                        </>
-                      ) : null}
-
-                      <MoviePosterCard
-                        movie={movie}
-                        currentUserId={currentUserId}
-                        ranking={Math.round(movie.rankings?.[0]?.ranking ?? 0)}
-                        seenIt={movie.rankings?.[0]?.seen_it ?? false}
-                        onUpdate={onUpdateMovieRanking}
-                        onClick={() => setSelectedMovie(movie)}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {renderMovieRow("Contenders (movies seen rated 5+)", contenderMovies, "contenders", true)}
+          {renderMovieRow("Acclaimed (unseen movies of high esteem)", acclaimedMovies, "acclaimed")}
+          {renderMovieRow("Unseen (unseen movies from this year)", unseenMovies, "unseen")}
+          {renderMovieRow("Low-Rated (movies seen rated below 5)", lowRatedMovies, "low-rated")}
 
           {/* Loading skeleton */}
           {loading && (
@@ -483,77 +519,6 @@ export default function YearExplorer({
                 Search by name above to find one.
               </p>
             </div>
-          )}
-
-          {/* ─── More {year} Movies — flex grid, excludes nominees + contenders ─── */}
-          {!loading && moreMovies.length > 0 && (
-            <>
-              <p className="text-xs uppercase tracking-wide text-gray-400 font-medium mb-2">
-                More {year} Movies
-              </p>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                {visibleMoreMovies.map((movie) => {
-                  const r = movie.rankings?.[0];
-                  const rating = r?.ranking;
-                  const isOnePointAway = typeof rating === "number" && rating >= 6 && rating < 7;
-                  const justNominated = recentlyNominated.has(movie.id);
-                  const canNominate = displayNomineeCount < 10;
-
-                  return (
-                    <div key={movie.id} className="group relative">
-                      {/* Nominate button spanning top */}
-                      {justNominated ? (
-                        <div className="absolute inset-0 z-30 rounded-lg bg-emerald-900/70 flex flex-col items-center justify-center pointer-events-none animate-in fade-in duration-200">
-                          <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center mb-1.5">
-                            <Check className="w-5 h-5 text-white" />
-                          </div>
-                          <span className="text-xs font-semibold text-emerald-200">Nominated</span>
-                        </div>
-                      ) : canNominate ? (
-                        <>
-                          <div className="absolute inset-0 z-20 rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              nominateFromGrid(movie);
-                            }}
-                            className="absolute inset-x-0 top-0 z-30 h-8 flex items-center justify-center rounded-t-lg bg-black/70 text-amber-200 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            + Nominate
-                          </button>
-                        </>
-                      ) : null}
-
-                      {isOnePointAway && (
-                        <div className="absolute top-1 right-1 z-10 bg-amber-500/85 text-black text-[8px] font-semibold px-1.5 py-0.5 rounded-full">
-                          One point away
-                        </div>
-                      )}
-
-                      <div className={isOnePointAway ? "ring-1 ring-amber-500/40 rounded-lg" : ""}>
-                        <MoviePosterCard
-                          movie={movie}
-                          currentUserId={currentUserId}
-                          ranking={r?.ranking ?? null}
-                          seenIt={r?.seen_it ?? false}
-                          onUpdate={onUpdateMovieRanking}
-                          onClick={() => setSelectedMovie(movie)}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {hasMore && (
-                <button
-                  onClick={() => setVisibleCount((c) => c + INITIAL_LOAD)}
-                  className="mt-4 w-full py-2 text-sm text-gray-400 hover:text-gray-200 bg-gray-800/50 hover:bg-gray-800/80 rounded-lg transition-colors"
-                >
-                  Load more ({moreMovies.length - visibleCount} remaining)
-                </button>
-              )}
-            </>
           )}
 
           {!loading && filteredYearMovies.length === 0 && (
