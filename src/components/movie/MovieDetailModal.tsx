@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
 import Image from "next/image";
-import { X, Eye, EyeOff, Film, Clock, Users, Clapperboard, ExternalLink, Copy } from "lucide-react";
+import { Minimize2, Eye, EyeOff, Film, Clock, Users, Clapperboard, ExternalLink, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import RankingDropdown from "@/components/movie/RankingDropdown";
 import type { Movie } from "@/types/types";
@@ -187,7 +187,7 @@ export default function MovieDetailModal({
               onClick={onClose}
               className="p-2 transition-colors rounded-full hover:bg-gray-700/50"
             >
-              <X className="w-6 h-6 text-gray-400 hover:text-white" />
+              <Minimize2 className="w-5 h-5 text-gray-400 hover:text-white" />
             </button>
           </div>
         </div>
