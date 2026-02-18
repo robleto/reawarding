@@ -1,14 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useUser } from "@supabase/auth-helpers-react";
 import Image from "next/image";
-import { Minimize2, Eye, EyeOff, Film, Clock, Users, Clapperboard, ExternalLink, Copy } from "lucide-react";
+import { X, Maximize2, Eye, EyeOff, Film, Clock, Users, Clapperboard, ExternalLink, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import RankingDropdown from "@/components/movie/RankingDropdown";
 import type { Movie } from "@/types/types";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { slugifyTitle } from "@/utils/slug";
 
 interface MovieDetailModalProps {
   movie: Movie;
@@ -44,6 +46,7 @@ export default function MovieDetailModal({
   initialSeenIt = false,
 }: MovieDetailModalProps) {
   const user = useUser();
+  const router = useRouter();
   const { isAdmin } = useIsAdmin();
   const [seenIt, setSeenIt] = useState(initialSeenIt);
   const [ranking, setRanking] = useState(initialRanking);
@@ -182,12 +185,20 @@ export default function MovieDetailModal({
             </h2>
             <p className="text-gray-400 text-md">{movie.release_year}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => router.push(`/films/${slugifyTitle(movie.title)}/${movie.id}`)}
+              className="p-2 transition-colors rounded-full hover:bg-gray-700/50"
+              title="Open full film page"
+            >
+              <Maximize2 className="w-4 h-4 text-gray-400 hover:text-white" />
+            </button>
             <button
               onClick={onClose}
               className="p-2 transition-colors rounded-full hover:bg-gray-700/50"
+              title="Close"
             >
-              <Minimize2 className="w-5 h-5 text-gray-400 hover:text-white" />
+              <X className="w-5 h-5 text-gray-400 hover:text-white" />
             </button>
           </div>
         </div>
