@@ -11,11 +11,25 @@ interface GuestRanking {
   timestamp: number;
 }
 
+/**
+ * Guest award — v1 simplification: keyed by year, category always "best-picture".
+ */
+export interface GuestAward {
+  year: number;
+  category: 'best-picture';
+  winnerId: number;
+  nomineeIds: number[];
+  source: 'seed_pick' | 'ranking_calc' | 'manual';
+  revisionNumber: number;
+  timestamp: number;
+}
+
 interface GuestRankingStore {
   rankings: Record<number, GuestRanking>;
+  awards: Record<number, GuestAward>;
   hasInteracted: boolean;
-  
-  // Actions
+
+  // Ranking actions
   setRanking: (movieId: number, ranking: number | null) => void;
   setSeenIt: (movieId: number, seenIt: boolean) => void;
   updateRanking: (movieId: number, updates: { ranking?: number | null; seenIt?: boolean }) => void;
@@ -24,12 +38,38 @@ interface GuestRankingStore {
   getAllRankings: () => GuestRanking[];
   getInteractionCount: () => number;
   hasGuestInteracted: () => boolean;
+
+  // Award actions
+  setAward: (year: number, winnerId: number, nomineeIds: number[], source: GuestAward['source']) => void;
+  getAward: (year: number) => GuestAward | null;
+  getAllAwards: () => GuestAward[];
+  getAwardCount: () => number;
+  removeAward: (year: number) => void;
 }
+
+/**
+ * Detect localStorage availability (Safari private browsing, storage full, etc.)
+ * Falls back to in-memory-only mode if unavailable.
+ */
+function isLocalStorageAvailable(): boolean {
+  try {
+    const testKey = '__oscarworthy_ls_test__';
+    localStorage.setItem(testKey, '1');
+    localStorage.removeItem(testKey);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const localStorageAvailable = typeof window !== 'undefined' ? isLocalStorageAvailable() : true;
+const STORAGE_WARNING_SESSION_KEY = "oscarworthy_storage_warning_shown";
 
 const useGuestRankingStore = create<GuestRankingStore>()(
   persist(
     (set, get) => ({
       rankings: {},
+      awards: {},
       hasInteracted: false,
       
       setRanking: (movieId: number, ranking: number | null) => {
@@ -102,10 +142,11 @@ const useGuestRankingStore = create<GuestRankingStore>()(
         const state = get();
         return state.rankings[movieId] || null;
       },
-      
+
       clearAllData: () => {
         set({
           rankings: {},
+          awards: {},
           hasInteracted: false,
         });
         // Also clear the save prompt dismissal when rankings are cleared
@@ -113,43 +154,111 @@ const useGuestRankingStore = create<GuestRankingStore>()(
           localStorage.removeItem("oscarworthy-save-prompt-dismissed");
         }
       },
-      
+
       getAllRankings: () => {
         const state = get();
         return Object.values(state.rankings);
       },
-      
+
       getInteractionCount: () => {
         const state = get();
         return Object.keys(state.rankings).length;
       },
-      
+
       hasGuestInteracted: () => {
         const state = get();
         return state.hasInteracted;
       },
+
+      // Award actions
+      setAward: (year: number, winnerId: number, nomineeIds: number[], source: GuestAward['source']) => {
+        set((state) => {
+          const existing = state.awards[year];
+          const revisionNumber = existing ? existing.revisionNumber + 1 : 1;
+          return {
+            awards: {
+              ...state.awards,
+              [year]: {
+                year,
+                category: 'best-picture' as const,
+                winnerId,
+                nomineeIds,
+                source,
+                revisionNumber,
+                timestamp: Date.now(),
+              },
+            },
+            hasInteracted: true,
+          };
+        });
+      },
+
+      getAward: (year: number) => {
+        const state = get();
+        return state.awards[year] || null;
+      },
+
+      getAllAwards: () => {
+        const state = get();
+        return Object.values(state.awards);
+      },
+
+      getAwardCount: () => {
+        const state = get();
+        return Object.keys(state.awards).length;
+      },
+
+      removeAward: (year: number) => {
+        set((state) => {
+          const { [year]: _, ...rest } = state.awards;
+          return { awards: rest };
+        });
+      },
     }),
     {
       name: 'oscarworthy-guest-rankings',
-      storage: createJSONStorage(() => localStorage),
+      storage: localStorageAvailable
+        ? createJSONStorage(() => localStorage)
+        : createJSONStorage(() => ({
+            getItem: () => null,
+            setItem: () => {},
+            removeItem: () => {},
+          })),
     }
   )
 );
 
 export default useGuestRankingStore;
+export { localStorageAvailable };
+
+export function shouldShowStorageWarningOnce(): boolean {
+  if (typeof window === "undefined" || localStorageAvailable) return false;
+  return sessionStorage.getItem(STORAGE_WARNING_SESSION_KEY) !== "true";
+}
+
+export function markStorageWarningShown(): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(STORAGE_WARNING_SESSION_KEY, "true");
+}
 
 // Hook that provides the migration functionality with Supabase access
+/** Prevents concurrent migration runs (e.g., auth listener double-emit). */
+let migrationInFlight: Promise<{ success: boolean; migratedCount: number; error?: string }> | null = null;
+
 export function useGuestRankingStoreWithMigration() {
   const supabase = useSupabaseClient<Database>();
   const store = useGuestRankingStore();
-  
+
   const migrateToSupabase = async (userId: string) => {
+    // If a migration is already running, return its result instead of starting another
+    if (migrationInFlight) {
+      return migrationInFlight;
+    }
+
+    const doMigrate = async () => {
     try {
       const rankings = store.getAllRankings();
-      
-      if (rankings.length === 0) {
-        return { success: true, migratedCount: 0 };
-      }
+      const awards = store.getAllAwards();
       
       // Convert guest rankings to database format
       const rankingsToInsert = rankings.map((ranking) => ({
@@ -161,46 +270,83 @@ export function useGuestRankingStoreWithMigration() {
         updated_at: new Date().toISOString(),
       }));
 
-      console.log('[GuestMigration] Attempting to migrate guest rankings', {
-        count: rankingsToInsert.length,
-        payload: rankingsToInsert,
-      });
-      
-      // Insert rankings into the database
-      const { error, status } = await supabase
-        .from('rankings')
-        .upsert(rankingsToInsert, {
-          onConflict: 'user_id,movie_id',
-          ignoreDuplicates: false,
-        });
-      
-      if (error) {
-        console.error('[GuestMigration] Error migrating guest data:', error, {
-          status,
+      if (rankingsToInsert.length > 0) {
+        console.log('[GuestMigration] Attempting to migrate guest rankings', {
+          count: rankingsToInsert.length,
           payload: rankingsToInsert,
         });
-        return { success: false, migratedCount: 0, error: error.message };
+
+        // Insert rankings into the database
+        const { error, status } = await supabase
+          .from('rankings')
+          .upsert(rankingsToInsert, {
+            onConflict: 'user_id,movie_id',
+            ignoreDuplicates: false,
+          });
+
+        if (error) {
+          console.error('[GuestMigration] Error migrating guest data:', error, {
+            status,
+            payload: rankingsToInsert,
+          });
+          return { success: false, migratedCount: 0, error: error.message };
+        }
+
+        console.log('[GuestMigration] Successfully migrated guest rankings', {
+          count: rankingsToInsert.length,
+          status,
+        });
       }
-      
-      console.log('[GuestMigration] Successfully migrated guest rankings', {
-        count: rankingsToInsert.length,
-        status,
-      });
+
+      // Migrate guest awards
+      let awardsMigrated = 0;
+      for (const award of awards) {
+        try {
+          const res = await fetch('/api/awards', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              year: award.year,
+              category: award.category,
+              nominee_ids: award.nomineeIds,
+              winner_id: award.winnerId,
+              source: award.source,
+              revision_number: award.revisionNumber,
+            }),
+          });
+          if (res.ok) {
+            awardsMigrated++;
+          } else {
+            console.warn('[GuestMigration] Failed to migrate award for year', award.year);
+          }
+        } catch (e) {
+          console.warn('[GuestMigration] Error migrating award for year', award.year, e);
+        }
+      }
+      if (awardsMigrated > 0) {
+        console.log('[GuestMigration] Migrated guest awards', { count: awardsMigrated });
+      }
 
       // Clear guest data after successful migration
       store.clearAllData();
-      
-      return { success: true, migratedCount: rankingsToInsert.length };
+
+      return { success: true, migratedCount: rankingsToInsert.length + awardsMigrated };
     } catch (error) {
       console.error('[GuestMigration] Unexpected error migrating guest data:', error);
-      return { 
-        success: false, 
-        migratedCount: 0, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        migratedCount: 0,
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+    }; // end doMigrate
+
+    migrationInFlight = doMigrate().finally(() => {
+      migrationInFlight = null;
+    });
+    return migrationInFlight;
   };
-  
+
   return {
     ...store,
     migrateToSupabase,

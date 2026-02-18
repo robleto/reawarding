@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useParams } from "next/navigation";
 import EditableYearSection from "@/components/award/EditableYearSection";
-import AwardsEmptyState from "@/components/award/AwardsEmptyState";
-import UnifiedBanner from "@/components/auth/UnifiedBanner";
-import AuthModalManager from "@/components/auth/AuthModalManager";
-import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
+import { usePublicProfile } from "@/hooks/usePublicProfile";
 import type { Movie } from "@/types/types";
 
 interface YearData {
@@ -15,15 +13,16 @@ interface YearData {
   allMovies: Movie[];
 }
 
-export default function AwardsPage() {
-  const { movies, loading, isGuest, hasMounted } = useMovieDataWithGuest();
-  const tab = "best-picture" as const;
+export default function ProfileAwardsPage() {
+  const { username } = useParams<{ username: string }>();
+  const { movies, loading } = usePublicProfile(username);
+
   const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());
   const observerRef = useRef<IntersectionObserver | null>(null);
   const yearElementsRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   const formattedYears = useMemo<YearData[]>(() => {
-    if (!hasMounted || movies.length === 0) return [];
+    if (movies.length === 0) return [];
 
     const moviesWithRankings = movies.filter(
       (movie) => movie.rankings && movie.rankings.length > 0 && movie.rankings[0].ranking !== null
@@ -57,20 +56,7 @@ export default function AwardsPage() {
       })
       .filter((yearData) => yearData.allMovies.length >= 1)
       .sort((a, b) => Number(b.year) - Number(a.year));
-  }, [movies, hasMounted]);
-
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
-
-  const handleSignupClick = () => {
-    setAuthMode("signup");
-    setShowAuthModal(true);
-  };
-
-  const handleLoginClick = () => {
-    setAuthMode("login");
-    setShowAuthModal(true);
-  };
+  }, [movies]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -84,10 +70,7 @@ export default function AwardsPage() {
           }
         });
       },
-      {
-        rootMargin: "400px",
-        threshold: 0,
-      }
+      { rootMargin: "400px", threshold: 0 }
     );
 
     return () => {
@@ -97,12 +80,16 @@ export default function AwardsPage() {
     };
   }, []);
 
-  const yearContainerRef = useCallback((element: HTMLDivElement | null, year: string) => {
-    yearElementsRef.current[year] = element;
-    if (!element || !observerRef.current) return;
-    observerRef.current.observe(element);
-  }, []);
+  const yearContainerRef = useCallback(
+    (element: HTMLDivElement | null, year: string) => {
+      yearElementsRef.current[year] = element;
+      if (!element || !observerRef.current) return;
+      observerRef.current.observe(element);
+    },
+    []
+  );
 
+  // GSAP scroll animation
   useEffect(() => {
     let mounted = true;
     let cleanup = () => {};
@@ -112,9 +99,7 @@ export default function AwardsPage() {
         import("gsap"),
         import("gsap/ScrollTrigger"),
       ]);
-
       if (!mounted) return;
-
       gsap.registerPlugin(ScrollTrigger);
 
       const orderedElements = formattedYears
@@ -127,12 +112,8 @@ export default function AwardsPage() {
           trigger: currentEl,
           start: "top 72%",
           end: "top 40%",
-          onEnter: () => {
-            gsap.to(prevEl, { y: -26, scale: 0.985, duration: 0.35, ease: "power2.out" });
-          },
-          onLeaveBack: () => {
-            gsap.to(prevEl, { y: 0, scale: 1, duration: 0.35, ease: "power2.out" });
-          },
+          onEnter: () => gsap.to(prevEl, { y: -26, scale: 0.985, duration: 0.35, ease: "power2.out" }),
+          onLeaveBack: () => gsap.to(prevEl, { y: 0, scale: 1, duration: 0.35, ease: "power2.out" }),
         });
       });
 
@@ -140,7 +121,6 @@ export default function AwardsPage() {
         triggers.forEach((trigger) => trigger.kill());
         gsap.set(orderedElements, { clearProps: "transform" });
       };
-
       ScrollTrigger.refresh();
     })();
 
@@ -152,61 +132,55 @@ export default function AwardsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-[300px]">
         <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-4 border-b-2 border-blue-600 rounded-full animate-spin dark:border-blue-400" />
-          <p className="text-gray-600 dark:text-gray-300">Loading your awards...</p>
+          <div className="w-10 h-10 mx-auto mb-3 border-b-2 border-yellow-500 rounded-full animate-spin" />
+          <p className="text-gray-400 text-sm">Loading awards...</p>
         </div>
       </div>
     );
   }
 
-  const totalRatedMovies = movies.filter(
-    (movie) => movie.rankings && movie.rankings.length > 0 && movie.rankings[0].ranking !== null
-  ).length;
-
   if (formattedYears.length === 0) {
-    return <AwardsEmptyState ratedMoviesCount={totalRatedMovies} />;
+    return (
+      <div className="text-center py-16">
+        <h3 className="text-lg font-semibold text-white mb-2">No awards yet</h3>
+        <p className="text-gray-400 text-sm">
+          @{username} hasn&apos;t created any Best Picture awards yet.
+        </p>
+      </div>
+    );
   }
 
   return (
-    <>
-      {isGuest && <UnifiedBanner onSignupClick={handleSignupClick} onLoginClick={handleLoginClick} />}
-
-      <div className="max-w-screen-xl mx-auto">
-        {formattedYears.map((yearData) => {
-          const isVisible = visibleYears.has(yearData.year);
-          return (
-            <div
-              key={`${yearData.year}-${tab}`}
-              data-year={yearData.year}
-              ref={(el) => yearContainerRef(el, yearData.year)}
-              style={{ minHeight: isVisible ? "auto" : "600px" }}
-            >
-              {isVisible ? (
-                <EditableYearSection
-                  year={yearData.year}
-                  winner={yearData.winner}
-                  movies={yearData.nominees}
-                  allMoviesForYear={yearData.allMovies}
-                  category={tab}
-                  nomineeImageMode="poster"
-                />
-              ) : (
-                <div className="flex items-center justify-center" style={{ minHeight: "600px" }}>
-                  <div className="text-gray-400 text-sm">Loading {yearData.year}...</div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <AuthModalManager
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        initialMode={authMode}
-      />
-    </>
+    <div className="max-w-screen-xl mx-auto">
+      {formattedYears.map((yearData) => {
+        const isVisible = visibleYears.has(yearData.year);
+        return (
+          <div
+            key={yearData.year}
+            data-year={yearData.year}
+            ref={(el) => yearContainerRef(el, yearData.year)}
+            style={{ minHeight: isVisible ? "auto" : "600px" }}
+          >
+            {isVisible ? (
+              <EditableYearSection
+                year={yearData.year}
+                winner={yearData.winner}
+                movies={yearData.nominees}
+                allMoviesForYear={yearData.allMovies}
+                category="best-picture"
+                mode="view"
+                nomineeImageMode="poster"
+              />
+            ) : (
+              <div className="flex items-center justify-center" style={{ minHeight: "600px" }}>
+                <div className="text-gray-500 text-sm">Loading {yearData.year}...</div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }

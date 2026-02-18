@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { hasGuestInteracted, shouldShowSignupPrompt, getGuestInteractionCount } from "@/utils/guestMode";
+import { hasGuestInteracted, shouldShowSignupPrompt, getGuestInteractionCount, getGuestAwardCount } from "@/utils/guestMode";
 
 export type BannerType = 
   | 'welcome'           // First-time user welcome banner
@@ -34,25 +34,36 @@ export function useBannerPriority(): BannerPriorityState & {
     const hasInteracted = hasGuestInteracted();
     const shouldShowPrompt = shouldShowSignupPrompt();
     const count = getGuestInteractionCount();
+    const awardCount = getGuestAwardCount();
     const wasDismissedPermanently = localStorage.getItem(BANNER_DISMISSED_KEY) === "true";
     const wasDismissedThisSession = sessionStorage.getItem(BANNER_DISMISSED_SESSION_KEY) === "true";
-    
+
     // If user dismissed banners, show nothing
     if (wasDismissedPermanently || wasDismissedThisSession) {
       return 'none';
     }
 
-    // Priority 1: Returning user with significant data (5+ interactions) - Shows concrete numbers
+    // Priority 1: Guest with 3+ awards — urgency messaging
+    if (awardCount >= 3) {
+      return 'returning';
+    }
+
+    // Priority 2: Guest with 1+ award — save prompt
+    if (awardCount >= 1) {
+      return 'save-prompt';
+    }
+
+    // Priority 3: Returning user with significant rating data (5+ interactions)
     if (count >= 5) {
       return 'returning';
     }
 
-    // Priority 2: User has hit interaction threshold for save prompt (10+ interactions)
+    // Priority 4: User has hit interaction threshold for save prompt (10+ interactions)
     if (hasInteracted && shouldShowPrompt) {
       return 'save-prompt';
     }
 
-    // Priority 3: First-time user welcome (no interactions yet)
+    // Priority 5: First-time user welcome (no interactions yet)
     if (!hasInteracted) {
       return 'welcome';
     }

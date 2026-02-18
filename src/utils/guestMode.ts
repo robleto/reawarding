@@ -132,22 +132,86 @@ export function shouldShowSignupPrompt(): boolean {
 // Transform guest data to match the expected Movie ranking format
 export function applyGuestDataToMovies(movies: Movie[]): Movie[] {
   const guestData = getGuestData();
-  
+
   return movies.map(movie => {
     const guestRanking = guestData.rankings.find(r => r.movieId === movie.id);
-    
+
     if (guestRanking) {
       return {
         ...movie,
         rankings: [{
           id: `guest_${movie.id}`,
           user_id: 'guest',
-          ranking: guestRanking.ranking || 0,
+          ranking: guestRanking.ranking ?? null,
           seen_it: guestRanking.seenIt,
         }],
       };
     }
-    
+
     return movie;
   });
+}
+
+// --- Guest Award Utilities ---
+// v1 simplification: year-keyed, category always "best-picture"
+
+export interface GuestAwardData {
+  year: number;
+  winnerId: number;
+  nomineeIds: number[];
+  source: 'seed_pick' | 'ranking_calc' | 'manual';
+  timestamp: number;
+}
+
+const GUEST_AWARDS_KEY = "oscarworthy_guest_awards";
+
+function getGuestAwards(): Record<string, GuestAwardData> {
+  if (typeof window === "undefined") return {};
+  try {
+    const stored = localStorage.getItem(GUEST_AWARDS_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveGuestAwards(awards: Record<string, GuestAwardData>): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(GUEST_AWARDS_KEY, JSON.stringify(awards));
+  } catch (error) {
+    console.error("Error saving guest awards:", error);
+  }
+}
+
+export function updateGuestAward(
+  year: number,
+  winnerId: number,
+  nomineeIds: number[],
+  source: GuestAwardData['source'] = 'seed_pick'
+): void {
+  const awards = getGuestAwards();
+  awards[String(year)] = {
+    year,
+    winnerId,
+    nomineeIds,
+    source,
+    timestamp: Date.now(),
+  };
+  saveGuestAwards(awards);
+}
+
+export function getGuestAward(year: number): GuestAwardData | null {
+  const awards = getGuestAwards();
+  return awards[String(year)] || null;
+}
+
+export function getAllGuestAwards(): GuestAwardData[] {
+  const awards = getGuestAwards();
+  return Object.values(awards);
+}
+
+export function getGuestAwardCount(): number {
+  const awards = getGuestAwards();
+  return Object.keys(awards).length;
 }

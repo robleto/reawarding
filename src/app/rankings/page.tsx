@@ -57,8 +57,11 @@ export default function RankingsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "hot-takes">("all");
   
-  // Filter to only movies with rankings for the rankings page
-  const moviesWithRankings = movies.filter((movie) => movie.rankings && movie.rankings.length > 0);
+  // Show only truly rated movies (1-10). Ignore rows with null/0 ratings.
+  const moviesWithRankings = movies.filter((movie) => {
+    const rating = movie.rankings?.[0]?.ranking;
+    return typeof rating === "number" && rating >= 1 && rating <= 10;
+  });
   
   // Calculate hot takes (movies with significant rating disparity)
   const hotTakes = moviesWithRankings.filter((movie) => {

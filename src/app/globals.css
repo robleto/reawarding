@@ -127,3 +127,87 @@ body {
 .dark .light-background {
   background-color: transparent;
 }
+
+/* ─── Award Card Prestige Animations ─── */
+
+@keyframes award-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes award-glow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes award-border-rotate {
+  0% { --angle: 0deg; }
+  100% { --angle: 360deg; }
+}
+
+.award-card-frame {
+  position: relative;
+  border-radius: 0.875rem;
+  padding: 3px;
+  background: linear-gradient(
+    135deg,
+    rgba(234, 179, 8, 0.3) 0%,
+    rgba(161, 98, 7, 0.1) 25%,
+    rgba(234, 179, 8, 0.4) 50%,
+    rgba(161, 98, 7, 0.1) 75%,
+    rgba(234, 179, 8, 0.3) 100%
+  );
+  background-size: 200% 200%;
+  animation: award-shimmer 4s ease-in-out infinite;
+}
+
+.award-card-frame:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(234, 179, 8, 0.5) 0%,
+    rgba(250, 204, 21, 0.2) 25%,
+    rgba(234, 179, 8, 0.6) 50%,
+    rgba(250, 204, 21, 0.2) 75%,
+    rgba(234, 179, 8, 0.5) 100%
+  );
+  background-size: 200% 200%;
+  animation: award-shimmer 2s ease-in-out infinite;
+}
+
+.award-card-glow {
+  box-shadow:
+    0 0 15px rgba(234, 179, 8, 0.15),
+    0 0 30px rgba(234, 179, 8, 0.05),
+    0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: box-shadow 0.4s ease;
+}
+
+.award-card-glow:hover {
+  box-shadow:
+    0 0 20px rgba(234, 179, 8, 0.3),
+    0 0 40px rgba(234, 179, 8, 0.15),
+    0 0 60px rgba(234, 179, 8, 0.05),
+    0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.award-card-inner {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  position: relative;
+  background: #111;
+}
+
+.award-year-plaque {
+  background: linear-gradient(
+    135deg,
+    rgba(161, 98, 7, 0.9) 0%,
+    rgba(234, 179, 8, 0.95) 40%,
+    rgba(250, 204, 21, 1) 50%,
+    rgba(234, 179, 8, 0.95) 60%,
+    rgba(161, 98, 7, 0.9) 100%
+  );
+  background-size: 200% 100%;
+  animation: award-shimmer 3s ease-in-out infinite;
+  color: #1c1917;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}

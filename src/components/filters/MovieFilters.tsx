@@ -44,6 +44,8 @@ interface MovieFiltersProps {
     filterType?: "none" | "year" | "rank" | "movie";
     filterValue?: string;
   };
+  // Always-on contextual filters (e.g. "Seen only" on profile films page)
+  persistentFilterLabels?: string[];
 }
 
 export default function MovieFilters({
@@ -64,6 +66,7 @@ export default function MovieFilters({
   localSearchMode = false,
   availableMovies = [],
   searchContext = "this list",
+  persistentFilterLabels = [],
   defaults = {
     viewMode: "grid",
     sortBy: "ranking",
@@ -145,16 +148,16 @@ export default function MovieFilters({
     setSearchTerm("");
   };
 
-  // Count active filters
-  const activeFilterCount = [
+  const removableFilterCount = [
     filterType !== (defaults.filterType || "none") && filterValue !== (defaults.filterValue || "all"),
     groupBy !== (defaults.groupBy || "none"),
     sortBy !== (defaults.sortBy || "ranking") || sortOrder !== (defaults.sortOrder || "desc"),
     viewMode !== (defaults.viewMode || "grid")
   ].filter(Boolean).length;
+  const activeFilterCount = removableFilterCount + persistentFilterLabels.length;
 
   // Active filter pills
-  const activeFilters = [];
+  const activeFilters: { label: string; onRemove: () => void }[] = [];
   if (viewMode !== (defaults.viewMode || "grid")) {
     activeFilters.push({ label: `View: ${viewMode === "list" ? "List" : "Grid"}`, onRemove: () => setViewMode(defaults.viewMode || "grid") });
   }
@@ -172,7 +175,7 @@ export default function MovieFilters({
   if (filterType !== (defaults.filterType || "none") && filterValue !== (defaults.filterValue || "all")) {
     let filterLabel = "";
     if (filterType === "year") filterLabel = `Year: ${filterValue}`;
-    else if (filterType === "rank") filterLabel = `Rating: ${filterValue}`;
+    else if (filterType === "rank") filterLabel = filterValue === "unranked" ? "Rating: No Rating" : `Rating: ${filterValue}`;
     else if (filterType === "movie") filterLabel = "Movie filter";
     else if (filterType === "search") filterLabel = `Query: ${filterValue}`;
     activeFilters.push({ 
@@ -256,11 +259,19 @@ export default function MovieFilters({
       </div>
 
       {/* Active Filter Pills */}
-      {activeFilters.length > 0 && (
+      {(activeFilters.length > 0 || persistentFilterLabels.length > 0) && (
         <div className="mt-3 flex flex-wrap gap-2">
           <div className="text-xs text-gray-400 uppercase tracking-wider py-1">
-            Active Filters ({activeFilters.length})
+            Active Filters ({activeFilterCount})
           </div>
+          {persistentFilterLabels.map((label) => (
+            <div
+              key={`persistent-${label}`}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-800/60 border border-gray-600/50 rounded-md text-xs text-gray-300"
+            >
+              <span>{label}</span>
+            </div>
+          ))}
           {activeFilters.map((filter, index) => (
             <button
               key={index}
@@ -303,6 +314,14 @@ export default function MovieFilters({
                   Active Filters ({activeFilterCount})
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  {persistentFilterLabels.map((label) => (
+                    <div
+                      key={`modal-persistent-${label}`}
+                      className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-500/20 border border-blue-500/30 rounded-md text-xs text-blue-300"
+                    >
+                      <span>{label}</span>
+                    </div>
+                  ))}
                   {activeFilters.map((filter, index) => (
                     <button
                       key={index}
@@ -458,6 +477,7 @@ export default function MovieFilters({
                       className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
                     >
                       <option value="all">All Ratings</option>
+                      <option value="unranked">No Rating</option>
                       {uniqueRanks.map((rank) => (
                         <option key={rank} value={rank}>
                           {rank}

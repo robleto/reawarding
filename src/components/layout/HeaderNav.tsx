@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Clapperboard, LineChart, Menu, Plus, Trophy, X } from "lucide-react";
 import { UserMenu } from "@/components/layout/UserMenu";
+import NavSearch from "@/components/layout/NavSearch";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import { Logo } from "@/components/ui/Logo";
 import { useScrollBackground } from "@/hooks/useScrollBackground";
@@ -129,7 +130,7 @@ export default function HeaderNav() {
 							</div>
 						</nav>
 
-						{/* Controls: Add + UserMenu */}
+						{/* Controls: Add + Search + UserMenu */}
 						<div className="flex items-center gap-3 flex-shrink-0 ml-auto">
 							<button
 								onClick={() => setShowAddMovieModal(true)}
@@ -140,13 +141,15 @@ export default function HeaderNav() {
 								<Plus className="w-4 h-4" />
 							</button>
 							<div className="hidden md:block">
+								<NavSearch />
+							</div>
+							<div className="hidden md:block">
 								<UserMenu onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
 							</div>
 
-							{/* Mobile avatar button opens a full-width panel */}
 							<button
 								onClick={() => setShowAddMovieModal(true)}
-								className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+								className="md:hidden inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
 								aria-label="Add movie by TMDB ID"
 								title="Add movie by TMDB ID"
 							>

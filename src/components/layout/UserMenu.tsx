@@ -4,7 +4,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { LogOut, User, Settings } from 'lucide-react';
+import { LogOut, User, Settings, Trophy, Star, Film } from 'lucide-react';
 import { useEnsureProfile } from '@/hooks/useEnsureProfile';
 import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
 import type { Database } from '@/types/supabase';
@@ -126,12 +126,45 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
           </div>
         </div>
         <div className="mt-2 space-y-3">
+          {profile?.username && (
+            <>
+              <Link
+                href={`/${profile.username}`}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <User className="w-4 h-4" />
+                My Profile
+              </Link>
+              <Link
+                href={`/${profile.username}/awards`}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <Trophy className="w-4 h-4" />
+                My Awards
+              </Link>
+              <Link
+                href={`/${profile.username}/rankings`}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <Star className="w-4 h-4" />
+                My Rankings
+              </Link>
+              <Link
+                href={`/${profile.username}/films`}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <Film className="w-4 h-4" />
+                My Films
+              </Link>
+              <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+            </>
+          )}
           <Link
             href="/profile"
             className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
           >
-            <User className="w-4 h-4" />
-            Profile
+            <Settings className="w-4 h-4" />
+            Edit Profile
           </Link>
           <Link
             href="/settings"
@@ -185,15 +218,58 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
               )}
             </div>
             
+            {profile?.username && (
+              <Link
+                href={`/${profile.username}`}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <User className="w-4 h-4" />
+                My Profile
+              </Link>
+            )}
+            {profile?.username && (
+              <Link
+                href={`/${profile.username}/awards`}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <Trophy className="w-4 h-4" />
+                My Awards
+              </Link>
+            )}
+            {profile?.username && (
+              <Link
+                href={`/${profile.username}/rankings`}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <Star className="w-4 h-4" />
+                My Rankings
+              </Link>
+            )}
+            {profile?.username && (
+              <Link
+                href={`/${profile.username}/films`}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <Film className="w-4 h-4" />
+                My Films
+              </Link>
+            )}
+
+            <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+
             <Link
               href="/profile"
               className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               onClick={() => setOpen(false)}
             >
-              <User className="w-4 h-4" />
-              Profile
+              <Settings className="w-4 h-4" />
+              Edit Profile
             </Link>
-            
+
             <Link
               href="/settings"
               className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -202,7 +278,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
               <Settings className="w-4 h-4" />
               Settings
             </Link>
-            
+
             <button
               onClick={handleSignOut}
               className="flex items-center gap-2 w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
