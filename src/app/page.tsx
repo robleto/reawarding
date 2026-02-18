@@ -31,43 +31,80 @@ const normalizeCategory = (value: string | undefined | null) =>
 
 type BallotLevel = "emerging" | "standard" | "complete" | "not-started";
 type BallotEntry = { year: number; nomineeCount: number; level: BallotLevel };
+type BallotEntryWithFilms = BallotEntry & { films: BaseMovie[] };
 
 // ─── Inline components ──────────────────────────────────
 
-/** Compact ballot pill — for the grouped lists below the hero */
-function BallotPill({ year, nomineeCount, level, onClick }: {
+/** Ballot year card — used in the timeline grid */
+function BallotCard({ year, nomineeCount, level, films, onClick }: {
 	year: number;
 	nomineeCount: number;
 	level: BallotLevel;
+	films: BaseMovie[];
 	onClick: () => void;
 }) {
-	const milestone = level === "emerging" || level === "not-started" ? 5 : 10;
-	const pct = Math.min(100, (nomineeCount / milestone) * 100);
+	const pct = Math.min(100, (nomineeCount / 10) * 100);
 
-	const accent = {
+	const border = {
 		"not-started": "border-gray-700/30 hover:border-gray-600/50",
-		emerging: "border-amber-500/15 hover:border-amber-400/35",
-		standard: "border-emerald-500/12 hover:border-emerald-400/30",
-		complete: "border-gray-600/15 hover:border-gray-500/30",
+		emerging: "border-yellow-500/20 hover:border-yellow-400/40",
+		standard: "border-yellow-500/20 hover:border-yellow-400/40",
+		complete: "border-emerald-500/20 hover:border-emerald-400/40",
 	}[level];
 
 	const bar = {
-		"not-started": "bg-gray-500",
-		emerging: "bg-amber-400",
-		standard: "bg-emerald-400",
-		complete: "bg-yellow-400/60",
+		"not-started": "bg-gray-600",
+		emerging: "bg-yellow-400",
+		standard: "bg-yellow-400",
+		complete: "bg-emerald-400",
+	}[level];
+
+	const badge = {
+		"not-started": "bg-gray-700/60 text-gray-400",
+		emerging: "bg-yellow-500/15 text-yellow-400",
+		standard: "bg-yellow-500/15 text-yellow-300",
+		complete: "bg-emerald-500/15 text-emerald-400",
 	}[level];
 
 	return (
 		<button
 			onClick={onClick}
-			className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${accent} bg-gray-900/30 hover:bg-gray-800/50 transition-all text-left group focus:outline-none focus-visible:ring-1 focus-visible:ring-yellow-500/40`}
+			className={`group flex flex-col rounded-xl border ${border} bg-gray-900/35 hover:bg-gray-800/50 transition-all text-left overflow-hidden focus:outline-none focus-visible:ring-1 focus-visible:ring-yellow-500/40`}
 		>
-			<span className="text-sm font-bold text-white font-unbounded w-11 shrink-0">{year}</span>
-			<div className="flex-1 h-1 rounded-full bg-gray-700/40 overflow-hidden min-w-[40px]">
-				<div className={`h-full rounded-full ${bar} transition-all`} style={{ width: `${pct}%` }} />
+			{/* Poster thumbnail strip */}
+			<div className="flex gap-0.5 w-full h-14 overflow-hidden rounded-t-xl">
+				{films.slice(0, 3).map((movie) => {
+					const src = movie.cached_thumb_url || movie.thumb_url || movie.cached_poster_url || movie.poster_url || "";
+					return (
+						<div key={movie.id} className="flex-1 relative overflow-hidden bg-gray-800">
+							{src ? (
+								<Image src={src} alt={movie.title} fill className="object-cover opacity-75 group-hover:opacity-100 transition-opacity" sizes="60px" unoptimized />
+							) : (
+								<div className="w-full h-full flex items-center justify-center bg-gray-800">
+									<Film className="w-3 h-3 text-gray-600" />
+								</div>
+							)}
+						</div>
+					);
+				})}
+				{/* Fill empty slots */}
+				{Array.from({ length: Math.max(0, 3 - films.length) }).map((_, i) => (
+					<div key={`empty-${i}`} className="flex-1 bg-gray-800/60" />
+				))}
 			</div>
-			<span className="text-[10px] text-gray-500 font-medium shrink-0 tabular-nums">{nomineeCount}/{milestone}</span>
+			{/* Card body */}
+			<div className="px-2.5 py-2 flex flex-col gap-1.5">
+				<div className="flex items-center justify-between gap-1">
+					<span className="text-sm font-bold text-white font-unbounded">{year}</span>
+					<span className={`text-[9px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded-full ${badge}`}>
+						{level === "not-started" ? "new" : level}
+					</span>
+				</div>
+				<div className="h-1 rounded-full bg-gray-700/50 overflow-hidden">
+					<div className={`h-full rounded-full ${bar} transition-all`} style={{ width: `${pct}%` }} />
+				</div>
+				<span className="text-[10px] text-gray-500 tabular-nums">{nomineeCount}/10</span>
+			</div>
 		</button>
 	);
 }
@@ -398,12 +435,12 @@ export default function HomePage() {
 	const showcaseYear = showcaseBallot?.year ?? null;
 	const showcaseDisplayData = showcaseYear !== null ? getYearDisplayData(showcaseYear) : null;
 
-	// Timeline: everything except current-year anchor and current showcase hero.
-	const archiveYears = allBallotYears.filter((b) => {
+	// Timeline filter predicate (applied after getContextMoviesForYear is defined below)
+	const _archiveFilter = (b: BallotEntry) => {
 		if (b.year === currentYear) return false;
 		if (showcaseYear !== null && b.year === showcaseYear) return false;
 		return true;
-	});
+	};
 
 	// --- "Start Another Ballot" suggestions ---
 	const shelfYearSet = new Set(rankingShelf.map((e) => e.year));
@@ -476,6 +513,11 @@ export default function HomePage() {
 		}
 		return deduped;
 	};
+
+	// Timeline: all ballot years except current-year anchor and showcase hero, enriched with context films.
+	const archiveYears: BallotEntryWithFilms[] = allBallotYears
+		.filter(_archiveFilter)
+		.map((b) => ({ ...b, films: getContextMoviesForYear(b.year, 3) }));
 
 	// 1) Continue your ballots (up to 3): emerging first, then standard, newest first
 	const continueBallotYears = allBallotYears
@@ -766,9 +808,9 @@ export default function HomePage() {
 
 					{showAllBallots && (
 						<div className="space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+							<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
 								{archiveYears.map((b) => (
-									<BallotPill key={b.year} year={b.year} nomineeCount={b.nomineeCount} level={b.level} onClick={() => setExplorerYear(b.year)} />
+									<BallotCard key={b.year} year={b.year} nomineeCount={b.nomineeCount} level={b.level} films={b.films} onClick={() => setExplorerYear(b.year)} />
 								))}
 							</div>
 
