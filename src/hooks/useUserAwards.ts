@@ -8,8 +8,64 @@ import useGuestRankingStore from "@/hooks/useGuestRankingStore";
 export interface UserAward {
   year: number;
   category: string;
-  winnerId: number | null;
-  nomineeIds: number[];
+  winnerId: string | number | null;
+  nomineeIds: (string | number)[];
+}
+
+function isBestPictureCategory(category: unknown): boolean {
+  if (typeof category !== "string") return false;
+  const normalized = category.trim().toLowerCase().replace(/[_\s]+/g, "-");
+  return normalized === "best-picture";
+}
+
+function toNormalizedAward(raw: any): UserAward | null {
+  const year = Number(raw?.year);
+  if (!Number.isFinite(year)) return null;
+
+  const payload =
+    raw?.nominations && typeof raw.nominations === "object"
+      ? { ...raw, ...raw.nominations }
+      : raw;
+
+  const rawCategory = typeof raw?.category === "string" ? raw.category : "best-picture";
+  const category = rawCategory.trim().toLowerCase().replace(/[_\s]+/g, "-");
+  if (!isBestPictureCategory(category)) return null;
+
+  const rawWinnerId =
+    payload?.winnerId ??
+    payload?.winner_id ??
+    payload?.winner?.id ??
+    payload?.winner_movie_id ??
+    null;
+
+  const nomineeSource = Array.isArray(payload?.nomineeIds)
+    ? payload.nomineeIds
+    : Array.isArray(payload?.nominee_ids)
+      ? payload.nominee_ids
+      : Array.isArray(payload?.nominees)
+        ? payload.nominees.map((n: any) => n?.id ?? n)
+        : [];
+
+  const nomineeIds = nomineeSource
+    .filter((id: unknown) => id != null && id !== "")
+    .map((id: unknown) => {
+      const asNum = Number(id);
+      return Number.isFinite(asNum) && String(asNum) === String(id) ? asNum : id;
+    }) as (string | number)[];
+  const winnerId: string | number | null =
+    rawWinnerId != null && rawWinnerId !== ""
+      ? (() => {
+          const asNum = Number(rawWinnerId);
+          return Number.isFinite(asNum) && String(asNum) === String(rawWinnerId) ? asNum : rawWinnerId;
+        })()
+      : nomineeIds[0] ?? null;
+
+  return {
+    year,
+    category,
+    winnerId,
+    nomineeIds,
+  };
 }
 
 /**
@@ -35,14 +91,12 @@ export function useUserAwards() {
   const fetchAwards = useCallback(async () => {
     if (isGuest) {
       // Read from guest store
-      const guestAwards = guestStore.getAllAwards();
+      const guestAwards = guestStore.getAllAwards() as any[];
       setAwards(
-        guestAwards.map((a) => ({
-          year: a.year,
-          category: a.category,
-          winnerId: a.winnerId,
-          nomineeIds: a.nomineeIds,
-        }))
+        guestAwards
+          .map(toNormalizedAward)
+          .filter((award): award is UserAward => Boolean(award))
+          .sort((a, b) => b.year - a.year)
       );
       setLoading(false);
       return;
@@ -54,6 +108,7 @@ export function useUserAwards() {
         .from("awards")
         .select("year, category, winner_id, nominee_ids")
         .eq("user_id", user!.id)
+        .eq("category", "best-picture")
         .order("year", { ascending: false });
 
       if (error) {
@@ -65,14 +120,10 @@ export function useUserAwards() {
           setAwards([]);
         }
       } else {
-        setAwards(
-          (data || []).map((row: any) => ({
-            year: row.year,
-            category: row.category,
-            winnerId: row.winner_id,
-            nomineeIds: row.nominee_ids || [],
-          }))
-        );
+        const normalized = (data || [])
+          .map(toNormalizedAward)
+          .filter((award): award is UserAward => Boolean(award));
+        setAwards(normalized);
       }
     } catch (err) {
       console.warn("[useUserAwards] Unexpected error:", err);
@@ -84,6 +135,17 @@ export function useUserAwards() {
 
   useEffect(() => {
     fetchAwards();
+  }, [fetchAwards]);
+
+  // Refetch when tab regains focus (user may have edited on Awards page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchAwards();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [fetchAwards]);
 
   const awardCount = awards.length;

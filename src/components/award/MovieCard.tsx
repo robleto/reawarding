@@ -8,6 +8,7 @@ import { normalizeImageUrl } from "@/utils/imageUrl";
 interface MovieCardProps {
 	movie: Movie;
 	onClick?: () => void;
+	imageMode?: "thumb" | "poster";
 }
 
 // Fallback for missing images (from MovieRowCard)
@@ -35,24 +36,30 @@ const ImageFallback = ({
 	</div>
 );
 
-export default function MovieCard({ movie, onClick }: MovieCardProps) {
+export default function MovieCard({ movie, onClick, imageMode = "thumb" }: MovieCardProps) {
 	const rating = movie.rankings?.[0]?.ranking ?? 0;
 	const { text, background } = getRatingStyle(rating);
-	const thumbSrc = movie.thumb_url || movie.poster_url;
-	const hasValidImage = thumbSrc && thumbSrc.trim() !== '' && !thumbSrc.includes('placeholder');
+	const imageSrc = imageMode === "poster"
+		? (movie.poster_url || movie.thumb_url)
+		: (movie.thumb_url || movie.poster_url);
+	const hasValidImage = imageSrc && imageSrc.trim() !== '' && !imageSrc.includes('placeholder');
+	const imageWidth = imageMode === "poster" ? 240 : 160;
+	const imageHeight = imageMode === "poster" ? 360 : 90;
 
 	return (
 		<article
 			className={`w-full ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
 			onClick={onClick}
 		>
-			<div className="relative aspect-video rounded-lg shadow-sm dark:shadow-gray-600 overflow-hidden bg-gray-100">
+			<div className={`relative rounded-lg shadow-sm dark:shadow-gray-600 overflow-hidden bg-gray-100 ${
+				imageMode === "poster" ? "aspect-[2/3]" : "aspect-video"
+			}`}>
 				{hasValidImage ? (
 					<Image
-						src={normalizeImageUrl(thumbSrc)}
+						src={normalizeImageUrl(imageSrc)}
 						alt={movie.title}
-						width={160}
-						height={90}
+						width={imageWidth}
+						height={imageHeight}
 						className="object-cover w-full h-full"
 						unoptimized
 						onError={(e) => {
@@ -63,7 +70,7 @@ export default function MovieCard({ movie, onClick }: MovieCardProps) {
 					/>
 				) : null}
 				{!hasValidImage && (
-					<ImageFallback width={160} height={90} title={movie.title} className="rounded" />
+					<ImageFallback width={imageWidth} height={imageHeight} title={movie.title} className="rounded w-full h-full" />
 				)}
 				{/* Overlay rating badge */}
 				<div

@@ -142,7 +142,7 @@ export function applyGuestDataToMovies(movies: Movie[]): Movie[] {
         rankings: [{
           id: `guest_${movie.id}`,
           user_id: 'guest',
-          ranking: guestRanking.ranking || 0,
+          ranking: guestRanking.ranking ?? null,
           seen_it: guestRanking.seenIt,
         }],
       };

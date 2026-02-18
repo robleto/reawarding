@@ -242,11 +242,20 @@ export function markStorageWarningShown(): void {
 }
 
 // Hook that provides the migration functionality with Supabase access
+/** Prevents concurrent migration runs (e.g., auth listener double-emit). */
+let migrationInFlight: Promise<{ success: boolean; migratedCount: number; error?: string }> | null = null;
+
 export function useGuestRankingStoreWithMigration() {
   const supabase = useSupabaseClient<Database>();
   const store = useGuestRankingStore();
-  
+
   const migrateToSupabase = async (userId: string) => {
+    // If a migration is already running, return its result instead of starting another
+    if (migrationInFlight) {
+      return migrationInFlight;
+    }
+
+    const doMigrate = async () => {
     try {
       const rankings = store.getAllRankings();
       const awards = store.getAllAwards();
@@ -324,14 +333,20 @@ export function useGuestRankingStoreWithMigration() {
       return { success: true, migratedCount: rankingsToInsert.length + awardsMigrated };
     } catch (error) {
       console.error('[GuestMigration] Unexpected error migrating guest data:', error);
-      return { 
-        success: false, 
-        migratedCount: 0, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        migratedCount: 0,
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+    }; // end doMigrate
+
+    migrationInFlight = doMigrate().finally(() => {
+      migrationInFlight = null;
+    });
+    return migrationInFlight;
   };
-  
+
   return {
     ...store,
     migrateToSupabase,

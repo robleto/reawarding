@@ -652,7 +652,12 @@ export function useMovieFilters(movies: Movie[]) {
 			return filterValue === "all" || movie.release_year === Number(filterValue);
 		}
 		if (filterType === "rank") {
-			return filterValue === "all" || movie.rankings?.[0]?.ranking === Number(filterValue);
+			if (filterValue === "all") return true;
+			if (filterValue === "unranked") {
+				const r = movie.rankings?.[0]?.ranking;
+				return r === null || r === undefined || r === 0;
+			}
+			return movie.rankings?.[0]?.ranking === Number(filterValue);
 		}
 		if (filterType === "movie") {
 			return String(movie.id) === filterValue;
@@ -665,9 +670,7 @@ export function useMovieFilters(movies: Movie[]) {
 
 	// Generate unique years and ranks for filter dropdowns
 	const uniqueYears = Array.from(new Set(movies.map((m) => m.release_year).filter(Boolean))).sort((a, b) => b - a);
-	const uniqueRanks = Array.from(
-		new Set(movies.map((m) => m.rankings?.[0]?.ranking).filter((r) => typeof r === "number"))
-	).sort((a, b) => a - b);
+	const uniqueRanks = Array.from(new Set(movies.map((m) => m.rankings?.[0]?.ranking).filter((r): r is number => typeof r === "number" && r > 0))).sort((a, b) => a - b);
 
 	return {
 		// State

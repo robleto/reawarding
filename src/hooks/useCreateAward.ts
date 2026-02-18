@@ -44,6 +44,8 @@ export function useCreateAward() {
       ? crypto.randomUUID()
       : `guest-${Date.now()}`
   );
+  /** Per-year mutex: prevents concurrent double-click from bypassing dedup. */
+  const yearLocksRef = useRef<Map<number, Promise<AwardResult>>>(new Map());
   const isGuest = !user;
 
   const actorKey = user?.id ?? guestSessionIdRef.current;
@@ -169,8 +171,8 @@ export function useCreateAward() {
       year: number,
       nomineeIds: number[],
       winnerId: number,
-      source: AwardResult["source"],
-      revisionNumber: number
+      _source: AwardResult["source"],
+      _revisionNumber: number
     ): Promise<boolean> => {
       if (isGuest) return true;
 
@@ -183,14 +185,16 @@ export function useCreateAward() {
             category: "best-picture",
             nominee_ids: nomineeIds,
             winner_id: winnerId,
-            source,
-            revision_number: revisionNumber,
           }),
         });
 
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({}));
-          console.error("[useCreateAward] API error:", errorData);
+          console.warn("[useCreateAward] API request failed", {
+            status: res.status,
+            statusText: res.statusText,
+            errorData,
+          });
           return false;
         }
 
@@ -203,19 +207,23 @@ export function useCreateAward() {
     [isGuest]
   );
 
-  const createAward = useCallback(
+  /** Inner implementation — must only be called through the mutex wrapper. */
+  const createAwardInner = useCallback(
     async (
       movie: Pick<Movie, "id" | "title" | "release_year">,
       existingRankingsMap?: Record<number, number | null | undefined>
     ): Promise<AwardResult> => {
       const source: AwardResult["source"] = "seed_pick";
       const year = movie.release_year;
-      const winnerId = movie.id;
 
       const existing = await fetchExistingAward(year);
+
+      // If an award already exists with a winner, preserve that winner
+      // and add the new movie as a nominee instead of overwriting.
+      const winnerId = existing?.winnerId ?? movie.id;
       const mergedNominees = existing
-        ? [winnerId, ...existing.nomineeIds.filter((id) => id !== winnerId)].slice(0, 10)
-        : [winnerId];
+        ? [...new Set([winnerId, movie.id, ...existing.nomineeIds])].slice(0, 10)
+        : [movie.id];
       const revisionNumber = (existing?.revisionNumber ?? 0) + 1;
 
       const signature = buildSignature(year, winnerId, mergedNominees, source);
@@ -286,7 +294,36 @@ export function useCreateAward() {
     ]
   );
 
-  const createFromRatings = useCallback(
+  /**
+   * Public createAward — serialised per year via mutex.
+   * If two rapid clicks fire for the same year, the second waits for the
+   * first to finish and then hits the dedup window, returning the cached result.
+   */
+  const createAward = useCallback(
+    (
+      movie: Pick<Movie, "id" | "title" | "release_year">,
+      existingRankingsMap?: Record<number, number | null | undefined>
+    ): Promise<AwardResult> => {
+      const year = movie.release_year;
+      const pending = yearLocksRef.current.get(year);
+      const execute = async (): Promise<AwardResult> => {
+        if (pending) await pending.catch(() => {});
+        return createAwardInner(movie, existingRankingsMap);
+      };
+      const promise = execute().finally(() => {
+        // Release lock only if this is still the active promise for this year
+        if (yearLocksRef.current.get(year) === promise) {
+          yearLocksRef.current.delete(year);
+        }
+      });
+      yearLocksRef.current.set(year, promise);
+      return promise;
+    },
+    [createAwardInner]
+  );
+
+  /** Inner implementation — must only be called through the mutex wrapper. */
+  const createFromRatingsInner = useCallback(
     async (
       year: number,
       nominees: Pick<Movie, "id" | "title">[],
@@ -361,6 +398,32 @@ export function useCreateAward() {
       persistAward,
       recordMutation,
     ]
+  );
+
+  /**
+   * Public createFromRatings — serialised per year via the same mutex.
+   */
+  const createFromRatings = useCallback(
+    (
+      year: number,
+      nominees: Pick<Movie, "id" | "title">[],
+      winner: Pick<Movie, "id" | "title">,
+      existingRankingsMap?: Record<number, number | null | undefined>
+    ): Promise<AwardResult> => {
+      const pending = yearLocksRef.current.get(year);
+      const execute = async (): Promise<AwardResult> => {
+        if (pending) await pending.catch(() => {});
+        return createFromRatingsInner(year, nominees, winner, existingRankingsMap);
+      };
+      const promise = execute().finally(() => {
+        if (yearLocksRef.current.get(year) === promise) {
+          yearLocksRef.current.delete(year);
+        }
+      });
+      yearLocksRef.current.set(year, promise);
+      return promise;
+    },
+    [createFromRatingsInner]
   );
 
   return { createAward, createFromRatings, isGuest };

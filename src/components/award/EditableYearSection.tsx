@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from "react";
 import { supabase } from '@/lib/supabaseBrowser';
 import { useUser, useSupabaseClient, useSessionContext } from '@supabase/auth-helpers-react';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
-import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2 } from "lucide-react";
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, Crown, GripVertical, Star } from "lucide-react";
 import MovieCard from "./MovieCard";
 import WinnerCard from "./WinnerCard";
 import DraggableNomineeCard from "./DraggableNomineeCard";
@@ -13,6 +14,7 @@ import SelectableMovieItem from "./SelectableMovieItem";
 import MovieDetailModal from "../movie/MovieDetailModal";
 import type { Movie } from "@/types/types";
 import { useGlobalToast } from '@/hooks/useGlobalToast';
+import { normalizeImageUrl } from "@/utils/imageUrl";
  
 const STORAGE_KEY = 'reawarding-awards-cache-v1';
 const LAST_USER_KEY = 'reawarding-awards-last-user';
@@ -75,25 +77,44 @@ interface AwardNomination {
   winner_id: number | null;
 }
 
+export interface EditableYearSectionHandle {
+  /** Add a movie to the workshop nominees list and persist. */
+  addNominee: (movie: Movie) => void;
+}
+
 interface EditableYearSectionProps {
   year: string;
   movies: Movie[]; // Default nominees (top 10)
   winner?: Movie | null; // Default winner (highest ranked)
   allMoviesForYear: Movie[]; // All movies for this year that user has ranked
   category?: 'best-picture' | 'best-animated' | 'best-comedy' | 'best-blockbuster';
+  mode?: "workshop" | "view";
+  nomineeImageMode?: "thumb" | "poster";
+  /** When true, suppresses Awards-page timeline chrome (section wrapper, year label, timeline dot, spacer, mb-24). */
+  compact?: boolean;
+  /** Fires when edit state changes — true on enter edit, false on save/cancel/reset. */
+  onEditingChange?: (editing: boolean) => void;
+  /** Optional callback for empty nominee slot click in compact/workshop view. */
+  onRequestScrollToContenders?: () => void;
 }
 
-export default function EditableYearSection({
+const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSectionProps>(function EditableYearSection({
   year,
   movies,
   winner,
   allMoviesForYear,
   category,
-}: EditableYearSectionProps) {
+  mode = "view",
+  nomineeImageMode = "thumb",
+  compact,
+  onEditingChange,
+  onRequestScrollToContenders,
+}: EditableYearSectionProps, ref) {
   const user = useUser();
   const { isLoading: sessionLoading } = useSessionContext();
   const { showToast } = useGlobalToast();
   const resolvedCategory = category ?? 'best-picture';
+  const isWorkshop = mode === "workshop";
 
   if (process.env.NODE_ENV === "development") {
     console.log('EditableYearSection DEBUG:', { 
@@ -103,6 +124,7 @@ export default function EditableYearSection({
   }
 
   const initialCache = React.useMemo(() => {
+    if (isWorkshop) return null;
     if (typeof window === 'undefined') return null;
     const lastUser = window.localStorage.getItem(LAST_USER_KEY);
     if (!lastUser) return null;
@@ -119,7 +141,7 @@ export default function EditableYearSection({
       ? nomineeMovies.find((m) => m.id === cached.winner_id) || allMoviesForYear.find((m) => m.id === cached.winner_id) || null
       : null;
 
-    const viewPref = getViewPreference(lastUser, resolvedCategory, year);
+    const viewPref = isWorkshop ? 'custom' : getViewPreference(lastUser, resolvedCategory, year);
     const useCustom = viewPref === 'custom';
 
     return {
@@ -128,7 +150,7 @@ export default function EditableYearSection({
       useCustom,
       userId: lastUser,
     };
-  }, [allMoviesForYear, resolvedCategory, year]);
+  }, [allMoviesForYear, resolvedCategory, year, isWorkshop]);
 
   const initialNominees = initialCache?.useCustom ? initialCache.nomineeMovies : movies;
   const initialWinner = initialCache?.useCustom ? (initialCache.winnerMovie || null) : (winner || null);
@@ -148,7 +170,7 @@ export default function EditableYearSection({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<{
-    source?: 'api' | 'client-upsert' | 'reset' | 'load';
+    source?: 'api' | 'client-upsert' | 'reset' | 'load' | 'workshop';
     status?: number;
     code?: string;
     hint?: string;
@@ -159,13 +181,19 @@ export default function EditableYearSection({
   const [hasCustomNominations, setHasCustomNominations] = useState(!!initialCache?.nomineeMovies);
   const [customNominees, setCustomNominees] = useState<Movie[] | null>(initialCache?.nomineeMovies ?? null);
   const [customWinner, setCustomWinner] = useState<Movie | null>(initialCache?.winnerMovie ?? null);
-  const [isUsingCustomView, setIsUsingCustomView] = useState(initialCache?.useCustom ?? false);
+  const [isUsingCustomView, setIsUsingCustomView] = useState(
+    isWorkshop ? !!initialCache?.nomineeMovies : (initialCache?.useCustom ?? false)
+  );
 
   const customNomineesRef = useRef<Movie[] | null>(initialCache?.nomineeMovies ?? null);
   const customWinnerRef = useRef<Movie | null>(initialCache?.winnerMovie ?? null);
-  const isUsingCustomViewRef = useRef(initialCache?.useCustom ?? false);
+  const isUsingCustomViewRef = useRef(
+    isWorkshop ? !!initialCache?.nomineeMovies : (initialCache?.useCustom ?? false)
+  );
   const hasLoadedInitialRef = useRef(false);
   const lastCacheUserRef = useRef<string | null>(initialCache?.userId ?? null);
+  // When true, the workshop sync effect skips re-syncing (applyWorkshopState already set state directly)
+  const workshopMutationInFlightRef = useRef(false);
 
   // Track movies just marked as seen in this session (to keep them visible)
   const [, setJustSeen] = useState<Set<number>>(new Set());
@@ -196,8 +224,13 @@ export default function EditableYearSection({
         const nomineeIds = nomineesSource.map((m) => m.id);
         setAvailableMovies(allMoviesForYear.filter((m) => !nomineeIds.includes(m.id)));
       } else {
-        setIsUsingCustomView(false);
-        isUsingCustomViewRef.current = false;
+        if (isWorkshop) {
+          setIsUsingCustomView(true);
+          isUsingCustomViewRef.current = true;
+        } else {
+          setIsUsingCustomView(false);
+          isUsingCustomViewRef.current = false;
+        }
         const nomineesSource = override?.nominees ?? movies;
         const winnerSource = override?.winner ?? (winner || null);
         setCurrentNominees([...nomineesSource]);
@@ -208,7 +241,7 @@ export default function EditableYearSection({
         setAvailableMovies(allMoviesForYear.filter((m) => !nomineeIds.includes(m.id)));
       }
     },
-    [allMoviesForYear, movies, winner]
+    [allMoviesForYear, movies, winner, isWorkshop]
   );
 
   const loadExistingNominations = React.useCallback(async () => {
@@ -242,13 +275,13 @@ export default function EditableYearSection({
               updated_at: new Date().toISOString(),
             });
           }
-          const shouldUseCustom = isUsingCustomViewRef.current && nomineeMovies.length > 0;
+          const shouldUseCustom = (isWorkshop || isUsingCustomViewRef.current) && nomineeMovies.length > 0;
           if (shouldUseCustom) {
             syncView('custom', {
               nominees: nomineeMovies,
               winner: winnerMovie || null,
             });
-            if (user?.id) {
+            if (user?.id && !isWorkshop) {
               setViewPreference(user.id, resolvedCategory, year, 'custom');
             }
           } else {
@@ -267,7 +300,9 @@ export default function EditableYearSection({
           customWinnerRef.current = null;
           if (user?.id) {
             setCachedEntry(user.id, resolvedCategory, year, null);
-            setViewPreference(user.id, resolvedCategory, year, 'default');
+            if (!isWorkshop) {
+              setViewPreference(user.id, resolvedCategory, year, 'default');
+            }
           }
           syncView('default');
         }
@@ -288,9 +323,9 @@ export default function EditableYearSection({
     } finally {
       setLoadingNominations(false);
     }
-  }, [year, allMoviesForYear, movies, winner, resolvedCategory, syncView, user?.id]);
+  }, [year, allMoviesForYear, movies, winner, resolvedCategory, syncView, user?.id, isWorkshop]);
 
-  const hasStoredCustom = (customNominees?.length ?? 0) > 0;
+  const hasStoredCustom = !isWorkshop && (customNominees?.length ?? 0) > 0;
 
   const handleViewToggle = React.useCallback(() => {
     if (isUsingCustomView) {
@@ -318,13 +353,15 @@ export default function EditableYearSection({
       customNomineesRef.current = null;
       setCustomWinner(null);
       customWinnerRef.current = null;
-      setIsUsingCustomView(false);
-      isUsingCustomViewRef.current = false;
+      if (!isWorkshop) {
+        setIsUsingCustomView(false);
+        isUsingCustomViewRef.current = false;
+      }
       syncView('default');
     }
 
     lastCacheUserRef.current = user.id;
-  }, [user?.id, syncView]);
+  }, [user?.id, syncView, isWorkshop]);
 
   // Load custom nominations on component mount
   useEffect(() => {
@@ -352,18 +389,20 @@ export default function EditableYearSection({
       customNomineesRef.current = null;
       setCustomWinner(null);
       customWinnerRef.current = null;
-      setIsUsingCustomView(false);
-      isUsingCustomViewRef.current = false;
+      if (!isWorkshop) {
+        setIsUsingCustomView(false);
+        isUsingCustomViewRef.current = false;
+      }
       syncView('default');
     }
-  }, [user, sessionLoading, loadExistingNominations, syncView]);
+  }, [user, sessionLoading, loadExistingNominations, syncView, isWorkshop]);
 
   // Keep display state in sync when defaults change and there are no custom nominations
   useEffect(() => {
-    if (!isUsingCustomView && !isEditing) {
+    if (!isWorkshop && !isUsingCustomView && !isEditing) {
       syncView('default', { nominees: movies, winner: winner || null });
     }
-  }, [movies, winner, resolvedCategory, isUsingCustomView, isEditing, syncView]);
+  }, [movies, winner, resolvedCategory, isUsingCustomView, isEditing, syncView, isWorkshop]);
 
   const handleStartEditing = () => {
     // Initialize edit state with current nominees/winner (could be custom or default)
@@ -375,6 +414,7 @@ export default function EditableYearSection({
     setAvailableMovies(allMoviesForYear.filter(m => !nomineeIds.includes(m.id)));
     
     setIsEditing(true);
+    onEditingChange?.(true);
     setError(null);
     setErrorDetails(null);
     setShowErrorDetails(false);
@@ -382,6 +422,7 @@ export default function EditableYearSection({
 
   const handleCancelEditing = () => {
     setIsEditing(false);
+    onEditingChange?.(false);
     setNominees([]);
     setSelectedWinner(null);
     setAvailableMovies([]);
@@ -420,20 +461,36 @@ export default function EditableYearSection({
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as number);
+    if (isWorkshop) onEditingChange?.(true);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
+    if (isWorkshop) onEditingChange?.(false);
 
     if (over && active.id !== over.id) {
-      setNominees((items) => {
-        const oldIndex = items.findIndex(item => item.id === active.id);
-        const newIndex = items.findIndex(item => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
-      });
+      const reordered = arrayMove(
+        isWorkshop ? activeWorkshopNominees : nominees,
+        (isWorkshop ? activeWorkshopNominees : nominees).findIndex(item => item.id === active.id),
+        (isWorkshop ? activeWorkshopNominees : nominees).findIndex(item => item.id === over.id)
+      );
+      if (isWorkshop) {
+        const winnerId = activeWorkshopWinner?.id ?? reordered[0]?.id ?? null;
+        const nextWinner = reordered.find((m) => m.id === winnerId) ?? reordered[0] ?? null;
+        void applyWorkshopState(reordered, nextWinner);
+      } else {
+        setNominees(reordered);
+      }
     }
   };
+
+  useEffect(() => {
+    if (!isWorkshop) return;
+    if (nominees.length === 0) return;
+    if (selectedWinner && nominees.some((m) => m.id === selectedWinner.id)) return;
+    setSelectedWinner(nominees[0]);
+  }, [isWorkshop, nominees, selectedWinner]);
 
   const handleSave = async () => {
     // Wait for session to load before checking user
@@ -522,13 +579,16 @@ export default function EditableYearSection({
       isUsingCustomViewRef.current = true;
       setHasCustomNominations(true);
       setIsEditing(false);
+      onEditingChange?.(false);
       if (user?.id) {
         setCachedEntry(user.id, resolvedCategory, year, {
           nominee_ids: savedNominees.map((m) => m.id),
           winner_id: selectedWinner ? selectedWinner.id : null,
           updated_at: new Date().toISOString(),
         });
-        setViewPreference(user.id, resolvedCategory, year, 'custom');
+        if (!isWorkshop) {
+          setViewPreference(user.id, resolvedCategory, year, 'custom');
+        }
       }
       showToast('Nominations saved', 'success');
     } catch (error) {
@@ -597,13 +657,16 @@ export default function EditableYearSection({
             isUsingCustomViewRef.current = true;
             setHasCustomNominations(true);
             setIsEditing(false);
+            onEditingChange?.(false);
             if (user?.id) {
               setCachedEntry(user.id, resolvedCategory, year, {
                 nominee_ids: savedNominees.map((m) => m.id),
                 winner_id: selectedWinner ? selectedWinner.id : null,
                 updated_at: new Date().toISOString(),
               });
-              setViewPreference(user.id, resolvedCategory, year, 'custom');
+              if (!isWorkshop) {
+                setViewPreference(user.id, resolvedCategory, year, 'custom');
+              }
             }
             showToast('Nominations saved (offline fallback)', 'success');
           }
@@ -651,11 +714,14 @@ export default function EditableYearSection({
       }
       if (user?.id) {
         setCachedEntry(user.id, resolvedCategory, year, null);
-        setViewPreference(user.id, resolvedCategory, year, 'default');
+        if (!isWorkshop) {
+          setViewPreference(user.id, resolvedCategory, year, 'default');
+        }
       }
       // After successful delete, reload nominations (will fall back to default)
       await loadExistingNominations();
       setIsEditing(false);
+      onEditingChange?.(false);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to reset nominations');
       setErrorDetails({ source: 'reset', details: error instanceof Error ? error.message : String(error) });
@@ -724,24 +790,123 @@ export default function EditableYearSection({
   // Display logic (keep current view visible while background refresh runs)
   const displayNominees = isEditing ? nominees : currentNominees;
   const displayWinner = isEditing ? selectedWinner : currentWinner;
+  const nomineeCount = displayNominees.length;
+  const nomineesNeededForComplete = Math.max(0, 5 - nomineeCount);
+  const defaultNomineeIds = movies.map((m) => m.id);
+  const defaultWinnerId = winner?.id ?? movies[0]?.id ?? null;
+  const activeWorkshopNominees = isWorkshop ? nominees : displayNominees;
+  const activeWorkshopWinner = isWorkshop ? selectedWinner : displayWinner;
+  const workshopOrderDiffers =
+    activeWorkshopNominees.length !== defaultNomineeIds.length ||
+    activeWorkshopNominees.some((movie, index) => movie.id !== defaultNomineeIds[index]);
+  const workshopWinnerDiffers = (activeWorkshopWinner?.id ?? null) !== defaultWinnerId;
+  const showWorkshopReset = isWorkshop && (workshopOrderDiffers || workshopWinnerDiffers);
 
-  return (
-    <section className="w-full max-w-screen-xl px-0 py-0 mx-auto my-0 font-sans md:px-6">
-      <div className="relative flex flex-col gap-6 md:flex-row md:gap-8">
-        {/* Timeline and year label */}
-        <h2 className="md:absolute block top-0 md:top-[125px] left-0 text-3xl font-bold text-[#A0A0A0] mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-widest">
-          {year}
-        </h2>
-        <div className="top-0 bottom-0 flex-col items-center hidden md:absolute md:flex left-4">
-          <div className="w-5 h-5 mt-2 bg-gray-400 border-2 border-gray-100 rounded-full dark:bg-gray-700 dark:border-gray-900" />
-          <div className="w-[2px] flex-1 bg-gray-300 dark:bg-gray-700" />
-        </div>
+  const persistWorkshopState = async (nextNominees: Movie[], nextWinner: Movie | null) => {
+    if (!user) return;
+    try {
+      const response = await fetch('/api/awards', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          year,
+          nominee_ids: nextNominees.map((m) => m.id),
+          winner_id: nextWinner ? nextWinner.id : null,
+          category: resolvedCategory,
+        }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData?.error || 'Failed to save nominations';
+        setError(errorMessage);
+        setErrorDetails({ source: 'workshop', status: response.status, details: errorData });
+        return;
+      }
 
-        {/* Spacer to account for timeline offset */}
-        <div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
+      setCurrentNominees(nextNominees);
+      setCurrentWinner(nextWinner);
+      setCustomNominees(nextNominees);
+      customNomineesRef.current = nextNominees;
+      setCustomWinner(nextWinner);
+      customWinnerRef.current = nextWinner;
+      setHasCustomNominations(true);
+      setIsUsingCustomView(true);
+      isUsingCustomViewRef.current = true;
+      if (user?.id) {
+        setCachedEntry(user.id, resolvedCategory, year, {
+          nominee_ids: nextNominees.map((m) => m.id),
+          winner_id: nextWinner ? nextWinner.id : null,
+          updated_at: new Date().toISOString(),
+        });
+        if (!isWorkshop) {
+          setViewPreference(user.id, resolvedCategory, year, 'custom');
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save nominations');
+      setErrorDetails({ source: 'workshop', details: err instanceof Error ? err.message : String(err) });
+    }
+  };
 
-    {/* Content block */}
-  <div className={`award-editable-section flex flex-col w-full rounded-xl shadow-md light-glass dark:dark-glass p-4 md:p-6 mb-24${isEditing ? ' pb-32 md:pb-0' : ''}`}>
+  useEffect(() => {
+    if (!isWorkshop) return;
+    // Skip re-sync when applyWorkshopState already set nominees/selectedWinner directly.
+    // This prevents a re-render loop where persistWorkshopState updates currentNominees,
+    // which triggers this effect, which re-sets nominees to the same values.
+    if (workshopMutationInFlightRef.current) return;
+    setNominees([...currentNominees]);
+    setSelectedWinner(currentWinner ?? currentNominees[0] ?? null);
+    onEditingChange?.(false);
+  }, [isWorkshop, currentNominees, currentWinner, onEditingChange]);
+
+  const applyWorkshopState = async (nextNominees: Movie[], nextWinner: Movie | null) => {
+    // Mark mutation in-flight so the workshop sync effect doesn't re-sync
+    // from currentNominees (which persistWorkshopState will update shortly).
+    workshopMutationInFlightRef.current = true;
+    setNominees(nextNominees);
+    setSelectedWinner(nextWinner);
+    const nomineeIds = new Set(nextNominees.map((m) => m.id));
+    setAvailableMovies(allMoviesForYear.filter((m) => !nomineeIds.has(m.id)));
+    await persistWorkshopState(nextNominees, nextWinner);
+    workshopMutationInFlightRef.current = false;
+  };
+
+  // Expose imperative API for external nominee additions (e.g. from YearExplorer)
+  useImperativeHandle(ref, () => ({
+    addNominee: (movie: Movie) => {
+      if (!isWorkshop) return;
+      if (activeWorkshopNominees.length >= 10) return;
+      if (activeWorkshopNominees.some((m) => m.id === movie.id)) return;
+      const nextNominees = [...activeWorkshopNominees, movie];
+      const nextWinner = activeWorkshopWinner ?? nextNominees[0] ?? null;
+      void applyWorkshopState(nextNominees, nextWinner);
+    },
+  }), [isWorkshop, activeWorkshopNominees, activeWorkshopWinner, applyWorkshopState]);
+
+  const handleWorkshopWinner = async (movie: Movie) => {
+    if (!isWorkshop) return;
+    await applyWorkshopState([...activeWorkshopNominees], movie);
+  };
+
+  const handleWorkshopRemove = async (movieId: number) => {
+    if (!isWorkshop) return;
+    const nextNominees = activeWorkshopNominees.filter((m) => m.id !== movieId);
+    const nextWinner =
+      activeWorkshopWinner?.id === movieId ? nextNominees[0] ?? null : activeWorkshopWinner;
+    await applyWorkshopState(nextNominees, nextWinner);
+  };
+
+  const handleWorkshopReset = async () => {
+    if (!isWorkshop) return;
+    const resetNominees = [...movies];
+    const resetWinner = winner ?? resetNominees[0] ?? null;
+    await applyWorkshopState(resetNominees, resetWinner);
+  };
+
+  const contentBlock = (
+    <>
+    <div className={`award-editable-section flex flex-col w-full rounded-xl shadow-md light-glass dark:dark-glass p-4 md:p-6${compact ? '' : ' mb-24'}${isEditing ? ' pb-32 md:pb-0' : ''}`}>
 
           {/* Error Message */}
           {error && (
@@ -810,6 +975,7 @@ export default function EditableYearSection({
             /* READ MODE LAYOUT */
             <div className="flex flex-col gap-12 md:flex-row">
               {/* Winner */}
+              {!compact && (
               <div className="w-full md:w-1/3">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -837,12 +1003,13 @@ export default function EditableYearSection({
                   </div>
                 )}
               </div>
+              )}
 
               {/* Divider */}
-              <div className="hidden w-px bg-gray-200 md:block dark:bg-gray-700" />
+              {!compact && <div className="hidden w-px bg-gray-200 md:block dark:bg-gray-700" />}
 
               {/* Nominees */}
-              <div className="w-full md:w-2/3">
+              <div className={`w-full ${compact ? "" : "md:w-2/3"}`}>
                 <div className="flex flex-col items-start justify-between gap-2 mb-4 sm:flex-row sm:items-center">
                   <div className="flex items-center gap-2">
                     <span className="text-xl">✉️</span>
@@ -851,13 +1018,22 @@ export default function EditableYearSection({
                     </h3>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    {!isWorkshop && compact && user && !isEditing && (
+                      <button
+                        onClick={handleStartEditing}
+                        className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-blue-600 transition-colors rounded-lg dark:text-gray-500 dark:border-gray-600 bg-blue-50 dark:bg-gray-800 hover:bg-blue-100"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        Edit
+                      </button>
+                    )}
                     {loadingNominations && (
                       <span className="flex items-center gap-1 text-xs font-medium text-gray-400">
                         <Loader2 className="w-3 h-3 animate-spin" />
                         Refreshing…
                       </span>
                     )}
-                    {hasCustomNominations ? (
+                    {!isWorkshop && hasCustomNominations ? (
                       <>
                         <span
                           className={`px-2 py-1 text-xs font-medium rounded transition-colors ${isUsingCustomView
@@ -877,22 +1053,100 @@ export default function EditableYearSection({
                           {isUsingCustomView ? 'Show Default' : 'View Custom'}
                         </button>
                       </>
-                    ) : (
+                    ) : !isWorkshop ? (
                       <span className="px-2 py-1 text-xs font-medium text-gray-500 rounded dark:bg-gray-950 bg-gray-50">
                         {resolvedCategory === 'best-picture' ? 'Default (Top 10 • 7+ first)' : 'Default (Top 10)'}
                       </span>
+                    ) : null}
+                    {showWorkshopReset && (
+                      <button
+                        onClick={handleWorkshopReset}
+                        className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-orange-600 transition-colors rounded-lg bg-orange-50 hover:bg-orange-100 dark:bg-gray-800 dark:text-orange-300"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        Reset
+                      </button>
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                  {displayNominees.map((movie) => (
-                    <MovieCard
-                      key={movie.id}
-                      movie={movie}
-                      onClick={() => handleOpenModal(movie)}
-                    />
-                  ))}
+                <div className="mb-3">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {isWorkshop ? activeWorkshopNominees.length : nomineeCount} / 10 nominees
+                  </p>
+                  {(isWorkshop ? activeWorkshopNominees.length < 5 : nomineeCount < 5) && (
+                    <p className="text-xs text-amber-600 dark:text-amber-300/90">
+                      Add {nomineesNeededForComplete} more to reach a complete ballot.
+                    </p>
+                  )}
                 </div>
+                {isWorkshop ? (
+                  <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                    <SortableContext
+                      items={activeWorkshopNominees.map((movie) => movie.id)}
+                      strategy={rectSortingStrategy}
+                    >
+                      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+                        {Array.from({ length: 10 }).map((_, index) => {
+                          const movie = activeWorkshopNominees[index];
+                          if (movie) {
+                            return (
+                              <WorkshopNomineeCard
+                                key={movie.id}
+                                movie={movie}
+                                isWinner={activeWorkshopWinner?.id === movie.id}
+                                onSetWinner={() => handleWorkshopWinner(movie)}
+                                onRemove={() => handleWorkshopRemove(movie.id)}
+                              />
+                            );
+                          }
+
+                          return (
+                            <button
+                              type="button"
+                              key={`empty-slot-${index}`}
+                              className="aspect-[2/3] rounded-lg border border-dashed border-gray-300/80 dark:border-gray-700/80 bg-gray-50/70 dark:bg-gray-900/35 p-3 flex flex-col items-center justify-center text-center"
+                              aria-label="Empty nominee slot"
+                              onClick={onRequestScrollToContenders}
+                            >
+                              <Film className="w-6 h-6 text-gray-500/70 mb-2" />
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                Empty slot - rate more films to fill this
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+                    {Array.from({ length: 10 }).map((_, index) => {
+                      const movie = displayNominees[index];
+                      if (movie) {
+                        return (
+                          <MovieCard
+                            key={movie.id}
+                            movie={movie}
+                            imageMode={nomineeImageMode}
+                            onClick={() => handleOpenModal(movie)}
+                          />
+                        );
+                      }
+
+                      return (
+                        <button
+                          type="button"
+                          key={`empty-slot-${index}`}
+                          className="aspect-[2/3] rounded-lg border border-dashed border-gray-300/80 dark:border-gray-700/80 bg-gray-50/70 dark:bg-gray-900/35 p-3 flex items-center justify-center"
+                          aria-label="Empty nominee slot"
+                          onClick={onRequestScrollToContenders}
+                        >
+                          <Film className="w-6 h-6 text-gray-500/70" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -1021,7 +1275,6 @@ export default function EditableYearSection({
             </div>
           )}
         </div>
-      </div>
 
       {/* Movie Detail Modal */}
       {selectedMovie && (
@@ -1036,6 +1289,115 @@ export default function EditableYearSection({
           key={selectedMovie.id + '-' + (selectedMovie.rankings?.[0]?.ranking ?? 'null') + '-' + (selectedMovie.rankings?.[0]?.seen_it ?? 'false')}
         />
       )}
+    </>
+  );
+
+  if (compact) {
+    return contentBlock;
+  }
+
+  return (
+    <section className="w-full max-w-screen-xl px-0 py-0 mx-auto my-0 font-sans md:px-6">
+      <div className="relative flex flex-col gap-6 md:flex-row md:gap-8">
+        {/* Timeline and year label */}
+        <h2 className="md:absolute block top-0 md:top-[125px] left-0 text-3xl font-bold text-[#A0A0A0] mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-widest">
+          {year}
+        </h2>
+        <div className="top-0 bottom-0 flex-col items-center hidden md:absolute md:flex left-4">
+          <div className="w-5 h-5 mt-2 bg-gray-400 border-2 border-gray-100 rounded-full dark:bg-gray-700 dark:border-gray-900" />
+          <div className="w-[2px] flex-1 bg-gray-300 dark:bg-gray-700" />
+        </div>
+
+        {/* Spacer to account for timeline offset */}
+        <div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
+
+        {contentBlock}
+      </div>
     </section>
+  );
+});
+
+export default EditableYearSection;
+
+function WorkshopNomineeCard({
+  movie,
+  isWinner,
+  onSetWinner,
+  onRemove,
+}: {
+  movie: Movie;
+  isWinner: boolean;
+  onSetWinner: () => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: movie.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  const posterSrc = normalizeImageUrl(movie.poster_url || movie.thumb_url);
+  const ranking = Math.round(movie.rankings?.[0]?.ranking ?? 0);
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative aspect-[2/3] rounded-lg overflow-hidden border ${
+        isWinner
+          ? "border-yellow-400/70 shadow-[0_0_0_1px_rgba(250,204,21,0.35),0_0_24px_rgba(250,204,21,0.2)]"
+          : "border-gray-700/70"
+      } bg-gray-900`}
+    >
+      {posterSrc ? (
+        <img src={posterSrc} alt={movie.title} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-gray-800">
+          <Film className="w-8 h-8 text-gray-500" />
+        </div>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
+
+      <button
+        type="button"
+        onClick={onSetWinner}
+        className={`absolute top-2 left-2 z-10 p-1 rounded-full border ${
+          isWinner
+            ? "bg-yellow-400 text-black border-yellow-300"
+            : "bg-black/50 text-gray-300 border-gray-500 hover:text-yellow-300 hover:border-yellow-400/60"
+        }`}
+        aria-label={isWinner ? "Current winner" : "Set winner"}
+      >
+        <Crown className="w-4 h-4" />
+      </button>
+
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute top-2 right-2 z-10 p-1 rounded-full bg-black/55 text-gray-200 border border-gray-500 hover:text-red-300 hover:border-red-400/70"
+        aria-label="Remove nominee"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="absolute bottom-2 right-2 z-10 p-1 rounded bg-black/55 text-gray-200 border border-gray-500 cursor-grab active:cursor-grabbing"
+        aria-label="Drag to reorder nominee"
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+
+      <div className="absolute bottom-2 left-2 right-10 z-10">
+        <p className="text-xs font-semibold text-white line-clamp-2">{movie.title}</p>
+      </div>
+      {ranking > 0 && (
+        <div className="absolute bottom-2 left-2 z-10 -translate-y-6 text-[11px] px-1.5 py-0.5 rounded bg-white/90 text-black font-bold">
+          {ranking}
+        </div>
+      )}
+    </div>
   );
 }

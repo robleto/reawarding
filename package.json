@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "patch:supabase-fetch": "node scripts/patch-supabase-fetch.cjs",
+    "predev": "npm run patch:supabase-fetch",
+    "prebuild": "npm run patch:supabase-fetch",
+    "prestart": "npm run patch:supabase-fetch",
     "dev": "next dev",
     "dev:turbo": "next dev --turbopack",
     "build": "next build",

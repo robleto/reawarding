@@ -1,5 +1,7 @@
 # Reawarding — Project Context & Product Philosophy
 
+---
+
 ## 1. Product One-Line
 
 Reawarding lets people rewrite film award history based on what they actually watched and how films aged over time.
@@ -11,7 +13,7 @@ Reawarding lets people rewrite film award history based on what they actually wa
 Inspired by cultural re-awarding concepts (ex: retrospective Oscar re-evaluations with hindsight).
 
 Core idea:
-Institutional awards capture a moment in time.
+Institutional awards capture a moment in time.  
 Reawarding captures *lived audience history*.
 
 ---
@@ -39,14 +41,14 @@ Seen → Ratings → Rankings → Awards unlock
 NEW MODEL (Correct Model):
 Opinion → Award → Nominees → Optional rankings → Optional ratings
 
-Awards are FIRST-CLASS objects.
+Awards are FIRST-CLASS objects.  
 They are NOT derived-only outputs.
 
 ---
 
 ## 5. V1 Core Experience Goal
 
-A brand new user can create or change a Best Picture winner in under 30 seconds.
+A brand new user can create or influence a Best Picture award in under 30 seconds.
 
 If this is not possible, the design is wrong.
 
@@ -59,30 +61,62 @@ Primary onboarding action:
 "Pick a movie you love."
 
 System response:
-→ Creates Best Picture winner for that movie's year
-→ Shows the award immediately
-→ Invites adding nominees
-→ Invites fixing another year
 
-No gating.
-No required tracking first.
-No required ranking first.
+→ Adds movie as seed nominee for that movie's year  
+→ System may infer provisional winner based on current ballot state  
+→ Shows the award immediately  
+→ Invites adding nominees  
+→ Invites fixing another year  
+
+No gating.  
+No required tracking first.  
+No required ranking first.  
+
+System demonstrates how ballots form — it does not skip formation.
 
 ---
 
-## 7. Homepage Philosophy
+## 7. Ballot Formation Philosophy (New)
+
+Ballots are living structures, not instant outputs.
+
+Ballots evolve through observable states:
+
+Seed → Forming → Established → Mature
+
+Thin ballots produce provisional authority.  
+Thick ballots produce canonical authority.
+
+Users should always feel ballots are forming, not appearing fully assembled.
+
+---
+
+## 8. Canonical Award Rule (New)
+
+For Best Picture V1:
+
+One year = One canonical award outcome.
+
+System may track revisions internally, but users should always experience a single authoritative award state.
+
+---
+
+## 9. Homepage Philosophy
 
 Homepage is STATEFUL.
 
+---
+
 ### New Users
 Homepage = Action Screen
+
 Primary CTA:
 Pick a movie you love
 
-Minimal distraction.
-No dashboards.
-No stats walls.
-No empty tables.
+Minimal distraction.  
+No dashboards.  
+No stats walls.  
+No empty tables.  
 
 ---
 
@@ -99,20 +133,20 @@ May include:
 
 ---
 
-## 8. What Reawarding Is NOT
+## 10. What Reawarding Is NOT
 
-Not a social network.
-Not a film logging database competitor.
-Not Letterboxd.
-Not IMDb.
-Not gamification-first.
-Not completion-driven.
+Not a social network.  
+Not a film logging database competitor.  
+Not Letterboxd.  
+Not IMDb.  
+Not gamification-first.  
+Not completion-driven.  
 
 Social features may exist later but are NOT core value.
 
 ---
 
-## 9. Data Model Principles
+## 11. Data Model Principles
 
 Awards must be creatable from a single movie selection.
 
@@ -121,87 +155,112 @@ Awards may exist without:
 - Full ratings
 - Full seen history
 
-Partial data is valid data.
-
+Partial data is valid data.  
 Messy opinions are valid product output.
 
 ---
 
-## 10. UX Principles
+## 12. UX Principles
 
 Design for:
-Fast emotional reward
-Opinion expression
-Low friction
-Clarity over completeness
-Progressive depth
+Fast emotional reward  
+Opinion expression  
+Low friction  
+Clarity over completeness  
+Progressive depth  
+Visible ballot formation  
 
 Avoid:
-Empty states with no action
-Locked feature gates
-Long onboarding flows
-"Complete profile first" style UX
+Empty states with no action  
+Locked feature gates  
+Long onboarding flows  
+"Complete profile first" style UX  
 
 ---
 
-## 11. Success Metrics (V1)
+## 13. Success Metrics (V1)
 
 Primary:
-User creates first award
+User creates first award  
 
 Secondary:
-User adds nominee
-User creates second award
-User edits winner
+User adds nominee  
+User creates second award  
+User edits winner  
 
 Not Primary:
-Total movies logged
-Total ratings volume
-Collection completion
+Total movies logged  
+Total ratings volume  
+Collection completion  
 
 ---
 
-## 12. Tone of Product
+## 14. Tone of Product
 
 Reawarding should feel:
 
-Light
-Curious
-Inviting
-Opinion-validating
-Not competitive
-Not "prove you're a real cinephile"
+Light  
+Curious  
+Inviting  
+Opinion-validating  
+Not competitive  
+Not "prove you're a real cinephile"  
 
 ---
 
-## 13. Implementation Guardrails
+## 15. Implementation Guardrails
 
 If a design introduces:
+
 - Mandatory tracking before awards
 - Mandatory ranking before awards
 - Heavy onboarding
 - Feature gating based on data volume
+- Instant fully-formed ballots with no formation visibility
 
 Stop and re-evaluate.
 
 ---
 
-## 14. Future Expansion (Not V1)
+## 16. Future Expansion (Not V1)
 
 Possible later:
-Social graph
-Collections
-Badges
-Journaling
-Community awards
+Social graph  
+Collections  
+Badges  
+Journaling  
+Community awards  
 
 Only AFTER core loop is strong.
 
 ---
 
-## 15. The North Star Question
+## 17. The North Star Question
 
 Can a new user express an opinion about film history immediately?
 
 If yes → Correct direction  
-If no → Redesign required
+If no → Redesign required  
+
+---
+
+## 18  Home Surface Interaction Principle
+
+Home emphasizes active creative work, not total historical coverage.
+
+Home should prioritize:
+
+- Recently edited or evolving awards
+- In-progress ballots
+- Fast entry into opinion expression
+- Immediate continuation of user taste activity
+
+Home should avoid becoming:
+
+- A complete historical archive
+- A full year-by-year award index
+- A substitute for the Awards timeline view
+
+Full historical browsing belongs to the Awards page.
+
+---
