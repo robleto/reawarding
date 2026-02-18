@@ -7,7 +7,7 @@ interface RankingDropdownProps {
   disabled?: boolean;
 }
 
-const RANKING_OPTIONS = Array.from({ length: 10 }, (_, i) => 10 - i);
+const RANKING_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1);
 
 export default function RankingDropdown({ ranking, onChange, disabled = false }: RankingDropdownProps) {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -42,7 +42,7 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
         className="text-sm font-bold px-2 py-1 min-w-[32px] min-h-[32px] rounded-lg border border-gray-700 bg-gray-900/80 text-white"
         style={{ backgroundColor: style.background, color: style.text }}
       >
-        {ranking ?? "-"}
+        {ranking ?? "--"}
       </button>
       {showDropdown && !disabled && (
         <div
@@ -58,7 +58,7 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
             }}
             className="mx-auto my-2 text-sm font-semibold text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded w-8 h-8 flex items-center justify-center"
           >
-            -
+            --
           </div>
           <div className="flex flex-col items-center gap-1">
             {RANKING_OPTIONS.map((num) => {

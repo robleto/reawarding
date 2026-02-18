@@ -65,12 +65,15 @@ export default function FilmActions({ movieId }: Props) {
     // Authenticated mode
     const { error } = await supabase
       .from("rankings")
-      .upsert({
-        user_id: user.id,
-        movie_id: movieId,
-        ranking: updates.ranking !== undefined ? updates.ranking : ranking,
-        seen_it: updates.seen_it !== undefined ? updates.seen_it : seenIt,
-      });
+      .upsert(
+        {
+          user_id: user.id,
+          movie_id: movieId,
+          ranking: updates.ranking !== undefined ? updates.ranking : ranking,
+          seen_it: updates.seen_it !== undefined ? updates.seen_it : seenIt,
+        },
+        { onConflict: "user_id,movie_id" }
+      );
 
     if (!error) {
       if (updates.ranking !== undefined) setRanking(updates.ranking);

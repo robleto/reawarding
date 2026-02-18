@@ -464,27 +464,6 @@ export default function HomePage() {
 		return Number.isNaN(timestamp) ? 0 : timestamp;
 	};
 
-	// Returns films from a year the user has NOT yet rated or seen — used to tease
-	// what's still waiting in "Expand your film history".
-	const getUnseenMoviesForYear = (year: number, limit = 4) => {
-		const yearMovies = allMovies.filter((m) => m.release_year === year);
-		return yearMovies
-			.filter((m) => {
-				const r = m.rankings?.[0];
-				return (
-					(r?.ranking === null || r?.ranking === undefined) &&
-					r?.seen_it !== true
-				);
-			})
-			.sort((a, b) => {
-				// Prefer films with poster/thumb so the strip looks good
-				const aHas = !!(a.cached_thumb_url || a.thumb_url || a.cached_poster_url || a.poster_url) ? 1 : 0;
-				const bHas = !!(b.cached_thumb_url || b.thumb_url || b.cached_poster_url || b.poster_url) ? 1 : 0;
-				return bHas - aHas;
-			})
-			.slice(0, limit);
-	};
-
 	const getContextMoviesForYear = (year: number, limit = 3) => {
 		const ballot = rankingShelf.find((s) => s.year === year);
 		const nomineeIds = new Set(ballot?.nominees.map((m) => m.id) ?? []);
@@ -519,13 +498,26 @@ export default function HomePage() {
 		.filter(_archiveFilter)
 		.map((b) => ({ ...b, films: getContextMoviesForYear(b.year, 3) }));
 
-	// 1) Continue your ballots (up to 3): emerging first, then standard, newest first
+	// 1) Continue your ballots (up to 3): sorted by most recently changed ranking
+	// Find the most recent updated_at timestamp for any ranked movie in each year
+	const mostRecentRankingByYear: Record<number, number> = {};
+	for (const movie of allMovies) {
+		const r = movie.rankings?.[0];
+		if (r?.updated_at) {
+			const ts = new Date(r.updated_at as string).getTime();
+			const yr = movie.release_year;
+			if (!mostRecentRankingByYear[yr] || ts > mostRecentRankingByYear[yr]) {
+				mostRecentRankingByYear[yr] = ts;
+			}
+		}
+	}
+
 	const continueBallotYears = allBallotYears
 		.filter((b) => b.year !== currentYear && b.nomineeCount >= 3 && b.nomineeCount < 10)
 		.sort((a, b) => {
-			const levelPriority = (level: BallotLevel) => (level === "emerging" ? 0 : 1);
-			const byLevel = levelPriority(a.level) - levelPriority(b.level);
-			if (byLevel !== 0) return byLevel;
+			const aTs = mostRecentRankingByYear[a.year] ?? 0;
+			const bTs = mostRecentRankingByYear[b.year] ?? 0;
+			if (bTs !== aTs) return bTs - aTs;
 			return b.year - a.year;
 		})
 		.slice(0, 3)
@@ -540,72 +532,6 @@ export default function HomePage() {
 		.filter((m) => m.release_year === currentYear)
 		.sort((a, b) => getRecentTimestamp(b) - getRecentTimestamp(a))
 		.slice(0, 10);
-
-	// 3) Years with acclaimed unseen films — surfaces years with the most
-	// critically-regarded films you haven't rated yet (the "high potential" pass).
-	// A film is "acclaimed unseen" if: not rated, not seen_it, and has strong
-	// critical scores (tmdb_rating ≥ 7, or imdb_rating ≥ 7, or metacritic ≥ 65).
-	const isAcclaimedFilm = (m: (typeof allMovies)[0]) =>
-		(m.tmdb_rating != null && m.tmdb_rating >= 7) ||
-		(m.imdb_rating != null && m.imdb_rating >= 7) ||
-		(m.metacritic_score != null && m.metacritic_score >= 65);
-
-	const isUnrated = (m: (typeof allMovies)[0]) => {
-		const r = m.rankings?.[0];
-		return (r?.ranking === null || r?.ranking === undefined) && r?.seen_it !== true;
-	};
-
-	// Count how many acclaimed-but-unseen films each year has
-	const acclaimedUnseenByYear: Record<number, number> = {};
-	for (const movie of allMovies) {
-		if (isUnrated(movie) && isAcclaimedFilm(movie)) {
-			acclaimedUnseenByYear[movie.release_year] = (acclaimedUnseenByYear[movie.release_year] || 0) + 1;
-		}
-	}
-
-	// Still need ratedCount to know the user has some engagement with the year
-	const ratedCountByYear: Record<number, number> = {};
-	for (const movie of allMovies) {
-		if (movie.rankings?.[0]?.ranking !== null && movie.rankings?.[0]?.ranking !== undefined) {
-			ratedCountByYear[movie.release_year] = (ratedCountByYear[movie.release_year] || 0) + 1;
-		}
-	}
-
-	const continueYearSet = new Set(continueBallotYears.map((b) => b.year));
-	const savedAwardYearSet = new Set(awards.map((a) => a.year));
-
-	// Pool: years the user has rated at least 1 film in (some familiarity),
-	// are not already handled by "Continue your ballots" or completed ballots,
-	// and have acclaimed unseen films still waiting.
-	const engagedYears = new Set(Object.keys(ratedCountByYear).map(Number));
-
-	const partialHistoryYears = Array.from(engagedYears)
-		.map((numericYear) => {
-			const ratedCount = ratedCountByYear[numericYear] ?? 0;
-			const acclaimedUnseen = acclaimedUnseenByYear[numericYear] ?? 0;
-			const ballot = allBallotYears.find((b) => b.year === numericYear);
-			const nomineeCount = ballot?.nomineeCount ?? 0;
-			return { year: numericYear, ratedCount, acclaimedUnseen, nomineeCount };
-		})
-		.filter((entry) => {
-			if (entry.year === currentYear) return false;
-			if (continueYearSet.has(entry.year)) return false;
-			if (savedAwardYearSet.has(entry.year)) return false;
-			if (entry.nomineeCount >= 10) return false;
-			// Must have acclaimed films still to discover
-			return entry.acclaimedUnseen >= 3;
-		})
-		// Sort by most acclaimed unseen films — the richest years to dig into
-		.sort((a, b) => b.acclaimedUnseen - a.acclaimedUnseen || b.year - a.year)
-		.slice(0, 3)
-		.map((entry) => {
-			return {
-				...entry,
-				unseenTotal: entry.acclaimedUnseen,
-				// Thumbnail strip: acclaimed unseen films with posters
-				unseenFilms: getUnseenMoviesForYear(entry.year, 3),
-			};
-		});
 
 	// If showing award celebration moment, show it
 	if (awardResult) {
@@ -1004,69 +930,7 @@ export default function HomePage() {
 				</section>
 			)}
 
-			{/* ─── G) EXPAND YOUR FILM HISTORY (optional) ─────── */}
-			{partialHistoryYears.length > 0 && (
-				<section className="mb-12">
-					<div className="flex items-center justify-between mb-3">
-						<h2 className="text-lg font-bold text-gray-900 dark:text-white">Years worth digging into</h2>
-						<p className="text-xs text-gray-500">You&apos;ve started here — acclaimed films still unrated</p>
-					</div>
-					<div className="grid grid-cols-3 gap-2.5">
-						{partialHistoryYears.map((entry) => {
-							const { unseenTotal } = entry;
-							return (
-								<button
-									key={`history-${entry.year}`}
-									onClick={() => setExplorerYear(entry.year)}
-									className="group flex flex-col rounded-xl border border-gray-700/35 bg-gray-900/30 overflow-hidden hover:border-yellow-500/40 hover:bg-gray-800/40 transition-all text-left"
-								>
-									{/* Thumbnail strip — unseen films the user should watch */}
-									<div className="flex gap-0.5 w-full h-16 overflow-hidden">
-										{entry.unseenFilms.slice(0, 3).map((movie) => {
-											const imgSrc =
-												movie.cached_thumb_url ||
-												movie.thumb_url ||
-												movie.cached_poster_url ||
-												movie.poster_url;
-											return imgSrc ? (
-												<div key={movie.id} className="relative flex-1 min-w-0">
-													<Image
-														src={imgSrc}
-														alt={movie.title}
-														fill
-														className="object-cover"
-														sizes="60px"
-														unoptimized
-													/>
-												</div>
-											) : (
-												<div key={movie.id} className="flex-1 bg-gray-800/60" />
-											);
-										})}
-										{/* Fill empty slots if fewer than 3 unseen films with images */}
-										{Array.from({ length: Math.max(0, 3 - entry.unseenFilms.slice(0, 3).length) }).map((_, i) => (
-											<div key={`empty-${i}`} className="flex-1 bg-gray-800/40" />
-										))}
-									</div>
-									{/* Card body */}
-									<div className="p-2.5 flex flex-col gap-1">
-										<span className="text-sm font-bold font-unbounded text-white">{entry.year}</span>
-										<p className="text-[11px] text-gray-400 leading-tight">
-											{entry.ratedCount} rated
-											{unseenTotal > 0 && (
-												<span className="text-yellow-400/80"> · {unseenTotal} acclaimed unseen</span>
-											)}
-										</p>
-										<span className="text-[11px] text-gray-500 group-hover:text-yellow-400 transition-colors mt-0.5">
-											Explore {entry.year} →
-										</span>
-									</div>
-								</button>
-							);
-						})}
-					</div>
-				</section>
-			)}
+
 
 			{/* Auth Modal */}
 			<AuthModalManager

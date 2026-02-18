@@ -89,7 +89,7 @@ export default function YearExplorer({
   const existingNomineeMovies = useMemo(() => {
     if (!existingAward?.nomineeIds?.length) return [];
     return existingAward.nomineeIds
-      .map((id) => allMoviesForYear.find((m) => m.id === id))
+      .map((id) => allMoviesForYear.find((m) => m.id === Number(id)))
       .filter((m): m is Movie => Boolean(m));
   }, [existingAward?.nomineeIds, allMoviesForYear]);
   const hasCanonicalBestPictureAward = existingNomineeMovies.length > 0;
@@ -236,7 +236,7 @@ export default function YearExplorer({
   const promoteToNominee = useCallback(
     (movie: Movie) => {
       onUpdateMovieRanking(movie.id, { ranking: 7, seen_it: true });
-      if (!activeNomineeIdSet.has(movie.id) && displayNomineeCount < 10) {
+      if (!activeNomineeIdSet.has(movie.id) && (!hasCanonicalBestPictureAward || displayNomineeCount < 10)) {
         // Flash confirmation before the card disappears from contenders
         setRecentlyNominated((prev) => new Set(prev).add(movie.id));
         setTimeout(() => {
@@ -287,7 +287,7 @@ export default function YearExplorer({
           <div className="flex gap-3 overflow-x-auto pb-2 pr-1">
             {movies.map((movie) => {
               const justNominated = recentlyNominated.has(movie.id);
-              const canNominate = !activeNomineeIdSet.has(movie.id) && displayNomineeCount < 10;
+              const canNominate = !activeNomineeIdSet.has(movie.id) && (!hasCanonicalBestPictureAward || displayNomineeCount < 10);
 
               return (
                 <div key={`${rowKey}-${movie.id}`} className="group relative w-[120px] sm:w-[140px] md:w-[160px] shrink-0">
@@ -332,6 +332,7 @@ export default function YearExplorer({
       activeNomineeIdSet,
       currentUserId,
       displayNomineeCount,
+      hasCanonicalBestPictureAward,
       onUpdateMovieRanking,
       promoteToNominee,
       recentlyNominated,

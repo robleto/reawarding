@@ -1064,7 +1064,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-orange-600 transition-colors rounded-lg bg-orange-50 hover:bg-orange-100 dark:bg-gray-800 dark:text-orange-300"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
-                        Reset
+                        Restore
                       </button>
                     )}
                   </div>
