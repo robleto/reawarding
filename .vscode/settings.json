@@ -32,5 +32,12 @@
   ],
   "typescript.preferences.exclude": [
     "supabase/functions/**/*"
-  ]
+  ],
+  "files.exclude": {
+    "**/.history": true,
+    "**/.history/**": true
+  },
+  "files.watcherExclude": {
+    "**/.history/**": true
+  }
 }
