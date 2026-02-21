@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabaseBrowser";
-import { User, Save, Check, X } from 'lucide-react';
+import type { User } from '@supabase/supabase-js';
+import { User as UserIcon, Save, Check, X } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -18,7 +19,7 @@ interface Profile {
 export default function ProfileSetupPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   
   // Form state
@@ -130,7 +131,12 @@ export default function ProfileSetupPage() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    
+
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
     if (!username.trim()) {
       setError('Username is required');
       return;
@@ -243,7 +249,7 @@ export default function ProfileSetupPage() {
                 Username *
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   id="username"
                   type="text"
@@ -279,7 +285,7 @@ export default function ProfileSetupPage() {
                 Full Name
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   id="fullName"
                   type="text"

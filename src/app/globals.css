@@ -58,12 +58,8 @@
 @tailwind utilities;
 
 
-@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
 }
 
 /* Netflix-style gradient container */
@@ -211,3 +207,1119 @@ body {
   color: #1c1917;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
 }
+
+/* Reawarding cinematic homepage */
+.home-shell {
+  position: relative;
+  overflow-x: hidden;
+  color: inherit;
+  --home-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 0.5px, transparent 0.5px);
+  background-size: 3px 3px;
+  opacity: 0.08;
+  mix-blend-mode: soft-light;
+}
+
+.home-hero,
+.home-panel {
+  position: relative;
+  /* No global min-height — panels size to content with generous padding.
+     Pinned panels each get 100vh via the data-panel-id overrides below. */
+  padding: clamp(4rem, 8vw, 7rem) 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Pinned panels must fully occupy the viewport while ScrollTrigger holds them.
+   panel-timeline and panel-reassurance added — previously missing, causing
+   blank dead zones between sections. */
+.home-panel[data-panel-id="panel-premise"],
+.home-panel[data-panel-id="panel-how-it-works"],
+.home-panel[data-panel-id="panel-hook"],
+.home-panel[data-panel-id="panel-timeline"],
+.home-panel[data-panel-id="panel-reassurance"] {
+  min-height: 100vh;
+}
+
+.home-hero {
+  min-height: calc(100vh - 5rem);
+  /* Place content in the upper-center third so the search input sits
+     just below the vertical midpoint and the dropdown has room to open. */
+  align-items: flex-start;
+  padding-top: clamp(5rem, 18vh, 11rem);
+  padding-bottom: 0;
+  /* overflow-x: clip removed — was clipping the search dropdown.
+     Decorative bg elements are now clipped inside .home-hero__bg instead. */
+}
+
+/* Clips the grain + ambient decorations without touching the dropdown stacking context */
+.home-hero__bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.home-hero__inner,
+.home-panel__inner {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 5vw, 4rem);
+  display: grid;
+  gap: clamp(2rem, 4vw, 3.5rem);
+  position: relative;
+  z-index: 2;
+}
+
+/* Hero-specific: center everything, narrower max-width for cinematic focus */
+.home-hero__inner {
+  justify-items: center;
+  text-align: center;
+  max-width: 820px;
+  gap: clamp(1rem, 2vw, 1.6rem);
+}
+
+.home-hero__ambient {
+  display: none;
+}
+
+.home-hero__grain {
+  position: absolute;
+  inset: -4%;
+  opacity: 0.08;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.55) 0.4px, transparent 0.4px);
+  background-size: 2.5px 2.5px;
+  animation: home-grain-drift 22s linear infinite;
+}
+
+.home-headline {
+  font-family: var(--font-unbounded), sans-serif;
+  font-size: clamp(1.65rem, 4.2vw, 3rem);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  display: grid;
+  gap: 0.15rem;
+  text-align: center;
+}
+
+.dark .home-headline {
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.home-headline__line {
+  display: block;
+}
+
+.home-panel__body {
+  max-width: 60ch;
+  font-size: clamp(1rem, 2.1vw, 1.2rem);
+  line-height: 1.6;
+  color: #4b5563;
+}
+
+.dark .home-panel__body {
+  color: rgba(209, 213, 219, 0.9);
+}
+
+.home-hero__search {
+  width: min(560px, 100%);
+  position: relative;
+  z-index: 30;
+  /* No overflow constraint — dropdown falls freely below the input */
+}
+
+.home-hero__microcopy {
+  font-size: 0.78rem;
+  color: rgba(200, 196, 192, 0.4);
+  letter-spacing: 0.04em;
+  margin-top: 0;
+  text-align: center;
+}
+
+.home-search-picker {
+  width: 100%;
+}
+
+.home-search-picker .movie-search-picker__menu {
+  max-height: min(22rem, calc(100vh - 12rem));
+}
+
+/* Elevate MovieSearchPicker inside the hero */
+.home-search-picker .flex.items-center {
+  height: 3.25rem;
+  border-radius: 0.875rem;
+  border-color: rgba(107, 114, 128, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  transition:
+    border-color 200ms var(--home-ease),
+    box-shadow 200ms var(--home-ease);
+}
+
+.home-search-picker .flex.items-center:focus-within {
+  border-color: rgba(212, 175, 55, 0.65);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18), 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.home-scroll-hint {
+  position: absolute;
+  bottom: 1.75rem;
+  left: 50%;
+  border: 0;
+  background: transparent;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: rgba(107, 114, 128, 0.55);
+  animation: home-bob 2.4s ease-in-out infinite;
+  transition: color 180ms var(--home-ease), opacity 780ms var(--home-ease);
+}
+
+.dark .home-scroll-hint {
+  color: rgba(156, 163, 175, 0.45);
+}
+
+.home-scroll-hint:hover {
+  color: #d4af37;
+}
+
+.home-scroll-hint__icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: block;
+}
+
+@keyframes home-bob {
+  0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.55; }
+  50%       { transform: translateX(-50%) translateY(10px); opacity: 0.9; }
+}
+
+.home-panel h2 {
+  font-family: var(--font-unbounded), sans-serif;
+  font-size: clamp(1.65rem, 5vw, 3.2rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+.dark .home-panel h2 {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.home-mock-frame,
+.hook-card,
+.timeline-frame,
+.reassurance-mark {
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.how-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+  width: min(760px, 100%);
+}
+
+.how-step {
+  position: relative;
+  border: 1px solid rgba(107, 114, 128, 0.25);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.65);
+  padding: 1rem 1.1rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 0.75rem 0.9rem;
+  align-items: center;
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.dark .how-step {
+  background: rgba(17, 24, 39, 0.7);
+  border-color: rgba(75, 85, 99, 0.45);
+}
+
+.how-step p {
+  margin: 0;
+  color: #1f2937;
+}
+
+.dark .how-step p {
+  color: #f3f4f6;
+}
+
+.how-step__index {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  color: #111827;
+}
+
+.dark .how-step__index {
+  color: #f9fafb;
+}
+
+.how-step__line {
+  grid-column: 1 / -1;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.72), rgba(212, 175, 55, 0.2));
+  margin-top: 0.25rem;
+  margin-left: 2.8rem;
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.how-step--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.how-step__line--visible {
+  transform: scaleX(1);
+}
+
+/* ─── How It Works — two-column layout ─────────────────────────── */
+
+.hiw-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  align-items: start;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .hiw-layout {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+}
+
+/* Steps column */
+.hiw-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.hiw-step {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.hiw-step__num {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  background: rgba(212, 175, 55, 0.08);
+  font-family: var(--font-unbounded, "Unbounded", sans-serif);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #d4af37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hiw-step__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.35;
+  margin-bottom: 0.25rem;
+}
+
+.hiw-step__body {
+  font-size: 0.9rem;
+  color: rgba(200, 196, 192, 0.55);
+  line-height: 1.55;
+}
+
+/* Mockup column */
+.hiw-mockup {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  background: rgba(15, 23, 42, 0.92);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+.hiw-mock-award {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.hiw-mock-winner-poster {
+  width: 64px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.hiw-mock-winner-poster img {
+  width: 100%;
+  display: block;
+}
+
+.hiw-mock-award-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hiw-mock-year {
+  font-family: var(--font-unbounded, "Unbounded", sans-serif);
+  font-size: 0.75rem;
+  color: #d4af37;
+  font-weight: 700;
+}
+
+.hiw-mock-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.3;
+}
+
+.hiw-mock-nominees {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.hiw-mock-nominee-thumb {
+  width: 28px;
+  height: 42px;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hiw-mock-nominee-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hiw-mock-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.hiw-mock-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(200, 196, 192, 0.4);
+}
+
+.hiw-mock-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+
+.hiw-mock-film {
+  position: relative;
+  border-radius: 0.35rem;
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
+}
+
+.hiw-mock-film img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.hiw-mock-film__rating {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  background: rgba(212, 175, 55, 0.9);
+  color: #000;
+  font-size: 0.6rem;
+  font-weight: 800;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-family: var(--font-unbounded, "Unbounded", sans-serif);
+}
+
+.hiw-mock-strip {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.hiw-mock-slot {
+  width: 32px;
+  height: 48px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+}
+
+.hiw-mock-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hiw-mock-slot--empty {
+  border: 1.5px dashed rgba(212, 175, 55, 0.25);
+  background: transparent;
+}
+
+.reassurance-mark {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.reassurance-mark__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  font-size: 0.88rem;
+  color: #374151;
+  background: rgba(212, 175, 55, 0.06);
+  white-space: nowrap;
+}
+
+.dark .reassurance-mark__pill {
+  color: #d1d5db;
+  background: rgba(212, 175, 55, 0.08);
+  border-color: rgba(212, 175, 55, 0.25);
+}
+
+.reassurance-mark__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #d4af37;
+  flex-shrink: 0;
+}
+
+/* ─── Reassurance 2×2 stat grid ───────────────────────────────── */
+.reassurance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .reassurance-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+.reassurance-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.4rem 1.25rem;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 1rem;
+  background: rgba(212, 175, 55, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.dark .reassurance-card {
+  border-color: rgba(212, 175, 55, 0.2);
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.reassurance-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 20% 0%, rgba(212, 175, 55, 0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.reassurance-card__stat {
+  font-family: var(--font-unbounded), sans-serif;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: #d4af37;
+}
+
+.reassurance-card__label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.3;
+  margin-top: 0.2rem;
+}
+
+.dark .reassurance-card__label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.reassurance-card__sub {
+  font-size: 0.78rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.dark .reassurance-card__sub {
+  color: rgba(200, 196, 192, 0.75);  /* brightened from 0.55 — sub text was near-invisible */
+}
+
+.final-cta-wrap {
+  padding-top: 0.4rem;
+}
+
+/* ─── Panel Final CTA — cinematic closing ─────────────────────── */
+.panel-final-cta {
+  position: relative;
+}
+
+.panel-final-cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 50% at 50% 60%, rgba(212, 175, 55, 0.07) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.panel-final-cta .home-panel__inner {
+  justify-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.panel-final-cta .home-panel__inner header {
+  align-items: center;
+  max-width: 52rem;
+}
+
+/* Balance the two-line CTA heading so the break feels deliberate */
+.panel-final-cta h2 {
+  text-wrap: balance;
+}
+
+.final-cta-search-wrap {
+  width: min(520px, 100%);
+  margin: 0 auto;
+  position: relative;
+}
+
+.final-cta-microcopy {
+  font-size: 0.78rem;
+  color: rgba(200, 196, 192, 0.45);
+  letter-spacing: 0.04em;
+  margin-top: 0.75rem;
+  text-align: center;
+}
+
+.home-button--pulse-once {
+  animation: home-button-pulse 1.2s var(--home-ease) 1 400ms;
+}
+
+.home-progress {
+  position: fixed;
+  left: 1rem;
+  top: 50%;
+  z-index: 5;
+  transform: translateY(-50%);
+  display: none;
+  gap: 0.55rem;
+  opacity: 0;
+  transition: opacity 450ms ease;
+}
+
+.home-progress--visible {
+  opacity: 1;  /* was 0.72 — dots were barely visible */
+}
+
+.home-progress__dot {
+  width: 8px;  /* was 7px */
+  height: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(107, 114, 128, 0.4);
+  transition:
+    transform 180ms var(--home-ease),
+    background-color 180ms var(--home-ease),
+    box-shadow 180ms var(--home-ease);
+}
+
+.dark .home-progress__dot {
+  background: rgba(156, 163, 175, 0.45);
+}
+
+.home-progress__dot.is-active {
+  background: #d4af37;
+  transform: scale(1.5);  /* was 1.3 */
+  box-shadow: 0 0 6px rgba(212, 175, 55, 0.55);
+}
+
+.motion-reveal {
+  --motion-y: 16px;
+  --motion-scale: 1;
+  opacity: 0;
+  transform: translateY(var(--motion-y)) scale(var(--motion-scale));
+  transition:
+    opacity 780ms var(--home-ease),
+    transform 780ms var(--home-ease);
+}
+
+.motion-reveal--visible {
+  --motion-y: 0px;
+  --motion-scale: 1;
+  opacity: 1;
+}
+
+.motion-reveal-scale {
+  --motion-scale: 0.98;
+}
+
+.motion-crossfade {
+  --motion-scale: 0.99;
+}
+
+.home-shell :where(button, a, input):focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.9);
+  outline-offset: 3px;
+}
+
+@keyframes home-gradient-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(2%, -2%, 0) scale(1.03);
+  }
+}
+
+@keyframes home-grain-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-4%, 2.5%, 0);
+  }
+}
+
+@keyframes home-button-pulse {
+  0% {
+    box-shadow: 0 6px 14px rgba(17, 24, 39, 0.22);
+  }
+  50% {
+    box-shadow:
+      0 0 0 10px rgba(212, 175, 55, 0.16),
+      0 9px 18px rgba(17, 24, 39, 0.24);
+  }
+  100% {
+    box-shadow: 0 6px 14px rgba(17, 24, 39, 0.22);
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-progress {
+    display: grid;
+  }
+
+  .home-hero__inner {
+    gap: clamp(1.2rem, 2.2vw, 2rem);
+  }
+
+  .home-search-picker .movie-search-picker__menu {
+    max-height: min(18rem, calc(100vh - 14rem));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .home-shell::before,
+  .home-hero__ambient,
+  .home-hero__grain,
+  .home-button--pulse-once,
+  .home-scroll-hint {
+    animation: none !important;
+  }
+
+  .home-scroll-hint {
+    transform: translateX(-50%) !important;
+  }
+
+  .motion-reveal,
+  .home-card-interactive,
+  .home-button,
+  .home-link,
+  .home-progress__dot,
+  .home-input,
+  .home-step,
+  .timeline-item {
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  .home-button--primary:hover,
+  .home-card-interactive:hover {
+    transform: none;
+  }
+
+  /* ra-* reduced-motion overrides */
+  .ra-card,
+  .ra-badge,
+  .ra-caption {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   REAWARDING ANIMATION  (ra-*)
+   Mirrors Awards YearSection layout — ReawardAnimation.tsx
+   Layout: Glass card | Left 1/3 winner | divider | Right 2/3 contenders 3-up grid
+═══════════════════════════════════════════════════════════ */
+
+/* ── Stage wrapper — positions year label to the left ───── */
+.ra-stage-wrap {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  width: 100%;
+}
+
+/* Year label — rotated vertically on the left, matching Awards YearSection */
+.ra-year-label {
+  display: none;                        /* hidden on mobile */
+  position: absolute;
+  left: 0.25rem;                        /* was 0 — hug the stage card edge */
+  top: 125px;
+  font-family: var(--font-unbounded, "Unbounded", sans-serif);
+  font-size: 1.875rem;                  /* text-3xl */
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #A0A0A0;
+  transform: rotate(-90deg);
+  transform-origin: left center;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (min-width: 768px) {
+  .ra-year-label {
+    display: block;
+  }
+
+  /* Push the stage card rightward to make room for the year label */
+  .ra-stage-wrap .ra-stage {
+    margin-left: 2.5rem;
+  }
+}
+
+/* ── Stage container — glass card matching YearSection ───── */
+.ra-stage {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: clamp(1.5rem, 3vw, 3rem);      /* responsive gap */
+  width: min(1000px, 100%);
+  margin-top: 2rem;
+  padding: 1.5rem 1.75rem 1.75rem;    /* more breathing room */
+  border-radius: 0.875rem;            /* rounded-xl */
+  border: 1px solid rgba(214,214,211,0.25);
+  /* light-glass / dark-glass: handled via Tailwind on .ra-stage in JSX is fine,
+     but we replicate the dark variant here since this panel is always in dark context */
+  background: rgba(17, 17, 18, 0.62);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: 0 4px 32px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.04);
+  overflow: visible;                  /* GSAP cards can cross column boundaries */
+  position: relative;
+}
+
+/* ── Winner side (left, 36% width) ───────────────────────── */
+.ra-winner-side {
+  width: 36%;
+  max-width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow: visible;
+}
+
+/* ── Contenders side (right, flex:1 / ~2/3) ──────────────── */
+.ra-contenders-side {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow: visible;
+}
+
+/* ── Section heading row (icon + label) ──────────────────── */
+.ra-side-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.625rem;
+}
+
+.ra-side-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;                /* text-sm/base */
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ra-side-heading--winner {
+  color: #cb8601;                     /* matches YearSection: text-[#cb8601] */
+  font-family: var(--font-unbounded, "Unbounded", sans-serif);
+}
+
+.dark .ra-side-heading--winner {
+  color: #fbbf24;                     /* dark:text-yellow-400 */
+}
+
+.ra-side-heading--rewarded {
+  color: rgb(68,220,135);
+  font-family: var(--font-unbounded, "Unbounded", sans-serif);
+}
+
+.ra-side-heading--contenders {
+  font-size: 0.8rem;
+  color: #7e7e7e;                     /* matches YearSection */
+  letter-spacing: 0.02em;
+}
+
+.dark .ra-side-heading--contenders {
+  color: #e5e7eb;                     /* dark:text-gray-200 */
+}
+
+/* ── Caption crossfade (under winner heading) ────────────── */
+.ra-caption-wrap {
+  position: relative;
+  height: 1.15rem;
+  overflow: visible;
+}
+
+.ra-caption {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+  font-size: 0.65rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(232,228,224,0.45);
+}
+
+.ra-caption--rewarded {
+  color: rgba(212,175,55,0.9);
+}
+
+/* ── Movie item: poster box + title below ────────────────── */
+.ra-movie-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  overflow: visible;
+}
+
+/* ── Poster box: aspect-[2/3] with relative+fill pattern ─── */
+.ra-poster-box {
+  position: relative;
+  border-radius: 0.75rem;             /* rounded-xl */
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
+}
+
+/* Winner card: larger, matches WinnerCard.tsx */
+.ra-poster-box--winner {
+  width: 100%;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.55);
+}
+
+/* Nominee grid card: smaller, matches MovieCard imageMode="poster" */
+.ra-poster-box--nominee {
+  width: 100%;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+}
+
+/* Next.js Image fill */
+.ra-poster-img {
+  object-fit: cover;
+  object-position: center top;
+}
+
+/* Light overlay for depth (no text on top of image here — titles are below) */
+.ra-poster-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.0) 55%,
+    rgba(0,0,0,0.28) 100%
+  );
+  pointer-events: none;
+}
+
+/* Title below poster (like Awards YearSection/WinnerCard/MovieCard) */
+.ra-movie-title {
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.3;
+  color: #ccc8c4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Contender titles: allow 2-line wrap (columns are narrower) */
+.ra-contenders-side .ra-movie-title {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: unset;
+}
+
+/* ── Nominee 3-up grid (matches Awards: grid-cols-3 gap-3) ── */
+.ra-nominee-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.625rem;
+  overflow: visible;
+}
+
+/* ── Vertical divider (matches Awards YearSection divider) ── */
+.ra-divider {
+  flex-shrink: 0;
+  width: 1px;
+  align-self: stretch;
+  background: rgba(214,214,211,0.2);
+}
+
+.dark .ra-divider {
+  background: rgba(75,85,99,0.4);     /* dark:bg-gray-600/50 */
+}
+
+/* ── Badges (bottom of poster box) ───────────────────────── */
+.ra-badge {
+  position: absolute;
+  bottom: 0.45rem;
+  right: 0.45rem;
+  display: inline-block;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.55rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-weight: 700;
+  line-height: 1;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 3;
+}
+
+.ra-badge--oscar {
+  background: rgba(212,175,55,0.18);
+  border: 1px solid rgba(212,175,55,0.5);
+  color: rgb(220,188,70);
+}
+
+.ra-badge--rewarded {
+  background: rgba(56,189,115,0.22);
+  border: 1px solid rgba(56,189,115,0.65);  /* was 0.5 — more legible */
+  color: rgb(68,220,135);
+  box-shadow: 0 0 8px rgba(56,189,115,0.25);  /* subtle glow — this is the key differentiator */
+  transform-origin: center;
+}
+
+/* ── Poster image fallback (shown when image fails to load) ─ */
+.ra-poster-fallback {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 17, 18, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 0.65rem;
+  color: rgba(200, 196, 192, 0.6);
+  line-height: 1.3;
+}
+
+/* ── Responsive: stack to column on narrow screens ───────── */
+@media (max-width: 580px) {
+  .ra-stage {
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 0.875rem;
+  }
+
+  .ra-winner-side {
+    width: 100%;
+    max-width: 180px;               /* keep winner card reasonably sized */
+    margin: 0 auto;                 /* center on mobile */
+  }
+
+  .ra-divider {
+    width: 100%;
+    height: 1px;
+    align-self: auto;
+  }
+
+  .ra-contenders-side {
+    width: 100%;
+  }
+}
+
+/* (old ra-card/ra-winner-zone/ra-contenders CSS removed — replaced above) */

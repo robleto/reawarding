@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { ToastProvider } from '@/components/providers/ToastProvider';
 import { ErrorBoundary } from '@/components/error/ErrorBoundary';
 import { setupGlobalErrorHandlers } from '@/utils/errorLogger';
+import { useAuthMigration } from '@/utils/authMigration';
 import type { Database } from '@/types/supabase';
 import { User, Session } from '@supabase/supabase-js';
 
@@ -17,25 +18,13 @@ interface ProvidersProps {
 
 export function Providers({ children, initialUser }: ProvidersProps) {
   const [initialSession, setInitialSession] = useState<Session | null>(null);
-  
-  // console.log("Providers - initialUser:", initialUser);
 
   useEffect(() => {
-    // Get the current session from the client
     const getSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      console.log("🔑 SESSION DEBUG:", {
-        session: session ? "SESSION EXISTS" : "NO SESSION",
-        user: session?.user ? {
-          id: session.user.id,
-          email: session.user.email,
-          provider: session.user.app_metadata?.provider
-        } : "NO USER",
-        error: error
-      });
+      const { data: { session } } = await supabase.auth.getSession();
       setInitialSession(session);
     };
-    
+
     getSession();
 
     // Set up global error handlers (only on client)
@@ -48,6 +37,7 @@ export function Providers({ children, initialUser }: ProvidersProps) {
         supabaseClient={supabase} 
         initialSession={initialSession}
       >
+        <AuthMigrationBridge />
         <ThemeProvider>
           <ToastProvider>
             {children}
@@ -56,4 +46,9 @@ export function Providers({ children, initialUser }: ProvidersProps) {
       </SessionContextProvider>
     </ErrorBoundary>
   );
+}
+
+function AuthMigrationBridge() {
+  useAuthMigration();
+  return null;
 }

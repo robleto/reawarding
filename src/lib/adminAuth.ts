@@ -35,13 +35,8 @@ export async function isUserAdmin(): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    console.log('[Admin Check] No user logged in');
-    // TEMPORARY: Bypass for testing - REMOVE THIS AFTER FIXING AUTH
-    console.log('[Admin Check] BYPASSING AUTH CHECK FOR TESTING');
-    return true;
+    return false;
   }
-
-  console.log('[Admin Check] User:', user.email);
 
   const { data: profile, error } = await supabase
     .from('profiles')
@@ -54,7 +49,6 @@ export async function isUserAdmin(): Promise<boolean> {
     return false;
   }
 
-  console.log('[Admin Check] Profile is_admin:', profile?.is_admin);
   return profile?.is_admin ?? false;
 }
 

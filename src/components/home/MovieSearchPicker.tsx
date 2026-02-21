@@ -117,7 +117,7 @@ export default function MovieSearchPicker({
       </form>
 
       {showSuggestions && (suggestions.length > 0 || (term && !isSearching)) && (
-        <ul className="absolute left-0 right-0 mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-[60] max-h-80 overflow-y-auto">
+        <ul className="movie-search-picker__menu absolute left-0 right-0 mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-[60] max-h-80 overflow-y-auto">
           {suggestions.map((m) => (
             <li
               key={m.id}

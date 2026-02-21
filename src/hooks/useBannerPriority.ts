@@ -16,8 +16,8 @@ interface BannerPriorityState {
   shouldShowBanner: boolean;
 }
 
-const BANNER_DISMISSED_KEY = "oscarworthy_banner_dismissed";
-const BANNER_DISMISSED_SESSION_KEY = "oscarworthy_banner_dismissed_session";
+const BANNER_DISMISSED_KEY = "reawarding_banner_dismissed";
+const BANNER_DISMISSED_SESSION_KEY = "reawarding_banner_dismissed_session";
 
 export function useBannerPriority(): BannerPriorityState & {
   dismissBanner: () => void;

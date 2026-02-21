@@ -16,7 +16,8 @@ import {
 import type { Movie } from "@/types/types";
 
 export default function ProfileFilmsPage() {
-  const { username } = useParams<{ username: string }>();
+  const params = useParams<{ username: string }>();
+  const username = params?.username ?? "";
   const { movies: allMovies, loading } = usePublicProfile(username);
 
   // Films page shows only "seen" movies

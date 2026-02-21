@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { slugifyTitle } from "@/utils/slug";
 import Image from "next/image";
 import { normalizeImageUrl } from "@/utils/imageUrl";
@@ -12,6 +13,7 @@ import AlternativeTitles from "@/components/films/AlternativeTitles";
 import SimilarMoviesGrid from "@/components/films/SimilarMoviesGrid";
 import EnhancedStats from "@/components/films/EnhancedStats";
 import ImdbIdEditor from "@/components/films/ImdbIdEditor";
+import FilmEntryPanel from "@/components/films/FilmEntryPanel";
 import {
   ExternalLink, Star, TrendingUp, DollarSign, Users, Calendar, Clock,
   Film as FilmIcon, Award, Video, Image as ImageIcon, BarChart3,
@@ -38,6 +40,11 @@ export default async function MovieDetailPage({ params }: any) {
   }
 
   const poster = normalizeImageUrl(movie.cached_poster_url || movie.poster_url);
+  const supabaseServer = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabaseServer.auth.getUser();
+  const isGuest = !user;
 
   // Parse JSONB fields if they're strings (Supabase sometimes returns JSONB as strings)
   const videos = typeof movie.videos === "string" ? JSON.parse(movie.videos) : movie.videos;
@@ -74,6 +81,26 @@ export default async function MovieDetailPage({ params }: any) {
     }
   } catch (error) {
     console.error("Similar movies error:", error);
+  }
+
+  // Peer movies for FilmEntryPanel — top acclaimed films from the same year (logged-out only)
+  // Non-blocking: failures silently produce an empty array so the page still renders.
+  type PeerMovie = { id: number; title: string; cached_poster_url?: string | null; poster_url?: string | null };
+  let peerMovies: PeerMovie[] = [];
+  if (isGuest && movie.release_year) {
+    try {
+      const { data: peerData } = await supabaseAdmin
+        .from("movies")
+        .select("id, title, cached_poster_url, poster_url")
+        .eq("release_year", movie.release_year)
+        .neq("id", movie.id)
+        .gte("tmdb_rating", 6.5)
+        .order("vote_count", { ascending: false, nullsFirst: false })
+        .limit(5);
+      if (peerData) peerMovies = peerData as PeerMovie[];
+    } catch {
+      // Non-critical — panel renders without thumbnails if this fails
+    }
   }
 
   // Community stats (server-side) – simple aggregation from rankings
@@ -191,10 +218,17 @@ export default async function MovieDetailPage({ params }: any) {
 
   return (
     <div className="max-w-screen-2xl mx-auto px-4 py-6">
+      {isGuest && movie.release_year && (
+        <FilmEntryPanel
+          film={{ id: movie.id, title: movie.title }}
+          year={movie.release_year}
+          peerMovies={peerMovies}
+        />
+      )}
       {/* Hero Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-[350px,1fr] gap-8 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-[280px,1fr] lg:grid-cols-[350px,1fr] gap-6 lg:gap-8 mb-8">
         {/* Poster */}
-        <div className="rounded-xl overflow-hidden border border-yellow-500/20 bg-gray-900/60 shadow-2xl">
+        <div className="rounded-xl overflow-hidden border border-yellow-500/20 bg-gray-900/60 shadow-2xl max-w-xl md:max-w-none mx-auto md:mx-0 w-full">
           <div className="relative aspect-[2/3]">
             {poster ? (
               <Image src={poster} alt={movie.title} fill className="object-cover" />

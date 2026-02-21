@@ -17,8 +17,8 @@ export default function FilmsEmptyState({ isGuest, onSignupClick }: FilmsEmptySt
           {/* Logo/Icon */}
           <div className="relative mb-0">
             <Image 
-              src="/Oscarworthy-logomark.svg" 
-              alt="Oscarworthy Logo" 
+              src="/reawarding-logomark.svg" 
+              alt="Reawarding" 
               width={96} 
               height={96} 
               className="mx-auto" 

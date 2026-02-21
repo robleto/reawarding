@@ -53,7 +53,7 @@ interface GuestRankingStore {
  */
 function isLocalStorageAvailable(): boolean {
   try {
-    const testKey = '__oscarworthy_ls_test__';
+    const testKey = '__reawarding_ls_test__';
     localStorage.setItem(testKey, '1');
     localStorage.removeItem(testKey);
     return true;
@@ -63,7 +63,7 @@ function isLocalStorageAvailable(): boolean {
 }
 
 const localStorageAvailable = typeof window !== 'undefined' ? isLocalStorageAvailable() : true;
-const STORAGE_WARNING_SESSION_KEY = "oscarworthy_storage_warning_shown";
+const STORAGE_WARNING_SESSION_KEY = "reawarding_storage_warning_shown";
 
 const useGuestRankingStore = create<GuestRankingStore>()(
   persist(
@@ -151,7 +151,7 @@ const useGuestRankingStore = create<GuestRankingStore>()(
         });
         // Also clear the save prompt dismissal when rankings are cleared
         if (typeof window !== "undefined") {
-          localStorage.removeItem("oscarworthy-save-prompt-dismissed");
+          localStorage.removeItem("reawarding-save-prompt-dismissed");
         }
       },
 
@@ -216,7 +216,7 @@ const useGuestRankingStore = create<GuestRankingStore>()(
       },
     }),
     {
-      name: 'oscarworthy-guest-rankings',
+      name: 'reawarding-guest-rankings',
       storage: localStorageAvailable
         ? createJSONStorage(() => localStorage)
         : createJSONStorage(() => ({
@@ -271,11 +271,6 @@ export function useGuestRankingStoreWithMigration() {
       }));
 
       if (rankingsToInsert.length > 0) {
-        console.log('[GuestMigration] Attempting to migrate guest rankings', {
-          count: rankingsToInsert.length,
-          payload: rankingsToInsert,
-        });
-
         // Insert rankings into the database
         const { error, status } = await supabase
           .from('rankings')
@@ -292,10 +287,6 @@ export function useGuestRankingStoreWithMigration() {
           return { success: false, migratedCount: 0, error: error.message };
         }
 
-        console.log('[GuestMigration] Successfully migrated guest rankings', {
-          count: rankingsToInsert.length,
-          status,
-        });
       }
 
       // Migrate guest awards
@@ -323,10 +314,6 @@ export function useGuestRankingStoreWithMigration() {
           console.warn('[GuestMigration] Error migrating award for year', award.year, e);
         }
       }
-      if (awardsMigrated > 0) {
-        console.log('[GuestMigration] Migrated guest awards', { count: awardsMigrated });
-      }
-
       // Clear guest data after successful migration
       store.clearAllData();
 

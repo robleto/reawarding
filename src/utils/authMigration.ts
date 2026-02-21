@@ -16,6 +16,10 @@ export function useAuthMigration(onMigrationSuccess?: (count: number) => void) {
     const handleAuthStateChange = async () => {
       if (!user) return;
 
+      const { data: { session } } = await supabase.auth.getSession();
+      // Skip bootstrapping when auth is transitioning (e.g., during sign-out).
+      if (!session || session.user.id !== user.id) return;
+
       // Ensure user has a Watchlist (idempotent)
       try {
         await ensureUserWatchlist(supabase, user.id);
@@ -29,7 +33,6 @@ export function useAuthMigration(onMigrationSuccess?: (count: number) => void) {
         try {
           const result = await guestStore.migrateToSupabase(user.id);
           if (result.success && result.migratedCount > 0) {
-            console.log(`Successfully migrated ${result.migratedCount} guest items`);
             onMigrationSuccess?.(result.migratedCount);
             if (window.location.pathname === '/' || window.location.pathname.includes('callback')) {
               setTimeout(() => {

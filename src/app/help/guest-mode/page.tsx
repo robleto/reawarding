@@ -20,7 +20,7 @@ export default function GuestModeHelpPage() {
           <h2 className="text-xl font-semibold text-yellow-400 mb-2">What works in Guest Mode</h2>
           <ul className="list-disc list-inside text-gray-300 space-y-2">
             <li><span className="text-gray-200 font-medium">Rank movies:</span> Set a score and mark as seen — saved locally.</li>
-            <li><span className="text-gray-2 00 font-medium">Home sorting:</span> "For Your Consideration" prioritizes new releases and acclaimed films for easy discovery.</li>
+            <li><span className="text-gray-200 font-medium">Home sorting:</span> "For Your Consideration" prioritizes new releases and acclaimed films for easy discovery.</li>
             <li><span className="text-gray-200 font-medium">View preferences:</span> We remember filters and layout on this device.</li>
           </ul>
         </section>

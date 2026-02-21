@@ -1,18 +1,17 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Clapperboard, LineChart, Menu, Plus, Trophy, X } from "lucide-react";
 import { UserMenu } from "@/components/layout/UserMenu";
 import NavSearch from "@/components/layout/NavSearch";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import { Logo } from "@/components/ui/Logo";
+import UserAvatar from "@/components/ui/UserAvatar";
 import { useScrollBackground } from "@/hooks/useScrollBackground";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useEnsureProfile } from "@/hooks/useEnsureProfile";
-import { normalizeImageUrl } from "@/utils/imageUrl";
 import AddMovieByTmdbModal from "@/components/movie/AddMovieByTmdbModal";
 
 export default function HeaderNav() {
@@ -27,12 +26,16 @@ export default function HeaderNav() {
 	const hasScrolled = useScrollBackground();
 	const user = useUser();
 	const { profile } = useEnsureProfile(user);
+	const displayName = profile?.preferred_name || profile?.full_name || profile?.username || user?.email;
+	const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
 
-	const navItems = [
-		{ label: "Films", href: "/films", match: "/films", icon: Clapperboard },
-		{ label: "Rankings", href: "/rankings", match: "/rankings", icon: LineChart },
-		{ label: "Awards", href: "/awards", match: "/awards", icon: Trophy },
-	];
+	const navItems = user
+		? [
+				{ label: "Films", href: "/films", match: "/films", icon: Clapperboard },
+				{ label: "Rankings", href: "/rankings", match: "/rankings", icon: LineChart },
+				{ label: "Awards", href: "/awards", match: "/awards", icon: Trophy },
+		  ]
+		: [{ label: "Films", href: "/films", match: "/films", icon: Clapperboard }];
 
 	const handleLoginClick = () => {
 		setAuthMode("login");
@@ -76,7 +79,7 @@ export default function HeaderNav() {
 					<Link href="/" className="flex items-center">
 						<Logo size="sm" showText={false} />
 					</Link>
-					<span className="px-2 py-0.5 text-[10px] font-bold tracking-wider text-yellow-900 dark:text-yellow-200 bg-yellow-400/90 dark:bg-yellow-500/30 border border-yellow-600/50 dark:border-yellow-400/40 rounded uppercase">
+					<span className="ml-2 px-2 py-0.5 text-[10px] font-bold tracking-wider text-yellow-900 dark:text-yellow-200 bg-yellow-400/90 dark:bg-yellow-500/30 border border-yellow-600/50 dark:border-yellow-400/40 rounded uppercase">
 						Beta
 					</span>
 				</div>					{/* Navigation and Controls */}
@@ -132,14 +135,16 @@ export default function HeaderNav() {
 
 						{/* Controls: Add + Search + UserMenu */}
 						<div className="flex items-center gap-3 flex-shrink-0 ml-auto">
-							<button
-								onClick={() => setShowAddMovieModal(true)}
-								className="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-								aria-label="Add movie by TMDB ID"
-								title="Add movie by TMDB ID"
-							>
-								<Plus className="w-4 h-4" />
-							</button>
+							{user && (
+								<button
+									onClick={() => setShowAddMovieModal(true)}
+									className="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+									aria-label="Add movie by TMDB ID"
+									title="Add movie by TMDB ID"
+								>
+									<Plus className="w-4 h-4" />
+								</button>
+							)}
 							<div className="hidden md:block">
 								<NavSearch />
 							</div>
@@ -155,20 +160,18 @@ export default function HeaderNav() {
 							>
 								<Plus className="w-5 h-5 text-gray-700 dark:text-gray-300" />
 							</button>
-							<button
-								className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-								aria-label="Open user menu"
-								onClick={() => { setMobileUserOpen(!mobileUserOpen); if (!mobileUserOpen) setMobileMenuOpen(false); }}
-							>
-								<Image
-									src={normalizeImageUrl(profile?.avatar_url || user?.user_metadata?.avatar_url) || 'https://placehold.co/40x40?text=%F0%9F%91%A4'}
-									alt="User Avatar"
-									width={28}
-									height={28}
-									className="rounded-full"
-									unoptimized
-								/>
-							</button>
+								<button
+									className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+									aria-label="Open user menu"
+									onClick={() => { setMobileUserOpen(!mobileUserOpen); if (!mobileUserOpen) setMobileMenuOpen(false); }}
+								>
+									<UserAvatar
+										imageUrl={avatarUrl}
+										name={displayName}
+										username={profile?.username}
+										size={28}
+									/>
+								</button>
 							{/* Mobile Menu Button */}
 							<button
 								onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (!mobileMenuOpen) setMobileUserOpen(false); }}

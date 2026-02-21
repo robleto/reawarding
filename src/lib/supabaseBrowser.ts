@@ -1,3 +1,13 @@
+/**
+ * supabaseBrowser — client-side Supabase singleton.
+ *
+ * Use in:
+ *   - "use client" components
+ *   - Client-side hooks (src/hooks/)
+ *   - Client-side utils that run in the browser
+ *
+ * Do NOT use in Server Components or API Route Handlers — use supabaseServer or supabaseAdmin instead.
+ */
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 

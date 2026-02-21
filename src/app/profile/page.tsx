@@ -4,10 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useUser, useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
 import { Edit3, Save, X, Mail, Calendar, Camera } from "lucide-react";
-import Image from "next/image";
 import type { Database } from "@/types/supabase";
-import { normalizeImageUrl } from "@/utils/imageUrl";
 import StatsSummary from "@/components/stats/StatsSummary";
+import UserAvatar from "@/components/ui/UserAvatar";
 
 interface Profile {
   id: string;
@@ -98,12 +97,16 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user) {
-      router.push("/");
+      setProfile(null);
+      setLoading(false);
+      router.replace("/");
       return;
     }
     
     fetchProfile();
   }, [user, router, fetchProfile]);
+
+  if (!user) return null;
 
   const handleStartEditing = () => {
     setEditing(true);
@@ -227,13 +230,13 @@ export default function ProfilePage() {
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <Image
-                src={normalizeImageUrl(avatarUrl) || 'https://placehold.co/80x80?text=%F0%9F%91%A4'}
-                alt="Profile Picture"
-                width={80}
-                height={80}
-                className="rounded-full border-4 border-gray-200 dark:border-gray-600"
-                unoptimized
+              <UserAvatar
+                imageUrl={avatarUrl}
+                name={displayName}
+                username={profile?.username || user.email?.split("@")[0]}
+                size={80}
+                alt="Profile picture"
+                className="border-4 border-gray-200 dark:border-gray-600"
               />
               {editing && (
                 <button className="absolute -bottom-1 -right-1 p-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">

@@ -56,7 +56,7 @@ export function Logo({ size = 'lg', className = '', showText = true, imageClassN
             <span className={`${emojiSize[size]}`}>🏆</span>
             {showText && (
               <h1 className={`font-semibold font-unbounded uppercase text-gold ${textSize[size]} tracking-widest`}>
-                Reawarding
+                ReAwarding
               </h1>
             )}
           </>

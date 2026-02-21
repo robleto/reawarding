@@ -78,8 +78,8 @@ export default function SignupModal({
         email,
         password,
         options: {
-          // Use auth callback to exchange code and then redirect to rankings
-          emailRedirectTo: buildSiteUrl("/auth/callback?next=/rankings") || undefined,
+          // Use auth callback to exchange code and then redirect home
+          emailRedirectTo: buildSiteUrl("/auth/callback?next=/") || undefined,
           data: {
             email_opt_in: emailOptIn,
           },
@@ -96,7 +96,7 @@ export default function SignupModal({
           showToast("Welcome to Reawarding!", "success");
           onAuthSuccess?.(data.user);
           onClose();
-          router.push("/rankings");
+          router.push("/");
         } else {
           // User needs to confirm email
           setEmailSent(true);
@@ -116,7 +116,7 @@ export default function SignupModal({
     setLoading(true);
     setError(null);
 
-    const redirectTo = buildSiteUrl("/auth/callback?next=/rankings") || undefined;
+    const redirectTo = buildSiteUrl("/auth/callback?next=/") || undefined;
 
     // Try Supabase redirect, fallback to manual redirect if url is returned
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -125,7 +125,6 @@ export default function SignupModal({
         redirectTo,
       },
     });
-    console.log('OAuth result:', { data, error });
     if (error) {
       setError(error.message);
       setLoading(false);

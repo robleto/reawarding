@@ -1,4 +1,5 @@
 import './globals.css';
+import { Inter, Unbounded } from 'next/font/google';
 import { Providers } from './providers';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -6,13 +7,20 @@ import type { Database } from '@/types/supabase';
 import HeaderNav from '@/components/layout/HeaderNav';
 import Footer from '@/components/layout/Footer';
 import { NetflixGlow } from '@/components/ui/NetflixGlow';
-import { Inter, Unbounded } from 'next/font/google';
 import MobileTabBar from '@/components/layout/MobileTabBar';
+import type { User } from '@supabase/supabase-js';
 
-const inter = Inter({ subsets: ['latin'] });
-const unbounded = Unbounded({ 
+const inter = Inter({
   subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const unbounded = Unbounded({
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800'],
   variable: '--font-unbounded',
+  display: 'swap',
 });
 
 export const metadata = {
@@ -46,13 +54,21 @@ export default async function RootLayout({
       },
     }
   );
-  const {
-    data: { user },
-    error: authError
-  } = await supabase.auth.getUser();
+  let user: User | null = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (!error) {
+      user = data.user ?? null;
+    }
+  } catch (error) {
+    // Invalid or stale refresh tokens should fail closed to "signed out"
+    // instead of crashing the root layout render.
+    console.warn("RootLayout auth.getUser failed; continuing as signed out", error);
+    user = null;
+  }
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${unbounded.variable}`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -74,7 +90,7 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://assets.fanart.tv" crossOrigin="anonymous" />
       </head>
-      <body className={`min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300 ${inter.className} ${unbounded.variable}`}>
+      <body className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300 font-sans">
         <NetflixGlow />
         <Providers initialUser={user}>
           <div className="relative z-10 min-h-screen flex flex-col">

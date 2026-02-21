@@ -31,7 +31,18 @@ export async function ensureUserWatchlist(
     if (insertRes.error) throw insertRes.error;
     return insertRes.data?.id ?? null;
   } catch (error) {
-    console.error("ensureUserWatchlist error", error);
+    const message =
+      typeof error === "object" && error !== null && "message" in error
+        ? String((error as { message?: unknown }).message ?? "")
+        : "";
+    const isSilentAuthTransition =
+      message.toLowerCase().includes("jwt") ||
+      message.toLowerCase().includes("session") ||
+      message.toLowerCase().includes("auth");
+
+    if (!isSilentAuthTransition) {
+      console.warn("ensureUserWatchlist failed", error);
+    }
     return null;
   }
 }

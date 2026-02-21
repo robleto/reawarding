@@ -119,10 +119,10 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-gray-700">
-                Email: <a href="mailto:privacy@oscarworthy.com" className="text-blue-600 hover:text-blue-700">privacy@oscarworthy.com</a>
+                Email: <a href="mailto:privacy@reawarding.com" className="text-blue-600 hover:text-blue-700">privacy@reawarding.com</a>
               </p>
               <p className="text-gray-700 mt-2">
-                Data Protection Officer: <a href="mailto:dpo@oscarworthy.com" className="text-blue-600 hover:text-blue-700">dpo@oscarworthy.com</a>
+                Data Protection Officer: <a href="mailto:dpo@reawarding.com" className="text-blue-600 hover:text-blue-700">dpo@reawarding.com</a>
               </p>
             </div>
           </div>

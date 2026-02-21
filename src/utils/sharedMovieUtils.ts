@@ -1,6 +1,6 @@
 // Shared movie page utilities for Rankings and Films
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
@@ -309,6 +309,7 @@ export function useMovieDataWithGuest() {
 	const [hasMounted, setHasMounted] = useState(false);
 	const [authChecked, setAuthChecked] = useState(false);
 	const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+	const requestSeqRef = useRef(0);
 	const supabase = useSupabaseClient<Database>();
 	const user = useUser();
 	const guestStore = useGuestRankingStore();
@@ -317,6 +318,12 @@ export function useMovieDataWithGuest() {
 	const effectiveUserId: string = user?.id ?? sessionUserId ?? "";
 	const userId: string = effectiveUserId;
 	const isGuest = !effectiveUserId;
+
+	// Prevent showing a previous account's rankings while auth state is switching.
+	useEffect(() => {
+		setMovies([]);
+		setLoading(true);
+	}, [userId, isGuest]);
 
 	useEffect(() => {
 		setHasMounted(true);
@@ -370,6 +377,7 @@ export function useMovieDataWithGuest() {
 	useEffect(() => {
 		if (!authChecked) return;
 		async function fetchData() {
+			const requestId = ++requestSeqRef.current;
 			setLoading(true);
 			
 			try {
@@ -380,10 +388,10 @@ export function useMovieDataWithGuest() {
 						.select(MOVIE_LIST_FIELDS)
 						.range(0, 2999);
 
-					if (error) {
-						console.warn("Guest movie fetch failed, keeping previous list:", error);
-						setMovies((prev) => prev);
-					} else {
+						if (error) {
+							console.warn("Guest movie fetch failed, keeping previous list:", error);
+							if (requestId === requestSeqRef.current) setMovies((prev) => prev);
+						} else {
 						// Apply guest data from Zustand store
 						const moviesWithGuestData = data.map(movie => {
 							const guestRanking = guestStore.getRanking(movie.id);
@@ -399,9 +407,9 @@ export function useMovieDataWithGuest() {
 							} as Movie;
 						});
 						
-						setMovies(moviesWithGuestData);
-					}
-				} else if (userId) {
+							if (requestId === requestSeqRef.current) setMovies(moviesWithGuestData);
+						}
+					} else if (userId) {
 					// For authenticated users, fetch movies and their rankings separately for performance
 					// RLS policies automatically filter rankings to current user
 					const [moviesResult, rankingsResult] = await Promise.all([
@@ -409,10 +417,11 @@ export function useMovieDataWithGuest() {
 							.from("movies")
 							.select(MOVIE_LIST_FIELDS)
 							.range(0, 2999),
-						supabase
-							.from("rankings")
-							.select("*")
-							.limit(10000)
+							supabase
+								.from("rankings")
+								.select("*")
+								.eq("user_id", userId)
+								.limit(10000)
 							.then(result => {
 								// Silently handle rankings errors - user might not have SELECT permission yet
 								if (result.error) {
@@ -423,10 +432,10 @@ export function useMovieDataWithGuest() {
 							})
 					]);
 
-					if (moviesResult.error) {
-						console.warn("Authenticated movie fetch failed, keeping previous list:", moviesResult.error);
-						setMovies((prev) => prev);
-					} else {
+						if (moviesResult.error) {
+							console.warn("Authenticated movie fetch failed, keeping previous list:", moviesResult.error);
+							if (requestId === requestSeqRef.current) setMovies((prev) => prev);
+						} else {
 						// Create a map of movie_id -> ranking for fast lookup
 						const rankingsMap = new Map();
 						if (rankingsResult.data) {
@@ -443,18 +452,18 @@ export function useMovieDataWithGuest() {
 								thumb_url: movie.thumb_url ?? "",
 							} as Movie;
 						});
-						setMovies(enriched);
+							if (requestId === requestSeqRef.current) setMovies(enriched);
+						}
 					}
+				} catch (err) {
+					console.warn("Movie data fetch exception, keeping previous list:", err);
+					if (requestId === requestSeqRef.current) setMovies((prev) => prev);
 				}
-			} catch (err) {
-				console.warn("Movie data fetch exception, keeping previous list:", err);
-				setMovies((prev) => prev);
+				
+				if (requestId === requestSeqRef.current) setLoading(false);
 			}
 			
-			setLoading(false);
-		}
-		
-		fetchData();
+			fetchData();
 	}, [authChecked, userId, supabase, isGuest]);
 
 	const updateMovieRanking = async (
@@ -498,10 +507,11 @@ export function useMovieDataWithGuest() {
 
 		if (updates.ranking === null) {
 			if (existing?.id) {
-				const { error } = await supabase
-					.from("rankings")
-					.delete()
-					.eq("id", existing.id);
+					const { error } = await supabase
+						.from("rankings")
+						.delete()
+						.eq("id", existing.id)
+						.eq("user_id", userId!);
 
 				if (error) {
 					console.error("Delete error:", error.message);

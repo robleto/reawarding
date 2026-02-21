@@ -30,9 +30,9 @@ interface FilmCollection {
 }
 
 export default function CollectionDetailPage() {
-  const params = useParams();
+  const params = useParams<{ slug: string }>();
   const router = useRouter();
-  const slug = params.slug as string;
+  const slug = params?.slug ?? "";
   
   const [collection, setCollection] = useState<FilmCollection | null>(null);
   const [collectionTmdbIds, setCollectionTmdbIds] = useState<number[]>([]);

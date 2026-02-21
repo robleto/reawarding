@@ -1,6 +1,16 @@
 /**
- * Film Collections - Preset curated collections of movies
- * Similar to ready-made lists but static, curated collections
+ * Film Collections — Types and static seed data.
+ *
+ * STATUS: The `FILM_COLLECTIONS` array is no longer the source of truth.
+ * Collections are now managed in the Supabase `film_collections` database table.
+ * All runtime code reads from DB (via `film_collections_with_counts` view).
+ *
+ * The `FilmCollection` TYPE exported here is still actively used by components
+ * (e.g. CollectionCard). Do not delete this file — just the data array is obsolete.
+ *
+ * If you need to seed or reset the DB collections, this array can serve as
+ * a reference, but do not re-introduce direct imports of `FILM_COLLECTIONS`
+ * in application code.
  */
 
 export type CollectionCategory = 'featured' | 'awards' | 'lists' | 'franchises' | 'actors' | 'directors' | 'studios';

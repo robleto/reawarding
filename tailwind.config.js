@@ -6,8 +6,8 @@ const config = {
 	theme: {
 		extend: {
 			fontFamily: {
-				sans: ["Inter", "sans-serif"], // ✅ Add Inter as default sans
-				unbounded: ['"Unbounded"', "sans-serif"],
+				sans: ["var(--font-inter)", "sans-serif"],
+				unbounded: ["var(--font-unbounded)", "sans-serif"],
 			},
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(circle, var(--tw-gradient-stops))',

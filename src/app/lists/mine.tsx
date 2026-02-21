@@ -5,11 +5,22 @@ import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import Loader from "@/components/ui/Loading";
 import HorizontalListRow from "@/components/list/HorizontalListRow";
 
+type MovieList = {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  is_public: boolean;
+  updated_at: string;
+  movie_count?: number;
+  posterUrls?: string[];
+};
+
 export default function MyListsPage() {
   const supabase = useSupabaseClient();
   const user = useUser();
   const userId = user?.id;
-  const [myLists, setMyLists] = useState<any[]>([]);
+  const [myLists, setMyLists] = useState<MovieList[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

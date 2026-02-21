@@ -2,10 +2,9 @@
 
 import { useParams, usePathname } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { Star, Trophy, Film, Home, Share2, Check } from "lucide-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
-import { normalizeImageUrl } from "@/utils/imageUrl";
+import UserAvatar from "@/components/ui/UserAvatar";
 import { useState } from "react";
 
 function ProfileHeader({
@@ -62,8 +61,6 @@ function ProfileHeader({
     profile.full_name ||
     profile.username;
 
-  const avatarSrc = normalizeImageUrl(profile.avatar_url) || `https://placehold.co/96x96/1a1a2e/fbbf24?text=${(displayName || "U")[0].toUpperCase()}`;
-
   const statItems = [
     { label: "AWARDS", value: stats.awards, icon: <Trophy className="w-3.5 h-3.5" /> },
     { label: "RANKINGS", value: stats.rated, icon: <Star className="w-3.5 h-3.5" /> },
@@ -75,13 +72,13 @@ function ProfileHeader({
       <div className="md:flex md:items-start md:justify-between md:gap-8">
         {/* Profile info row */}
         <div className="flex items-center gap-5 mb-5 md:mb-0 md:min-w-0">
-          <Image
-            src={avatarSrc}
+          <UserAvatar
+            imageUrl={profile.avatar_url}
+            name={displayName}
+            username={profile.username}
+            size={96}
             alt={displayName || "Profile"}
-            width={96}
-            height={96}
-            className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-gray-700/60 object-cover"
-            unoptimized
+            className="w-20 h-20 sm:w-24 sm:h-24 border-4 border-gray-700/60"
           />
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold text-white truncate">
@@ -137,6 +134,7 @@ function ProfileHeader({
 
 function ProfileTabs({ username }: { username: string }) {
   const pathname = usePathname();
+  const currentPath = pathname ?? "";
   const basePath = `/${username}`;
 
   const tabs = [
@@ -153,8 +151,8 @@ function ProfileTabs({ username }: { username: string }) {
           const Icon = tab.icon;
           const isActive =
             tab.href === basePath
-              ? pathname === basePath
-              : pathname.startsWith(tab.href);
+              ? currentPath === basePath
+              : currentPath.startsWith(tab.href);
 
           return (
             <Link
@@ -183,7 +181,8 @@ export default function UsernameLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { username } = useParams<{ username: string }>();
+  const params = useParams<{ username: string }>();
+  const username = params?.username ?? "";
 
   if (!username) return null;
 

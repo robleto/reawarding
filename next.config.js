@@ -50,6 +50,14 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'cjrpnzwrldlxajkvznca.supabase.co', // Supabase Storage
       },
+      {
+        protocol: 'https',
+        hostname: '**.r2.dev', // Cloudflare R2 public bucket domains
+      },
+      {
+        protocol: 'https',
+        hostname: 'pub-6b3a2dfce3484ea291e496348a19d788.r2.dev', // Current media cache domain
+      },
     ],
   },
   webpack: (config, { isServer }) => {

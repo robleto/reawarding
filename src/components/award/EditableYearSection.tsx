@@ -6,7 +6,7 @@ import { useUser, useSupabaseClient, useSessionContext } from '@supabase/auth-he
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, Crown, GripVertical, Star } from "lucide-react";
+import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, Crown, GripVertical, Star, Check } from "lucide-react";
 import MovieCard from "./MovieCard";
 import WinnerCard from "./WinnerCard";
 import DraggableNomineeCard from "./DraggableNomineeCard";
@@ -367,7 +367,6 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   useEffect(() => {
     // Don't do anything while session is loading
     if (sessionLoading) {
-      console.log('Session loading, waiting to load nominations...');
       return;
     }
 
@@ -376,13 +375,11 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     }
 
     if (user) {
-      console.log('User detected, loading nominations:', user.email);
       if (!hasLoadedInitialRef.current) {
         hasLoadedInitialRef.current = true;
         loadExistingNominations();
       }
     } else {
-      console.log('No user detected, resetting to defaults');
       hasLoadedInitialRef.current = false;
       setHasCustomNominations(false);
       setCustomNominees(null);
@@ -495,17 +492,14 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   const handleSave = async () => {
     // Wait for session to load before checking user
     if (sessionLoading) {
-      console.log('Session still loading, waiting...');
       return;
     }
     
     if (!user) {
-      console.log('No user found, showing sign-in prompt');
       showToast('Please sign in to save your nominations.', 'info');
       return;
     }
 
-    console.log('Saving nominations for user:', user.email);
     setIsSaving(true);
     setError(null);
     setErrorDetails(null);
@@ -565,7 +559,6 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
       // Parse success response
       const result = await response.json();
-      console.log('Save successful:', result);
 
       // Update current display with saved nominations
       const savedNominees = [...nominees];
@@ -645,7 +638,6 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
             console.warn('AWARDS_SAVE_ERROR_CLIENT', detailsObj);
             showToast(msg, 'error');
           } else {
-            console.log('Client upsert success:', data);
             const savedNominees = [...nominees];
             setCurrentNominees(savedNominees);
             setCurrentWinner(selectedWinner);
@@ -1058,14 +1050,20 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         {resolvedCategory === 'best-picture' ? 'Default (Top 10 • 7+ first)' : 'Default (Top 10)'}
                       </span>
                     ) : null}
-                    {showWorkshopReset && (
-                      <button
-                        onClick={handleWorkshopReset}
-                        className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-orange-600 transition-colors rounded-lg bg-orange-50 hover:bg-orange-100 dark:bg-gray-800 dark:text-orange-300"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        Restore
-                      </button>
+                    {isWorkshop && (
+                      <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-500 dark:text-emerald-400">
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Saving…
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-3 h-3" />
+                            Auto-saved
+                          </>
+                        )}
+                      </span>
                     )}
                   </div>
                 </div>

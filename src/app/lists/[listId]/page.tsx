@@ -55,9 +55,9 @@ type ListItem = {
 };
 
 export default function ListDetailPage() {
-  const params = useParams();
+  const params = useParams<{ listId: string }>();
   const router = useRouter();
-  const listId = params.listId as string;
+  const listId = params?.listId ?? "";
   
   const [list, setList] = useState<MovieList | null>(null);
   const [listItems, setListItems] = useState<ListItem[]>([]);
@@ -110,35 +110,23 @@ export default function ListDetailPage() {
     })
   );
 
-  const handleDragStart = (event: any) => {
-    console.log("🚀 DRAG START:", event.active.id);
+  const handleDragStart = (_event: any) => {
+    // drag start handler — reserved for future drag preview logic
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    console.log("🎯 DRAG END:", { activeId: active.id, overId: over?.id });
 
-    if (!over || active.id === over.id) {
-      console.log("🔄 No change needed");
-      return;
-    }
+    if (!over || active.id === over.id) return;
 
     // Only allow reordering when viewing by ranking and no filters
-    if (sortBy !== "ranking" || filterType !== "none") {
-      console.log("⚠️ Reordering disabled - wrong sort/filter mode");
-      return;
-    }
+    if (sortBy !== "ranking" || filterType !== "none") return;
 
     const oldIndex = sortedListItems.findIndex((item) => item.id === active.id);
     const newIndex = sortedListItems.findIndex((item) => item.id === over.id);
 
-    console.log("📊 REORDER:", { oldIndex, newIndex });
-
     if (oldIndex !== -1 && newIndex !== -1) {
       const newOrder = arrayMove(sortedListItems, oldIndex, newIndex);
-      console.log("✨ NEW ORDER:", newOrder.map(item => ({ id: item.id, title: item.movie.title })));
-      
-      // Update the rankings based on new positions
       const updatedItems = newOrder.map((item, index) => ({
         ...item,
         ranking: index + 1,
@@ -154,17 +142,8 @@ export default function ListDetailPage() {
   };
 
   const saveNewOrder = async (items: ListItem[]) => {
-    console.log("💾 SAVING NEW ORDER to database...");
-    console.log("📋 Items to save:", items.map((item, index) => ({ 
-      id: item.id, 
-      currentRanking: item.ranking, 
-      newRanking: index + 1,
-      title: item.movie.title 
-    })));
-    
     try {
       // STEP 1: Set all rankings to negative values to avoid unique constraint conflicts
-      console.log("🔄 Step 1: Setting temporary negative rankings...");
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         const tempRanking = -(i + 1); // Use negative values as temporary
@@ -181,13 +160,10 @@ export default function ListDetailPage() {
       }
 
       // STEP 2: Set the actual final rankings
-      console.log("🔄 Step 2: Setting final rankings...");
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         const newRanking = i + 1;
-        
-        console.log(`🔄 Updating ${item.movie.title} (${item.id}) to final ranking ${newRanking}`);
-        
+
         const { error } = await supabase
           .from("movie_list_items")
           .update({ ranking: newRanking })
@@ -204,8 +180,6 @@ export default function ListDetailPage() {
         .from("movie_lists")
         .update({ updated_at: new Date().toISOString() })
         .eq("id", listId);
-
-      console.log("✅ Order saved successfully to database");
     } catch (error) {
       console.error("❌ Error in saveNewOrder:", error);
     }

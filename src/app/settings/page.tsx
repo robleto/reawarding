@@ -16,7 +16,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!user) {
-      router.push("/");
+      router.replace("/");
     }
   }, [user, router]);
 
@@ -31,7 +31,8 @@ export default function SettingsPage() {
       return;
     }
 
-    router.push("/");
+    router.replace("/");
+    router.refresh();
   };
 
   if (!user) return null;

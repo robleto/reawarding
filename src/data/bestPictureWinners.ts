@@ -119,8 +119,14 @@ export const BEST_PICTURE_WINNERS: Record<number, ActualBestPicture> = {
 };
 
 /**
- * Starter picks — diverse, beloved films that lost (or were snubbed by) Best Picture.
- * Used in the new user "Pick a movie you love" onboarding carousel.
+ * Starter picks — curated films for the new-user "Pick a movie you love" carousel.
+ *
+ * Selection criteria:
+ * - Widely recognisable across age groups and tastes
+ * - Diverse: mix of decades (1970s–2020s), genres, and tones
+ * - Each belongs to a year with plenty of other known contenders
+ *   so YearExplorer feels rich immediately after picking
+ * - NOT required to be Oscar winners — the point is user opinion
  */
 export interface StarterPick {
   title: string;
@@ -128,13 +134,26 @@ export interface StarterPick {
 }
 
 export const STARTER_PICKS: StarterPick[] = [
-  { title: "The Shawshank Redemption", year: 1994 },
+  // 1970s — a canonically great year for film
+  { title: "Chinatown", year: 1974 },
+  // 1980s — beloved underdog / cultural touchstone
   { title: "Do the Right Thing", year: 1989 },
-  { title: "Arrival", year: 2016 },
+  // Early 90s — most-loved snub on IMDb Top 250
+  { title: "The Shawshank Redemption", year: 1994 },
+  // Late 90s / prestige era
+  { title: "Magnolia", year: 1999 },
+  // 2000s blockbuster — launches a very rich year
   { title: "The Dark Knight", year: 2008 },
-  { title: "Spirited Away", year: 2001 },
-  { title: "Get Out", year: 2017 },
+  // 2010s — social-media generation classic
   { title: "The Social Network", year: 2010 },
+  // 2010s — sci-fi / prestige crossover
+  { title: "Arrival", year: 2016 },
+  // Late 2010s — horror crossover into awards
+  { title: "Get Out", year: 2017 },
+  // 2020s — recent landmark
+  { title: "Everything Everywhere All at Once", year: 2022 },
+  // 2020s — contemporary conversation starter
+  { title: "Oppenheimer", year: 2023 },
 ];
 
 /**

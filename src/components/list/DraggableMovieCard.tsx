@@ -93,9 +93,6 @@ export default function DraggableMovieCard({
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  // console.log("DraggableMovieCard - isEditing:", isEditing, "for movie:", item.movie.title);
-  // console.log("🎬 Movie card render:", item.movie.title, "isEditing:", isEditing);
-
   const {
     attributes,
     listeners,
@@ -104,11 +101,6 @@ export default function DraggableMovieCard({
     transition,
     isDragging,
   } = useSortable({ id: item.id });
-
-  // console.log("🆔 Sortable ID:", item.id, "Type:", typeof item.id);
-
-  // console.log("🔧 Drag attributes:", { hasAttributes: !!attributes, hasListeners: !!listeners, isDragging });
-  // console.log("🎯 Applied attributes/listeners:", isEditing ? { ...attributes, ...listeners } : "NONE");
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -125,17 +117,6 @@ export default function DraggableMovieCard({
   // Get user's seen status and ranking from list item data (not global rankings)
   const userSeenIt = item.seen_it ?? false;
   const userScore = item.score ?? null;
-
-  // Debug logging to see what data we're getting
-  console.log("🎬 DraggableMovieCard DEBUG:", {
-    movieTitle: item.movie.title,
-    itemSeenIt: item.seen_it,
-    itemScore: item.score,
-    itemRanking: item.ranking,
-    userSeenIt,
-    userScore,
-    fullItem: item
-  });
 
   const ratingStyle = getRatingStyle(userScore ?? 0);
 

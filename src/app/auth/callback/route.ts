@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const type = requestUrl.searchParams.get('type');
   const code = requestUrl.searchParams.get('code');
   const codeVerifier = requestUrl.searchParams.get('code_verifier');
-  const next = requestUrl.searchParams.get('next') ?? '/rankings';
+  const next = requestUrl.searchParams.get('next') ?? '/';
   const error = requestUrl.searchParams.get('error');
   const error_description = requestUrl.searchParams.get('error_description');
 

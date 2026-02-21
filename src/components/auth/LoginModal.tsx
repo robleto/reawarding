@@ -39,12 +39,9 @@ export default function LoginModal({
 
   const completeLogin = async (user: User) => {
     try {
-      console.log('[GuestMigration] Login modal invoked for user', user.id);
       if (guestStore.hasGuestInteracted()) {
         setMigrating(true);
-        console.log('[GuestMigration] Guest interactions detected, migrating...');
         const result = await guestStore.migrateToSupabase(user.id);
-        console.log('[GuestMigration] Migration result', result);
         if (result.success && result.migratedCount > 0) {
           showToast(`Migrated ${result.migratedCount} saved picks to your account.`, "success");
         }
@@ -53,11 +50,10 @@ export default function LoginModal({
       console.error("Guest data migration failed:", migrationError);
     } finally {
       setMigrating(false);
-      console.log('[GuestMigration] Completing login flow');
       showToast("Welcome back!", "success");
       onAuthSuccess?.(user);
       onClose();
-      router.push("/rankings");
+      router.push("/");
     }
   };
 
@@ -106,7 +102,7 @@ export default function LoginModal({
     setLoading(true);
     setError(null);
 
-    const redirectTo = buildSiteUrl("/auth/callback?next=/rankings") || undefined;
+    const redirectTo = buildSiteUrl("/auth/callback?next=/") || undefined;
 
     // Try Supabase redirect, fallback to manual redirect if url is returned
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -115,7 +111,6 @@ export default function LoginModal({
         redirectTo,
       },
     });
-    console.log('OAuth result:', { data, error });
     if (error) {
       setError(error.message);
       setLoading(false);
@@ -139,7 +134,7 @@ export default function LoginModal({
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: buildSiteUrl("/auth/callback?next=/rankings") || undefined,
+          emailRedirectTo: buildSiteUrl("/auth/callback?next=/") || undefined,
         },
       });
 

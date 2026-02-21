@@ -14,7 +14,8 @@ interface YearData {
 }
 
 export default function ProfileAwardsPage() {
-  const { username } = useParams<{ username: string }>();
+  const params = useParams<{ username: string }>();
+  const username = params?.username ?? "";
   const { movies, loading } = usePublicProfile(username);
 
   const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());

@@ -71,15 +71,11 @@ export default function FilmsManager({ collection }: FilmsManagerProps) {
   async function fetchCollectionFilms() {
     setLoading(true);
 
-    console.log('Fetching films for collection:', collection.id);
-
     // Get film IDs in this collection
     const { data: items, error: itemsError } = await supabase
       .from('film_collection_items')
       .select('tmdb_id')
       .eq('collection_id', collection.id);
-
-    console.log('Collection items:', items, 'Error:', itemsError);
 
     if (!items || items.length === 0) {
       setFilms([]);
@@ -88,15 +84,12 @@ export default function FilmsManager({ collection }: FilmsManagerProps) {
     }
 
     const tmdbIds = items.map(item => item.tmdb_id);
-    console.log('TMDB IDs to fetch:', tmdbIds);
 
     // Fetch movie details
     const { data: movies, error: moviesError } = await supabase
       .from('movies')
       .select('*')
       .in('tmdb_id', tmdbIds);
-
-    console.log('Fetched movies:', movies?.length, 'Error:', moviesError);
 
     setFilms((movies || []) as Movie[]);
     setLoading(false);
@@ -130,20 +123,16 @@ export default function FilmsManager({ collection }: FilmsManagerProps) {
       return;
     }
 
-    console.log('Removing film:', { collection_id: collection.id, tmdb_id: tmdbId });
-
     const response = await fetch(`/api/admin/collections/${collection.id}/films?tmdb_id=${tmdbId}`, {
       method: 'DELETE',
     });
 
     const result = await response.json();
-    console.log('Delete result:', result);
 
     if (!response.ok) {
       console.error('Delete error:', result.error);
       alert(`Error removing film: ${result.error}`);
     } else {
-      console.log('Successfully deleted, refreshing...');
       // Optimistically update UI first
       setFilms(prev => prev.filter(f => f.tmdb_id !== tmdbId));
       // Then refresh from database to ensure consistency

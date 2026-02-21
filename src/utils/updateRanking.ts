@@ -29,12 +29,6 @@ export async function updateRanking({
     ranking: ranking,
   };
   
-console.log("⬆️ Submitting payload to Supabase:", {
-  payload,
-  userId: user.id,
-  isMatching: user.id === payload.user_id,
-});
-
   const { data, error } = await supabase
     .from("rankings")
     .upsert(payload, {
@@ -46,6 +40,5 @@ console.log("⬆️ Submitting payload to Supabase:", {
     throw error;
   }
 
-  console.log("✅ Upsert succeeded:", data);
   return data;
 }

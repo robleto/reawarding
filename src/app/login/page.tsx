@@ -37,7 +37,7 @@ export default function LoginPage() {
         type: 'signup',
         email,
         options: {
-          emailRedirectTo: buildSiteUrl('/auth/callback?next=/rankings') || undefined,
+          emailRedirectTo: buildSiteUrl('/auth/callback?next=/') || undefined,
         },
       });
 
@@ -102,7 +102,7 @@ export default function LoginPage() {
           email,
           password,
           options: {
-            emailRedirectTo: buildSiteUrl('/auth/callback?next=/rankings') || undefined,
+            emailRedirectTo: buildSiteUrl('/auth/callback?next=/') || undefined,
             data: {
               username,
               full_name: fullName || username,
@@ -131,7 +131,7 @@ export default function LoginPage() {
           }
         } else {
           // Redirect on successful login
-          window.location.href = '/rankings';
+          window.location.href = '/';
         }
       }
     } catch {
@@ -147,7 +147,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          redirectTo: buildSiteUrl('/auth/callback?next=/rankings') || undefined,
+          redirectTo: buildSiteUrl('/auth/callback?next=/') || undefined,
         },
       });
       if (error) {
@@ -168,7 +168,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: buildSiteUrl('/auth/callback?next=/rankings') || undefined,
+          redirectTo: buildSiteUrl('/auth/callback?next=/') || undefined,
         },
       });
       if (error) {

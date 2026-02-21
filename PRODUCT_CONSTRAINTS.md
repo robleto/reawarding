@@ -17,6 +17,17 @@ Seen → Ratings → Rankings → Unlock Awards
 
 ---
 
+## BRAND IDENTITY — The Product Is Called Reawarding
+
+The product name is **Reawarding**. Always.
+
+- Do not use "Oscarworthy", "Oscar Worthy", or any variation — this was the previous name and has been fully retired.
+- All code identifiers, localStorage keys, alt text, email addresses, UI copy, and documentation must use `reawarding`.
+- The logomark file is `reawarding-logomark.svg`. No other logomark exists.
+- If you encounter `oscarworthy` anywhere in code or copy, treat it as a bug.
+
+---
+
 ## CONSTRAINT 1 — Awards Are The Primary Entity
 
 The product must always center around awards.

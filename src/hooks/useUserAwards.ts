@@ -82,7 +82,11 @@ function toNormalizedAward(raw: any): UserAward | null {
 export function useUserAwards() {
   const supabase = useSupabaseClient<Database>();
   const user = useUser();
-  const guestStore = useGuestRankingStore();
+  // Subscribe to the awards slice with a selector so this hook re-renders
+  // whenever guestStore.setAward() is called (Zustand notifies subscribers).
+  // Previously used useGuestRankingStore() (whole store — stable reference),
+  // which meant fetchAwards never re-ran and the awards list stayed stale.
+  const guestAwards = useGuestRankingStore((state) => state.awards);
   const isGuest = !user;
 
   const [awards, setAwards] = useState<UserAward[]>([]);
@@ -90,10 +94,10 @@ export function useUserAwards() {
 
   const fetchAwards = useCallback(async () => {
     if (isGuest) {
-      // Read from guest store
-      const guestAwards = guestStore.getAllAwards() as any[];
+      // guestAwards is a Record<number, GuestAward> — convert to array
+      const awardsArray = Object.values(guestAwards) as any[];
       setAwards(
-        guestAwards
+        awardsArray
           .map(toNormalizedAward)
           .filter((award): award is UserAward => Boolean(award))
           .sort((a, b) => b.year - a.year)
@@ -131,7 +135,7 @@ export function useUserAwards() {
     }
 
     setLoading(false);
-  }, [isGuest, guestStore, supabase, user]);
+  }, [isGuest, guestAwards, supabase, user]);
 
   useEffect(() => {
     fetchAwards();

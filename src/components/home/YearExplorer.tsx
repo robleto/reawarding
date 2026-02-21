@@ -13,6 +13,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X, Trophy, Info, Star, Check } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
@@ -38,6 +39,16 @@ interface Props {
   onClose: () => void;
   isGuest?: boolean;
   onEditingChange?: (editing: boolean) => void;
+  /** True when YearExplorer was opened as a result of the new-user onboarding pick. */
+  isOnboardingPick?: boolean;
+  /** ID of the movie just picked during onboarding — used for highlight + rating tour. */
+  pickedMovieId?: string | number | null;
+  /** Full movie payload from hero select as fallback before year data hydrates. */
+  pickedMovie?: Movie | null;
+  /** Initial onboarding rating tour step restored from session state. */
+  initialRatingTourStep?: 0 | 1 | 2 | 3;
+  /** Emits onboarding tour step changes for session persistence. */
+  onRatingTourStepChange?: (step: 0 | 1 | 2 | 3) => void;
 }
 
 export default function YearExplorer({
@@ -50,20 +61,39 @@ export default function YearExplorer({
   onClose,
   isGuest,
   onEditingChange,
+  isOnboardingPick = false,
+  pickedMovieId = null,
+  pickedMovie: onboardingPickedMovie = null,
+  initialRatingTourStep = 0,
+  onRatingTourStepChange,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [yearMovies, setYearMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showYearHelp, setShowYearHelp] = useState(false);
-  const [recentlyNominated, setRecentlyNominated] = useState<Set<number>>(new Set());
+  const [recentlyNominated, setRecentlyNominated] = useState<Set<string | number>>(new Set());
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  // 3-step rating tour shown to new users after their first pick.
+  // Step 1: explains the auto-seeded rating=10. Step 2: explains filling the ballot.
+  // Step 3: auto-scrolls to acclaimed section (no callout, just scroll + tip).
+  const [ratingTourStep, setRatingTourStep] = useState<0 | 1 | 2 | 3>(
+    isOnboardingPick
+      ? (initialRatingTourStep > 0 ? initialRatingTourStep : 1)
+      : 0
+  );
+  const [showAcclaimedTip, setShowAcclaimedTip] = useState(false);
   const rankingSectionRef = useRef<HTMLDivElement | null>(null);
   const contendersSectionRef = useRef<HTMLDivElement | null>(null);
-  const autoPromotedRef = useRef<Set<number>>(new Set());
+  const acclaimedSectionRef = useRef<HTMLDivElement | null>(null);
+  const autoPromotedRef = useRef<Set<string | number>>(new Set());
   const workshopRef = useRef<EditableYearSectionHandle>(null);
   const editableSectionEndRef = useRef<HTMLDivElement | null>(null);
   const [showStickyNominees, setShowStickyNominees] = useState(false);
+  const seededOnboardingRef = useRef(false);
+  // Tour overlay: ref on the ballot card + measured rect for fixed positioning
+  const ballotRef = useRef<HTMLDivElement | null>(null);
+  const [tourAnchorRect, setTourAnchorRect] = useState<DOMRect | null>(null);
 
   const actualWinner = getActualWinner(year);
 
@@ -86,10 +116,38 @@ export default function YearExplorer({
 
   // Full movie pool for the year (for edit sidebar — all movies, not just ranked)
   const allMoviesForYear = allMovies.filter((m) => m.release_year === year);
+
+  // ─── Genre-aware sorting — derive picked movie's genre set ──────
+  const pickedMovieFromYear = useMemo(
+    () =>
+      pickedMovieId != null
+        ? allMoviesForYear.find((m) => String(m.id) === String(pickedMovieId)) ?? null
+        : null,
+    [pickedMovieId, allMoviesForYear]
+  );
+  const pickedMovie = useMemo(() => {
+    if (pickedMovieFromYear) return pickedMovieFromYear;
+    if (!onboardingPickedMovie) return null;
+    return onboardingPickedMovie.release_year === year ? onboardingPickedMovie : null;
+  }, [pickedMovieFromYear, onboardingPickedMovie, year]);
+
+  const pickedGenreSet = useMemo(
+    () => new Set((pickedMovie?.genres ?? []).map((g) => g.toLowerCase())),
+    [pickedMovie]
+  );
+
+  const genreMatchLabel = useMemo(() => {
+    if (pickedGenreSet.size === 0) return null;
+    const genres = [...pickedGenreSet];
+    return genres.length === 1
+      ? genres[0]
+      : `${genres[0]} / ${genres[1]}`;
+  }, [pickedGenreSet]);
+
   const existingNomineeMovies = useMemo(() => {
     if (!existingAward?.nomineeIds?.length) return [];
     return existingAward.nomineeIds
-      .map((id) => allMoviesForYear.find((m) => m.id === Number(id)))
+      .map((id) => allMoviesForYear.find((m) => String(m.id) === String(id)))
       .filter((m): m is Movie => Boolean(m));
   }, [existingAward?.nomineeIds, allMoviesForYear]);
   const hasCanonicalBestPictureAward = existingNomineeMovies.length > 0;
@@ -105,7 +163,50 @@ export default function YearExplorer({
     ?? existingAward?.winnerId
     ?? defaultWinner?.id
     ?? null;
-  const activeNomineeIdSet = new Set(displayNominees.map((m) => m.id));
+  const activeNomineeIdSet = useMemo(
+    () => new Set(displayNominees.map((m) => String(m.id))),
+    [displayNominees]
+  );
+
+  // Sync tour step from parent when isOnboardingPick or initialRatingTourStep changes.
+  // IMPORTANT: ratingTourStep intentionally excluded from deps — including it creates
+  // a feedback loop via onRatingTourStepChange → page.tsx state → prop back here.
+  // React bails on setRatingTourStep when the value matches existing state.
+  useEffect(() => {
+    if (!isOnboardingPick) {
+      setRatingTourStep(0);
+      return;
+    }
+    setRatingTourStep(initialRatingTourStep > 0 ? initialRatingTourStep : 1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnboardingPick, initialRatingTourStep]);
+
+  useEffect(() => {
+    onRatingTourStepChange?.(ratingTourStep);
+  }, [ratingTourStep, onRatingTourStepChange]);
+
+  useEffect(() => {
+    if (!isOnboardingPick) return;
+    if (!pickedMovie) return;
+    if (seededOnboardingRef.current) return;
+
+    seededOnboardingRef.current = true;
+
+    void onUpdateMovieRanking(pickedMovie.id as unknown as number, {
+      seen_it: true,
+      ranking: 10,
+    });
+
+    if (!activeNomineeIdSet.has(String(pickedMovie.id))) {
+      onCreateAward(pickedMovie);
+    }
+  }, [
+    isOnboardingPick,
+    pickedMovie,
+    onUpdateMovieRanking,
+    onCreateAward,
+    activeNomineeIdSet,
+  ]);
 
   // ─── Fetch movies for ranking grid ─────────────────────────────
   useEffect(() => {
@@ -163,7 +264,7 @@ export default function YearExplorer({
           seenIt &&
           typeof ranking === "number" &&
           ranking >= 5 &&
-          !activeNomineeIdSet.has(movie.id)
+          !activeNomineeIdSet.has(String(movie.id))
         );
       }),
     [filteredYearMovies, activeNomineeIdSet]
@@ -182,15 +283,22 @@ export default function YearExplorer({
       filteredYearMovies
         .filter((movie) => {
           const seenIt = movie.rankings?.[0]?.seen_it === true;
-          return !seenIt && !activeNomineeIdSet.has(movie.id) && isAcclaimedMovie(movie);
+          return !seenIt && !activeNomineeIdSet.has(String(movie.id)) && isAcclaimedMovie(movie);
         })
         .sort((a, b) => {
+          // Genre match bonus: films sharing ≥1 genre with the picked movie rank first
+          if (pickedGenreSet.size > 0) {
+            const aMatch = (a.genres ?? []).some((g) => pickedGenreSet.has(g.toLowerCase()));
+            const bMatch = (b.genres ?? []).some((g) => pickedGenreSet.has(g.toLowerCase()));
+            if (aMatch !== bMatch) return aMatch ? -1 : 1;
+          }
+          // Secondary: external critical score
           const aScore = Math.max(a.tmdb_rating ?? 0, a.imdb_rating ?? 0, (a.metacritic_score ?? 0) / 10);
           const bScore = Math.max(b.tmdb_rating ?? 0, b.imdb_rating ?? 0, (b.metacritic_score ?? 0) / 10);
           if (bScore !== aScore) return bScore - aScore;
           return ((b as any).vote_count ?? 0) - ((a as any).vote_count ?? 0);
         }),
-    [filteredYearMovies, activeNomineeIdSet, isAcclaimedMovie]
+    [filteredYearMovies, activeNomineeIdSet, isAcclaimedMovie, pickedGenreSet]
   );
 
   const acclaimedIdSet = useMemo(
@@ -200,11 +308,22 @@ export default function YearExplorer({
 
   const unseenMovies = useMemo(
     () =>
-      filteredYearMovies.filter((movie) => {
-        const seenIt = movie.rankings?.[0]?.seen_it === true;
-        return !seenIt && !activeNomineeIdSet.has(movie.id) && !acclaimedIdSet.has(movie.id);
-      }),
-    [filteredYearMovies, activeNomineeIdSet, acclaimedIdSet]
+      filteredYearMovies
+        .filter((movie) => {
+          const seenIt = movie.rankings?.[0]?.seen_it === true;
+          return !seenIt && !activeNomineeIdSet.has(String(movie.id)) && !acclaimedIdSet.has(movie.id);
+        })
+        .sort((a, b) => {
+          // Genre match bonus: films sharing ≥1 genre with the picked movie rank first
+          if (pickedGenreSet.size > 0) {
+            const aMatch = (a.genres ?? []).some((g) => pickedGenreSet.has(g.toLowerCase()));
+            const bMatch = (b.genres ?? []).some((g) => pickedGenreSet.has(g.toLowerCase()));
+            if (aMatch !== bMatch) return aMatch ? -1 : 1;
+          }
+          // Secondary: popularity
+          return ((b as any).vote_count ?? 0) - ((a as any).vote_count ?? 0);
+        }),
+    [filteredYearMovies, activeNomineeIdSet, acclaimedIdSet, pickedGenreSet]
   );
 
   const lowRatedMovies = useMemo(
@@ -217,7 +336,7 @@ export default function YearExplorer({
             seenIt &&
             typeof ranking === "number" &&
             ranking < 5 &&
-            !activeNomineeIdSet.has(movie.id)
+            !activeNomineeIdSet.has(String(movie.id))
           );
         })
         .sort((a, b) => {
@@ -233,10 +352,16 @@ export default function YearExplorer({
     contendersSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
+  const scrollToAcclaimed = useCallback(() => {
+    // Prefer acclaimed section; fall back to contenders if acclaimed is empty
+    const target = acclaimedSectionRef.current ?? contendersSectionRef.current;
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   const promoteToNominee = useCallback(
     (movie: Movie) => {
       onUpdateMovieRanking(movie.id, { ranking: 7, seen_it: true });
-      if (!activeNomineeIdSet.has(movie.id) && (!hasCanonicalBestPictureAward || displayNomineeCount < 10)) {
+      if (!activeNomineeIdSet.has(String(movie.id)) && (!hasCanonicalBestPictureAward || displayNomineeCount < 10)) {
         // Flash confirmation before the card disappears from contenders
         setRecentlyNominated((prev) => new Set(prev).add(movie.id));
         setTimeout(() => {
@@ -264,7 +389,7 @@ export default function YearExplorer({
     for (const movie of contenderMovies) {
       const ranking = movie.rankings?.[0]?.ranking;
       if (typeof ranking !== "number" || ranking < 7) continue;
-      if (activeNomineeIdSet.has(movie.id)) continue;
+      if (activeNomineeIdSet.has(String(movie.id))) continue;
       if (autoPromotedRef.current.has(movie.id)) continue;
       autoPromotedRef.current.add(movie.id);
       if (workshopRef.current) {
@@ -287,7 +412,7 @@ export default function YearExplorer({
           <div className="flex gap-3 overflow-x-auto pb-2 pr-1">
             {movies.map((movie) => {
               const justNominated = recentlyNominated.has(movie.id);
-              const canNominate = !activeNomineeIdSet.has(movie.id) && (!hasCanonicalBestPictureAward || displayNomineeCount < 10);
+              const canNominate = !activeNomineeIdSet.has(String(movie.id)) && (!hasCanonicalBestPictureAward || displayNomineeCount < 10);
 
               return (
                 <div key={`${rowKey}-${movie.id}`} className="group relative w-[120px] sm:w-[140px] md:w-[160px] shrink-0">
@@ -351,6 +476,32 @@ export default function YearExplorer({
     return () => observer.disconnect();
   }, []);
 
+  // ─── Tour overlay: measure ballotRef position for fixed overlay ─
+  // Runs whenever the tour is at step 1 or 2. Listens to resize + scroll
+  // so the overlay stays anchored as the user scrolls the YearExplorer container.
+  useEffect(() => {
+    if (ratingTourStep !== 1 && ratingTourStep !== 2) {
+      setTourAnchorRect(null);
+      return;
+    }
+    if (!ballotRef.current) return;
+
+    const measure = () => {
+      if (ballotRef.current) {
+        setTourAnchorRect(ballotRef.current.getBoundingClientRect());
+      }
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+    // capture: true catches scroll events from the YearExplorer's overflow-y-auto container
+    window.addEventListener("scroll", measure, true);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure, true);
+    };
+  }, [ratingTourStep]);
+
   // ─── RENDER ────────────────────────────────────────────────────
   return (
     <div className="bg-gray-900/80 border border-gray-700/60 shadow-2xl rounded-2xl p-4 md:p-6 min-h-[70vh] animate-in fade-in slide-in-from-top-2 duration-300">
@@ -401,21 +552,24 @@ export default function YearExplorer({
       )}
 
       {/* Canonical award surface — EditableYearSection in compact mode */}
-      <EditableYearSection
-        ref={workshopRef}
-        year={String(year)}
-        movies={hasCanonicalBestPictureAward ? existingNomineeMovies : defaultNominees}
-        winner={canonicalWinnerMovie ?? defaultWinner}
-        allMoviesForYear={allMoviesForYear}
-        category="best-picture"
-        mode="workshop"
-        compact
-        onRequestScrollToContenders={focusContenders}
-        onEditingChange={(editing) => {
-          setIsEditing(editing);
-          onEditingChange?.(editing);
-        }}
-      />
+      {/* ballotRef wraps this so we can measure its position for the floating tour overlay */}
+      <div ref={ballotRef}>
+        <EditableYearSection
+          ref={workshopRef}
+          year={String(year)}
+          movies={hasCanonicalBestPictureAward ? existingNomineeMovies : defaultNominees}
+          winner={canonicalWinnerMovie ?? defaultWinner}
+          allMoviesForYear={allMoviesForYear}
+          category="best-picture"
+          mode="workshop"
+          compact
+          onRequestScrollToContenders={focusContenders}
+          onEditingChange={(editing) => {
+            setIsEditing(editing);
+            onEditingChange?.(editing);
+          }}
+        />
+      </div>
 
       {/* Sentinel: marks the bottom of EditableYearSection so we know when to show sticky strip */}
       <div ref={editableSectionEndRef} className="h-0" />
@@ -433,12 +587,13 @@ export default function YearExplorer({
                 </span>
                 <div className="flex gap-1.5 overflow-x-auto">
                   {displayNominees.map((m) => {
-                    const isWinner = activeWinnerId === m.id;
+                    const isWinner = activeWinnerId != null && String(activeWinnerId) === String(m.id);
+                    const isPickedMovie = pickedMovieId !== null && String(m.id) === String(pickedMovieId);
                     const stickyPoster = normalizeImageUrl(m.poster_url);
                     const hasPoster = stickyPoster && stickyPoster.startsWith("http");
                     return (
                       <div key={`sticky-${m.id}`} className="relative shrink-0">
-                        <div className={`w-8 h-12 rounded overflow-hidden border ${isWinner ? "border-yellow-500" : "border-gray-600/60"}`}>
+                        <div className={`w-8 h-12 rounded overflow-hidden border ${isWinner ? "border-yellow-500" : isPickedMovie ? "border-yellow-400/70 ring-1 ring-yellow-400/50" : "border-gray-600/60"}`}>
                           {hasPoster ? (
                             <Image
                               src={stickyPoster}
@@ -468,18 +623,35 @@ export default function YearExplorer({
             </div>
           )}
 
-          {displayNomineeCount < 5 && (
+          {/* ─── Onboarding tour overlay rendered via portal (fixed position) ─── */}
+          {/* Intentionally empty here — the portal is rendered outside this scroll container below */}
+
+          {ratingTourStep === 0 && isOnboardingPick && displayNomineeCount < 3 ? (
+            <div className="mb-4 px-3 py-2.5 rounded-lg border border-amber-500/25 bg-amber-500/8 flex items-start gap-2.5">
+              <Star className="w-4 h-4 text-amber-300 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-amber-200">
+                  Add {Math.max(0, 3 - displayNomineeCount)} more nominee{Math.max(0, 3 - displayNomineeCount) !== 1 ? "s" : ""} to make this an Emerging ballot
+                </p>
+                <p className="text-xs text-amber-300/70 mt-0.5">
+                  Pick from the films below — or rate a film first, then nominate it.
+                </p>
+              </div>
+            </div>
+          ) : ratingTourStep === 0 && displayNomineeCount < 5 ? (
             <div className="mb-3 inline-flex items-center gap-2 text-sm text-amber-200">
               <Star className="w-4 h-4 text-amber-300" />
               <span>
-                Almost there — add {nomineesNeededForValidBallot} more nominees to complete this ballot.
+                Add {nomineesNeededForValidBallot} more to reach a Standard ballot (5 nominees).
               </span>
             </div>
-          )}
+          ) : null}
 
           {/* ─── Title + search bar ───────────────────────────────── */}
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h4 className="text-sm font-medium text-gray-300">{year} Movies</h4>
+            <h4 className="text-sm font-medium text-gray-300">
+              {isOnboardingPick ? `From ${year} — add more nominees` : `${year} Movies`}
+            </h4>
             <div className="w-full max-w-sm">
               <input
                 type="text"
@@ -493,10 +665,23 @@ export default function YearExplorer({
             </div>
           </div>
 
-          {renderMovieRow("Contenders (movies seen rated 5+)", contenderMovies, "contenders", true)}
-          {renderMovieRow("Acclaimed (unseen movies of high esteem)", acclaimedMovies, "acclaimed")}
-          {renderMovieRow("Unseen (unseen movies from this year)", unseenMovies, "unseen")}
-          {renderMovieRow("Low-Rated (movies seen rated below 5)", lowRatedMovies, "low-rated")}
+          {renderMovieRow("Your contenders (rated 5+)", contenderMovies, "contenders", true)}
+          <div ref={acclaimedSectionRef}>
+            {showAcclaimedTip && acclaimedMovies.length > 0 && (
+              <div className="mb-2 px-2 py-1.5 rounded-lg border border-blue-500/20 bg-blue-500/10 flex items-center gap-2 text-xs text-blue-300 animate-in fade-in duration-300">
+                <Info className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <span>
+                  {genreMatchLabel
+                    ? `${genreMatchLabel.charAt(0).toUpperCase() + genreMatchLabel.slice(1)} films listed first.`
+                    : "Highly regarded but unrated."}{" "}
+                  Rate ≥ 7 to nominate.
+                </span>
+              </div>
+            )}
+            {renderMovieRow(`Acclaimed films from ${year}`, acclaimedMovies, "acclaimed")}
+          </div>
+          {renderMovieRow("Unseen — worth considering", unseenMovies, "unseen")}
+          {renderMovieRow("Low-rated (seen, rated below 5)", lowRatedMovies, "low-rated")}
 
           {/* Loading skeleton */}
           {loading && (
@@ -530,6 +715,110 @@ export default function YearExplorer({
           )}
         </div>
       )}
+
+      {/* ─── Onboarding tour overlay (portal, fixed to viewport) ───────────────
+          Rendered via createPortal so it escapes the overflow-y-auto scroll container
+          and any z-index stacking context inside YearExplorer. Positioned just below
+          the ballot card (ballotRef) using getBoundingClientRect().
+      ─────────────────────────────────────────────────────────────────────────── */}
+      {(ratingTourStep === 1 || ratingTourStep === 2) &&
+        tourAnchorRect !== null &&
+        (ratingTourStep === 2 ||
+          pickedMovieId == null ||
+          activeNomineeIdSet.has(String(pickedMovieId))) &&
+        createPortal(
+          <div
+            className="fixed z-[200] pointer-events-none animate-in fade-in duration-300"
+            style={{
+              top: tourAnchorRect.bottom + 12,
+              left: tourAnchorRect.left,
+              width: tourAnchorRect.width,
+            }}
+          >
+            {/* Upward-pointing arrow — gold border to match card */}
+            <svg
+              className="absolute -top-2 left-6"
+              width="16"
+              height="8"
+              viewBox="0 0 16 8"
+              aria-hidden="true"
+            >
+              <path
+                d="M0 8 L8 0 L16 8Z"
+                fill="#111827"
+                stroke="#eab308"
+                strokeWidth="1"
+                strokeLinejoin="round"
+              />
+            </svg>
+
+            {/* Callout card */}
+            <div className="pointer-events-auto rounded-xl border border-yellow-500/30 bg-gray-900/98 backdrop-blur-sm shadow-2xl px-4 py-3">
+              {ratingTourStep === 1 && (
+                <>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2">
+                      <Star className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-white">Your pick is rated 10</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          That&apos;s your ranking — tap the number on the poster to change it (1–10).
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setRatingTourStep(2)}
+                      className="text-xs text-yellow-400 hover:text-yellow-200 font-semibold shrink-0 whitespace-nowrap transition-colors"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                  <div className="flex gap-1 mt-2.5">
+                    <div className="w-4 h-1 rounded-full bg-yellow-400" />
+                    <div className="w-4 h-1 rounded-full bg-gray-600" />
+                  </div>
+                </>
+              )}
+
+              {ratingTourStep === 2 && (
+                <>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2">
+                      <Trophy className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-white">
+                          {nomineesNeededForValidBallot > 0
+                            ? `Add ${nomineesNeededForValidBallot} more to reach a valid ballot`
+                            : "Your ballot is taking shape"}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Rate a film ≥ 7 from the list below, then hit{" "}
+                          <span className="text-amber-300 font-medium">+ Nominate</span> to add it.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setRatingTourStep(3);
+                        scrollToAcclaimed();
+                        setShowAcclaimedTip(true);
+                        setTimeout(() => setShowAcclaimedTip(false), 4000);
+                      }}
+                      className="text-xs text-amber-400 hover:text-amber-200 font-semibold shrink-0 whitespace-nowrap transition-colors"
+                    >
+                      Show me →
+                    </button>
+                  </div>
+                  <div className="flex gap-1 mt-2.5">
+                    <div className="w-4 h-1 rounded-full bg-gray-600" />
+                    <div className="w-4 h-1 rounded-full bg-amber-400" />
+                  </div>
+                </>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Movie detail modal — opened by clicking the middle zone of grid cards */}
       {selectedMovie && (

@@ -7,9 +7,11 @@ import AuthModalManager from "@/components/auth/AuthModalManager";
 import { useState } from "react";
 import type { Movie } from "@/types/types";
 import { Trophy, Save, Share2, Crown } from "lucide-react";
+import { useGlobalToast } from "@/hooks/useGlobalToast";
 
 export default function NomineesPage() {
   const { movies, loading, isGuest } = useMovieDataWithGuest();
+  const { showToast } = useGlobalToast();
   const [selectedNominees, setSelectedNominees] = useState<Movie[]>([]);
   const [winner, setWinner] = useState<Movie | undefined>();
   
@@ -34,15 +36,12 @@ export default function NomineesPage() {
 
   const handleSaveNominees = () => {
     // TODO: Implement saving nominees to database
-    console.log("Saving nominees:", selectedNominees);
-    console.log("Winner:", winner);
-    alert(`Nominees and winner saved! Winner: ${winner?.title || 'None selected'} (Feature coming soon)`);
+    showToast('Saving nominees is coming soon — your selections aren\'t persisted yet.', 'info');
   };
 
   const handleShareNominees = () => {
     // TODO: Implement sharing functionality
-    console.log("Sharing nominees:", selectedNominees);
-    alert("Share feature coming soon!");
+    showToast('Sharing nominees is coming soon.', 'info');
   };
 
   if (loading) {

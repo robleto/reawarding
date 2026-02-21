@@ -19,7 +19,8 @@ import {
 import type { Movie } from "@/types/types";
 
 export default function ProfileRankingsPage() {
-  const { username } = useParams<{ username: string }>();
+  const params = useParams<{ username: string }>();
+  const username = params?.username ?? "";
   const { movies, loading } = usePublicProfile(username);
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");

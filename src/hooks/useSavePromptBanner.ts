@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import useGuestRankingStore from "@/hooks/useGuestRankingStore";
 
-const SAVE_PROMPT_DISMISSED_KEY = "oscarworthy-save-prompt-dismissed";
+const SAVE_PROMPT_DISMISSED_KEY = "reawarding-save-prompt-dismissed";
 
 export function useSavePromptBanner() {
   const [isDismissed, setIsDismissed] = useState(false);

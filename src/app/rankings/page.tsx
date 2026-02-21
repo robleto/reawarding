@@ -127,8 +127,8 @@ export default function RankingsPage() {
 
   // Apply preset from nav search (?movie=<id> or ?query=)
   useEffect(() => {
-    const movieId = searchParams.get("movie");
-    const q = searchParams.get("query");
+    const movieId = searchParams?.get("movie");
+    const q = searchParams?.get("query");
     if (movieId) {
       setFilterType("movie");
       setFilterValue(String(movieId));
@@ -230,6 +230,10 @@ export default function RankingsPage() {
     updateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
   };
 
+  const handleEmptyStateSelect = (movie: Movie) => {
+    updateMovieRanking(movie.id, { seen_it: true, ranking: 10 });
+  };
+
   const isDataReady =
     hasMounted &&
     !loading &&
@@ -273,23 +277,14 @@ export default function RankingsPage() {
 
   // Show empty state for guests with no rankings
   if (isGuest && moviesWithRankings.length === 0) {
-    return (
-      <div className="max-w-screen-xl">
-        <RankingsEmptyState 
-          isGuest={true} 
-          onSignupClick={handleSignupClick}
-        />
-      </div>
-    );
+    return null;
   }
 
   // Show empty state for authenticated users with no rankings
   if (!isGuest && moviesWithRankings.length === 0) {
     return (
       <div className="max-w-screen-xl px-6 py-10 mx-auto">
-        <RankingsEmptyState 
-          isGuest={false}
-        />
+        <RankingsEmptyState onSelectMovie={handleEmptyStateSelect} />
       </div>
     );
   }

@@ -10,6 +10,7 @@ The system is not a movie database, ranking tracker, or social feed. It is a tas
 
 Reawarding is:
 
+- Named **Reawarding** — never "Oscarworthy" (retired name, treat as a bug if encountered)
 - Opinion-first
 - Comparison-driven
 - Emergent (not manually constructed first)

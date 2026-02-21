@@ -18,17 +18,18 @@ export default function ReadyMadeTabs(props: {
 }) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const current = (searchParams.get("tab") as ReadyMadeTab | null) ?? "all";
+  const currentPath = pathname ?? "";
+  const current = (searchParams?.get("tab") as ReadyMadeTab | null) ?? "all";
 
   const makeHref = (tab: ReadyMadeTab) => {
-    const sp = new URLSearchParams(searchParams.toString());
+    const sp = new URLSearchParams(searchParams?.toString() ?? "");
     if (tab === "all") {
       sp.delete("tab");
     } else {
       sp.set("tab", tab);
     }
     const qs = sp.toString();
-    return qs ? `${pathname}?${qs}` : pathname;
+    return qs ? `${currentPath}?${qs}` : currentPath;
   };
 
   const Tab = ({ tab, label, highlight }: { tab: ReadyMadeTab; label: string; highlight?: string }) => (

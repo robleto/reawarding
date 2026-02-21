@@ -79,8 +79,8 @@ export default function FilmsPage() {
 
 	// Apply preset from nav search (?movie=<id> or ?query=)
 	useEffect(() => {
-		const movieId = searchParams.get("movie");
-		const q = searchParams.get("query");
+		const movieId = searchParams?.get("movie");
+		const q = searchParams?.get("query");
 		if (movieId) {
 			setFilterType("movie");
 			setFilterValue(String(movieId));

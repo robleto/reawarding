@@ -16,7 +16,7 @@ interface YearData {
 }
 
 export default function AwardsPage() {
-  const { movies, loading, isGuest, hasMounted } = useMovieDataWithGuest();
+  const { movies, loading, isGuest, hasMounted, updateMovieRanking } = useMovieDataWithGuest();
   const tab = "best-picture" as const;
   const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -161,12 +161,15 @@ export default function AwardsPage() {
     );
   }
 
-  const totalRatedMovies = movies.filter(
-    (movie) => movie.rankings && movie.rankings.length > 0 && movie.rankings[0].ranking !== null
-  ).length;
-
   if (formattedYears.length === 0) {
-    return <AwardsEmptyState ratedMoviesCount={totalRatedMovies} />;
+    if (isGuest) return null;
+    return (
+      <AwardsEmptyState
+        onSelectMovie={(movie) => {
+          updateMovieRanking(movie.id, { seen_it: true, ranking: 10 });
+        }}
+      />
+    );
   }
 
   return (

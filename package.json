@@ -1,6 +1,6 @@
 {
   "name": "reawarding",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "patch:supabase-fetch": "node scripts/patch-supabase-fetch.cjs",
@@ -12,6 +12,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test:e2e": "playwright test",
+    "agent:check": "npm run clean && npm run build && npm run lint && npm run test:e2e",
     "ingest:collections": "tsx scripts/import_tmdb_collections.ts",
     "ingest:discover": "tsx scripts/import_tmdb_discover.ts --pages=10 --revenue-pages=5",
     "ingest:edge:now-playing": "bash -lc 'set -a; source .env >/dev/null 2>&1 || true; curl -sS -X POST \"$NEXT_PUBLIC_SUPABASE_URL/functions/v1/tmdb-now-playing\" -H \"X-CRON-SECRET: $CRON_SECRET\" -H \"Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY\"'",
@@ -19,8 +21,9 @@
     "ingest:edge:trending": "bash -lc 'set -a; source .env >/dev/null 2>&1 || true; curl -sS -X POST \"$NEXT_PUBLIC_SUPABASE_URL/functions/v1/tmdb-trending-scraper\" -H \"X-CRON-SECRET: $CRON_SECRET\" -H \"Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY\"'",
     "ingest:edge:fresh": "bash -lc 'set -a; source .env >/dev/null 2>&1 || true; curl -sS -X POST \"$NEXT_PUBLIC_SUPABASE_URL/functions/v1/tmdb-fresh-movies\" -H \"X-CRON-SECRET: $CRON_SECRET\" -H \"Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY\"'",
     "ingest:fresh": "npm run ingest:edge:fresh",
-    "ingest:enrich": "python scripts/enrich_movies.py",
+    "ingest:enrich": "python scripts/enrich_movies_enhanced.py",
     "ingest:images": "python scripts/download_movie_images.py",
+    "ingest:images:r2": "node scripts/ingest-tmdb-images-to-r2.mjs",
     "ingest:all": "bash -lc 'set -euo pipefail; npm run ingest:collections; npm run ingest:discover; npm run ingest:edge:fresh; npm run ingest:enrich; npm run ingest:images'",
     "backfill:imdb": "TS_NODE_TRANSPILE_ONLY=1 npx ts-node scripts/backfill-imdb-ids.ts",
     "backfill:tmdb": "TS_NODE_TRANSPILE_ONLY=1 npx ts-node scripts/backfill-tmdb-ids.ts",
@@ -28,10 +31,12 @@
     "func:invoke:backfill-ids": "bash -lc 'set -a; source .env >/dev/null 2>&1 || true; curl -sS -X POST \"$NEXT_PUBLIC_SUPABASE_URL/functions/v1/backfill-external-ids?mode=both&limit=300\" -H \"X-CRON-SECRET: $CRON_SECRET\"'",
     "func:deploy:backfill-directors": "supabase functions deploy backfill-directors",
     "func:invoke:backfill-directors": "bash -lc 'set -a; source .env >/dev/null 2>&1 || true; curl -sS -X POST \"$NEXT_PUBLIC_SUPABASE_URL/functions/v1/backfill-directors?limit=200\" -H \"X-CRON-SECRET: $CRON_SECRET\" -H \"Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY\"'",
-    "clean": "rm -rf .next .turbo && echo '✅ Cleared Next.js and Turbopack caches'",
-    "rebuild": "npm run clean && npm run build"
+    "clean": "node -e \"const fs=require('fs'); ['.next','.turbo'].forEach((dir)=>fs.rmSync(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})); console.log('✅ Cleared Next.js and Turbopack caches');\"",
+    "rebuild": "npm run clean && npm run build",
+    "media:mirror": "tsx scripts/mirror_movie_images.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.994.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
@@ -56,11 +61,12 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.58.2",
     "@types/node": "^20",
     "@types/react": "19.1.8",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.3.1",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
     "postcss": "^8.5.6",

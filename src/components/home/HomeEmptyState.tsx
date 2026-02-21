@@ -22,11 +22,14 @@ export default function HomeEmptyState({ onMovieSelected }: HomeEmptyStateProps)
           {/* Logo + Headline */}
           <div className="flex items-center justify-center gap-3 mb-2">
             <img
-              src="/oscarworthy-logomark.svg"
-              alt="Golden Envelope"
+              src="/reawarding-logomark.svg"
+              alt="Reawarding"
               className="w-12 h-12"
             />
-            <h1 className="text-2xl font-unbounded uppercase text-gray-900 dark:text-white">
+            <h1
+              data-testid="home-headline"
+              className="text-2xl font-unbounded uppercase text-gray-900 dark:text-white"
+            >
               Pick a movie you love.
             </h1>
           </div>
@@ -49,7 +52,7 @@ export default function HomeEmptyState({ onMovieSelected }: HomeEmptyStateProps)
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700" />
             <span className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-              or pick a classic
+              Great starting points
             </span>
             <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700" />
           </div>

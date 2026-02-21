@@ -607,7 +607,8 @@ function SignatureTasteStats({ movies }: { movies: Movie[] }) {
 
 // ─── Profile Overview Page ──────────────────────────────
 export default function ProfileOverviewPage() {
-  const { username } = useParams<{ username: string }>();
+  const params = useParams<{ username: string }>();
+  const username = params?.username ?? "";
   const { movies, profile, loading } = usePublicProfile(username);
   const { user } = useUser();
   const { profile: ownerProfile } = useEnsureProfile(user ?? null);

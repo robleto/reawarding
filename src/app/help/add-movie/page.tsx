@@ -56,11 +56,11 @@ export default function AddMovieHelpPage() {
       </ol>
       <h2 className="text-lg font-semibold mb-2">Need it faster?</h2>
       <p className="mb-4">
-        If you need a film imported immediately, <a href="mailto:support@reawarding.app" className="text-blue-600 underline">contact support</a> with the TMDB link and we’ll try to help!
+        If you need a film imported immediately, <a href="mailto:support@reawarding.com" className="text-blue-600 underline">contact support</a> with the TMDB link and we'll try to help!
       </p>
       <h2 className="text-lg font-semibold mb-2">Found a duplicate or error?</h2>
       <p className="mb-4">
-        If you spot a duplicate or incorrect entry, please <a href="mailto:support@reawarding.app" className="text-blue-600 underline">let us know</a> and we’ll fix it.
+        If you spot a duplicate or incorrect entry, please <a href="mailto:support@reawarding.com" className="text-blue-600 underline">let us know</a>
       </p>
       <section className="mt-8 mb-8">
         <h2 className="text-lg font-semibold mb-2">Instant Import (TMDB Shortcut)</h2>

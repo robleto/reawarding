@@ -15,7 +15,7 @@ export interface GuestData {
   totalInteractions: number; // Track total interaction count
 }
 
-const GUEST_DATA_KEY = "oscarworthy_guest_data";
+const GUEST_DATA_KEY = "reawarding_guest_data";
 
 export function getGuestData(): GuestData {
   if (typeof window === "undefined") {
@@ -163,7 +163,7 @@ export interface GuestAwardData {
   timestamp: number;
 }
 
-const GUEST_AWARDS_KEY = "oscarworthy_guest_awards";
+const GUEST_AWARDS_KEY = "reawarding_guest_awards";
 
 function getGuestAwards(): Record<string, GuestAwardData> {
   if (typeof window === "undefined") return {};

@@ -1,3 +1,14 @@
+/**
+ * supabaseServer — server-side Supabase client respecting the user's session.
+ *
+ * Use in:
+ *   - React Server Components (RSC)
+ *   - Route Handlers (app/api/) for authenticated user requests
+ *
+ * Reads auth cookies automatically. Returns a per-request client — do NOT cache the result.
+ * Do NOT use in "use client" components — use supabaseBrowser instead.
+ * Do NOT use for admin/service-role operations — use supabaseAdmin instead.
+ */
 import 'server-only';
 
 import { createServerClient } from '@supabase/ssr';

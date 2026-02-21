@@ -7,8 +7,8 @@ import { Suspense } from "react";
 function AuthErrorContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const error = searchParams.get("error") || "Unknown error";
-  const description = searchParams.get("description") || "An unexpected error occurred during authentication.";
+  const error = searchParams?.get("error") || "Unknown error";
+  const description = searchParams?.get("description") || "An unexpected error occurred during authentication.";
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-950">

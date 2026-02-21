@@ -15,8 +15,8 @@ export default function ListsEmptyState({ onCreateList }: ListsEmptyStateProps) 
           {/* Hero Icon */}
           <div className="relative mb-0">
             <img 
-              src="/oscarworthy-logomark.svg" 
-              alt="Golden Envelope" 
+              src="/reawarding-logomark.svg" 
+              alt="Reawarding" 
               className="w-24 h-24 mx-auto" 
             />
           </div>

@@ -55,7 +55,7 @@ export default function DataDeletionPage() {
             <div className="bg-gray-50 p-4 rounded-lg mb-6">
               <p className="text-gray-700 font-medium mb-2">Send an email to:</p>
               <p className="text-gray-700">
-                <a href="mailto:delete@oscarworthy.com" className="text-blue-600 hover:text-blue-700">delete@oscarworthy.com</a>
+                <a href="mailto:delete@reawarding.com" className="text-blue-600 hover:text-blue-700">delete@reawarding.com</a>
               </p>
               <p className="text-gray-700 mt-3 font-medium">Include in your email:</p>
               <ul className="list-disc list-inside text-gray-700 mt-2 space-y-1">
@@ -100,8 +100,8 @@ export default function DataDeletionPage() {
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Data Export Request</h2>
             <p className="text-gray-700 mb-6">
               If you&apos;d like a copy of your data before deletion, email us at{' '}
-              <a href="mailto:export@oscarworthy.com" className="text-blue-600 hover:text-blue-700">
-                export@oscarworthy.com
+              <a href="mailto:export@reawarding.com" className="text-blue-600 hover:text-blue-700">
+                export@reawarding.com
               </a>{' '}
               with the subject line &quot;Data Export Request&quot;. We&apos;ll provide your data in a portable format within 30 days.
             </p>
@@ -112,10 +112,10 @@ export default function DataDeletionPage() {
             </p>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-gray-700">
-                Email: <a href="mailto:privacy@oscarworthy.com" className="text-blue-600 hover:text-blue-700">privacy@oscarworthy.com</a>
+                Email: <a href="mailto:privacy@reawarding.com" className="text-blue-600 hover:text-blue-700">privacy@reawarding.com</a>
               </p>
               <p className="text-gray-700 mt-2">
-                Data Protection Officer: <a href="mailto:dpo@oscarworthy.com" className="text-blue-600 hover:text-blue-700">dpo@oscarworthy.com</a>
+                Data Protection Officer: <a href="mailto:dpo@reawarding.com" className="text-blue-600 hover:text-blue-700">dpo@reawarding.com</a>
               </p>
             </div>
           </div>
