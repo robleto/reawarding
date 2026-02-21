@@ -53,6 +53,16 @@ export default defineConfig({
         storageState: 'playwright/.auth/user.json',
       },
     },
+    /**
+     * "core-loop" — multi-user confidence loop:
+     * login, refresh, create list, add films, rank films, verify results,
+     * sign out, sign back in.
+     */
+    {
+      name: 'core-loop',
+      testMatch: ['core-loop-multi-user.spec.ts'],
+      use: { ...devices['Desktop Chrome'] },
+    },
   ],
 
   webServer: {
