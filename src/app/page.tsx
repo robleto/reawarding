@@ -412,7 +412,7 @@ export default function HomePage() {
         ): entry is {
           year: number;
           winnerTitle: string;
-          winnerPoster?: string | null;
+          winnerPoster: string;
           nomineeCount: number;
           level: BallotLevel;
           isCurrentSeason: boolean;
