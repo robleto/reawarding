@@ -25,7 +25,11 @@ This checklist helps ensure safe deploys for the ReAwarding app.
   - [ ] Adding a movie to Watchlist works
 
 ## Edge Functions (if changed)
-- [ ] Deploy functions: `supabase functions deploy <name>`
+- [x] Deploy functions — 4 stale/missing functions deployed 2026-02-21:
+  - `enrich-movie-details` (updated: film collections + telemetry)
+  - `tmdb-fresh-movies` (updated: ingestion tuning)
+  - `update-movie-batch` (updated: batch processing)
+  - `enrich-movies` (new: first deploy)
 - [ ] Verify CRON secrets and schedules
 
 ## Post-Deploy
