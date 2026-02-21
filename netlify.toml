@@ -1,0 +1,33 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # CORE_LOOP_MOVIE_QUERY is a Playwright test variable whose value ("Inception")
+  # legitimately appears in the UI. It is not a secret and should not be set in
+  # the Netlify production environment at all. If it must remain, omit it from
+  # secrets scanning.
+  SECRETS_SCAN_OMIT_KEYS = "CORE_LOOP_MOVIE_QUERY"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[[plugins]]
+  package = "@netlify/plugin-lighthouse"
+
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[redirects]]
+  from = "/_next/image"
+  to = "/.netlify/images?url=:url&w=:width&q=:quality"
+  status = 200
+  query = { url = ":url", w = ":width", q = ":quality" }
+
+[[redirects]]
+  from = "/_ipx/*"
+  to = "/.netlify/images?url=:url&w=:width&q=:quality"
+  status = 200
+  query = { url = ":url", w = ":width", q = ":quality" }

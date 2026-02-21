@@ -27,6 +27,10 @@ function parseUsersFromEnv(): TestUser[] {
   return [];
 }
 
+function hasPlaceholderPassword(users: TestUser[]): boolean {
+  return users.some((u) => /^REPLACE_ME/i.test(u.password || ""));
+}
+
 async function login(page: Page, user: TestUser) {
   await page.goto("/login");
   await page.fill("#email", user.email);
@@ -94,6 +98,10 @@ test.describe("Multi-user core loop confidence", () => {
     test.skip(
       users.length === 0,
       "Set TEST_USERS_JSON or TEST_USER_EMAIL + TEST_USER_PASSWORD to run core-loop tests."
+    );
+    test.skip(
+      hasPlaceholderPassword(users),
+      "TEST_USERS_JSON still contains placeholder passwords (REPLACE_ME_*). Replace with real account passwords."
     );
 
     for (const [index, user] of users.entries()) {
