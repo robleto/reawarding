@@ -91,9 +91,10 @@ export default function YearExplorer({
   const editableSectionEndRef = useRef<HTMLDivElement | null>(null);
   const [showStickyNominees, setShowStickyNominees] = useState(false);
   const seededOnboardingRef = useRef(false);
-  // Tour overlay: ref on the ballot card + measured rect for fixed positioning
+  // Tour overlay: ref on the ballot section — used to read left/width for tooltip container
   const ballotRef = useRef<HTMLDivElement | null>(null);
-  const [tourAnchorRect, setTourAnchorRect] = useState<DOMRect | null>(null);
+  // Rect of the FIRST nominee card — all 3 tour steps anchor here (always visible)
+  const [firstNomineeAnchorRect, setFirstNomineeAnchorRect] = useState<DOMRect | null>(null);
 
   const actualWinner = getActualWinner(year);
 
@@ -476,27 +477,32 @@ export default function YearExplorer({
     return () => observer.disconnect();
   }, []);
 
-  // ─── Tour overlay: measure ballotRef position for fixed overlay ─
-  // Runs whenever the tour is at step 1 or 2. Listens to resize + scroll
-  // so the overlay stays anchored as the user scrolls the YearExplorer container.
+  // ─── Tour overlay: measure the FIRST nominee card for all 3 steps ─
+  // All steps anchor to the first poster card, which is always visible
+  // near the top of the ballot. Anchoring to the whole ballot section
+  // risks going off-screen (10 nominee slots can be very tall on mobile).
   useEffect(() => {
-    if (ratingTourStep !== 1 && ratingTourStep !== 2) {
-      setTourAnchorRect(null);
+    if (ratingTourStep < 1 || ratingTourStep > 3) {
+      setFirstNomineeAnchorRect(null);
       return;
     }
-    if (!ballotRef.current) return;
 
     const measure = () => {
-      if (ballotRef.current) {
-        setTourAnchorRect(ballotRef.current.getBoundingClientRect());
+      const firstCard = ballotRef.current?.querySelector(
+        '[data-tour-grid="nominees"] > div'
+      ) as HTMLElement | null;
+      if (firstCard) {
+        setFirstNomineeAnchorRect(firstCard.getBoundingClientRect());
       }
     };
 
-    measure();
+    // Slight delay for step 1 only — card may not have rendered yet
+    // (onboarding seeding effect fires asynchronously)
+    const t = setTimeout(measure, ratingTourStep === 1 ? 120 : 0);
     window.addEventListener("resize", measure);
-    // capture: true catches scroll events from the YearExplorer's overflow-y-auto container
     window.addEventListener("scroll", measure, true);
     return () => {
+      clearTimeout(t);
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };
@@ -717,106 +723,134 @@ export default function YearExplorer({
       )}
 
       {/* ─── Onboarding tour overlay (portal, fixed to viewport) ───────────────
-          Rendered via createPortal so it escapes the overflow-y-auto scroll container
-          and any z-index stacking context inside YearExplorer. Positioned just below
-          the ballot card (ballotRef) using getBoundingClientRect().
+          All 3 steps anchor to the FIRST nominee card — always visible near
+          the top of the ballot regardless of how tall the grid grows.
       ─────────────────────────────────────────────────────────────────────────── */}
-      {(ratingTourStep === 1 || ratingTourStep === 2) &&
-        tourAnchorRect !== null &&
-        (ratingTourStep === 2 ||
-          pickedMovieId == null ||
-          activeNomineeIdSet.has(String(pickedMovieId))) &&
+      {ratingTourStep >= 1 && ratingTourStep <= 3 &&
+        firstNomineeAnchorRect !== null &&
+        (ratingTourStep !== 1 || pickedMovieId == null || activeNomineeIdSet.has(String(pickedMovieId))) &&
         createPortal(
-          <div
-            className="fixed z-[200] pointer-events-none animate-in fade-in duration-300"
-            style={{
-              top: tourAnchorRect.bottom + 12,
-              left: tourAnchorRect.left,
-              width: tourAnchorRect.width,
-            }}
-          >
-            {/* Upward-pointing arrow — gold border to match card */}
-            <svg
-              className="absolute -top-2 left-6"
-              width="16"
-              height="8"
-              viewBox="0 0 16 8"
-              aria-hidden="true"
-            >
-              <path
-                d="M0 8 L8 0 L16 8Z"
-                fill="#111827"
-                stroke="#eab308"
-                strokeWidth="1"
-                strokeLinejoin="round"
-              />
-            </svg>
+          (() => {
+            // Caret points at the ranking badge (bottom-left of first card, ~22px from card left)
+            const caretAbsX = firstNomineeAnchorRect.left + 22;
+            const ballotRect = ballotRef.current?.getBoundingClientRect();
+            const tooltipLeft = ballotRect?.left ?? firstNomineeAnchorRect.left;
+            const tooltipWidth = Math.min(ballotRect?.width ?? firstNomineeAnchorRect.width, 420);
+            const caretOffsetInTooltip = Math.min(
+              Math.max(caretAbsX - tooltipLeft, 14),
+              tooltipWidth - 14
+            );
+            return (
+              <div
+                className="fixed z-[200] pointer-events-none animate-in fade-in duration-300"
+                style={{
+                  top: firstNomineeAnchorRect.bottom + 10,
+                  left: tooltipLeft,
+                  width: tooltipWidth,
+                }}
+              >
+                {/* Upward-pointing caret */}
+                <svg
+                  className="absolute -top-[10px]"
+                  style={{ left: caretOffsetInTooltip - 10 }}
+                  width="20"
+                  height="10"
+                  viewBox="0 0 20 10"
+                  aria-hidden="true"
+                >
+                  <path d="M0 10 L10 0 L20 10Z" fill="#1e293b" stroke="#eab308" strokeWidth="1.5" strokeLinejoin="round" />
+                </svg>
 
-            {/* Callout card */}
-            <div className="pointer-events-auto rounded-xl border border-yellow-500/30 bg-gray-900/98 backdrop-blur-sm shadow-2xl px-4 py-3">
-              {ratingTourStep === 1 && (
-                <>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-2">
-                      <Star className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-white">Your pick is rated 10</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          That&apos;s your ranking — tap the number on the poster to change it (1–10).
-                        </p>
-                      </div>
-                    </div>
+                {/* Tour card */}
+                <div className="pointer-events-auto rounded-xl border border-yellow-500/40 bg-slate-800 shadow-2xl shadow-black/60 px-4 py-4">
+
+                  {/* Header: step badge + dismiss */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="inline-flex items-center rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-yellow-400">
+                      Step {ratingTourStep} of 3
+                    </span>
                     <button
-                      onClick={() => setRatingTourStep(2)}
-                      className="text-xs text-yellow-400 hover:text-yellow-200 font-semibold shrink-0 whitespace-nowrap transition-colors"
+                      onClick={() => setRatingTourStep(0)}
+                      className="p-1 rounded text-gray-500 hover:text-gray-200 transition-colors"
+                      aria-label="Dismiss tour"
                     >
-                      Next →
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="flex gap-1 mt-2.5">
-                    <div className="w-4 h-1 rounded-full bg-yellow-400" />
-                    <div className="w-4 h-1 rounded-full bg-gray-600" />
-                  </div>
-                </>
-              )}
 
-              {ratingTourStep === 2 && (
-                <>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-2">
-                      <Trophy className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-white">
-                          {nomineesNeededForValidBallot > 0
-                            ? `Add ${nomineesNeededForValidBallot} more to reach a valid ballot`
-                            : "Your ballot is taking shape"}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          Rate a film ≥ 7 from the list below, then hit{" "}
-                          <span className="text-amber-300 font-medium">+ Nominate</span> to add it.
-                        </p>
-                      </div>
+                  {/* Step content */}
+                  {ratingTourStep === 1 && (
+                    <>
+                      <p className="text-sm font-semibold text-white mb-1.5">Your pick is rated 10</p>
+                      <p className="text-sm text-gray-300 leading-relaxed">
+                        That&apos;s your ranking — tap the number on the poster to adjust it (1–10).
+                      </p>
+                    </>
+                  )}
+                  {ratingTourStep === 2 && (
+                    <>
+                      <p className="text-sm font-semibold text-white mb-1.5">
+                        {nomineesNeededForValidBallot > 0
+                          ? `Add ${nomineesNeededForValidBallot} more nominee${nomineesNeededForValidBallot !== 1 ? "s" : ""} to complete your ballot`
+                          : "Your ballot is taking shape"}
+                      </p>
+                      <p className="text-sm text-gray-300 leading-relaxed">
+                        The empty slots below are waiting. Scroll down, rate a film ≥ 7, then tap{" "}
+                        <span className="text-amber-300 font-medium">+ Nominate</span> on its card.
+                      </p>
+                    </>
+                  )}
+                  {ratingTourStep === 3 && (
+                    <>
+                      <p className="text-sm font-semibold text-white mb-1.5">Acclaimed films are waiting below</p>
+                      <p className="text-sm text-gray-300 leading-relaxed">
+                        {genreMatchLabel
+                          ? `${genreMatchLabel.charAt(0).toUpperCase() + genreMatchLabel.slice(1)} films are listed first.`
+                          : "Highly regarded films are listed below the ballot."}{" "}
+                        Tap <span className="text-amber-300 font-medium">Got it</span> then scroll down to find them.
+                      </p>
+                    </>
+                  )}
+
+                  {/* Footer: progress dots + next/done */}
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="flex gap-2">
+                      {[1, 2, 3].map((s) => (
+                        <div
+                          key={s}
+                          className={`h-1.5 rounded-full transition-all duration-300 ${
+                            s === ratingTourStep
+                              ? "w-6 bg-yellow-400"
+                              : s < ratingTourStep
+                              ? "w-2 bg-yellow-400/40"
+                              : "w-2 bg-gray-600"
+                          }`}
+                        />
+                      ))}
                     </div>
-                    <button
-                      onClick={() => {
-                        setRatingTourStep(3);
-                        scrollToAcclaimed();
-                        setShowAcclaimedTip(true);
-                        setTimeout(() => setShowAcclaimedTip(false), 4000);
-                      }}
-                      className="text-xs text-amber-400 hover:text-amber-200 font-semibold shrink-0 whitespace-nowrap transition-colors"
-                    >
-                      Show me →
-                    </button>
+                    {ratingTourStep < 3 ? (
+                      <button
+                        onClick={() => setRatingTourStep((s) => (s + 1) as 0 | 1 | 2 | 3)}
+                        className="text-sm font-semibold text-yellow-400 hover:text-yellow-200 transition-colors"
+                      >
+                        Next →
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setRatingTourStep(0);
+                          scrollToAcclaimed();
+                        }}
+                        className="text-sm font-semibold text-yellow-400 hover:text-yellow-200 transition-colors"
+                      >
+                        Got it →
+                      </button>
+                    )}
                   </div>
-                  <div className="flex gap-1 mt-2.5">
-                    <div className="w-4 h-1 rounded-full bg-gray-600" />
-                    <div className="w-4 h-1 rounded-full bg-amber-400" />
-                  </div>
-                </>
-              )}
-            </div>
-          </div>,
+                </div>
+              </div>
+            );
+          })(),
           document.body
         )}
 

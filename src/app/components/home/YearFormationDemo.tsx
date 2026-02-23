@@ -13,41 +13,40 @@ type YearFormationDemoProps = {
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 /**
- * Films are ordered by stagger position — Inception (primary/winner) sits in
+ * Films are ordered by stagger position — The Dark Knight (primary/winner) sits in
  * the centre slot so it emerges from among peers, not as an upfront anchor.
  * Posters confirmed present in /public/posters/.
  */
 const FILMS = [
   {
-    title: "The Social Network",
-    poster: "/posters/the-social-network-2010.jpg",
+    title: "The Curious Case of Benjamin Button",
+    poster: "/posters/the-curious-case-of-benjamin-button-2008.jpg",
     cell: "col-start-1 row-start-1",
   },
   {
-    title: "Inception",
-    poster: "/posters/inception-2010.jpg",
+    title: "The Dark Knight",
+    poster: "/posters/the-dark-knight-2008.jpg",
     cell: "col-start-2 row-start-1",
     isPrimary: true,
   },
   {
-    title: "The King's Speech",
-    poster: "/posters/the-king-s-speech-2010.jpg",
+    title: "Slumdog Millionaire",
+    poster: "/posters/slumdog-millionaire-2008.jpg",
     cell: "col-start-3 row-start-1",
   },
   {
-    title: "Black Swan",
-    poster: "/posters/black-swan-2010.jpg",
+    title: "WALL-E",
+    poster: "/posters/wall-e-2008.jpg",
     cell: "col-start-1 row-start-2",
   },
   {
-    title: "True Grit",
-    poster: "/posters/true-grit-2010.jpg",
+    title: "Taken",
+    poster: "/posters/taken-2008.jpg",
     cell: "col-start-2 row-start-2",
   },
   {
-    // Fills the bottom-right slot — no more dashed empty placeholder
-    title: "The Fighter",
-    poster: "/posters/the-fighter-2010.jpg",
+    title: "Twilight",
+    poster: "/posters/twilight-2008.jpg",
     cell: "col-start-3 row-start-2",
   },
 ];

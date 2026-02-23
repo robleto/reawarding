@@ -83,7 +83,7 @@ export default function HowItWorksSection({ reducedMotion }: HowItWorksSectionPr
             ))}
           </div>
 
-          <YearFormationDemo year={2010} primaryFilm="Inception" reducedMotion={reducedMotion} />
+          <YearFormationDemo year={2008} primaryFilm="The Dark Knight" reducedMotion={reducedMotion} />
         </div>
       </div>
     </section>

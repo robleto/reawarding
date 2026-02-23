@@ -12,6 +12,7 @@ interface PublicProfile {
   preferred_name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  signature_picks?: (string | number)[] | null;
   created_at: string;
 }
 
@@ -50,7 +51,9 @@ export function usePublicProfile(username: string): UsePublicProfileResult {
       setNotFound(false);
 
       try {
-        const res = await fetch(`/api/users/${encodeURIComponent(username)}`);
+        const res = await fetch(`/api/users/${encodeURIComponent(username)}`, {
+          cache: "no-store",
+        });
 
         if (res.status === 404) {
           if (mounted) setNotFound(true);

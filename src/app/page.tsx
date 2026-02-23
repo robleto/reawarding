@@ -422,18 +422,78 @@ export default function HomePage() {
       .sort((a, b) => b.year - a.year);
   }, [awards, movies]);
 
+  const ballotYearsForHome = useMemo(() => {
+    const activeSeasonYear = getActiveAwardsSeasonYear();
+    const byYear = new Map<number, (typeof awardsForHome)[number]>();
+
+    // Prefer saved award rows when they exist.
+    for (const award of awardsForHome) {
+      byYear.set(award.year, award);
+    }
+
+    // Any year with at least one ranked film counts as "in play".
+    const rankedMovies = movies.filter((movie) => {
+      const ranking = movie.rankings?.[0]?.ranking;
+      return typeof ranking === "number" && ranking >= 1;
+    });
+
+    const grouped = new Map<number, Movie[]>();
+    for (const movie of rankedMovies) {
+      const year = movie.release_year;
+      if (!Number.isFinite(year)) continue;
+      const existing = grouped.get(year) ?? [];
+      existing.push(movie);
+      grouped.set(year, existing);
+    }
+
+    for (const [year, yearMovies] of grouped.entries()) {
+      if (byYear.has(year)) continue;
+
+      const sorted = [...yearMovies].sort((a, b) => {
+        const ra = a.rankings?.[0]?.ranking ?? 0;
+        const rb = b.rankings?.[0]?.ranking ?? 0;
+        if (rb !== ra) return rb - ra;
+        return a.title.localeCompare(b.title);
+      });
+
+      const contenderCount = sorted.filter((m) => (m.rankings?.[0]?.ranking ?? 0) >= 7).length;
+      // If a year has any rated film, treat it as started even if no contender yet.
+      const nomineeCount = Math.min(10, Math.max(contenderCount, 1));
+      const level: BallotLevel =
+        nomineeCount >= 10
+          ? "complete"
+          : nomineeCount >= 5
+            ? "standard"
+            : nomineeCount >= 3
+              ? "emerging"
+              : "not-started";
+
+      byYear.set(year, {
+        year,
+        winnerTitle: sorted[0]?.title ?? String(year),
+        winnerPoster: sorted[0]?.poster_url ?? null,
+        nomineeCount,
+        level,
+        isCurrentSeason: year === activeSeasonYear,
+        films: sorted.slice(0, 3),
+      });
+    }
+
+    return Array.from(byYear.values()).sort((a, b) => b.year - a.year);
+  }, [awardsForHome, movies]);
+
   const fullCount = useMemo(
-    () => awardsForHome.filter((award) => award.level === "complete").length,
-    [awardsForHome]
+    () => ballotYearsForHome.filter((award) => award.level === "complete").length,
+    [ballotYearsForHome]
   );
   const inProgressCount = useMemo(
-    () => awardsForHome.filter((award) => award.level !== "complete").length,
-    [awardsForHome]
+    () => ballotYearsForHome.filter((award) => award.level !== "complete").length,
+    [ballotYearsForHome]
   );
   const timelineAwards = useMemo(() => {
-    if (timelineFilter === "all") return awardsForHome;
-    return awardsForHome.filter((award) => award.level !== "complete");
-  }, [awardsForHome, timelineFilter]);
+    if (timelineFilter === "all") return ballotYearsForHome;
+    return ballotYearsForHome.filter((award) => award.level !== "complete");
+  }, [ballotYearsForHome, timelineFilter]);
 
   const showcaseAward = useMemo(() => awardsForHome[0] ?? null, [awardsForHome]);
   const showcaseDisplayData = useMemo(() => {
@@ -480,8 +540,8 @@ export default function HomePage() {
     [displayName, userProfile?.last_login]
   );
   const subtext = useMemo(
-    () => `${awardsForHome.length} award years · ${fullCount} full · ${inProgressCount} in progress`,
-    [awardsForHome.length, fullCount, inProgressCount]
+    () => `${ballotYearsForHome.length} years in play · ${fullCount} full · ${inProgressCount} in progress`,
+    [ballotYearsForHome.length, fullCount, inProgressCount]
   );
 
   // Guest -> logged-in transition can unmount pinned GSAP sections mid-cycle.
@@ -633,7 +693,7 @@ export default function HomePage() {
             </section>
           )}
 
-          {awardsForHome.length > 0 && (
+          {ballotYearsForHome.length > 0 && (
             <section className="mb-10">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <button

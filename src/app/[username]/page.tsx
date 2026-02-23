@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import {
   Trophy,
   ArrowRight,
@@ -23,14 +24,20 @@ import { useUser } from "@/hooks/useUser";
 import { useEnsureProfile } from "@/hooks/useEnsureProfile";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import AwardCard from "@/components/home/AwardCard";
+import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
 
 // ─── Constants ──────────────────────────────────────────
 const MAX_PICKS = 5;
 const STORAGE_KEY_PREFIX = "reawarding_signature_picks_";
+type SignaturePickId = string;
 
 // ─── Helpers ────────────────────────────────────────────
-function getDefaultPicks(movies: Movie[]): number[] {
+function toPickId(value: unknown): SignaturePickId {
+  return String(value);
+}
+
+function getDefaultPicks(movies: Movie[]): SignaturePickId[] {
   return movies
     .filter((m) => {
       const r = m.rankings?.[0]?.ranking;
@@ -43,17 +50,31 @@ function getDefaultPicks(movies: Movie[]): number[] {
       return (a.title ?? "").localeCompare(b.title ?? "");
     })
     .slice(0, MAX_PICKS)
-    .map((m) => m.id);
+    .map((m) => toPickId(m.id));
 }
 
-function loadSavedPicks(userId: string): number[] | null {
+function getStorageKeys(userId: string, username?: string): string[] {
+  const keys = [`${STORAGE_KEY_PREFIX}${userId}`];
+  if (username) keys.push(`${STORAGE_KEY_PREFIX}u_${username.toLowerCase()}`);
+  return keys;
+}
+
+function loadSavedPicks(userId: string, username?: string): SignaturePickId[] | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${userId}`);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.every((v) => typeof v === "number")) {
-      return parsed;
+    for (const key of getStorageKeys(userId, username)) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const normalized = parsed
+          .filter((v) => typeof v === "string" || typeof v === "number")
+          .map((v) => toPickId(v))
+          .filter((v) => v.length > 0);
+        if (normalized.length > 0) {
+          return normalized;
+        }
+      }
     }
   } catch {
     // ignore
@@ -61,19 +82,24 @@ function loadSavedPicks(userId: string): number[] | null {
   return null;
 }
 
-function savePicks(userId: string, picks: number[]) {
+function savePicks(userId: string, picks: SignaturePickId[], username?: string) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(`${STORAGE_KEY_PREFIX}${userId}`, JSON.stringify(picks));
+    const serialized = JSON.stringify(picks);
+    for (const key of getStorageKeys(userId, username)) {
+      localStorage.setItem(key, serialized);
+    }
   } catch {
     // ignore
   }
 }
 
-function clearSavedPicks(userId: string) {
+function clearSavedPicks(userId: string, username?: string) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.removeItem(`${STORAGE_KEY_PREFIX}${userId}`);
+    for (const key of getStorageKeys(userId, username)) {
+      localStorage.removeItem(key);
+    }
   } catch {
     // ignore
   }
@@ -87,21 +113,32 @@ function SignaturePicks({
   username,
   isOwner,
   ownerUserId,
+  persistedPickIds,
 }: {
   movies: Movie[];
   username: string;
   isOwner: boolean;
   ownerUserId: string | null;
+  persistedPickIds?: (string | number)[] | null;
 }) {
+  const supabase = useSupabaseClient<Database>();
   const defaultPickIds = useMemo(() => getDefaultPicks(movies), [movies]);
 
   // Load from localStorage if owner, otherwise use defaults
-  const [pickIds, setPickIds] = useState<number[]>([]);
+  const [pickIds, setPickIds] = useState<SignaturePickId[]>([]);
   const [isCustomized, setIsCustomized] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showCandidatePool, setShowCandidatePool] = useState(false);
+  const [debugEnabled, setDebugEnabled] = useState(false);
+  const [lastServerSaveStatus, setLastServerSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [lastServerSaveError, setLastServerSaveError] = useState<string | null>(null);
 
   // Initialize picks
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setDebugEnabled(new URLSearchParams(window.location.search).has("sigdebug"));
+  }, []);
+
   useEffect(() => {
     if (!ownerUserId) {
       setPickIds(defaultPickIds);
@@ -109,10 +146,18 @@ function SignaturePicks({
       return;
     }
 
-    const saved = loadSavedPicks(ownerUserId);
+    const serverSaved =
+      Array.isArray(persistedPickIds) &&
+      persistedPickIds.every((v) => typeof v === "string" || typeof v === "number")
+        ? persistedPickIds.map((v) => toPickId(v))
+        : null;
+    // Prefer local first for the owner on this device (latest edits land immediately),
+    // then fall back to the server-saved version.
+    const localSaved = loadSavedPicks(ownerUserId, username);
+    const saved = localSaved ?? serverSaved;
     if (saved) {
       // Validate saved IDs still exist in movies
-      const movieIdSet = new Set(movies.map((m) => m.id));
+      const movieIdSet = new Set(movies.map((m) => toPickId(m.id)));
       const validSaved = saved.filter((id) => movieIdSet.has(id));
       if (validSaved.length > 0) {
         setPickIds(validSaved);
@@ -122,11 +167,46 @@ function SignaturePicks({
     }
     setPickIds(defaultPickIds);
     setIsCustomized(false);
-  }, [ownerUserId, movies, defaultPickIds]);
+  }, [ownerUserId, username, movies, defaultPickIds, persistedPickIds]);
+
+  const persistPicks = useCallback(
+    (next: SignaturePickId[]) => {
+      if (!ownerUserId) return;
+      savePicks(ownerUserId, next, username);
+    },
+    [ownerUserId, username]
+  );
+
+  const persistPicksToServer = useCallback(
+    async (next: SignaturePickId[]) => {
+      if (!ownerUserId || !isOwner) return;
+      try {
+        setLastServerSaveStatus("saving");
+        setLastServerSaveError(null);
+        const { error } = await supabase
+          .from("profiles")
+          .update({ signature_picks: next } as any)
+          .eq("id", ownerUserId);
+        if (error) {
+          // Keep local fallback if DB column isn't present yet or update fails.
+          console.warn("Signature Picks server save failed; using local fallback", error);
+          setLastServerSaveStatus("error");
+          setLastServerSaveError(error.message || "Unknown save error");
+          return;
+        }
+        setLastServerSaveStatus("saved");
+      } catch (error) {
+        console.warn("Signature Picks server save threw; using local fallback", error);
+        setLastServerSaveStatus("error");
+        setLastServerSaveError(error instanceof Error ? error.message : "Unknown thrown save error");
+      }
+    },
+    [supabase, ownerUserId, isOwner]
+  );
 
   const movieMap = useMemo(() => {
-    const map = new Map<number, Movie>();
-    for (const m of movies) map.set(m.id, m);
+    const map = new Map<SignaturePickId, Movie>();
+    for (const m of movies) map.set(toPickId(m.id), m);
     return map;
   }, [movies]);
 
@@ -141,7 +221,7 @@ function SignaturePicks({
     return movies
       .filter((m) => {
         const r = m.rankings?.[0]?.ranking;
-        return typeof r === "number" && r >= 8 && !pickSet.has(m.id);
+        return typeof r === "number" && r >= 8 && !pickSet.has(toPickId(m.id));
       })
       .sort((a, b) => {
         const ra = a.rankings?.[0]?.ranking ?? 0;
@@ -153,36 +233,49 @@ function SignaturePicks({
   }, [movies, pickIds]);
 
   const handleRemovePick = useCallback(
-    (movieId: number) => {
-      setPickIds((prev) => {
-        const next = prev.filter((id) => id !== movieId);
-        if (ownerUserId) savePicks(ownerUserId, next);
-        setIsCustomized(true);
-        return next;
-      });
+    (movieId: string | number) => {
+      const targetId = toPickId(movieId);
+      const next = pickIds.filter((id) => id !== targetId);
+      setPickIds(next);
+      if (ownerUserId) savePicks(ownerUserId, next, username);
+      void persistPicksToServer(next);
+      setIsCustomized(true);
     },
-    [ownerUserId]
+    [pickIds, ownerUserId, username, persistPicksToServer]
   );
 
   const handleAddPick = useCallback(
-    (movieId: number) => {
-      setPickIds((prev) => {
-        if (prev.length >= MAX_PICKS) return prev;
-        if (prev.includes(movieId)) return prev;
-        const next = [...prev, movieId];
-        if (ownerUserId) savePicks(ownerUserId, next);
-        setIsCustomized(true);
-        return next;
-      });
+    (movieId: string | number) => {
+      const targetId = toPickId(movieId);
+      if (pickIds.length >= MAX_PICKS) return;
+      if (pickIds.includes(targetId)) return;
+      const next = [...pickIds, targetId];
+      setPickIds(next);
+      if (ownerUserId) savePicks(ownerUserId, next, username);
+      void persistPicksToServer(next);
+      setIsCustomized(true);
     },
-    [ownerUserId]
+    [pickIds, ownerUserId, username, persistPicksToServer]
   );
 
   const handleReset = useCallback(() => {
     setPickIds(defaultPickIds);
     setIsCustomized(false);
-    if (ownerUserId) clearSavedPicks(ownerUserId);
-  }, [defaultPickIds, ownerUserId]);
+    if (ownerUserId) clearSavedPicks(ownerUserId, username);
+    void persistPicksToServer(defaultPickIds);
+  }, [defaultPickIds, ownerUserId, username, persistPicksToServer]);
+
+  const handleToggleEdit = useCallback(() => {
+    if (!isEditing) {
+      setShowCandidatePool(true);
+      setIsEditing(true);
+      return;
+    }
+
+    setIsEditing(false);
+    if (ownerUserId) savePicks(ownerUserId, pickIds, username);
+    void persistPicksToServer(pickIds);
+  }, [isEditing, ownerUserId, pickIds, username, persistPicksToServer]);
 
   // Empty slots count
   const emptySlots = Math.max(0, MAX_PICKS - pickedMovies.length);
@@ -236,12 +329,7 @@ function SignaturePicks({
           )}
           {isOwner && (
             <button
-              onClick={() => {
-                setIsEditing((v) => {
-                  if (!v) setShowCandidatePool(true);
-                  return !v;
-                });
-              }}
+              onClick={handleToggleEdit}
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all border ${
                 isEditing
                   ? "text-green-400 bg-green-500/10 border-green-500/30 hover:bg-green-500/20"
@@ -426,6 +514,30 @@ function SignaturePicks({
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {debugEnabled && isOwner && (
+        <div className="mt-4 rounded-lg border border-red-500/40 bg-red-950/20 p-3 text-[11px] text-red-100">
+          <div className="font-semibold mb-1">Signature Picks Debug</div>
+          <div>ownerUserId: {ownerUserId || "null"}</div>
+          <div>username: {username}</div>
+          <div>rendered pickIds: {JSON.stringify(pickIds)}</div>
+          <div>server persistedPickIds: {JSON.stringify(persistedPickIds ?? null)}</div>
+          <div>
+            local by userId:{" "}
+            {ownerUserId && typeof window !== "undefined"
+              ? localStorage.getItem(`${STORAGE_KEY_PREFIX}${ownerUserId}`)
+              : "n/a"}
+          </div>
+          <div>
+            local by username:{" "}
+            {typeof window !== "undefined"
+              ? localStorage.getItem(`${STORAGE_KEY_PREFIX}u_${username.toLowerCase()}`)
+              : "n/a"}
+          </div>
+          <div>lastServerSaveStatus: {lastServerSaveStatus}</div>
+          <div>lastServerSaveError: {lastServerSaveError || "null"}</div>
         </div>
       )}
     </section>
@@ -652,6 +764,7 @@ export default function ProfileOverviewPage() {
         username={username}
         isOwner={isOwner}
         ownerUserId={ownerUserId}
+        persistedPickIds={Array.isArray(profile?.signature_picks) ? profile?.signature_picks : null}
       />
       <AwardsGallery movies={movies} username={username} />
       <SignatureTasteStats movies={movies} />

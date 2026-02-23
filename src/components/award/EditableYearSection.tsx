@@ -1083,7 +1083,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                       items={activeWorkshopNominees.map((movie) => movie.id)}
                       strategy={rectSortingStrategy}
                     >
-                      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+                      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5" data-tour-grid="nominees">
                         {Array.from({ length: 10 }).map((_, index) => {
                           const movie = activeWorkshopNominees[index];
                           if (movie) {
