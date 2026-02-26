@@ -758,7 +758,7 @@ export default function HomePage() {
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={handleCloseExplorer}
           />
-          <div className="relative h-full overflow-y-auto px-3 py-24 md:px-6">
+          <div className="relative h-full overflow-y-auto px-3 py-4 sm:py-16 md:py-24 md:px-6">
             <div className="max-w-screen-xl mx-auto">
               <YearExplorer
                 year={explorerYear}

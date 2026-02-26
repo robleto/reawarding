@@ -54,6 +54,25 @@ function normalizeImageSrc(src: string): string {
   return src;
 }
 
+function measureSwapMetrics(origCard: HTMLDivElement, newCard: HTMLDivElement) {
+  const origRect = origCard.getBoundingClientRect();
+  const newRect = newCard.getBoundingClientRect();
+  const origCenter = center(origRect);
+  const newCenter = center(newRect);
+
+  return {
+    // SR travels from contenders -> winner slot
+    newDx: origCenter.x - newCenter.x,
+    newDy: origCenter.y - newCenter.y,
+    // FG travels from winner -> contenders slot
+    origDx: newCenter.x - origCenter.x,
+    origDy: newCenter.y - origCenter.y,
+    // Scale to match destination card sizes
+    growRatio: origRect.width / newRect.width,
+    shrinkRatio: (newRect.width / origRect.width) * 0.88,
+  };
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ReawardAnimation({
@@ -78,6 +97,7 @@ export function ReawardAnimation({
 
   // Badge on SR card (hidden until swap complete)
   const rewardedBadgeRef = useRef<HTMLSpanElement>(null);
+  const rewardedMobilePillRef = useRef<HTMLSpanElement>(null);
   const winnerTitleOriginalRef = useRef<HTMLSpanElement>(null);
   const winnerTitleNewRef = useRef<HTMLSpanElement>(null);
   const contenderTitleNewRef = useRef<HTMLSpanElement>(null);
@@ -101,6 +121,7 @@ export function ReawardAnimation({
     const oscarCaption    = oscarCaptionRef.current;
     const rewardedCaption = rewardedCaptionRef.current;
     const rewardedBadge   = rewardedBadgeRef.current;
+    const rewardedMobilePill = rewardedMobilePillRef.current;
     const winnerTitleOriginal = winnerTitleOriginalRef.current;
     const winnerTitleNew = winnerTitleNewRef.current;
     const contenderTitleNew = contenderTitleNewRef.current;
@@ -122,27 +143,12 @@ export function ReawardAnimation({
 
     // Measure center positions before any transforms
     const raf = requestAnimationFrame(() => {
-      const origRect   = origCard.getBoundingClientRect();
-      const newRect    = newCard.getBoundingClientRect();
-      const origCenter = center(origRect);
-      const newCenter  = center(newRect);
-
-      // SR travels from its contender position INTO the winner centerpoint
-      const newDx = origCenter.x - newCenter.x;
-      const newDy = origCenter.y - newCenter.y;
-
-      // FG travels from winner INTO the contender centerpoint
-      const origDx = newCenter.x - origCenter.x;
-      const origDy = newCenter.y - origCenter.y;
-
-      // Scale ratios — each card needs to END at the other's apparent size
-      const growRatio   = origRect.width  / newRect.width;
-      const shrinkRatio = (newRect.width  / origRect.width) * 0.88;
+      let swapMetrics = measureSwapMetrics(origCard, newCard);
       const isHookPanel = panelId === "panel-hook";
       const pinStart = isHookPanel ? "top top+=24" : "top top";
       const pinEnd = isHookPanel
         ? "bottom top"
-        : () => `+=${Math.round(window.innerHeight * 1.35)}`;
+        : () => `+=${Math.round(window.innerHeight * (panelId === "panel-premise" ? 1.55 : 1.35))}`;
       const pinScrub = isHookPanel ? 1.2 : 1.5;
       const priority = panelId === "panel-premise" ? 30 : isHookPanel ? 22 : 10;
 
@@ -159,6 +165,12 @@ export function ReawardAnimation({
             invalidateOnRefresh: true,
             refreshPriority: priority,
             preventOverlaps: "home-panels",
+            onRefreshInit: () => {
+              // Measure in the untransformed start state so breakpoint/layout changes
+              // (especially mobile) don't leave stale motion vectors.
+              gsap.set([origCard, newCard], { x: 0, y: 0, scale: 1 });
+              swapMetrics = measureSwapMetrics(origCard, newCard);
+            },
           },
         });
 
@@ -171,9 +183,9 @@ export function ReawardAnimation({
 
         // ── Phase 2 (20–78%): SR moves to winner zone + scales to fill it
         tl.to(newCard, {
-          x: newDx,
-          y: newDy,
-          scale: growRatio,
+          x: () => swapMetrics.newDx,
+          y: () => swapMetrics.newDy,
+          scale: () => swapMetrics.growRatio,
           opacity: 1,
           zIndex: 20,
           duration: 0.58,
@@ -182,9 +194,9 @@ export function ReawardAnimation({
 
         // ── Phase 3 (25–78%): FG retreats + shrinks to contender size ─
         tl.to(origCard, {
-          x: origDx,
-          y: origDy,
-          scale: shrinkRatio,
+          x: () => swapMetrics.origDx,
+          y: () => swapMetrics.origDy,
+          scale: () => swapMetrics.shrinkRatio,
           opacity: 0.72,
           zIndex: 1,
           duration: 0.53,
@@ -201,6 +213,9 @@ export function ReawardAnimation({
         if (rewardedBadge) {
           tl.to(rewardedBadge, { opacity: 1, scale: 1, duration: 0.18 }, 0.66);
         }
+        if (rewardedMobilePill) {
+          tl.to(rewardedMobilePill, { opacity: 1, scale: 1, y: 0, duration: 0.18 }, 0.66);
+        }
 
         // ── Phase 5 (68–84%): title flip/crossfade in place ──────────
         tl.to(
@@ -213,6 +228,7 @@ export function ReawardAnimation({
           { opacity: 1, y: 0, rotateX: 0, duration: 0.2, ease: "power2.out" },
           0.74,
         );
+        tl.to({}, { duration: panelId === "panel-premise" ? 0.34 : 0.18 }, 0.9);
       }, section);
     });
 
@@ -247,7 +263,8 @@ export function ReawardAnimation({
             winnerLabelClass="ra-side-heading ra-side-heading--rewarded"
             winnerCaption={<span className="ra-caption ra-caption--rewarded">{year} ReAwarded Winner</span>}
             winnerMovie={newWinner}
-            winnerBadge={<span className="ra-badge ra-badge--rewarded">★ ReAwarded</span>}
+            winnerBadge={<span className="ra-badge ra-badge--rewarded ra-badge--rewarded-overlay">ReAwarded</span>}
+            winnerMobilePill={<span className="ra-status-pill ra-status-pill--rewarded-mobile" style={{ opacity: 1 }}>ReAwarded</span>}
             contenderMovies={[originalWinner, ...contenders]}
           />
         </div>
@@ -308,6 +325,13 @@ export function ReawardAnimation({
                   {year} ReAwarded Winner
                 </span>
               </div>
+              <span
+                ref={rewardedMobilePillRef}
+                className="ra-status-pill ra-status-pill--rewarded-mobile"
+                style={{ opacity: 0, transform: "translateY(4px) scale(0.92)" }}
+              >
+                ReAwarded
+              </span>
             </div>
 
             {/*
@@ -394,10 +418,10 @@ export function ReawardAnimation({
                   <div className="ra-poster-overlay" />
                   <span
                     ref={rewardedBadgeRef}
-                    className="ra-badge ra-badge--rewarded"
+                    className="ra-badge ra-badge--rewarded ra-badge--rewarded-overlay"
                     style={{ opacity: 0, transform: "scale(0.4)" }}
                   >
-                    ★ ReAwarded
+                    ReAwarded
                   </span>
                 </div>
                 <p className="ra-movie-title" style={{ position: "relative", minHeight: "3.2em" }}>
@@ -456,6 +480,7 @@ function AwardsStage({
   winnerCaption,
   winnerMovie,
   winnerBadge,
+  winnerMobilePill,
   contenderMovies,
 }: {
   year: string | number;
@@ -464,6 +489,7 @@ function AwardsStage({
   winnerCaption: React.ReactNode;
   winnerMovie: MovieCard;
   winnerBadge: React.ReactNode;
+  winnerMobilePill?: React.ReactNode;
   contenderMovies: MovieCard[];
 }) {
   return (
@@ -474,6 +500,7 @@ function AwardsStage({
         <div className="ra-side-head">
           <span className={winnerLabelClass}>{winnerLabel}</span>
           <div className="ra-caption-wrap">{winnerCaption}</div>
+          {winnerMobilePill}
         </div>
         <div className="ra-movie-item">
           <div className="ra-poster-box ra-poster-box--winner">

@@ -248,6 +248,15 @@ body {
   min-height: 100vh;
 }
 
+/* Reduce vertical padding on the How It Works panel for mobile so the
+   4-step list + header fit within the pinned 100vh without overflow. */
+@media (max-width: 767px) {
+  .home-panel[data-panel-id="panel-how-it-works"] {
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+  }
+}
+
 .home-hero {
   min-height: calc(100vh - 5rem);
   /* Place content in the upper-center third so the search input sits
@@ -278,6 +287,14 @@ body {
   gap: clamp(2rem, 4vw, 3.5rem);
   position: relative;
   z-index: 2;
+}
+
+@media (max-width: 639px) {
+  .home-hero__inner,
+  .home-panel__inner {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
 }
 
 /* Hero-specific: center everything, narrower max-width for cinematic focus */
@@ -518,7 +535,13 @@ body {
 .hiw-steps {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .hiw-steps {
+    gap: 2rem;
+  }
 }
 
 .hiw-step {
@@ -779,6 +802,7 @@ body {
   line-height: 1;
   letter-spacing: -0.01em;
   color: #d4af37;
+  white-space: nowrap;
 }
 
 .reassurance-card__label {
@@ -801,6 +825,38 @@ body {
 
 .dark .reassurance-card__sub {
   color: rgba(200, 196, 192, 0.75);  /* brightened from 0.55 — sub text was near-invisible */
+}
+
+@media (max-width: 639px) {
+  #panel-reassurance .home-panel__inner {
+    gap: 1.4rem;
+  }
+
+  .reassurance-grid {
+    gap: 0.8rem;
+  }
+
+  .reassurance-card {
+    padding: 1.05rem 0.9rem;
+    gap: 0.28rem;
+    border-radius: 0.9rem;
+  }
+
+  .reassurance-card__stat {
+    font-size: 1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .reassurance-card__label {
+    font-size: 0.8rem;
+    line-height: 1.25;
+    margin-top: 0.14rem;
+  }
+
+  .reassurance-card__sub {
+    font-size: 0.72rem;
+    line-height: 1.32;
+  }
 }
 
 .final-cta-wrap {
@@ -1263,6 +1319,7 @@ body {
   text-transform: uppercase;
   font-weight: 700;
   line-height: 1;
+  white-space: nowrap;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   z-index: 3;
@@ -1280,6 +1337,35 @@ body {
   color: rgb(68,220,135);
   box-shadow: 0 0 8px rgba(56,189,115,0.25);  /* subtle glow — this is the key differentiator */
   transform-origin: center;
+}
+
+.ra-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  max-width: 100%;
+  padding: 0.16rem 0.48rem;
+  border-radius: 999px;
+  font-size: 0.58rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  white-space: nowrap;
+  box-sizing: border-box;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.ra-status-pill--rewarded-mobile {
+  display: none;
+  margin-top: 0.1rem;
+  background: rgba(56,189,115,0.2);
+  border: 1px solid rgba(56,189,115,0.6);
+  color: rgb(68,220,135);
+  box-shadow: 0 0 10px rgba(56,189,115,0.18);
+  transform-origin: left center;
 }
 
 /* ── Poster image fallback (shown when image fails to load) ─ */
@@ -1300,25 +1386,113 @@ body {
 /* ── Responsive: stack to column on narrow screens ───────── */
 @media (max-width: 580px) {
   .ra-stage {
-    flex-direction: column;
-    gap: 1.5rem;
-    padding: 0.875rem;
+    flex-direction: row;             /* keep the comparison visible on first viewport */
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 1.1rem;
+    padding: 0.75rem;
+    border-radius: 0.75rem;
   }
 
   .ra-winner-side {
-    width: 100%;
-    max-width: 180px;               /* keep winner card reasonably sized */
-    margin: 0 auto;                 /* center on mobile */
+    width: 38%;
+    max-width: none;
+    margin: 0;
+    gap: 0.35rem;
   }
 
   .ra-divider {
-    width: 100%;
-    height: 1px;
-    align-self: auto;
+    width: 1px;
+    height: auto;
+    align-self: stretch;
   }
 
   .ra-contenders-side {
+    width: auto;
+    gap: 0.35rem;
+  }
+
+  .ra-side-head {
+    margin-bottom: 0.35rem;
+    gap: 0.15rem;
+  }
+
+  .ra-side-heading {
+    font-size: 0.72rem;
+    gap: 0.25rem;
+  }
+
+  .ra-side-heading--contenders {
+    font-size: 0.68rem;
+  }
+
+  .ra-caption-wrap {
+    height: 0.95rem;
+  }
+
+  .ra-caption {
+    font-size: 0.56rem;
+    letter-spacing: 0.05em;
+  }
+
+  .ra-movie-item {
+    gap: 0.25rem;
+  }
+
+  .ra-movie-title {
+    font-size: 0.62rem;
+    line-height: 1.2;
+  }
+
+  .ra-nominee-grid {
+    gap: 0.4rem;
+  }
+
+  .ra-badge {
+    bottom: 0.28rem;
+    right: 0.28rem;
+    padding: 0.14rem 0.34rem;
+    font-size: 0.45rem;
+    letter-spacing: 0.06em;
+  }
+
+  .ra-badge--rewarded-overlay {
+    display: none;
+  }
+
+  .ra-status-pill--rewarded-mobile {
+    display: inline-flex;
     width: 100%;
+    justify-content: center;
+    margin-top: 0.16rem;
+    padding: 0.18rem 0.3rem;
+    font-size: 0.5rem;
+    letter-spacing: 0.04em;
+  }
+}
+
+@media (max-width: 420px) {
+  .ra-stage {
+    gap: 0.4rem;
+    padding: 0.65rem;
+  }
+
+  .ra-winner-side {
+    width: 36%;
+  }
+
+  .ra-nominee-grid {
+    gap: 0.34rem;
+  }
+
+  .ra-movie-title {
+    font-size: 0.58rem;
+  }
+
+  .ra-status-pill--rewarded-mobile {
+    padding-inline: 0.22rem;
+    font-size: 0.46rem;
+    letter-spacing: 0.03em;
   }
 }
 

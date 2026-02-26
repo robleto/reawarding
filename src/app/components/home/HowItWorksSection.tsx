@@ -83,7 +83,9 @@ export default function HowItWorksSection({ reducedMotion }: HowItWorksSectionPr
             ))}
           </div>
 
-          <YearFormationDemo year={2008} primaryFilm="The Dark Knight" reducedMotion={reducedMotion} />
+          <div className="hidden md:block">
+            <YearFormationDemo year={2008} primaryFilm="The Dark Knight" reducedMotion={reducedMotion} />
+          </div>
         </div>
       </div>
     </section>

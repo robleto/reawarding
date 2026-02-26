@@ -77,6 +77,7 @@ const DEMO_AWARDS = [
 
 export default function PanelTimeline({ reducedMotion }: PanelTimelineProps) {
   const sectionRef = useRef<HTMLElement | null>(null);
+  const stripViewportRef = useRef<HTMLDivElement | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const isVisible = useMotionReveal(reducedMotion, sectionRef);
   const posters = useHomePanelPosters(
@@ -88,24 +89,71 @@ export default function PanelTimeline({ reducedMotion }: PanelTimelineProps) {
     }))
   );
 
-  // Pinned scroll — cards reveal one at a time as user scrolls
+  // Pinned scroll:
+  // - mobile: vertical scroll scrubs the horizontal strip before release
+  // - desktop: cards reveal one at a time
   useEffect(() => {
     if (reducedMotion) return;
     gsap.registerPlugin(ScrollTrigger);
 
     const section = sectionRef.current;
+    const stripViewport = stripViewportRef.current;
     const grid = gridRef.current;
-    if (!section || !grid) return;
+    if (!section || !grid || !stripViewport) return;
 
     const cards = Array.from(
       grid.querySelectorAll<HTMLElement>("[data-award-card]")
     );
     const count = cards.length;
 
-    // Start all cards invisible
-    gsap.set(cards, { opacity: 0, y: 18, scale: 0.93 });
+    const mm = gsap.matchMedia();
 
-    const ctx = gsap.context(() => {
+    mm.add("(max-width: 639px)", () => {
+      gsap.set(cards, { opacity: 1, y: 0, scale: 1, clearProps: "opacity,transform" });
+      cards.forEach((card) => {
+        delete card.dataset.tlVisible;
+      });
+      gsap.set(grid, { x: 0, clearProps: "opacity" });
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: section,
+          pin: true,
+          pinSpacing: true,
+          scrub: 1,
+          anticipatePin: 1,
+          start: "top top",
+          end: () => {
+            const travel = Math.max(0, grid.scrollWidth - stripViewport.clientWidth);
+            // One horizontal pass plus a brief settle at the end.
+            return `+=${Math.round(Math.max(window.innerHeight * 0.95, travel + 120))}`;
+          },
+          invalidateOnRefresh: true,
+          refreshPriority: 10,
+          preventOverlaps: "home-panels",
+        },
+      });
+
+      tl.to(grid, {
+        x: () => {
+          const travel = Math.max(0, grid.scrollWidth - stripViewport.clientWidth);
+          return -travel;
+        },
+        ease: "none",
+        duration: 0.86,
+      });
+      tl.to({}, { duration: 0.14 });
+
+      return () => {
+        tl.scrollTrigger?.kill();
+        tl.kill();
+      };
+    });
+
+    mm.add("(min-width: 640px)", () => {
+      gsap.set(grid, { x: 0 });
+      gsap.set(cards, { opacity: 0, y: 18, scale: 0.93 });
+
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: section,
@@ -122,7 +170,6 @@ export default function PanelTimeline({ reducedMotion }: PanelTimelineProps) {
           onUpdate: (self) => {
             const p = self.progress;
             cards.forEach((card, i) => {
-              // Card i reveals when progress passes i/count threshold
               const threshold = i / count;
               const revealed = p >= threshold;
               const wasVisible = parseFloat(card.dataset.tlVisible || "0") === 1;
@@ -152,11 +199,15 @@ export default function PanelTimeline({ reducedMotion }: PanelTimelineProps) {
         },
       });
 
-      // Minimal tween so GSAP has something to scrub
       tl.to({}, { duration: 1 });
-    }, section);
 
-    return () => ctx.revert();
+      return () => {
+        tl.scrollTrigger?.kill();
+        tl.kill();
+      };
+    });
+
+    return () => mm.revert();
   }, [reducedMotion]);
 
   return (
@@ -185,10 +236,13 @@ export default function PanelTimeline({ reducedMotion }: PanelTimelineProps) {
         </header>
 
         {/* Award card gallery — horizontal scroll on mobile, 7-column grid on desktop */}
-        <div className="px-4 -mx-4 sm:-mx-0 sm:px-0">
+        <div
+          ref={stripViewportRef}
+          className="px-4 -mx-4 overflow-hidden sm:-mx-0 sm:px-0 sm:overflow-visible"
+        >
           <div
             ref={gridRef}
-            className="flex gap-3 pb-3 overflow-x-auto snap-x snap-mandatory sm:grid sm:grid-cols-4 lg:grid-cols-7 sm:overflow-visible sm:pb-0"
+            className="flex w-max gap-3 pb-3 will-change-transform sm:grid sm:w-auto sm:grid-cols-4 lg:grid-cols-7 sm:pb-0"
           >
             {DEMO_AWARDS.map((award) => (
               <div

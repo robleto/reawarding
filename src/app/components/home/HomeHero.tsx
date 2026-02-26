@@ -82,12 +82,11 @@ export default function HomeHero({
 				>
 						<MovieSearchPicker
 							onSelect={onSelectMovie}
-							placeholder="Search for a movie… (e.g. The Dark Knight)"
+							placeholder="Search for a movie..."
 							className="home-search-picker"
 						/>
 						<p className="home-hero__microcopy">
-							Or Shawshank Redemption, The Social Network, Parasite or
-							any film you love. No account needed to get started.
+							No account needed to get started.
 						</p>
 				</div>
 			</div>

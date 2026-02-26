@@ -93,8 +93,8 @@ export default function YearExplorer({
   const seededOnboardingRef = useRef(false);
   // Tour overlay: ref on the ballot section — used to read left/width for tooltip container
   const ballotRef = useRef<HTMLDivElement | null>(null);
-  // Rect of the FIRST nominee card — all 3 tour steps anchor here (always visible)
-  const [firstNomineeAnchorRect, setFirstNomineeAnchorRect] = useState<DOMRect | null>(null);
+  // Rect of the active tour target (step 2 uses the first empty slot).
+  const [tourAnchorRect, setTourAnchorRect] = useState<DOMRect | null>(null);
 
   const actualWinner = getActualWinner(year);
 
@@ -477,23 +477,25 @@ export default function YearExplorer({
     return () => observer.disconnect();
   }, []);
 
-  // ─── Tour overlay: measure the FIRST nominee card for all 3 steps ─
-  // All steps anchor to the first poster card, which is always visible
-  // near the top of the ballot. Anchoring to the whole ballot section
-  // risks going off-screen (10 nominee slots can be very tall on mobile).
+  // ─── Tour overlay: measure the active anchor target ──────────────
+  // Step 1 + 3 anchor to the first nominee card. Step 2 anchors to the
+  // first empty nominee slot (the open space next to the newly added pick).
   useEffect(() => {
     if (ratingTourStep < 1 || ratingTourStep > 3) {
-      setFirstNomineeAnchorRect(null);
+      setTourAnchorRect(null);
       return;
     }
 
     const measure = () => {
-      const firstCard = ballotRef.current?.querySelector(
-        '[data-tour-grid="nominees"] > div'
-      ) as HTMLElement | null;
-      if (firstCard) {
-        setFirstNomineeAnchorRect(firstCard.getBoundingClientRect());
+      const selector = ratingTourStep === 2
+        ? '[data-tour-grid="nominees"] [data-tour-empty-slot="true"]'
+        : '[data-tour-grid="nominees"] > div';
+      const anchor = ballotRef.current?.querySelector(selector) as HTMLElement | null;
+      if (anchor) {
+        setTourAnchorRect(anchor.getBoundingClientRect());
+        return;
       }
+      setTourAnchorRect(null);
     };
 
     // Slight delay for step 1 only — card may not have rendered yet
@@ -723,19 +725,20 @@ export default function YearExplorer({
       )}
 
       {/* ─── Onboarding tour overlay (portal, fixed to viewport) ───────────────
-          All 3 steps anchor to the FIRST nominee card — always visible near
-          the top of the ballot regardless of how tall the grid grows.
+          Steps 1/3 anchor to the first nominee card. Step 2 anchors to the
+          first empty nominee slot next to the new pick.
       ─────────────────────────────────────────────────────────────────────────── */}
       {ratingTourStep >= 1 && ratingTourStep <= 3 &&
-        firstNomineeAnchorRect !== null &&
+        tourAnchorRect !== null &&
         (ratingTourStep !== 1 || pickedMovieId == null || activeNomineeIdSet.has(String(pickedMovieId))) &&
         createPortal(
           (() => {
-            // Caret points at the ranking badge (bottom-left of first card, ~22px from card left)
-            const caretAbsX = firstNomineeAnchorRect.left + 22;
+            const caretAbsX = ratingTourStep === 2
+              ? tourAnchorRect.left + (tourAnchorRect.width / 2)
+              : tourAnchorRect.left + 22;
             const ballotRect = ballotRef.current?.getBoundingClientRect();
-            const tooltipLeft = ballotRect?.left ?? firstNomineeAnchorRect.left;
-            const tooltipWidth = Math.min(ballotRect?.width ?? firstNomineeAnchorRect.width, 420);
+            const tooltipLeft = ballotRect?.left ?? tourAnchorRect.left;
+            const tooltipWidth = Math.min(ballotRect?.width ?? tourAnchorRect.width, 420);
             const caretOffsetInTooltip = Math.min(
               Math.max(caretAbsX - tooltipLeft, 14),
               tooltipWidth - 14
@@ -744,7 +747,7 @@ export default function YearExplorer({
               <div
                 className="fixed z-[200] pointer-events-none animate-in fade-in duration-300"
                 style={{
-                  top: firstNomineeAnchorRect.bottom + 10,
+                  top: tourAnchorRect.bottom + 10,
                   left: tooltipLeft,
                   width: tooltipWidth,
                 }}

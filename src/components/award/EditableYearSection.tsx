@@ -1102,6 +1102,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                             <button
                               type="button"
                               key={`empty-slot-${index}`}
+                              data-tour-empty-slot="true"
                               className="aspect-[2/3] rounded-lg border border-dashed border-gray-300/80 dark:border-gray-700/80 bg-gray-50/70 dark:bg-gray-900/35 p-3 flex flex-col items-center justify-center text-center"
                               aria-label="Empty nominee slot"
                               onClick={onRequestScrollToContenders}
@@ -1135,6 +1136,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         <button
                           type="button"
                           key={`empty-slot-${index}`}
+                          data-tour-empty-slot="true"
                           className="aspect-[2/3] rounded-lg border border-dashed border-gray-300/80 dark:border-gray-700/80 bg-gray-50/70 dark:bg-gray-900/35 p-3 flex items-center justify-center"
                           aria-label="Empty nominee slot"
                           onClick={onRequestScrollToContenders}
