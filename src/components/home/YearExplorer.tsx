@@ -83,6 +83,9 @@ export default function YearExplorer({
       : 0
   );
   const [showAcclaimedTip, setShowAcclaimedTip] = useState(false);
+  const INITIAL_FILM_LIMIT = 12;
+  const [showAllAcclaimed, setShowAllAcclaimed] = useState(false);
+  const [showAllUnseen, setShowAllUnseen] = useState(false);
   const rankingSectionRef = useRef<HTMLDivElement | null>(null);
   const contendersSectionRef = useRef<HTMLDivElement | null>(null);
   const acclaimedSectionRef = useRef<HTMLDivElement | null>(null);
@@ -179,7 +182,6 @@ export default function YearExplorer({
       return;
     }
     setRatingTourStep(initialRatingTourStep > 0 ? initialRatingTourStep : 1);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOnboardingPick, initialRatingTourStep]);
 
   useEffect(() => {
@@ -514,10 +516,10 @@ export default function YearExplorer({
   return (
     <div className="bg-gray-900/80 border border-gray-700/60 shadow-2xl rounded-2xl p-4 md:p-6 min-h-[70vh] animate-in fade-in slide-in-from-top-2 duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <div>
           <h3 className="text-lg font-bold text-white font-unbounded">
-            {year}
+            Your {year} Best Picture Ballot
           </h3>
           <div className="relative mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
             <button
@@ -536,12 +538,6 @@ export default function YearExplorer({
               </div>
             )}
           </div>
-          {actualWinner && (
-            <p className="text-xs text-gray-400">
-              The Academy chose{" "}
-              <span className="text-yellow-400">{actualWinner.title}</span>
-            </p>
-          )}
         </div>
         <button
           onClick={onClose}
@@ -551,6 +547,18 @@ export default function YearExplorer({
           <X className="w-5 h-5" />
         </button>
       </div>
+
+      {/* Instructional sub-header */}
+      <p className="text-xs text-gray-500 mb-1">
+        Nominate films you&apos;ve seen and rank them. Your highest-ranked film becomes your Best Picture winner.
+      </p>
+      {actualWinner && (
+        <p className="text-xs text-gray-400 mb-4">
+          The Academy chose{" "}
+          <span className="font-medium text-yellow-400">{actualWinner.title}</span>.{" "}
+          <span className="text-gray-500">Will your ballot agree?</span>
+        </p>
+      )}
 
       {/* Guest mode messaging */}
       {isGuest && (
@@ -572,6 +580,7 @@ export default function YearExplorer({
           mode="workshop"
           compact
           onRequestScrollToContenders={focusContenders}
+          onWorkshopRankUpdate={onUpdateMovieRanking}
           onEditingChange={(editing) => {
             setIsEditing(editing);
             onEditingChange?.(editing);
@@ -634,24 +643,29 @@ export default function YearExplorer({
           {/* ─── Onboarding tour overlay rendered via portal (fixed position) ─── */}
           {/* Intentionally empty here — the portal is rendered outside this scroll container below */}
 
-          {ratingTourStep === 0 && isOnboardingPick && displayNomineeCount < 3 ? (
+          {ratingTourStep === 0 && displayNomineeCount < 5 ? (
             <div className="mb-4 px-3 py-2.5 rounded-lg border border-amber-500/25 bg-amber-500/8 flex items-start gap-2.5">
               <Star className="w-4 h-4 text-amber-300 mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-medium text-amber-200">
-                  Add {Math.max(0, 3 - displayNomineeCount)} more nominee{Math.max(0, 3 - displayNomineeCount) !== 1 ? "s" : ""} to make this an Emerging ballot
+                  {displayNomineeCount} nominee{displayNomineeCount !== 1 ? "s" : ""} so far
                 </p>
                 <p className="text-xs text-amber-300/70 mt-0.5">
-                  Pick from the films below — or rate a film first, then nominate it.
+                  Add {nomineesNeededForValidBallot} more to create a Standard Ballot (5 nominees). Rate a film 7+ to nominate it.
                 </p>
               </div>
             </div>
-          ) : ratingTourStep === 0 && displayNomineeCount < 5 ? (
-            <div className="mb-3 inline-flex items-center gap-2 text-sm text-amber-200">
-              <Star className="w-4 h-4 text-amber-300" />
-              <span>
-                Add {nomineesNeededForValidBallot} more to reach a Standard ballot (5 nominees).
-              </span>
+          ) : ratingTourStep === 0 && displayNomineeCount >= 5 && displayNomineeCount < 10 ? (
+            <div className="mb-4 px-3 py-2.5 rounded-lg border border-emerald-500/25 bg-emerald-500/8 flex items-start gap-2.5">
+              <Trophy className="w-4 h-4 text-emerald-300 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-emerald-200">
+                  Standard Ballot complete ({displayNomineeCount} nominees)
+                </p>
+                <p className="text-xs text-emerald-300/70 mt-0.5">
+                  Add up to {10 - displayNomineeCount} more to expand to a Full Ballot (10 nominees).
+                </p>
+              </div>
             </div>
           ) : null}
 
@@ -682,13 +696,39 @@ export default function YearExplorer({
                   {genreMatchLabel
                     ? `${genreMatchLabel.charAt(0).toUpperCase() + genreMatchLabel.slice(1)} films listed first.`
                     : "Highly regarded but unrated."}{" "}
-                  Rate ≥ 7 to nominate.
+                  Rate 7+ to nominate.
                 </span>
               </div>
             )}
-            {renderMovieRow(`Acclaimed films from ${year}`, acclaimedMovies, "acclaimed")}
+            {renderMovieRow(
+              `Acclaimed films from ${year}`,
+              showAllAcclaimed ? acclaimedMovies : acclaimedMovies.slice(0, INITIAL_FILM_LIMIT),
+              "acclaimed"
+            )}
+            {acclaimedMovies.length > INITIAL_FILM_LIMIT && !showAllAcclaimed && (
+              <button
+                type="button"
+                onClick={() => setShowAllAcclaimed(true)}
+                className="mb-4 text-xs font-medium text-yellow-400 hover:text-yellow-300 transition-colors"
+              >
+                Show {acclaimedMovies.length - INITIAL_FILM_LIMIT} more acclaimed films
+              </button>
+            )}
           </div>
-          {renderMovieRow("Unseen — worth considering", unseenMovies, "unseen")}
+          {renderMovieRow(
+            "Unseen — worth considering",
+            showAllUnseen ? unseenMovies : unseenMovies.slice(0, INITIAL_FILM_LIMIT),
+            "unseen"
+          )}
+          {unseenMovies.length > INITIAL_FILM_LIMIT && !showAllUnseen && (
+            <button
+              type="button"
+              onClick={() => setShowAllUnseen(true)}
+              className="mb-4 text-xs font-medium text-yellow-400 hover:text-yellow-300 transition-colors"
+            >
+              Show {unseenMovies.length - INITIAL_FILM_LIMIT} more films
+            </button>
+          )}
           {renderMovieRow("Low-rated (seen, rated below 5)", lowRatedMovies, "low-rated")}
 
           {/* Loading skeleton */}
@@ -736,9 +776,12 @@ export default function YearExplorer({
             const caretAbsX = ratingTourStep === 2
               ? tourAnchorRect.left + (tourAnchorRect.width / 2)
               : tourAnchorRect.left + 22;
-            const ballotRect = ballotRef.current?.getBoundingClientRect();
-            const tooltipLeft = ballotRect?.left ?? tourAnchorRect.left;
-            const tooltipWidth = Math.min(ballotRect?.width ?? tourAnchorRect.width, 420);
+            const viewportWidth = window.innerWidth;
+            const tooltipWidth = Math.min(338, viewportWidth - 24);
+            const tooltipLeft = Math.min(
+              Math.max(caretAbsX - tooltipWidth / 2, 12),
+              viewportWidth - tooltipWidth - 12
+            );
             const caretOffsetInTooltip = Math.min(
               Math.max(caretAbsX - tooltipLeft, 14),
               tooltipWidth - 14
@@ -761,15 +804,15 @@ export default function YearExplorer({
                   viewBox="0 0 20 10"
                   aria-hidden="true"
                 >
-                  <path d="M0 10 L10 0 L20 10Z" fill="#1e293b" stroke="#eab308" strokeWidth="1.5" strokeLinejoin="round" />
+                  <path d="M0 10 L10 0 L20 10Z" fill="#14161b" stroke="#3f4654" strokeWidth="1.25" strokeLinejoin="round" />
                 </svg>
 
                 {/* Tour card */}
-                <div className="pointer-events-auto rounded-xl border border-yellow-500/40 bg-slate-800 shadow-2xl shadow-black/60 px-4 py-4">
+                <div className="pointer-events-auto rounded-xl border border-[#3f4654] bg-[#14161b] shadow-2xl shadow-black/50 px-4 py-3.5">
 
                   {/* Header: step badge + dismiss */}
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="inline-flex items-center rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-yellow-400">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <span className="inline-flex items-center rounded-full bg-[#263142] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#e6b94d]">
                       Step {ratingTourStep} of 3
                     </span>
                     <button
@@ -784,15 +827,15 @@ export default function YearExplorer({
                   {/* Step content */}
                   {ratingTourStep === 1 && (
                     <>
-                      <p className="text-sm font-semibold text-white mb-1.5">Your pick is rated 10</p>
+                      <p className="text-[15px] font-semibold text-white mb-1.5">Your pick is rated 10</p>
                       <p className="text-sm text-gray-300 leading-relaxed">
-                        That&apos;s your ranking — tap the number on the poster to adjust it (1–10).
+                        Tap the rating badge on the card to adjust it (1–10).
                       </p>
                     </>
                   )}
                   {ratingTourStep === 2 && (
                     <>
-                      <p className="text-sm font-semibold text-white mb-1.5">
+                      <p className="text-[15px] font-semibold text-white mb-1.5">
                         {nomineesNeededForValidBallot > 0
                           ? `Add ${nomineesNeededForValidBallot} more nominee${nomineesNeededForValidBallot !== 1 ? "s" : ""} to complete your ballot`
                           : "Your ballot is taking shape"}
@@ -805,7 +848,7 @@ export default function YearExplorer({
                   )}
                   {ratingTourStep === 3 && (
                     <>
-                      <p className="text-sm font-semibold text-white mb-1.5">Acclaimed films are waiting below</p>
+                      <p className="text-[15px] font-semibold text-white mb-1.5">Acclaimed films are waiting below</p>
                       <p className="text-sm text-gray-300 leading-relaxed">
                         {genreMatchLabel
                           ? `${genreMatchLabel.charAt(0).toUpperCase() + genreMatchLabel.slice(1)} films are listed first.`
@@ -816,17 +859,17 @@ export default function YearExplorer({
                   )}
 
                   {/* Footer: progress dots + next/done */}
-                  <div className="flex items-center justify-between mt-4">
+                  <div className="flex items-center justify-between mt-3.5 pt-2 border-t border-[#2c3340]">
                     <div className="flex gap-2">
                       {[1, 2, 3].map((s) => (
                         <div
                           key={s}
                           className={`h-1.5 rounded-full transition-all duration-300 ${
                             s === ratingTourStep
-                              ? "w-6 bg-yellow-400"
+                              ? "w-6 bg-[#e6b94d]"
                               : s < ratingTourStep
-                              ? "w-2 bg-yellow-400/40"
-                              : "w-2 bg-gray-600"
+                              ? "w-2 bg-[#e6b94d]/40"
+                              : "w-2 bg-[#4a5160]"
                           }`}
                         />
                       ))}
@@ -834,7 +877,7 @@ export default function YearExplorer({
                     {ratingTourStep < 3 ? (
                       <button
                         onClick={() => setRatingTourStep((s) => (s + 1) as 0 | 1 | 2 | 3)}
-                        className="text-sm font-semibold text-yellow-400 hover:text-yellow-200 transition-colors"
+                        className="text-sm font-semibold text-[#e6b94d] hover:text-[#f1cf7a] transition-colors"
                       >
                         Next →
                       </button>
@@ -844,7 +887,7 @@ export default function YearExplorer({
                           setRatingTourStep(0);
                           scrollToAcclaimed();
                         }}
-                        className="text-sm font-semibold text-yellow-400 hover:text-yellow-200 transition-colors"
+                        className="text-sm font-semibold text-[#e6b94d] hover:text-[#f1cf7a] transition-colors"
                       >
                         Got it →
                       </button>

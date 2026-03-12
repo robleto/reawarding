@@ -15,8 +15,9 @@ export async function GET(
     const supabase = await createSupabaseServerClient();
 
     // 1. Fetch profile by username
-    let profileSelect =
+    const profileSelect =
       "id, username, first_name, last_name, full_name, preferred_name, avatar_url, bio, created_at, signature_picks";
+    // eslint-disable-next-line prefer-const
     let { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select(profileSelect)

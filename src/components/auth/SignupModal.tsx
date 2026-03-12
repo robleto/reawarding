@@ -170,17 +170,28 @@ export default function SignupModal({
 
         {emailSent ? (
           <div className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+              <Mail className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
             <p className="text-gray-600 dark:text-gray-300">
               A confirmation link has been sent to <strong>{email}</strong>.
             </p>
-            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-              Please check your inbox (and spam folder) to complete your signup.
+            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+              Click the link in the email to activate your account. Check spam if you don&apos;t see it.
             </p>
+            <div className="mt-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4 text-left">
+              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">While you wait:</p>
+              <ul className="space-y-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <li>You&apos;ll pick movies you love and rate them</li>
+                <li>Your highest-rated films become nominees for that year</li>
+                <li>Fill 10 nominees to crown your Best Picture winner</li>
+              </ul>
+            </div>
             <button
               onClick={handleClose}
-              className="mt-6 w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 font-medium touch-manipulation min-h-[44px]"
+              className="mt-5 w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 font-medium touch-manipulation min-h-[44px]"
             >
-              Close
+              Got it
             </button>
           </div>
         ) : (

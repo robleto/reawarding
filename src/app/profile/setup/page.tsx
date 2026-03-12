@@ -195,9 +195,9 @@ export default function ProfileSetupPage() {
       
       setSuccess('Profile saved successfully!');
       
-      // Redirect to rankings after a short delay
+      // Redirect home after a short delay
       setTimeout(() => {
-        router.push('/rankings');
+        router.push('/');
       }, 1500);
       
     } catch (error) {
@@ -331,7 +331,7 @@ export default function ProfileSetupPage() {
             <div className="flex items-center justify-between pt-4">
               <button
                 type="button"
-                onClick={() => router.push('/rankings')}
+                onClick={() => router.push('/')}
                 className="text-gray-500 hover:text-gray-700"
               >
                 {profile ? 'Cancel' : 'Skip for now'}

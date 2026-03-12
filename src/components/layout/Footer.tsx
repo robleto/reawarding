@@ -8,7 +8,6 @@ export default function Footer() {
 				<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 					{/* Brand zone */}
 					<div className="flex items-center gap-3">
-						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img
 							src="/reawarding-logomark.svg"
 							alt=""

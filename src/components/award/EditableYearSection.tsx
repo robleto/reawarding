@@ -6,12 +6,13 @@ import { useUser, useSupabaseClient, useSessionContext } from '@supabase/auth-he
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, Crown, GripVertical, Star, Check } from "lucide-react";
+import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, Crown, GripVertical, Star, Check, Trophy } from "lucide-react";
 import MovieCard from "./MovieCard";
 import WinnerCard from "./WinnerCard";
 import DraggableNomineeCard from "./DraggableNomineeCard";
 import SelectableMovieItem from "./SelectableMovieItem";
 import MovieDetailModal from "../movie/MovieDetailModal";
+import RankingDropdown from "@/components/movie/RankingDropdown";
 import type { Movie } from "@/types/types";
 import { useGlobalToast } from '@/hooks/useGlobalToast';
 import { normalizeImageUrl } from "@/utils/imageUrl";
@@ -96,6 +97,11 @@ interface EditableYearSectionProps {
   onEditingChange?: (editing: boolean) => void;
   /** Optional callback for empty nominee slot click in compact/workshop view. */
   onRequestScrollToContenders?: () => void;
+  /** Optional direct rank updater for workshop cards (used by YearExplorer). */
+  onWorkshopRankUpdate?: (
+    movieId: number,
+    updates: { seen_it?: boolean; ranking?: number | null }
+  ) => void;
 }
 
 const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSectionProps>(function EditableYearSection({
@@ -109,6 +115,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   compact,
   onEditingChange,
   onRequestScrollToContenders,
+  onWorkshopRankUpdate,
 }: EditableYearSectionProps, ref) {
   const user = useUser();
   const { isLoading: sessionLoading } = useSessionContext();
@@ -779,6 +786,17 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     }
   };
 
+  const handleWorkshopRankingChange = (movieId: number, nextRanking: number | null) => {
+    const inNominees = nominees.find((m) => m.id === movieId);
+    const inCurrent = currentNominees.find((m) => m.id === movieId);
+    const inAvailable = availableMovies.find((m) => m.id === movieId);
+    const movie = inNominees ?? inCurrent ?? inAvailable ?? null;
+    const seenIt = movie?.rankings?.[0]?.seen_it ?? true;
+
+    handleModalUpdate(movieId, nextRanking, seenIt);
+    onWorkshopRankUpdate?.(movieId, { ranking: nextRanking, seen_it: seenIt });
+  };
+
   // Display logic (keep current view visible while background refresh runs)
   const displayNominees = isEditing ? nominees : currentNominees;
   const displayWinner = isEditing ? selectedWinner : currentWinner;
@@ -1068,14 +1086,38 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                   </div>
                 </div>
                 <div className="mb-3">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    {isWorkshop ? activeWorkshopNominees.length : nomineeCount} / 10 nominees
-                  </p>
-                  {(isWorkshop ? activeWorkshopNominees.length < 5 : nomineeCount < 5) && (
-                    <p className="text-xs text-amber-600 dark:text-amber-300/90">
-                      Add {nomineesNeededForComplete} more to reach a complete ballot.
-                    </p>
-                  )}
+                  {(() => {
+                    const count = isWorkshop ? activeWorkshopNominees.length : nomineeCount;
+                    if (count >= 10) {
+                      return (
+                        <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-300">
+                          Full Ballot complete (10 nominees)
+                        </p>
+                      );
+                    }
+                    if (count >= 5) {
+                      return (
+                        <>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            Standard Ballot ({count} nominees)
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Add up to {10 - count} more to expand to a Full Ballot (10 nominees).
+                          </p>
+                        </>
+                      );
+                    }
+                    return (
+                      <>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                          {count} nominee{count !== 1 ? "s" : ""} so far
+                        </p>
+                        <p className="text-xs text-amber-600 dark:text-amber-300/90">
+                          Add {5 - count} more to create a Standard Ballot (5 nominees).
+                        </p>
+                      </>
+                    );
+                  })()}
                 </div>
                 {isWorkshop ? (
                   <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -1094,6 +1136,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                                 isWinner={activeWorkshopWinner?.id === movie.id}
                                 onSetWinner={() => handleWorkshopWinner(movie)}
                                 onRemove={() => handleWorkshopRemove(movie.id)}
+                                onRankingChange={(value) => handleWorkshopRankingChange(movie.id, value)}
                               />
                             );
                           }
@@ -1109,7 +1152,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                             >
                               <Film className="w-6 h-6 text-gray-500/70 mb-2" />
                               <span className="text-xs text-gray-500 dark:text-gray-400">
-                                Empty slot - rate more films to fill this
+                                Rate a film 7+ to nominate it
                               </span>
                             </button>
                           );
@@ -1324,11 +1367,13 @@ function WorkshopNomineeCard({
   isWinner,
   onSetWinner,
   onRemove,
+  onRankingChange,
 }: {
   movie: Movie;
   isWinner: boolean;
   onSetWinner: () => void;
   onRemove: () => void;
+  onRankingChange: (value: number | null) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: movie.id });
   const style = {
@@ -1358,10 +1403,17 @@ function WorkshopNomineeCard({
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
 
+      {isWinner && (
+        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center gap-1 bg-yellow-500/90 px-2 py-1">
+          <Trophy className="w-3 h-3 text-black" />
+          <span className="text-[10px] font-bold uppercase tracking-wide text-black">Current Leader</span>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={onSetWinner}
-        className={`absolute top-2 left-2 z-10 p-1 rounded-full border ${
+        className={`absolute ${isWinner ? "top-8" : "top-2"} left-2 z-10 p-1 rounded-full border ${
           isWinner
             ? "bg-yellow-400 text-black border-yellow-300"
             : "bg-black/50 text-gray-300 border-gray-500 hover:text-yellow-300 hover:border-yellow-400/60"
@@ -1394,8 +1446,8 @@ function WorkshopNomineeCard({
         <p className="text-xs font-semibold text-white line-clamp-2">{movie.title}</p>
       </div>
       {ranking > 0 && (
-        <div className="absolute bottom-2 left-2 z-10 -translate-y-6 text-[11px] px-1.5 py-0.5 rounded bg-white/90 text-black font-bold">
-          {ranking}
+        <div className="absolute bottom-2 left-2 z-20 -translate-y-6">
+          <RankingDropdown ranking={ranking} onChange={onRankingChange} />
         </div>
       )}
     </div>

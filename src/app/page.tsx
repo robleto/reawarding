@@ -21,7 +21,8 @@ import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
 import { useCreateAward } from "@/hooks/useCreateAward";
 import { useUserAwards } from "@/hooks/useUserAwards";
 import { getGreeting } from "@/utils/greeting";
-import { Search, BarChart3, Trophy, Star, ChevronDown, ChevronUp, ArrowRight, Film } from "lucide-react";
+import { buildTasteProfile, getYearLeaders } from "@/utils/tasteInsights";
+import { Search, BarChart3, Trophy, Star, ChevronDown, ChevronUp, ArrowRight, Film, Sparkles, UserCircle, Zap } from "lucide-react";
 import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
 
@@ -544,6 +545,14 @@ export default function HomePage() {
     [ballotYearsForHome.length, fullCount, inProgressCount]
   );
 
+  // Taste insights — works even with 1 rated movie
+  const ratedMovies = useMemo(
+    () => movies.filter((m) => typeof m.rankings?.[0]?.ranking === "number" && m.rankings[0].ranking >= 1),
+    [movies]
+  );
+  const tasteProfile = useMemo(() => buildTasteProfile(ratedMovies), [ratedMovies]);
+  const yearLeaders = useMemo(() => getYearLeaders(ratedMovies), [ratedMovies]);
+
   // Guest -> logged-in transition can unmount pinned GSAP sections mid-cycle.
   // Kill panel ScrollTriggers first, then swap to workshop UI.
   useEffect(() => {
@@ -611,58 +620,226 @@ export default function HomePage() {
             onSelectMovie={handleSelectMovie}
           />
         </>
-      ) : (
+      ) : ballotYearsForHome.length === 0 && !showcaseDisplayData ? (
+        /* ── First-time user welcome ── */
         <div className="px-2 pt-6 sm:px-0">
-          <section className="mb-10">
-            <div className="text-center mb-6">
-              <h2 className="text-3xl font-semibold text-white">{greeting}</h2>
-              <p className="mt-1 text-base text-gray-400">{subtext}</p>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-6">
-              <Link
-                href="/films"
-                className="flex flex-col items-center gap-2 px-3 py-4 rounded-xl border border-gray-700/30 bg-gray-900/40 hover:bg-gray-800/60 hover:border-gray-600/40 transition-all group"
-              >
-                <Search className="w-5 h-5 text-gray-400 group-hover:text-yellow-400 transition-colors" />
-                <span className="text-xs font-medium text-gray-400 group-hover:text-white transition-colors">Find Films</span>
-              </Link>
-              <Link
-                href="/rankings"
-                className="flex flex-col items-center gap-2 px-3 py-4 rounded-xl border border-gray-700/30 bg-gray-900/40 hover:bg-gray-800/60 hover:border-gray-600/40 transition-all group"
-              >
-                <BarChart3 className="w-5 h-5 text-gray-400 group-hover:text-yellow-400 transition-colors" />
-                <span className="text-xs font-medium text-gray-400 group-hover:text-white transition-colors">Your Rankings</span>
-              </Link>
-              <Link
-                href="/awards"
-                className="flex flex-col items-center gap-2 px-3 py-4 rounded-xl border border-gray-700/30 bg-gray-900/40 hover:bg-gray-800/60 hover:border-gray-600/40 transition-all group"
-              >
-                <Trophy className="w-5 h-5 text-gray-400 group-hover:text-yellow-400 transition-colors" />
-                <span className="text-xs font-medium text-gray-400 group-hover:text-white transition-colors">Your Awards</span>
-              </Link>
-              <button
-                type="button"
-                onClick={() => setExplorerYear(new Date().getFullYear())}
-                className="flex flex-col items-center gap-2 px-3 py-4 rounded-xl border border-gray-700/30 bg-gray-900/40 hover:bg-gray-800/60 hover:border-gray-600/40 transition-all group"
-              >
-                <Star className="w-5 h-5 text-gray-400 group-hover:text-yellow-400 transition-colors" />
-                <span className="text-xs font-medium text-gray-400 group-hover:text-white transition-colors">Open Year Explorer</span>
-              </button>
-            </div>
-            <div className="mx-auto mt-5 max-w-2xl">
-              <p className="mb-2 text-center text-xs text-gray-500">
-                Add what you watched. Your awards update automatically.
+          <section className="mx-auto max-w-xl text-center">
+            <Sparkles className="mx-auto mb-4 h-8 w-8 text-yellow-400" />
+            <h2 className="text-3xl font-semibold text-white">
+              Welcome to Reawarding{displayName !== "there" ? `, ${displayName}` : ""}!
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-base text-gray-400">
+              You&rsquo;re in. Here&rsquo;s the idea: search for a film you love, rate it, and
+              we&rsquo;ll start building your personal Best Picture ballot for that year.
+            </p>
+
+            <div className="mx-auto mt-8 max-w-md">
+              <p className="mb-2 text-sm font-medium text-yellow-300/90">
+                Pick your first film to get started
               </p>
               <MovieSearchPicker
                 onSelect={handleSelectMovie}
-                placeholder="Add a movie you recently watched"
+                placeholder="Search for a movie you love..."
+              />
+            </div>
+
+            <div className="mx-auto mt-10 grid max-w-md grid-cols-1 gap-3 text-left sm:grid-cols-3">
+              <div className="rounded-xl border border-gray-700/30 bg-gray-900/40 px-4 py-3">
+                <span className="text-sm font-semibold text-white">1. Rate</span>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Search a film and give it your score.
+                </p>
+              </div>
+              <div className="rounded-xl border border-gray-700/30 bg-gray-900/40 px-4 py-3">
+                <span className="text-sm font-semibold text-white">2. Rank</span>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Your top-rated films become nominees.
+                </p>
+              </div>
+              <div className="rounded-xl border border-gray-700/30 bg-gray-900/40 px-4 py-3">
+                <span className="text-sm font-semibold text-white">3. Award</span>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Fill 10 nominees and crown your winner.
+                </p>
+              </div>
+            </div>
+
+            {!userProfile?.first_name && (
+              <div className="mx-auto mt-8 max-w-md">
+                <Link
+                  href="/profile/setup"
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-700/40 bg-gray-800/50 px-4 py-2.5 text-sm font-medium text-gray-300 transition-colors hover:border-gray-600/50 hover:bg-gray-700/50 hover:text-white"
+                >
+                  <UserCircle className="h-4 w-4" />
+                  Set up your profile
+                </Link>
+              </div>
+            )}
+
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/films"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-300"
+              >
+                <Search className="h-3.5 w-3.5" />
+                Browse films
+              </Link>
+              <span className="text-gray-700">|</span>
+              <button
+                type="button"
+                onClick={() => setExplorerYear(new Date().getFullYear())}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-300"
+              >
+                <Star className="h-3.5 w-3.5" />
+                Explore {new Date().getFullYear()}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : (
+        /* ── Returning user dashboard — consequence-oriented ── */
+        <div className="px-2 pt-6 sm:px-0">
+          {/* ── 1. Canon headline: "Your Best Picture winners so far" ── */}
+          {yearLeaders.length > 0 && (
+            <section className="mb-10">
+              <div className="text-center mb-2">
+                <h2 className="text-3xl font-semibold text-white">{greeting}</h2>
+                <p className="mt-1 text-sm text-gray-500">Your film canon is forming.</p>
+              </div>
+
+              <div className="mx-auto mt-6 max-w-lg">
+                <p className="mb-3 text-center text-xs font-medium uppercase tracking-wider text-yellow-400/70">
+                  {displayName !== "there" ? `${displayName}'s` : "Your"} Best Picture winners so far
+                </p>
+                <div className="space-y-1">
+                  {yearLeaders.map((yl) => {
+                    const poster =
+                      yl.leader.cached_poster_url ||
+                      yl.leader.poster_url ||
+                      yl.leader.cached_thumb_url ||
+                      yl.leader.thumb_url ||
+                      "";
+                    return (
+                      <button
+                        key={yl.year}
+                        type="button"
+                        onClick={() => setExplorerYear(yl.year)}
+                        className="group flex w-full items-center gap-3 rounded-lg border border-gray-700/20 bg-gray-900/30 px-3 py-2 text-left transition-all hover:border-yellow-500/30 hover:bg-gray-800/50"
+                      >
+                        <div className="relative h-12 w-8 flex-shrink-0 overflow-hidden rounded bg-gray-800">
+                          {poster ? (
+                            <Image
+                              src={poster}
+                              alt={yl.leader.title}
+                              fill
+                              className="object-cover"
+                              sizes="32px"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center">
+                              <Film className="h-3 w-3 text-gray-600" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-unbounded text-sm font-bold text-yellow-300">{yl.year}</span>
+                            <span className="truncate text-sm font-medium text-white group-hover:text-yellow-100">
+                              {yl.leader.title}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-gray-500">
+                            {yl.nomineeCount >= 10
+                              ? "Ballot complete"
+                              : `${yl.nomineeCount}/10 nominees · ${yl.neededForBallot} more to complete`}
+                          </span>
+                        </div>
+                        <ArrowRight className="h-3.5 w-3.5 flex-shrink-0 text-gray-600 transition-colors group-hover:text-yellow-400" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* ── 2. Taste mirror ── */}
+          {tasteProfile.flavourTags.length > 0 && (
+            <section className="mb-10">
+              <div className="mx-auto max-w-lg rounded-xl border border-gray-700/25 bg-gray-900/30 px-5 py-4">
+                <p className="mb-2.5 text-xs font-medium uppercase tracking-wider text-gray-500">
+                  Your taste so far
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {tasteProfile.flavourTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-yellow-500/20 bg-yellow-500/10 px-3 py-1 text-xs font-medium text-yellow-300"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                {tasteProfile.eraLabel && (
+                  <p className="mt-2.5 text-xs text-gray-500">
+                    You gravitate toward{" "}
+                    <span className="text-gray-400">{tasteProfile.eraLabel}</span>
+                  </p>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* ── 3. Momentum engine: what to do next ── */}
+          {yearLeaders.length > 0 && (
+            <section className="mb-10">
+              <div className="mx-auto max-w-lg">
+                {(() => {
+                  const closest = yearLeaders.reduce((best, yl) =>
+                    yl.neededForBallot < best.neededForBallot && yl.neededForBallot > 0 ? yl : best,
+                    yearLeaders[0]
+                  );
+                  if (closest.neededForBallot === 0) return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => setExplorerYear(closest.year)}
+                      className="group flex w-full items-center gap-3 rounded-xl border border-yellow-500/15 bg-gradient-to-r from-yellow-500/5 to-transparent px-4 py-3 text-left transition-all hover:border-yellow-500/30 hover:from-yellow-500/10"
+                    >
+                      <Zap className="h-5 w-5 flex-shrink-0 text-yellow-400" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-white">
+                          {closest.neededForBallot <= 3
+                            ? `Almost there — ${closest.neededForBallot} more ${closest.neededForBallot === 1 ? "film" : "films"} to complete your ${closest.year} ballot`
+                            : `Add ${closest.neededForBallot} more films to complete your ${closest.year} ballot`}
+                        </p>
+                        <p className="mt-0.5 text-xs text-gray-500">
+                          Current leader: {closest.leader.title}
+                        </p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 flex-shrink-0 text-gray-600 transition-colors group-hover:text-yellow-400" />
+                    </button>
+                  );
+                })()}
+              </div>
+            </section>
+          )}
+
+          {/* ── 4. Add more movies ── */}
+          <section className="mb-10">
+            <div className="mx-auto max-w-lg">
+              <MovieSearchPicker
+                onSelect={handleSelectMovie}
+                placeholder="Add another movie..."
               />
               <p className="mt-2 text-center text-[11px] text-gray-600">
-                Your current award season is below.
+                Every film you rate reshapes your ballots.
               </p>
             </div>
           </section>
 
+          {/* ── 5. Current season showcase (when it exists) ── */}
           {showcaseDisplayData && (
             <section className="mb-10">
               {showcaseAward?.isCurrentSeason ? (
@@ -693,59 +870,32 @@ export default function HomePage() {
             </section>
           )}
 
-          {ballotYearsForHome.length > 0 && (
-            <section className="mb-10">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAllBallots((prev) => !prev)}
-                  className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 font-medium transition-colors"
-                >
-                  <span>Your ballot timeline ({timelineAwards.length})</span>
-                  {showAllBallots ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                </button>
-                <div className="inline-flex rounded-md border border-gray-700/50 bg-gray-900/35 p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setTimelineFilter("in-progress")}
-                    className={`rounded px-2 py-1 text-[11px] font-medium transition-colors ${
-                      timelineFilter === "in-progress"
-                        ? "bg-gray-800 text-yellow-300"
-                        : "text-gray-400 hover:text-gray-200"
-                    }`}
-                  >
-                    In progress
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTimelineFilter("all")}
-                    className={`rounded px-2 py-1 text-[11px] font-medium transition-colors ${
-                      timelineFilter === "all"
-                        ? "bg-gray-800 text-yellow-300"
-                        : "text-gray-400 hover:text-gray-200"
-                    }`}
-                  >
-                    All years
-                  </button>
-                </div>
-              </div>
-              {showAllBallots && (
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {timelineAwards.map((award) => (
-                    <BallotTimelineCard
-                      key={`all-${award.year}`}
-                      year={award.year}
-                      nomineeCount={award.nomineeCount}
-                      level={award.level}
-                      isCurrentSeason={award.isCurrentSeason}
-                      films={award.films}
-                      onClick={() => setExplorerYear(award.year)}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
+          {/* ── 6. Quick nav ── */}
+          <div className="mb-10 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/films"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 transition-colors hover:text-gray-300"
+            >
+              <Search className="h-3.5 w-3.5" />
+              Find Films
+            </Link>
+            <span className="text-gray-700">|</span>
+            <Link
+              href="/rankings"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 transition-colors hover:text-gray-300"
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              Rankings
+            </Link>
+            <span className="text-gray-700">|</span>
+            <Link
+              href="/awards"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 transition-colors hover:text-gray-300"
+            >
+              <Trophy className="h-3.5 w-3.5" />
+              Awards
+            </Link>
+          </div>
 
         </div>
       )}
