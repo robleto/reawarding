@@ -1,8 +1,6 @@
 name: Mirror Movie Images (Nightly)
 
 on:
-  schedule:
-    - cron: '25 4 * * *' # Daily at 04:25 UTC
   workflow_dispatch:
     inputs:
       dry_run:

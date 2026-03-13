@@ -57,10 +57,11 @@ python3 scripts/enrich_movies_enhanced.py
 
 ---
 
-## Option 3: GitHub Actions (Scheduled)
+## Option 3: GitHub Actions (Manual)
 
-If you want automated runs, use the GitHub Actions pipeline that runs discovery + enrichment on a schedule.
-See `.github/workflows/ingest-discover-enrich.yml`.
+If you want to run discovery + enrichment from GitHub instead of locally, use `.github/workflows/ingest-discover-enrich.yml` with `workflow_dispatch`.
+
+This workflow is manual-only; it is not scheduled to run daily.
 
 ---
 
@@ -182,7 +183,7 @@ All data stored in JSONB/array columns with GIN indexes for fast querying.
 ## Next Steps After Enrichment
 
 1. Test enriched film pages
-2. Set up scheduled enrichment for new movies
+2. Decide whether you actually want a recurring enrichment schedule before re-enabling one
 3. Consider enriching more data:
    - Cast/crew with photos
    - Full credits

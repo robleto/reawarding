@@ -4,9 +4,12 @@ This repo uses **GitHub Actions** for scheduled jobs. There are **no active Edge
 
 ## Active GitHub Actions
 
-| Job | Schedule (UTC) | Purpose | Notes |
-| --- | --- | --- | --- |
-| ingest-discover-enrich | Daily 06:20 | Discover new movies via TMDB and enrich metadata | Runs `npm run ingest:discover` then `npm run ingest:enrich` |
+There are currently no active scheduled GitHub Actions in the repo.
+
+The previously scheduled ingestion workflows are now manual-only:
+
+- `ingest-discover-enrich` - run on demand when you want to pull in a new batch of TMDB movies and enrich metadata
+- `mirror-movie-images` - run on demand when you need to refresh cached poster/thumb assets in Supabase storage
 
 ## Non-scheduled (manual/one-off)
 

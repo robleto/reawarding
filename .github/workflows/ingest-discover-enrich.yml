@@ -1,8 +1,6 @@
 name: Ingest Discover + Enrich
 
 on:
-  schedule:
-    - cron: '20 6 * * *' # Daily at 06:20 UTC
   workflow_dispatch:
     inputs:
       pages:
