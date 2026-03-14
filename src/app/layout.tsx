@@ -1,5 +1,4 @@
 import './globals.css';
-import { Inter, Unbounded } from 'next/font/google';
 import { Providers } from './providers';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -9,19 +8,6 @@ import Footer from '@/components/layout/Footer';
 import { NetflixGlow } from '@/components/ui/NetflixGlow';
 import MobileTabBar from '@/components/layout/MobileTabBar';
 import type { User } from '@supabase/supabase-js';
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-});
-
-const unbounded = Unbounded({
-  subsets: ['latin'],
-  weight: ['400', '600', '700', '800'],
-  variable: '--font-unbounded',
-  display: 'swap',
-});
 
 export const metadata = {
   title: 'ReAwarding',
@@ -68,8 +54,14 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en" className={`${inter.variable} ${unbounded.variable}`} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Unbounded:wght@400;600;700;800&display=swap"
+          rel="stylesheet"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -95,11 +87,11 @@ export default async function RootLayout({
         <Providers initialUser={user}>
           <div className="relative z-10 min-h-screen flex flex-col">
             <HeaderNav />
-            <main className="flex-1 pt-20 pb-24 md:pb-8 px-10 sm:px-6 max-w-screen-xl mx-auto w-full">
+            <main className={`flex-1 pt-20 px-10 sm:px-6 max-w-screen-xl mx-auto w-full ${user ? 'pb-24 md:pb-8' : 'pb-8'}`}>
               {children}
             </main>
             {/* Mobile bottom navigation */}
-            <MobileTabBar />
+            {user && <MobileTabBar />}
             {/* Hide footer on small screens to avoid overlap with tab bar */}
             <div className="hidden md:block">
               <Footer />

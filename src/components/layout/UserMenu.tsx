@@ -20,7 +20,7 @@ interface UserMenuProps {
   variant?: 'dropdown' | 'inline';
 }
 
-export function UserMenu({ onSignupClick, variant = 'dropdown' }: UserMenuProps) {
+export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
@@ -30,6 +30,22 @@ export function UserMenu({ onSignupClick, variant = 'dropdown' }: UserMenuProps)
   const isDark = resolvedTheme !== 'light';
 
   const { profile, loading: profileLoading, error: profileError } = useEnsureProfile(user);
+
+  const handleLogin = () => {
+    if (onLoginClick) {
+      onLoginClick();
+      return;
+    }
+    router.push("/login");
+  };
+
+  const handleSignup = () => {
+    if (onSignupClick) {
+      onSignupClick();
+      return;
+    }
+    router.push("/login");
+  };
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -63,15 +79,17 @@ export function UserMenu({ onSignupClick, variant = 'dropdown' }: UserMenuProps)
     if (variant === 'inline') {
       return (
         <div className="flex items-center gap-3">
-          <Link
-            href="/login"
+          <button
+            type="button"
+            onClick={handleLogin}
             data-testid="primary-cta-login"
-            className="w-full py-2 px-3 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="w-full py-2 px-3 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300/60 dark:border-gray-600/60 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             Log In
-          </Link>
+          </button>
           <button
-            onClick={onSignupClick}
+            type="button"
+            onClick={handleSignup}
             className="w-full py-2 px-3 rounded-md text-sm font-medium text-white bg-[#CAAC4C] hover:bg-yellow-600 dark:bg-[#CAAC4C] dark:hover:bg-yellow-400 transition-colors shadow"
           >
             Sign Up
@@ -90,7 +108,8 @@ export function UserMenu({ onSignupClick, variant = 'dropdown' }: UserMenuProps)
           Log In
         </Link>
         <button
-          onClick={onSignupClick}
+          type="button"
+          onClick={handleSignup}
           className="px-4 py-2 text-sm font-medium text-white bg-[#CAAC4C] hover:bg-yellow-600 dark:bg-[#CAAC4C] dark:hover:bg-yellow-400 rounded-lg transition-colors shadow"
         >
           Sign Up

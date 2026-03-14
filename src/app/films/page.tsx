@@ -29,6 +29,13 @@ export default function FilmsPage() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
+
+	useEffect(() => {
+		if (loading) return;
+		if (isGuest) {
+			router.replace("/");
+		}
+	}, [loading, isGuest, router]);
 	
 	// Films-specific view mode with grid as default for poster-based display
 	const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
@@ -172,6 +179,10 @@ export default function FilmsPage() {
 
 	if (loading) {
 		return <Loader message="Loading films..." />;
+	}
+
+	if (isGuest) {
+		return null;
 	}
 
 	return (

@@ -1,21 +1,22 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from "react";
-import { supabase } from '@/lib/supabaseBrowser';
-import { useUser, useSupabaseClient, useSessionContext } from '@supabase/auth-helpers-react';
+import { useSupabaseClient, useUser, useSessionContext } from '@supabase/auth-helpers-react';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
-import { SortableContext, arrayMove, rectSortingStrategy, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, Crown, GripVertical, Star, Check, Trophy } from "lucide-react";
+import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, GripVertical, Star, Check, Trophy } from "lucide-react";
 import MovieCard from "./MovieCard";
 import WinnerCard from "./WinnerCard";
 import DraggableNomineeCard from "./DraggableNomineeCard";
 import SelectableMovieItem from "./SelectableMovieItem";
 import MovieDetailModal from "../movie/MovieDetailModal";
-import RankingDropdown from "@/components/movie/RankingDropdown";
+import RatingModal from "@/components/movie/RatingModal";
+import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
 import { useGlobalToast } from '@/hooks/useGlobalToast';
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import type { Database } from "@/types/supabase";
  
 const STORAGE_KEY = 'reawarding-awards-cache-v1';
 const LAST_USER_KEY = 'reawarding-awards-last-user';
@@ -102,6 +103,8 @@ interface EditableYearSectionProps {
     movieId: number,
     updates: { seen_it?: boolean; ranking?: number | null }
   ) => void;
+  /** Fires when workshop nominees change — provides real-time nominee IDs + winner ID. */
+  onWorkshopNomineesChange?: (nomineeIds: number[], winnerId: number | null) => void;
 }
 
 const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSectionProps>(function EditableYearSection({
@@ -116,7 +119,9 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   onEditingChange,
   onRequestScrollToContenders,
   onWorkshopRankUpdate,
+  onWorkshopNomineesChange,
 }: EditableYearSectionProps, ref) {
+  const supabase = useSupabaseClient<Database>();
   const user = useUser();
   const { isLoading: sessionLoading } = useSessionContext();
   const { showToast } = useGlobalToast();
@@ -812,6 +817,83 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   const workshopWinnerDiffers = (activeWorkshopWinner?.id ?? null) !== defaultWinnerId;
   const showWorkshopReset = isWorkshop && (workshopOrderDiffers || workshopWinnerDiffers);
 
+  const upsertAwardsClientSide = React.useCallback(
+    async (nextNominees: Movie[], nextWinner: Movie | null) => {
+      if (!user) {
+        return { ok: false as const, message: 'Please sign in to save your nominations.' };
+      }
+
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      let activeSession = session;
+      if (!activeSession && !sessionError) {
+        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          return {
+            ok: false as const,
+            message: 'Your session expired. Please sign in again.',
+            error: refreshError,
+          };
+        }
+        activeSession = refreshed.session;
+      }
+
+      if (!activeSession) {
+        return {
+          ok: false as const,
+          message: 'Your session expired. Please sign in again.',
+          error: sessionError ?? null,
+        };
+      }
+
+      const doUpsert = async () =>
+        supabase
+          .from('awards')
+          .upsert(
+            {
+              user_id: user.id,
+              year: Number(year),
+              category: resolvedCategory,
+              nominee_ids: nextNominees.map((m) => m.id),
+              winner_id: nextWinner ? nextWinner.id : null,
+              updated_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id,year,category' }
+          )
+          .select();
+
+      let { error: upsertError } = await doUpsert();
+
+      if (upsertError && upsertError.code === '23503') {
+        const fallbackUsername = user.email ? user.email.split('@')[0] : user.id.slice(0, 8);
+        await supabase.from('profiles').upsert({
+          id: user.id,
+          username: fallbackUsername,
+          full_name: null,
+          avatar_url: null,
+          bio: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+        ({ error: upsertError } = await doUpsert());
+      }
+
+      if (upsertError) {
+        const message = /row-level security|RLS|permission|AuthSessionMissingError/i.test(upsertError.message || '')
+          ? 'Your session expired. Please sign in again.'
+          : (upsertError.message || 'Failed to save nominations');
+        return { ok: false as const, message, error: upsertError };
+      }
+
+      return { ok: true as const };
+    },
+    [supabase, user, year, resolvedCategory]
+  );
+
   const persistWorkshopState = async (nextNominees: Movie[], nextWinner: Movie | null) => {
     if (!user) return;
     try {
@@ -828,34 +910,36 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          const fallback = await upsertAwardsClientSide(nextNominees, nextWinner);
+          if (fallback.ok) {
+            setError(null);
+            setErrorDetails(null);
+            return;
+          }
+          setError(fallback.message);
+          setErrorDetails({ source: 'workshop', status: response.status, details: fallback.error ?? errorData });
+          return;
+        }
         const errorMessage = errorData?.error || 'Failed to save nominations';
         setError(errorMessage);
         setErrorDetails({ source: 'workshop', status: response.status, details: errorData });
         return;
       }
-
-      setCurrentNominees(nextNominees);
-      setCurrentWinner(nextWinner);
-      setCustomNominees(nextNominees);
-      customNomineesRef.current = nextNominees;
-      setCustomWinner(nextWinner);
-      customWinnerRef.current = nextWinner;
-      setHasCustomNominations(true);
-      setIsUsingCustomView(true);
-      isUsingCustomViewRef.current = true;
-      if (user?.id) {
-        setCachedEntry(user.id, resolvedCategory, year, {
-          nominee_ids: nextNominees.map((m) => m.id),
-          winner_id: nextWinner ? nextWinner.id : null,
-          updated_at: new Date().toISOString(),
-        });
-        if (!isWorkshop) {
-          setViewPreference(user.id, resolvedCategory, year, 'custom');
-        }
+      // State was already updated optimistically in applyWorkshopState.
+      // Only set view preference on successful persist.
+      if (user?.id && !isWorkshop) {
+        setViewPreference(user.id, resolvedCategory, year, 'custom');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save nominations');
-      setErrorDetails({ source: 'workshop', details: err instanceof Error ? err.message : String(err) });
+      const fallback = await upsertAwardsClientSide(nextNominees, nextWinner);
+      if (fallback.ok) {
+        setError(null);
+        setErrorDetails(null);
+        return;
+      }
+      setError(fallback.message ?? (err instanceof Error ? err.message : 'Failed to save nominations'));
+      setErrorDetails({ source: 'workshop', details: fallback.error ?? (err instanceof Error ? err.message : String(err)) });
     }
   };
 
@@ -872,12 +956,34 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
   const applyWorkshopState = async (nextNominees: Movie[], nextWinner: Movie | null) => {
     // Mark mutation in-flight so the workshop sync effect doesn't re-sync
-    // from currentNominees (which persistWorkshopState will update shortly).
     workshopMutationInFlightRef.current = true;
+    // Optimistic: update ALL state immediately so nothing can roll back
     setNominees(nextNominees);
     setSelectedWinner(nextWinner);
+    setCurrentNominees(nextNominees);
+    setCurrentWinner(nextWinner);
+    setCustomNominees(nextNominees);
+    customNomineesRef.current = nextNominees;
+    setCustomWinner(nextWinner);
+    customWinnerRef.current = nextWinner;
+    setHasCustomNominations(true);
+    setIsUsingCustomView(true);
+    isUsingCustomViewRef.current = true;
     const nomineeIds = new Set(nextNominees.map((m) => m.id));
     setAvailableMovies(allMoviesForYear.filter((m) => !nomineeIds.has(m.id)));
+    // Optimistic cache
+    if (user?.id) {
+      setCachedEntry(user.id, resolvedCategory, year, {
+        nominee_ids: nextNominees.map((m) => m.id),
+        winner_id: nextWinner ? nextWinner.id : null,
+        updated_at: new Date().toISOString(),
+      });
+    }
+    // Notify parent immediately (before API call)
+    onWorkshopNomineesChange?.(
+      nextNominees.map((m) => m.id),
+      nextWinner ? nextWinner.id : null
+    );
     await persistWorkshopState(nextNominees, nextWinner);
     workshopMutationInFlightRef.current = false;
   };
@@ -1123,71 +1229,75 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                   <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                     <SortableContext
                       items={activeWorkshopNominees.map((movie) => movie.id)}
-                      strategy={rectSortingStrategy}
+                      strategy={verticalListSortingStrategy}
                     >
-                      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5" data-tour-grid="nominees">
-                        {Array.from({ length: 10 }).map((_, index) => {
-                          const movie = activeWorkshopNominees[index];
-                          if (movie) {
-                            return (
-                              <WorkshopNomineeCard
-                                key={movie.id}
-                                movie={movie}
-                                isWinner={activeWorkshopWinner?.id === movie.id}
-                                onSetWinner={() => handleWorkshopWinner(movie)}
-                                onRemove={() => handleWorkshopRemove(movie.id)}
-                                onRankingChange={(value) => handleWorkshopRankingChange(movie.id, value)}
-                              />
-                            );
-                          }
-
-                          return (
-                            <button
-                              type="button"
-                              key={`empty-slot-${index}`}
-                              data-tour-empty-slot="true"
-                              className="aspect-[2/3] rounded-lg border border-dashed border-gray-300/80 dark:border-gray-700/80 bg-gray-50/70 dark:bg-gray-900/35 p-3 flex flex-col items-center justify-center text-center"
-                              aria-label="Empty nominee slot"
-                              onClick={onRequestScrollToContenders}
-                            >
-                              <Film className="w-6 h-6 text-gray-500/70 mb-2" />
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                Rate a film 7+ to nominate it
-                              </span>
-                            </button>
-                          );
-                        })}
+                      <div className="space-y-1" data-tour-grid="nominees">
+                        {activeWorkshopNominees.map((movie, index) => (
+                          <WorkshopNomineeRow
+                            key={movie.id}
+                            movie={movie}
+                            rank={index + 1}
+                            isWinner={activeWorkshopWinner?.id === movie.id}
+                            onSetWinner={() => handleWorkshopWinner(movie)}
+                            onRemove={() => handleWorkshopRemove(movie.id)}
+                            onRankingChange={(value) => handleWorkshopRankingChange(movie.id, value)}
+                          />
+                        ))}
+                        {activeWorkshopNominees.length < 10 && (
+                          <button
+                            type="button"
+                            onClick={onRequestScrollToContenders}
+                            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-dashed border-gray-700/50 text-gray-500 hover:border-yellow-500/40 hover:text-yellow-400/80 transition-colors text-xs"
+                          >
+                            <Film className="w-3.5 h-3.5" />
+                            Add nominee ({activeWorkshopNominees.length}/10)
+                          </button>
+                        )}
                       </div>
                     </SortableContext>
                   </DndContext>
                 ) : (
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-                    {Array.from({ length: 10 }).map((_, index) => {
-                      const movie = displayNominees[index];
-                      if (movie) {
-                        return (
-                          <MovieCard
-                            key={movie.id}
-                            movie={movie}
-                            imageMode={nomineeImageMode}
-                            onClick={() => handleOpenModal(movie)}
-                          />
-                        );
-                      }
-
+                  <div className="space-y-1">
+                    {displayNominees.map((movie, index) => {
+                      const posterSrc = normalizeImageUrl(movie.poster_url || movie.thumb_url);
+                      const ranking = Math.round(movie.rankings?.[0]?.ranking ?? 0);
+                      const rStyle = getRatingStyle(ranking);
+                      const isWinner = index === 0;
                       return (
                         <button
+                          key={movie.id}
                           type="button"
-                          key={`empty-slot-${index}`}
-                          data-tour-empty-slot="true"
-                          className="aspect-[2/3] rounded-lg border border-dashed border-gray-300/80 dark:border-gray-700/80 bg-gray-50/70 dark:bg-gray-900/35 p-3 flex items-center justify-center"
-                          aria-label="Empty nominee slot"
-                          onClick={onRequestScrollToContenders}
+                          onClick={() => handleOpenModal(movie)}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors text-left hover:bg-gray-800/60 ${
+                            isWinner
+                              ? "border-yellow-500/40 bg-yellow-500/5"
+                              : "border-gray-700/30 bg-gray-900/30"
+                          }`}
                         >
-                          <Film className="w-6 h-6 text-gray-500/70" />
+                          <span className="w-5 text-center text-[10px] font-bold text-gray-500 tabular-nums flex-shrink-0">{index + 1}</span>
+                          <div className="relative h-9 w-6 flex-shrink-0 overflow-hidden rounded bg-gray-800">
+                            {posterSrc ? (
+                              <img src={posterSrc} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center"><Film className="w-3 h-3 text-gray-600" /></div>
+                            )}
+                          </div>
+                          <p className="flex-1 text-sm font-medium text-white truncate">{movie.title}</p>
+                          {ranking > 0 && (
+                            <span
+                              className="text-xs font-bold px-1.5 py-0.5 rounded"
+                              style={{ backgroundColor: rStyle.background, color: rStyle.text }}
+                            >
+                              ⭐ {ranking}
+                            </span>
+                          )}
+                          {isWinner && <Trophy className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />}
                         </button>
                       );
                     })}
+                    {displayNominees.length === 0 && (
+                      <p className="text-xs text-gray-500 py-3 text-center">No nominees yet.</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -1362,94 +1472,113 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
 export default EditableYearSection;
 
-function WorkshopNomineeCard({
+function WorkshopNomineeRow({
   movie,
+  rank,
   isWinner,
   onSetWinner,
   onRemove,
   onRankingChange,
 }: {
   movie: Movie;
+  rank: number;
   isWinner: boolean;
   onSetWinner: () => void;
   onRemove: () => void;
   onRankingChange: (value: number | null) => void;
 }) {
+  const [showRatingModal, setShowRatingModal] = React.useState(false);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: movie.id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.6 : 1,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : undefined,
   };
   const posterSrc = normalizeImageUrl(movie.poster_url || movie.thumb_url);
   const ranking = Math.round(movie.rankings?.[0]?.ranking ?? 0);
+  const ratingStyle = getRatingStyle(ranking);
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`relative aspect-[2/3] rounded-lg overflow-hidden border ${
-        isWinner
-          ? "border-yellow-400/70 shadow-[0_0_0_1px_rgba(250,204,21,0.35),0_0_24px_rgba(250,204,21,0.2)]"
-          : "border-gray-700/70"
-      } bg-gray-900`}
-    >
-      {posterSrc ? (
-        <img src={posterSrc} alt={movie.title} className="w-full h-full object-cover" />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-gray-800">
-          <Film className="w-8 h-8 text-gray-500" />
-        </div>
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none" />
-
-      {isWinner && (
-        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center gap-1 bg-yellow-500/90 px-2 py-1">
-          <Trophy className="w-3 h-3 text-black" />
-          <span className="text-[10px] font-bold uppercase tracking-wide text-black">Current Leader</span>
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={onSetWinner}
-        className={`absolute ${isWinner ? "top-8" : "top-2"} left-2 z-10 p-1 rounded-full border ${
+    <>
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${
           isWinner
-            ? "bg-yellow-400 text-black border-yellow-300"
-            : "bg-black/50 text-gray-300 border-gray-500 hover:text-yellow-300 hover:border-yellow-400/60"
+            ? "border-yellow-500/40 bg-yellow-500/5"
+            : "border-gray-700/30 bg-gray-900/30 hover:bg-gray-800/50"
         }`}
-        aria-label={isWinner ? "Current winner" : "Set winner"}
       >
-        <Crown className="w-4 h-4" />
-      </button>
+        {/* Drag handle */}
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="flex-shrink-0 p-0.5 text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </button>
 
-      <button
-        type="button"
-        onClick={onRemove}
-        className="absolute top-2 right-2 z-10 p-1 rounded-full bg-black/55 text-gray-200 border border-gray-500 hover:text-red-300 hover:border-red-400/70"
-        aria-label="Remove nominee"
-      >
-        <X className="w-4 h-4" />
-      </button>
+        {/* Rank number */}
+        <span className="w-5 text-center text-[10px] font-bold text-gray-500 tabular-nums flex-shrink-0">{rank}</span>
 
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        className="absolute bottom-2 right-2 z-10 p-1 rounded bg-black/55 text-gray-200 border border-gray-500 cursor-grab active:cursor-grabbing"
-        aria-label="Drag to reorder nominee"
-      >
-        <GripVertical className="w-4 h-4" />
-      </button>
-
-      <div className="absolute bottom-2 left-2 right-10 z-10">
-        <p className="text-xs font-semibold text-white line-clamp-2">{movie.title}</p>
-      </div>
-      {ranking > 0 && (
-        <div className="absolute bottom-2 left-2 z-20 -translate-y-6">
-          <RankingDropdown ranking={ranking} onChange={onRankingChange} />
+        {/* Thumbnail */}
+        <div className="relative h-9 w-6 flex-shrink-0 overflow-hidden rounded bg-gray-800">
+          {posterSrc ? (
+            <img src={posterSrc} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center"><Film className="w-3 h-3 text-gray-600" /></div>
+          )}
         </div>
-      )}
-    </div>
+
+        {/* Title */}
+        <p className="flex-1 text-sm font-medium text-white truncate">{movie.title}</p>
+
+        {/* Rating badge */}
+        <button
+          type="button"
+          onClick={() => setShowRatingModal(true)}
+          className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded transition-transform active:scale-95"
+          style={ranking > 0 ? { backgroundColor: ratingStyle.background, color: ratingStyle.text } : { backgroundColor: 'rgba(75,85,99,0.4)', color: '#9ca3af' }}
+        >
+          {ranking > 0 ? `⭐ ${ranking}` : "☆ Rate"}
+        </button>
+
+        {/* Winner toggle */}
+        <button
+          type="button"
+          onClick={onSetWinner}
+          className={`flex-shrink-0 p-1 rounded-full border transition-colors ${
+            isWinner
+              ? "bg-yellow-400 text-black border-yellow-300"
+              : "text-gray-500 border-gray-600 hover:text-yellow-300 hover:border-yellow-400/60"
+          }`}
+          aria-label={isWinner ? "Current winner" : "Set as winner"}
+        >
+          <Trophy className="w-3 h-3" />
+        </button>
+
+        {/* Remove */}
+        <button
+          type="button"
+          onClick={onRemove}
+          className="flex-shrink-0 p-1 text-gray-500 hover:text-red-400 transition-colors"
+          aria-label="Remove nominee"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <RatingModal
+        isOpen={showRatingModal}
+        movieTitle={movie.title}
+        posterUrl={movie.poster_url}
+        currentRating={ranking || null}
+        onRate={(value) => onRankingChange(value)}
+        onClose={() => setShowRatingModal(false)}
+      />
+    </>
   );
 }

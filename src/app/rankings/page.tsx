@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Flame } from "lucide-react";
 import type { Movie } from "@/types/types";
@@ -35,6 +36,7 @@ export const dynamic = "force-dynamic";
 
 export default function RankingsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
   // Use a rankings-specific view mode with list as default for tabular feel
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
@@ -144,6 +146,13 @@ export default function RankingsPage() {
   useEffect(() => {
     setHasMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!hasMounted || loading) return;
+    if (isGuest) {
+      router.replace("/");
+    }
+  }, [hasMounted, loading, isGuest, router]);
 
   // One-time migration: reset old stored defaults so the new Year-grouped default takes effect
   useEffect(() => {
@@ -273,6 +282,10 @@ export default function RankingsPage() {
         )}
       </div>
     );
+  }
+
+  if (isGuest) {
+    return null;
   }
 
   // Show empty state for guests with no rankings

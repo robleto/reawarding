@@ -35,14 +35,18 @@ export default function HeaderNav() {
 				{ label: "Rankings", href: "/rankings", match: "/rankings", icon: LineChart },
 				{ label: "Awards", href: "/awards", match: "/awards", icon: Trophy },
 		  ]
-		: [{ label: "Films", href: "/films", match: "/films", icon: Clapperboard }];
+		: [];
 
 	const handleLoginClick = () => {
+		setMobileMenuOpen(false);
+		setMobileUserOpen(false);
 		setAuthMode("login");
 		setShowAuthModal(true);
 	};
 
 	const handleSignupClick = () => {
+		setMobileMenuOpen(false);
+		setMobileUserOpen(false);
 		setAuthMode("signup");
 		setShowAuthModal(true);
 	};
@@ -160,6 +164,7 @@ export default function HeaderNav() {
 							>
 								<Plus className="w-5 h-5 text-gray-700 dark:text-gray-300" />
 							</button>
+							{user && (
 								<button
 									className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
 									aria-label="Open user menu"
@@ -172,6 +177,7 @@ export default function HeaderNav() {
 										size={28}
 									/>
 								</button>
+							)}
 							{/* Mobile Menu Button */}
 							<button
 								onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (!mobileMenuOpen) setMobileUserOpen(false); }}
@@ -220,6 +226,15 @@ export default function HeaderNav() {
 								})}
 
 							</ul>
+							{!user && (
+								<div className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-3">
+									<UserMenu
+										variant="inline"
+										onLoginClick={handleLoginClick}
+										onSignupClick={handleSignupClick}
+									/>
+								</div>
+							)}
 						</nav>
 					</div>
 				)}

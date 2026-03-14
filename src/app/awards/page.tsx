@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import EditableYearSection from "@/components/award/EditableYearSection";
 import AwardsEmptyState from "@/components/award/AwardsEmptyState";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
@@ -16,6 +17,7 @@ interface YearData {
 }
 
 export default function AwardsPage() {
+  const router = useRouter();
   const { movies, loading, isGuest, hasMounted, updateMovieRanking } = useMovieDataWithGuest();
   const tab = "best-picture" as const;
   const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());
@@ -71,6 +73,13 @@ export default function AwardsPage() {
     setAuthMode("login");
     setShowAuthModal(true);
   };
+
+  useEffect(() => {
+    if (!hasMounted || loading) return;
+    if (isGuest) {
+      router.replace("/");
+    }
+  }, [hasMounted, loading, isGuest, router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -159,6 +168,10 @@ export default function AwardsPage() {
         </div>
       </div>
     );
+  }
+
+  if (isGuest) {
+    return null;
   }
 
   if (formattedYears.length === 0) {
