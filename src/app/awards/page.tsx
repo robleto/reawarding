@@ -6,7 +6,10 @@ import EditableYearSection from "@/components/award/EditableYearSection";
 import AwardsEmptyState from "@/components/award/AwardsEmptyState";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
+import YearExplorer from "@/components/home/YearExplorer";
 import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
+import { useUserAwards } from "@/hooks/useUserAwards";
+import { useCreateAward } from "@/hooks/useCreateAward";
 import type { Movie } from "@/types/types";
 
 interface YearData {
@@ -18,11 +21,15 @@ interface YearData {
 
 export default function AwardsPage() {
   const router = useRouter();
-  const { movies, loading, isGuest, hasMounted, updateMovieRanking } = useMovieDataWithGuest();
+  const { movies, loading, isGuest, hasMounted, userId, updateMovieRanking } = useMovieDataWithGuest();
+  const { awards } = useUserAwards();
+  const { createAward } = useCreateAward();
   const tab = "best-picture" as const;
   const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());
   const observerRef = useRef<IntersectionObserver | null>(null);
   const yearElementsRef = useRef<Record<string, HTMLDivElement | null>>({});
+  const [explorerYear, setExplorerYear] = useState<number | null>(null);
+  const [explorerIsEditing, setExplorerIsEditing] = useState(false);
 
   const formattedYears = useMemo<YearData[]>(() => {
     if (!hasMounted || movies.length === 0) return [];
@@ -61,6 +68,11 @@ export default function AwardsPage() {
       .sort((a, b) => Number(b.year) - Number(a.year));
   }, [movies, hasMounted]);
 
+  const existingAward = useMemo(() => {
+    if (explorerYear == null) return null;
+    return awards.find((award) => award.year === explorerYear) ?? null;
+  }, [awards, explorerYear]);
+
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
 
@@ -73,6 +85,22 @@ export default function AwardsPage() {
     setAuthMode("login");
     setShowAuthModal(true);
   };
+
+  const handleCreateAward = useCallback(
+    (movie: Movie) => {
+      void createAward({
+        id: movie.id,
+        title: movie.title,
+        release_year: movie.release_year,
+      });
+    },
+    [createAward]
+  );
+
+  const handleCloseExplorer = useCallback(() => {
+    if (explorerIsEditing) return;
+    setExplorerYear(null);
+  }, [explorerIsEditing]);
 
   useEffect(() => {
     if (!hasMounted || loading) return;
@@ -159,6 +187,26 @@ export default function AwardsPage() {
     };
   }, [formattedYears]);
 
+  // Lock body scroll when YearExplorer is open
+  useEffect(() => {
+    if (!explorerYear) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [explorerYear]);
+
+  // Escape key to close explorer
+  useEffect(() => {
+    if (!explorerYear) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (explorerIsEditing) return;
+      handleCloseExplorer();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [explorerYear, explorerIsEditing, handleCloseExplorer]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -175,7 +223,6 @@ export default function AwardsPage() {
   }
 
   if (formattedYears.length === 0) {
-    if (isGuest) return null;
     return (
       <AwardsEmptyState
         onSelectMovie={(movie) => {
@@ -207,6 +254,7 @@ export default function AwardsPage() {
                   allMoviesForYear={yearData.allMovies}
                   category={tab}
                   nomineeImageMode="poster"
+                  onEditRequest={() => setExplorerYear(Number(yearData.year))}
                 />
               ) : (
                 <div className="flex items-center justify-center" style={{ minHeight: "600px" }}>
@@ -217,6 +265,33 @@ export default function AwardsPage() {
           );
         })}
       </div>
+
+      {/* YearExplorer overlay — editing happens here */}
+      {explorerYear !== null && (
+        <div className="fixed inset-0 z-[80]">
+          <button
+            type="button"
+            aria-label="Close year explorer"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={handleCloseExplorer}
+          />
+          <div className="relative h-full overflow-y-auto px-3 py-4 sm:py-16 md:py-24 md:px-6">
+            <div className="max-w-screen-xl mx-auto">
+              <YearExplorer
+                year={explorerYear}
+                allMovies={movies}
+                currentUserId={userId}
+                existingAward={existingAward}
+                onCreateAward={handleCreateAward}
+                onUpdateMovieRanking={(movieId, updates) => updateMovieRanking(movieId, updates)}
+                onClose={handleCloseExplorer}
+                isGuest={isGuest}
+                onEditingChange={setExplorerIsEditing}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <AuthModalManager
         isOpen={showAuthModal}

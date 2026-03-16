@@ -105,6 +105,8 @@ interface EditableYearSectionProps {
   ) => void;
   /** Fires when workshop nominees change — provides real-time nominee IDs + winner ID. */
   onWorkshopNomineesChange?: (nomineeIds: number[], winnerId: number | null) => void;
+  /** When provided, Edit button calls this instead of toggling inline editing. Used by Awards page to open YearExplorer. */
+  onEditRequest?: () => void;
 }
 
 const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSectionProps>(function EditableYearSection({
@@ -120,6 +122,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   onRequestScrollToContenders,
   onWorkshopRankUpdate,
   onWorkshopNomineesChange,
+  onEditRequest,
 }: EditableYearSectionProps, ref) {
   const supabase = useSupabaseClient<Database>();
   const user = useUser();
@@ -1100,7 +1103,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                   </div>
                   {user && !isEditing && (
                     <button
-                      onClick={handleStartEditing}
+                      onClick={onEditRequest ?? handleStartEditing}
                       className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-blue-600 transition-colors rounded-lg dark:text-gray-500 dark:border-gray-600 bg-blue-50 dark:bg-gray-800 hover:bg-blue-100"
                     >
                       <Edit3 className="w-4 h-4" />
@@ -1136,7 +1139,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                   <div className="flex flex-wrap items-center gap-2">
                     {!isWorkshop && compact && user && !isEditing && (
                       <button
-                        onClick={handleStartEditing}
+                        onClick={onEditRequest ?? handleStartEditing}
                         className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-blue-600 transition-colors rounded-lg dark:text-gray-500 dark:border-gray-600 bg-blue-50 dark:bg-gray-800 hover:bg-blue-100"
                       >
                         <Edit3 className="w-4 h-4" />
