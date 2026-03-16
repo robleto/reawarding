@@ -1,18 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Flame } from "lucide-react";
 import type { Movie } from "@/types/types";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import MovieRowCard from "@/components/movie/MovieRowCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import Loader from "@/components/ui/Loading";
-import UnifiedBanner from "@/components/auth/UnifiedBanner";
-import AuthModalManager from "@/components/auth/AuthModalManager";
 import RankingsEmptyState from "@/components/rankings/RankingsEmptyState";
+import ScreenState from "@/components/ui/ScreenState";
 import {
   useMovieDataWithGuest,
   useViewMode,
@@ -27,6 +24,7 @@ import {
 import MovieFilters from "@/components/filters/MovieFilters";
 import HotTakeIndicator from "@/components/rankings/HotTakeIndicator";
 import { getRatingDefinition } from "@/lib/ratingScale";
+import { useAuthState } from "@/hooks/useAuthState";
 
 // Loading skeleton constants
 const GRID_SKELETON_COUNT = 12;
@@ -35,9 +33,17 @@ const LIST_SKELETON_COUNT = 8;
 export const dynamic = "force-dynamic";
 
 export default function RankingsPage() {
+  return (
+    <Suspense fallback={<Loader message="Loading rankings..." />}>
+      <RankingsPageContent />
+    </Suspense>
+  );
+}
+
+function RankingsPageContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
+  const { status } = useAuthState();
+  const { movies, loading, userId, updateMovieRanking, isGuest, error } = useMovieDataWithGuest();
   // Use a rankings-specific view mode with list as default for tabular feel
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     if (typeof window !== "undefined") {
@@ -53,8 +59,6 @@ export default function RankingsPage() {
       localStorage.setItem("rankingsViewMode", viewMode);
     }
   }, [viewMode]);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "hot-takes">("all");
@@ -147,13 +151,6 @@ export default function RankingsPage() {
     setHasMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!hasMounted || loading) return;
-    if (isGuest) {
-      router.replace("/");
-    }
-  }, [hasMounted, loading, isGuest, router]);
-
   // One-time migration: reset old stored defaults so the new Year-grouped default takes effect
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -208,22 +205,6 @@ export default function RankingsPage() {
         .filter((rank): rank is number => typeof rank === "number")
     )
   ).sort((a, b) => a - b);
-
-  const handleSignupClick = () => {
-    setAuthMode("signup");
-    setShowAuthModal(true);
-  };
-
-  const handleLoginClick = () => {
-    setAuthMode("login");
-    setShowAuthModal(true);
-  };
-
-  const handleAuthSuccess = async () => {
-    setShowAuthModal(false);
-    // Migration will be handled automatically by the auth migration hook
-    // The page will re-render with the updated data
-  };
 
   const handleOpenModal = (movie: Movie) => {
     setSelectedMovie(movie);
@@ -284,13 +265,28 @@ export default function RankingsPage() {
     );
   }
 
-  if (isGuest) {
-    return null;
+  if (status === "unauthenticated") {
+    return (
+      <ScreenState
+        testId="screen-state-auth-required"
+        title="Sign in to view your rankings"
+        message="Rankings are tied to your account. Sign in to load your ratings and hot takes."
+        primaryAction={{ label: "Sign In", href: "/login" }}
+        secondaryAction={{ label: "Back Home", href: "/" }}
+      />
+    );
   }
 
-  // Show empty state for guests with no rankings
-  if (isGuest && moviesWithRankings.length === 0) {
-    return null;
+  if (status === "authenticated" && error) {
+    return (
+      <ScreenState
+        testId="screen-state-fetch-failure"
+        tone="error"
+        title="Couldn't load your rankings"
+        message="We couldn't verify your rankings state, so this screen is staying closed instead of showing stale or partial data."
+        primaryAction={{ label: "Back Home", href: "/" }}
+      />
+    );
   }
 
   // Show empty state for authenticated users with no rankings
@@ -304,14 +300,6 @@ export default function RankingsPage() {
 
   return (
     <div className="max-w-screen-xl">
-      {/* Guest Data Warning Banner */}
-      {isGuest && (
-        <UnifiedBanner 
-          onSignupClick={handleSignupClick} 
-          onLoginClick={handleLoginClick} 
-        />
-      )}
-
       {/* Tab Navigation */}
       <div className="mb-6 flex gap-2 border-b border-gray-700">
         <button
@@ -433,16 +421,6 @@ export default function RankingsPage() {
           )}
         </div>
       ))}
-
-      {/* Auth Modal */}
-      {showAuthModal && (
-        <AuthModalManager
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          initialMode={authMode}
-          onAuthSuccess={handleAuthSuccess}
-        />
-      )}
 
       {/* Movie Detail Modal */}
       {selectedMovie && (

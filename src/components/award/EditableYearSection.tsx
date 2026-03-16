@@ -1277,24 +1277,26 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                               : "border-gray-700/30 bg-gray-900/30"
                           }`}
                         >
-                          {isWinner && <Trophy className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />}
                           <span className="w-5 text-center text-[10px] font-bold text-gray-500 tabular-nums flex-shrink-0">{index + 1}</span>
-                          <div className="relative flex-shrink-0 overflow-hidden rounded bg-gray-800" style={{ width: 48, height: 28 }}>
+                          <div className="relative flex-shrink-0 overflow-hidden bg-gray-800" style={{ height: 48, borderRadius: 6 }}>
                             {thumbSrc ? (
-                              <img src={thumbSrc} alt="" className="w-full h-full object-cover" />
+                              <img src={thumbSrc} alt="" className="h-full w-auto object-contain" style={{ borderRadius: 6 }} />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center"><Film className="w-3 h-3 text-gray-600" /></div>
+                              <div className="flex items-center justify-center" style={{ width: 64, height: 48 }}><Film className="w-4 h-4 text-gray-600" /></div>
                             )}
                           </div>
                           <p className="flex-1 text-sm font-medium text-white truncate">{movie.title}</p>
-                          {ranking > 0 && (
-                            <span
-                              className="text-xs font-bold px-1.5 py-0.5 rounded"
-                              style={{ backgroundColor: rStyle.background, color: rStyle.text }}
-                            >
-                              ⭐ {ranking}
-                            </span>
-                          )}
+                          <span className="flex items-center gap-1.5 flex-shrink-0">
+                            {isWinner && <Trophy className="w-3.5 h-3.5 text-yellow-400" />}
+                            {ranking > 0 && (
+                              <span
+                                className="text-xs font-bold px-1.5 py-0.5 rounded"
+                                style={{ backgroundColor: rStyle.background, color: rStyle.text }}
+                              >
+                                ⭐ {ranking}
+                              </span>
+                            )}
+                          </span>
                         </button>
                       );
                     })}
@@ -1528,11 +1530,11 @@ function WorkshopNomineeRow({
         <span className="w-5 text-center text-[10px] font-bold text-gray-500 tabular-nums flex-shrink-0">{rank}</span>
 
         {/* Thumbnail */}
-        <div className="relative flex-shrink-0 overflow-hidden rounded bg-gray-800" style={{ width: 48, height: 28 }}>
+        <div className="relative flex-shrink-0 overflow-hidden bg-gray-800" style={{ height: 48, borderRadius: 6 }}>
           {thumbSrc ? (
-            <img src={thumbSrc} alt="" className="w-full h-full object-cover" />
+            <img src={thumbSrc} alt="" className="h-full w-auto object-contain" style={{ borderRadius: 6 }} />
           ) : (
-            <div className="w-full h-full flex items-center justify-center"><Film className="w-3 h-3 text-gray-600" /></div>
+            <div className="flex items-center justify-center" style={{ width: 64, height: 48 }}><Film className="w-4 h-4 text-gray-600" /></div>
           )}
         </div>
 

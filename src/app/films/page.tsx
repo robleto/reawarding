@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import MoviePosterCard from "@/components/movie/MoviePosterCard";
@@ -26,6 +26,14 @@ import Loader from "@/components/ui/Loading";
 export const dynamic = "force-dynamic";
 
 export default function FilmsPage() {
+	return (
+		<Suspense fallback={<Loader message="Loading films..." />}>
+			<FilmsPageContent />
+		</Suspense>
+	);
+}
+
+function FilmsPageContent() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
