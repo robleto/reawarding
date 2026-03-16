@@ -1277,8 +1277,9 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                               : "border-gray-700/30 bg-gray-900/30"
                           }`}
                         >
+                          {isWinner && <Trophy className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />}
                           <span className="w-5 text-center text-[10px] font-bold text-gray-500 tabular-nums flex-shrink-0">{index + 1}</span>
-                          <div className="relative flex-shrink-0 overflow-hidden rounded bg-gray-800" style={{ width: 80, height: 45 }}>
+                          <div className="relative flex-shrink-0 overflow-hidden rounded bg-gray-800" style={{ width: 48, height: 28 }}>
                             {thumbSrc ? (
                               <img src={thumbSrc} alt="" className="w-full h-full object-cover" />
                             ) : (
@@ -1294,7 +1295,6 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                               ⭐ {ranking}
                             </span>
                           )}
-                          {isWinner && <Trophy className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />}
                         </button>
                       );
                     })}
@@ -1528,7 +1528,7 @@ function WorkshopNomineeRow({
         <span className="w-5 text-center text-[10px] font-bold text-gray-500 tabular-nums flex-shrink-0">{rank}</span>
 
         {/* Thumbnail */}
-        <div className="relative flex-shrink-0 overflow-hidden rounded bg-gray-800" style={{ width: 80, height: 45 }}>
+        <div className="relative flex-shrink-0 overflow-hidden rounded bg-gray-800" style={{ width: 48, height: 28 }}>
           {thumbSrc ? (
             <img src={thumbSrc} alt="" className="w-full h-full object-cover" />
           ) : (
