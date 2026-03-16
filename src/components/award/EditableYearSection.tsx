@@ -1259,7 +1259,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                 ) : (
                   <div className="space-y-1">
                     {displayNominees.map((movie, index) => {
-                      const posterSrc = normalizeImageUrl(movie.poster_url || movie.thumb_url);
+                      const thumbSrc = normalizeImageUrl(movie.cached_thumb_url || movie.thumb_url || movie.cached_poster_url || movie.poster_url);
                       const ranking = Math.round(movie.rankings?.[0]?.ranking ?? 0);
                       const rStyle = getRatingStyle(ranking);
                       const isWinner = index === 0;
@@ -1275,9 +1275,9 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                           }`}
                         >
                           <span className="w-5 text-center text-[10px] font-bold text-gray-500 tabular-nums flex-shrink-0">{index + 1}</span>
-                          <div className="relative h-9 w-6 flex-shrink-0 overflow-hidden rounded bg-gray-800">
-                            {posterSrc ? (
-                              <img src={posterSrc} alt="" className="w-full h-full object-cover" />
+                          <div className="relative flex-shrink-0 overflow-hidden rounded bg-gray-800" style={{ width: 80, height: 45 }}>
+                            {thumbSrc ? (
+                              <img src={thumbSrc} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center"><Film className="w-3 h-3 text-gray-600" /></div>
                             )}
@@ -1495,7 +1495,7 @@ function WorkshopNomineeRow({
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 50 : undefined,
   };
-  const posterSrc = normalizeImageUrl(movie.poster_url || movie.thumb_url);
+  const thumbSrc = normalizeImageUrl(movie.cached_thumb_url || movie.thumb_url || movie.cached_poster_url || movie.poster_url);
   const ranking = Math.round(movie.rankings?.[0]?.ranking ?? 0);
   const ratingStyle = getRatingStyle(ranking);
 
@@ -1525,9 +1525,9 @@ function WorkshopNomineeRow({
         <span className="w-5 text-center text-[10px] font-bold text-gray-500 tabular-nums flex-shrink-0">{rank}</span>
 
         {/* Thumbnail */}
-        <div className="relative h-9 w-6 flex-shrink-0 overflow-hidden rounded bg-gray-800">
-          {posterSrc ? (
-            <img src={posterSrc} alt="" className="w-full h-full object-cover" />
+        <div className="relative flex-shrink-0 overflow-hidden rounded bg-gray-800" style={{ width: 80, height: 45 }}>
+          {thumbSrc ? (
+            <img src={thumbSrc} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center"><Film className="w-3 h-3 text-gray-600" /></div>
           )}
