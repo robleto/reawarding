@@ -30,7 +30,7 @@ export default function ProfileRankingsPage() {
   const [sortBy, setSortBy] = useState<SortKey>("ranking");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [groupBy, setGroupBy] = useState<GroupKey>("release_year");
-  const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search">("none");
+  const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search" | "genre">("none");
   const [filterValue, setFilterValue] = useState<string>("all");
 
   // Only show movies with actual ratings (1-10)

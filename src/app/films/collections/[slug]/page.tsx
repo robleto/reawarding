@@ -105,7 +105,7 @@ export default function CollectionDetailPage() {
     return "all";
   });
 
-  const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search">("none");
+  const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search" | "genre">("none");
   const [filterValue, setFilterValue] = useState("all");
   const [groupBy, setGroupBy] = useState<"release_year" | "ranking" | "none">("none");
 

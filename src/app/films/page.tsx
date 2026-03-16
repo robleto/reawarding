@@ -81,16 +81,20 @@ export default function FilmsPage() {
 		return "release_year";
 	});
 	
-	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search">("none");
+	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search" | "genre">("none");
 	const [filterValue, setFilterValue] = useState<string>("all");
 
-	// Apply preset from nav search (?movie=<id> or ?query=)
+	// Apply preset from nav search (?movie=<id>, ?query=, or ?genre=)
 	useEffect(() => {
 		const movieId = searchParams?.get("movie");
 		const q = searchParams?.get("query");
+		const genre = searchParams?.get("genre");
 		if (movieId) {
 			setFilterType("movie");
 			setFilterValue(String(movieId));
+		} else if (genre) {
+			setFilterType("genre");
+			setFilterValue(genre);
 		} else if (q) {
 			// Fallback: filter by title contains (temporary approach)
 			// We reuse movie filter by picking first matching id when movies load
@@ -130,6 +134,9 @@ export default function FilmsPage() {
 		if (filterType === "search") {
 			return movie.title.toLowerCase().includes(filterValue.toLowerCase());
 		}
+		if (filterType === "genre") {
+			return filterValue === "all" || (movie.genres ?? []).includes(filterValue);
+		}
 		return true;
 	});
 	
@@ -145,6 +152,9 @@ export default function FilmsPage() {
 				.filter((rank): rank is number => typeof rank === "number")
 		)
 	).sort((a, b) => a - b);
+	const uniqueGenres = Array.from(
+		new Set(movies.flatMap((m) => m.genres ?? []))
+	).sort();
 
 	// Auth handlers
 	const handleSignupClick = () => {
@@ -219,6 +229,7 @@ export default function FilmsPage() {
 				setFilterValue={setFilterValue}
 				uniqueYears={uniqueYears}
 				uniqueRanks={uniqueRanks}
+				uniqueGenres={uniqueGenres}
 				localSearchMode={true}
 				availableMovies={movies}
 				searchContext="films"

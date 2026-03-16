@@ -124,7 +124,7 @@ export default function RankingsPage() {
     return "release_year";
   });
   
-  const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search">("none");
+  const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search" | "genre">("none");
   const [filterValue, setFilterValue] = useState<string>("all");
 
   // Apply preset from nav search (?movie=<id> or ?query=)

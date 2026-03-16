@@ -1,10 +1,11 @@
 // Shared movie page utilities for Rankings and Films
 
 import { useState, useEffect, useRef } from "react";
-import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
 import useGuestRankingStore from "@/hooks/useGuestRankingStore";
+import { useAuthState } from "@/hooks/useAuthState";
 
 export type SortKey = "title" | "release_year" | "ranking";
 export type GroupKey = "release_year" | "ranking" | "none";
@@ -307,49 +308,25 @@ export function useMovieDataWithGuest() {
 	const [movies, setMovies] = useState<Movie[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [hasMounted, setHasMounted] = useState(false);
-	const [authChecked, setAuthChecked] = useState(false);
-	const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(null);
 	const requestSeqRef = useRef(0);
 	const supabase = useSupabaseClient<Database>();
-	const user = useUser();
+	const { user, status: authStatus } = useAuthState();
 	const guestStore = useGuestRankingStore();
-	// Determine auth state
-	// Always provide a string for userId; guests will have an empty string
-	const effectiveUserId: string = user?.id ?? sessionUserId ?? "";
-	const userId: string = effectiveUserId;
-	const isGuest = !effectiveUserId;
+	const userId = user?.id ?? "";
+	const isGuest = authStatus === "unauthenticated";
+	const authChecked = authStatus !== "loading";
 
 	// Prevent showing a previous account's rankings while auth state is switching.
 	useEffect(() => {
 		setMovies([]);
 		setLoading(true);
-	}, [userId, isGuest]);
+		setError(null);
+	}, [userId, isGuest, authStatus]);
 
 	useEffect(() => {
 		setHasMounted(true);
 	}, []);
-
-	useEffect(() => {
-		let mounted = true;
-		const checkSession = async () => {
-			const { data } = await supabase.auth.getSession();
-			if (!mounted) return;
-			setSessionUserId(data.session?.user?.id ?? null);
-			setAuthChecked(true);
-		};
-		checkSession();
-
-		const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-			if (!mounted) return;
-			setSessionUserId(session?.user?.id ?? null);
-			setAuthChecked(true);
-		});
-
-		return () => {
-			mounted = false;
-			authListener?.subscription.unsubscribe();
-		};
-	}, [supabase]);
 
 	const MOVIE_LIST_FIELDS = `
 		id,
@@ -379,6 +356,7 @@ export function useMovieDataWithGuest() {
 		async function fetchData() {
 			const requestId = ++requestSeqRef.current;
 			setLoading(true);
+			setError(null);
 			
 			try {
 				if (isGuest) {
@@ -389,8 +367,11 @@ export function useMovieDataWithGuest() {
 						.range(0, 2999);
 
 						if (error) {
-							console.warn("Guest movie fetch failed, keeping previous list:", error);
-							if (requestId === requestSeqRef.current) setMovies((prev) => prev);
+							console.warn("Guest movie fetch failed:", error);
+							if (requestId === requestSeqRef.current) {
+								setMovies([]);
+								setError(error.message);
+							}
 						} else {
 						// Apply guest data from Zustand store
 						const moviesWithGuestData = data.map(movie => {
@@ -407,7 +388,10 @@ export function useMovieDataWithGuest() {
 							} as Movie;
 						});
 						
-							if (requestId === requestSeqRef.current) setMovies(moviesWithGuestData);
+							if (requestId === requestSeqRef.current) {
+								setMovies(moviesWithGuestData);
+								setError(null);
+							}
 						}
 					} else if (userId) {
 					// For authenticated users, fetch movies and their rankings separately for performance
@@ -430,11 +414,14 @@ export function useMovieDataWithGuest() {
 								}
 								return result;
 							})
-					]);
+						]);
 
 						if (moviesResult.error) {
-							console.warn("Authenticated movie fetch failed, keeping previous list:", moviesResult.error);
-							if (requestId === requestSeqRef.current) setMovies((prev) => prev);
+							console.warn("Authenticated movie fetch failed:", moviesResult.error);
+							if (requestId === requestSeqRef.current) {
+								setMovies([]);
+								setError(moviesResult.error.message);
+							}
 						} else {
 						// Create a map of movie_id -> ranking for fast lookup
 						const rankingsMap = new Map();
@@ -452,12 +439,18 @@ export function useMovieDataWithGuest() {
 								thumb_url: movie.thumb_url ?? "",
 							} as Movie;
 						});
-							if (requestId === requestSeqRef.current) setMovies(enriched);
+							if (requestId === requestSeqRef.current) {
+								setMovies(enriched);
+								setError(null);
+							}
 						}
 					}
 				} catch (err) {
-					console.warn("Movie data fetch exception, keeping previous list:", err);
-					if (requestId === requestSeqRef.current) setMovies((prev) => prev);
+					console.warn("Movie data fetch exception:", err);
+					if (requestId === requestSeqRef.current) {
+						setMovies([]);
+						setError(err instanceof Error ? err.message : "Failed to load movies");
+					}
 				}
 				
 				if (requestId === requestSeqRef.current) setLoading(false);
@@ -580,7 +573,8 @@ export function useMovieDataWithGuest() {
 		updateMovieRanking,
 		isGuest,
 		hasMounted,
-		authChecked
+		authChecked,
+		error
 	};
 }
 
@@ -634,7 +628,7 @@ export function useMovieFilters(movies: Movie[]) {
 	const [groupBy, setGroupBy] = useState<GroupKey>(() => {
 		return (typeof window !== "undefined" && (localStorage.getItem("groupBy") as GroupKey)) || "none";
 	});
-	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie">(
+	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search" | "genre">(
 		getInitialFilterType
 	);
 	const [filterValue, setFilterValue] = useState<string>(getInitialFilterValue);

@@ -32,7 +32,7 @@ export default function ProfileFilmsPage() {
   const [sortBy, setSortBy] = useState<SortKey>("title");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [groupBy, setGroupBy] = useState<GroupKey>("release_year");
-  const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search">("none");
+  const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search" | "genre">("none");
   const [filterValue, setFilterValue] = useState<string>("all");
 
   const filteredMovies = movies.filter((movie) => {

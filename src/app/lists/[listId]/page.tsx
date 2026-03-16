@@ -95,7 +95,7 @@ export default function ListDetailPage() {
   const [sortBy, setSortBy] = useState<SortKey>("ranking");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [groupBy, setGroupBy] = useState<GroupKey>("none");
-  const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search">("none");
+  const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search" | "genre">("none");
   const [filterValue, setFilterValue] = useState<string>("all");
   
   const supabase = useSupabaseClient<Database>();

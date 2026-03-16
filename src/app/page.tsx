@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import HomeHero from "@/app/components/home/HomeHero";
 import PanelPremise from "@/app/components/home/PanelPremise";
@@ -25,6 +26,7 @@ import useOnboardingState from "@/hooks/useOnboardingState";
 import SessionCoach from "@/components/onboarding/SessionCoach";
 import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
+import { useAuthState } from "@/hooks/useAuthState";
 
 const PANEL_IDS = [
   "panel-premise",
@@ -45,9 +47,10 @@ const SUGGESTED_YEARS = (() => {
 export default function HomePage() {
   const supabase = useSupabaseClient<Database>();
   const reducedMotion = usePrefersReducedMotion();
-  const { movies, user, userId, updateMovieRanking, isGuest, loading, authChecked } = useMovieDataWithGuest();
+  const { status: authStatus, isAuthenticated, user } = useAuthState();
+  const { movies, userId, updateMovieRanking, isGuest, loading, authChecked, error: moviesError } = useMovieDataWithGuest();
   const { createAward } = useCreateAward();
-  const { awards, loading: awardsLoading } = useUserAwards();
+  const { awards, loading: awardsLoading, error: awardsError } = useUserAwards();
   const [activePanelId, setActivePanelId] = useState<string>(PANEL_IDS[0]);
   const [showIndicator, setShowIndicator] = useState(false);
   const [explorerYear, setExplorerYear] = useState<number | null>(null);
@@ -133,7 +136,10 @@ export default function HomePage() {
 
   useEffect(() => {
     async function fetchProfile() {
-      if (!user?.id) return;
+      if (!isAuthenticated || !user?.id) {
+        setUserProfile(null);
+        return;
+      }
       try {
         const { data } = await supabase
           .from("profiles")
@@ -146,7 +152,7 @@ export default function HomePage() {
       }
     }
     void fetchProfile();
-  }, [supabase, user?.id]);
+  }, [isAuthenticated, supabase, user?.id]);
 
   const handleCreateAwardFromExplorer = useCallback(
     (movie: Movie) => {
@@ -337,8 +343,8 @@ export default function HomePage() {
   // On guest→logged-in transition, kill GSAP ScrollTriggers before unmounting
   // to avoid the removeChild DOM error (GSAP pins reparent nodes).
   useEffect(() => {
-    if (!authChecked) return; // wait for auth
-    if (isGuest) {
+    if (authStatus === "loading") return;
+    if (!isAuthenticated) {
       setShowGuestPanels(true);
       guestPanelsActiveRef.current = true;
       return;
@@ -365,7 +371,7 @@ export default function HomePage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [authChecked, isGuest]);
+  }, [authStatus, isAuthenticated]);
 
   // ══════════════════════════════════════════════════════════════
   // FLASH FIX: Don't render any homepage content until auth has
@@ -373,13 +379,28 @@ export default function HomePage() {
   // awards, hasStartedBallots is false and onboarding renders
   // even for returning users.
   // ══════════════════════════════════════════════════════════════
-  const dataStillLoading = !authChecked || (!isGuest && (loading || awardsLoading));
+  const dataStillLoading = authStatus === "loading" || !authChecked || (isAuthenticated && (loading || awardsLoading));
+  const homepageDataError = moviesError || (isAuthenticated ? awardsError : null);
   if (dataStillLoading) {
     return (
       <div className="home-shell flex items-center justify-center min-h-[50vh]">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 rounded-full border-2 border-yellow-400/30 border-t-yellow-400 animate-spin" />
           <p className="text-sm text-gray-500">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (homepageDataError) {
+    return (
+      <div className="home-shell flex items-center justify-center min-h-[50vh]">
+        <div className="max-w-lg rounded-2xl border border-red-500/20 bg-red-500/5 px-6 py-8 text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-red-300">Fetch failure</p>
+          <h2 className="mt-3 font-unbounded text-2xl text-white">We couldn&apos;t load your homepage state.</h2>
+          <p className="mt-3 text-sm text-gray-300">
+            Authentication resolved, but the session-backed homepage data did not load. Please refresh and try again.
+          </p>
         </div>
       </div>
     );
@@ -686,7 +707,7 @@ export default function HomePage() {
 
                 {tasteProfile.topGenres.length > 0 && (() => {
                   const seenMovies = new Set<string>();
-                  const uniqueGenreEntries: { label: string; movieTitle: string | null }[] = [];
+                  const uniqueGenreEntries: { label: string; genre: string; movieTitle: string | null }[] = [];
                   const flavourLabel: Record<string, string> = {
                     Action: "High-energy action",
                     Adventure: "Epic adventure",
@@ -714,21 +735,26 @@ export default function HomePage() {
                     );
                     if (rep) seenMovies.add(rep.leader.title);
                     if (uniqueGenreEntries.length < 3) {
-                      uniqueGenreEntries.push({ label, movieTitle: rep?.leader.title ?? null });
+                      uniqueGenreEntries.push({ label, genre: g.genre, movieTitle: rep?.leader.title ?? null });
                     }
                   }
                   if (uniqueGenreEntries.length === 0) return null;
                   return (
                     <div className="space-y-1.5">
                       {uniqueGenreEntries.map((entry) => (
-                        <div key={entry.label} className="flex items-center gap-3 rounded-lg bg-gray-800/30 px-3 py-2">
-                          <span className="rounded-full border border-yellow-500/20 bg-yellow-500/10 px-2.5 py-0.5 text-xs font-medium text-yellow-300">
+                        <Link
+                          key={entry.label}
+                          href={`/films?genre=${encodeURIComponent(entry.genre)}`}
+                          className="flex items-center gap-3 rounded-lg bg-gray-800/30 px-3 py-2 transition-colors hover:bg-gray-800/50"
+                        >
+                          <span className="rounded-full border border-yellow-500/20 bg-yellow-500/10 px-2.5 py-0.5 text-xs font-medium text-yellow-300 transition-colors group-hover:bg-yellow-500/20">
                             {entry.label}
                           </span>
                           {entry.movieTitle && (
                             <span className="truncate text-xs text-gray-500">{entry.movieTitle}</span>
                           )}
-                        </div>
+                          <ArrowRight className="ml-auto h-3.5 w-3.5 flex-shrink-0 text-gray-600" />
+                        </Link>
                       ))}
                     </div>
                   );

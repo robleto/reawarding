@@ -21,14 +21,15 @@ interface MovieFiltersProps {
   setGroupBy: (groupBy: GroupKey) => void;
   
   // Filter controls
-  filterType: "none" | "year" | "rank" | "movie" | "search";
-  setFilterType: (type: "none" | "year" | "rank" | "movie" | "search") => void;
+  filterType: "none" | "year" | "rank" | "movie" | "search" | "genre";
+  setFilterType: (type: "none" | "year" | "rank" | "movie" | "search" | "genre") => void;
   filterValue: string;
   setFilterValue: (value: string) => void;
   
   // Filter options
   uniqueYears: number[];
   uniqueRanks: number[];
+  uniqueGenres?: string[];
   
   // Local search mode (search within provided movies instead of querying DB)
   localSearchMode?: boolean;
@@ -41,7 +42,7 @@ interface MovieFiltersProps {
     sortBy?: SortKey;
     sortOrder?: SortOrder;
     groupBy?: GroupKey;
-    filterType?: "none" | "year" | "rank" | "movie";
+    filterType?: "none" | "year" | "rank" | "movie" | "genre";
     filterValue?: string;
   };
   // Always-on contextual filters (e.g. "Seen only" on profile films page)
@@ -63,6 +64,7 @@ export default function MovieFilters({
   setFilterValue,
   uniqueYears,
   uniqueRanks,
+  uniqueGenres = [],
   localSearchMode = false,
   availableMovies = [],
   searchContext = "this list",
@@ -447,12 +449,13 @@ export default function MovieFilters({
                 <div className="space-y-3">
                   <select
                     value={filterType}
-                    onChange={(e) => setFilterType(e.target.value as "none" | "year" | "rank" | "movie")}
+                    onChange={(e) => setFilterType(e.target.value as "none" | "year" | "rank" | "movie" | "genre")}
                     className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
                   >
                     <option value="none">No filter</option>
                     <option value="year">Year</option>
                     <option value="rank">Rating</option>
+                    {uniqueGenres.length > 0 && <option value="genre">Genre</option>}
                   </select>
 
                   {filterType === "year" && (
@@ -481,6 +484,21 @@ export default function MovieFilters({
                       {uniqueRanks.map((rank) => (
                         <option key={rank} value={rank}>
                           {rank}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {filterType === "genre" && (
+                    <select
+                      value={filterValue}
+                      onChange={(e) => setFilterValue(e.target.value)}
+                      className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
+                    >
+                      <option value="all">All Genres</option>
+                      {uniqueGenres.map((genre) => (
+                        <option key={genre} value={genre}>
+                          {genre}
                         </option>
                       ))}
                     </select>
