@@ -17,8 +17,8 @@ function SkeletonRow() {
       <div className="mb-3 h-2.5 w-28 rounded bg-gray-800 animate-pulse" />
       <div className="flex gap-2.5 overflow-hidden">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="flex-shrink-0 w-[76px]">
-            <div className="w-[76px] aspect-[2/3] rounded-lg bg-gray-800 animate-pulse" />
+          <div key={i} className="flex-shrink-0 w-[100px]">
+            <div className="w-[100px] aspect-[2/3] rounded-lg bg-gray-800 animate-pulse" />
             <div className="mt-1.5 h-2 w-14 rounded bg-gray-800 animate-pulse" />
           </div>
         ))}
@@ -51,10 +51,10 @@ function FeedCard({
     <button
       type="button"
       onClick={() => onSelect(film)}
-      className="flex-shrink-0 w-[76px] snap-start group text-left"
+      className="flex-shrink-0 w-[100px] snap-start group text-left"
     >
       {/* Poster */}
-      <div className="relative w-[76px] aspect-[2/3] overflow-hidden rounded-lg border border-transparent group-hover:border-yellow-500/50 transition-all shadow-sm bg-gray-800">
+      <div className="relative w-[100px] aspect-[2/3] overflow-hidden rounded-lg border border-transparent group-hover:border-yellow-500/50 transition-all shadow-sm bg-gray-800">
         {hasPoster ? (
           <img
             src={posterSrc}
@@ -114,7 +114,7 @@ export default function RecognitionFeed({ rows, loading, onSelectMovie }: Props)
           <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
             {row.label}
           </p>
-          <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-2 px-2 snap-x snap-mandatory">
+          <div className="flex gap-2.5 overflow-x-auto pb-2 snap-x snap-mandatory">
             {row.films.map((film) => (
               <FeedCard key={film.id} film={film} onSelect={onSelectMovie} />
             ))}
