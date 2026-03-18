@@ -31,10 +31,12 @@ Read before making any product, UX, or architecture decision:
 
 | Document | Purpose |
 |---|---|
-| `PRODUCT_LAWS.md` | 25 laws governing product behavior — do not violate |
-| `PRODUCT_GUARDRAILS.md` | Specific constraints + system safety rules |
+| `PRODUCT_LAWS.md` | 8 core laws + design principles governing product behavior — do not violate |
+| `PRODUCT_GUARDRAILS.md` | Implementation constraints + system safety rules |
 | `PRODUCT_DECISION_LOG.md` | Why major direction decisions were made |
-| `PROJECT_CONTEXT.md` | Philosophy, origin, core truths |
+| `PRODUCT_CONTEXT.md` | Philosophy, origin, core truths |
+
+If this file conflicts with any of the above, the product doc wins. CLAUDE.md is a summary pointer, not a competing source of truth.
 
 ---
 
@@ -79,6 +81,7 @@ The homepage is adaptive across three user states:
 
 - Do NOT introduce a new bespoke card design. Use existing components.
 - Do NOT gate awards behind ratings. Awards FORM from ratings (emergence ≠ gating).
+- Do NOT collapse Watch and Rate into a single gesture. They are distinct actions (Guardrail 10).
 - Do NOT show milestones in toasts or transient alerts — they must persist on the canvas.
 - Do NOT mix Viewing and Creation modes on the same surface.
 - Do NOT present a fully-formed ballot with no visible formation.

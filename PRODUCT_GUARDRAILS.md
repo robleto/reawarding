@@ -53,6 +53,10 @@ Viewing mode shows who won, who was nominated, and navigation to next award. Cre
 
 Ranking determines contender eligibility, auto-nominee promotion (rated 7+), and default ordering until manual override.
 
+### 10 — Watch and Rate Are Distinct Actions
+
+Watch (seen_it = true) and Rate (1-10 score) are two separate user actions in the primary loop. Never collapse them into a single gesture, auto-prompt a rating on mark-seen, or require one to trigger the other. A user may watch without rating. A user may rate later. The loop is Watch → Rate → ReAward — three steps, not two.
+
 ---
 
 ## FINAL CHECK

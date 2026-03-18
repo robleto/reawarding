@@ -23,6 +23,11 @@ import RecognitionFeed from "@/components/home/RecognitionFeed";
 import useOnboardingState from "@/hooks/useOnboardingState";
 import SessionCoach from "@/components/onboarding/SessionCoach";
 import { useRecognitionFeed } from "@/hooks/useRecognitionFeed";
+import { useSmartListAlerts } from "@/hooks/useSmartListAlerts";
+import { useUserLists } from "@/hooks/useUserLists";
+import Banner from "@/components/ui/Banner";
+import HorizontalListRow from "@/components/list/HorizontalListRow";
+import { List } from "lucide-react";
 import type { Movie } from "@/types/types";
 import { useAuthState } from "@/hooks/useAuthState";
 
@@ -68,6 +73,7 @@ export default function HomePage() {
   const [sessionCoachDismissed, setSessionCoachDismissed] = useState(false);
   const [showAllYears, setShowAllYears] = useState(false);
   const [suggestedQuery, setSuggestedQuery] = useState<string | undefined>(undefined);
+  const [dismissedAlertKeys, setDismissedAlertKeys] = useState<string[]>([]);
 
   // Determine if we're showing guest panels (unauthenticated).
   // `showGuestPanels` tracks whether to render the GSAP scroll panels.
@@ -321,8 +327,24 @@ export default function HomePage() {
     topGenreData.exemplar
   );
 
+  // ── Smart list alerts (P2-d) ──
+  const smartAlerts = useSmartListAlerts(movies);
+  const visibleAlerts = smartAlerts.filter(
+    (a) => !dismissedAlertKeys.includes(`${a.type}:${a.label}`)
+  );
+
   // ── State detection: has the user started any ballots? ──
   const hasStartedBallots = awards.length > 0 || yearLeaders.length > 0;
+
+  // ── Established user detection for lists surface (P2-e) ──
+  const completedBallotCount = yearLeaders.filter((yl) => yl.nomineeCount >= 10).length;
+  const isEstablished =
+    completedBallotCount >= 1 || yearLeaders.length >= 2 || ratedMovies.length >= 20;
+
+  // ── User lists for established homepage (P2-e) ──
+  const { lists: userLists, loading: listsLoading } = useUserLists(
+    isEstablished ? (userId ?? null) : null
+  );
 
   // Most recent active ballot (closest to completion, but not yet complete)
   const mostRecentBallot = useMemo(() => {
@@ -687,6 +709,38 @@ export default function HomePage() {
       </div>
     )}
 
+    {/* ─── Smart list alerts (P2-d) ─── */}
+    {visibleAlerts.length > 0 && (
+      <div className="mb-8 space-y-2">
+        {visibleAlerts.map((alert) => {
+          const alertKey = `${alert.type}:${alert.label}`;
+          const remaining = alert.threshold - alert.count;
+          const message = alert.nearMiss
+            ? `${remaining} more ${alert.type === "director" || alert.type === "actor" ? alert.label + " films" : alert.type === "genre" ? alert.label + " films" : alert.label + " films"} and you have a list`
+            : `You've seen ${alert.count} ${alert.type === "decade" ? alert.label : alert.label} films — enough for a list`;
+          return (
+            <Banner
+              key={alertKey}
+              variant="gold"
+              icon={List}
+              message={message}
+              action={{
+                label: alert.nearMiss ? "See films" : "Create list",
+                onClick: () => {
+                  window.location.href = alert.nearMiss
+                    ? `/lists/ready-made`
+                    : `/lists/ready-made`;
+                },
+              }}
+              onDismiss={() =>
+                setDismissedAlertKeys((prev) => [...prev, alertKey])
+              }
+            />
+          );
+        })}
+      </div>
+    )}
+
     {/* ─── 3 + 4. Active ballot (primary) + other ballots grid ─── */}
     {yearLeaders.length > 0 && (
       <section className="mb-10">
@@ -752,6 +806,19 @@ export default function HomePage() {
             </div>
           </>
         )}
+      </section>
+    )}
+
+    {/* ─── User lists — established users only (P2-e) ─── */}
+    {isEstablished && (userLists.length > 0 || listsLoading) && (
+      <section className="mb-10">
+        <HorizontalListRow
+          title="Your Lists"
+          lists={userLists}
+          seeAllHref="/lists/mine"
+          readOnly={false}
+          onAdd={() => { window.location.href = "/lists"; }}
+        />
       </section>
     )}
 
