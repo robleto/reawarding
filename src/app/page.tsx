@@ -46,6 +46,7 @@ const SUGGESTED_YEARS = [2026, 2025, 2024, 2022, 2019, 2014, 2007, 1999];
 const ALL_OSCAR_YEARS = Array.from({ length: 2026 - 1927 + 1 }, (_, i) => 2026 - i);
 
 const EXAMPLE_FILMS = ["The Dark Knight", "Titanic", "Get Out", "La La Land"];
+const SHOW_FEATURE_DEBUG_BADGE = process.env.NODE_ENV !== "production";
 
 export default function HomePage() {
   const reducedMotion = usePrefersReducedMotion();
@@ -295,8 +296,15 @@ export default function HomePage() {
   const yearLeaders = useMemo(() => getYearLeaders(ratedMovies), [ratedMovies]);
 
   // ── Recognition feed data ──
+  // Only exclude movies the user has actually interacted with (has a ranking row).
+  // `movies` is the full DB catalog — filtering ALL of it would hide everything.
   const userMovieIds = useMemo(
-    () => new Set(movies.map((m) => m.id as number)),
+    () =>
+      new Set(
+        movies
+          .filter((m) => m.rankings.length > 0)
+          .map((m) => m.id as number)
+      ),
     [movies]
   );
 
@@ -402,6 +410,12 @@ export default function HomePage() {
 
   return (
     <div className="home-shell">
+      {SHOW_FEATURE_DEBUG_BADGE ? (
+        <div className="fixed top-3 right-3 z-[120] rounded-md border border-yellow-400/40 bg-gray-950/90 px-3 py-1.5 text-[11px] font-semibold tracking-wide text-yellow-300">
+          FEATURE BUILD · recognition-feed-and-ux
+        </div>
+      ) : null}
+
       {showGuestPanels ? (
         /* ── Guest: show GSAP scroll onboarding panels ── */
         <>
