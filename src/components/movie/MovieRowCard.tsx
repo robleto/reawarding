@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
 import { normalizeImageUrl } from "@/utils/imageUrl";
-import { Film, Flame, TrendingUp, TrendingDown } from "lucide-react";
+import { Bookmark, Film, Flame, TrendingUp, TrendingDown } from "lucide-react";
 import type { Movie } from "@/types/types";
 import RankingDropdown from "./RankingDropdown";
 import SeenItButton from "./SeenItButton";
@@ -19,6 +19,8 @@ type Props = {
   showHotTake?: boolean;
   onUpdate: (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => void;
   onClick?: () => void;
+  onWatchlist?: (movieId: number) => void;
+  isOnWatchlist?: boolean;
 };
 
 // Fallback component for missing images
@@ -46,7 +48,7 @@ const ImageFallback = ({
   </div>
 );
 
-export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, ratingLabel = null, seenIt, isLast = false, onClick, index, showHotTake = false }: Props) {
+export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, ratingLabel = null, seenIt, isLast = false, onClick, index, showHotTake = false, onWatchlist, isOnWatchlist }: Props) {
 
   // Prefer cached thumb when available; compute normalized URL and only render Image if non-empty
   const thumbSrc = movie.cached_thumb_url?.trim() || movie.thumb_url;
@@ -130,6 +132,16 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
 
         {/* Status Indicators */}
         <div className="flex items-center gap-2">
+          {onWatchlist && !seenIt && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onWatchlist(movie.id); }}
+              className="flex items-center justify-center w-7 h-7 rounded-md transition-colors hover:bg-gray-800/60"
+              title={isOnWatchlist ? "On your watchlist" : "Add to watchlist"}
+            >
+              <Bookmark className={`w-4 h-4 ${isOnWatchlist ? "fill-yellow-400 text-yellow-400" : "text-gray-400"}`} />
+            </button>
+          )}
           {/* Seen It Toggle OR Hot Take Indicator */}
           {showHotTakeIndicator ? (
             <div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold ${
@@ -221,6 +233,16 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
             
             {/* Status and Actions Row */}
             <div className="flex items-center gap-2 ml-2">
+              {onWatchlist && !seenIt && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onWatchlist(movie.id); }}
+                  className="flex items-center justify-center w-7 h-7 rounded-md transition-colors hover:bg-gray-800/60"
+                  title={isOnWatchlist ? "On your watchlist" : "Add to watchlist"}
+                >
+                  <Bookmark className={`w-4 h-4 ${isOnWatchlist ? "fill-yellow-400 text-yellow-400" : "text-gray-400"}`} />
+                </button>
+              )}
               {/* Seen It Toggle */}
               <SeenItButton
                 seenIt={seenIt}

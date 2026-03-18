@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
 import { normalizeImageUrl } from "@/utils/imageUrl";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Bookmark, ChevronDown, ChevronUp } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
 import RatingModal from "@/components/movie/RatingModal";
@@ -21,6 +21,8 @@ type Props = {
   /** Hide the Seen button and make rating the sole prominent action */
   ratingOnly?: boolean;
   footerAction?: React.ReactNode;
+  onWatchlist?: (movieId: number) => void;
+  isOnWatchlist?: boolean;
 };
 
 // Fallback component for missing poster images
@@ -46,7 +48,7 @@ const PosterFallback = ({
 </div>
 );
 
-export default function MoviePosterCard({ movie, currentUserId, onUpdate, ranking, ratingLabel = null, seenIt, onClick, ratingOnly = false, footerAction = null }: Props) {
+export default function MoviePosterCard({ movie, currentUserId, onUpdate, ranking, ratingLabel = null, seenIt, onClick, ratingOnly = false, footerAction = null, onWatchlist, isOnWatchlist }: Props) {
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -91,6 +93,19 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        {/* ── Watchlist bookmark ── only when not yet watched ── */}
+        {onWatchlist && !seenIt && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onWatchlist(movie.id); }}
+            className="absolute top-2 right-2 z-30 flex items-center justify-center w-7 h-7 rounded-full bg-gray-900/70 backdrop-blur-sm border border-gray-700/50 transition-colors hover:bg-gray-800 hover:border-yellow-500/40"
+            title={isOnWatchlist ? "On your watchlist" : "Add to watchlist"}
+          >
+            <Bookmark
+              className={`w-3.5 h-3.5 transition-colors ${isOnWatchlist ? "fill-yellow-400 text-yellow-400" : "text-gray-400"}`}
+            />
+          </button>
+        )}
         {hasValidPoster ? (
           <Image
             src={normalizedPoster}

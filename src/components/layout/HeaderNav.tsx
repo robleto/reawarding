@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Clapperboard, LineChart, Menu, Plus, Trophy, X } from "lucide-react";
+import { Clapperboard, LineChart, List, Menu, Plus, Trophy, X } from "lucide-react";
 import { UserMenu } from "@/components/layout/UserMenu";
 import NavSearch from "@/components/layout/NavSearch";
 import AuthModalManager from "@/components/auth/AuthModalManager";
@@ -34,6 +34,7 @@ export default function HeaderNav() {
 				{ label: "Films", href: "/films", match: "/films", icon: Clapperboard },
 				{ label: "Rankings", href: "/rankings", match: "/rankings", icon: LineChart },
 				{ label: "Awards", href: "/awards", match: "/awards", icon: Trophy },
+				{ label: "Lists", href: "/lists", match: "/lists", icon: List },
 		  ]
 		: [];
 

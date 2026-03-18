@@ -2,7 +2,7 @@
 
 import { useParams, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Star, Trophy, Film, Home, Share2, Check } from "lucide-react";
+import { Star, Trophy, Film, Home, Share2, Check, Bookmark, List, Activity, Users } from "lucide-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { useState } from "react";
@@ -142,6 +142,10 @@ function ProfileTabs({ username }: { username: string }) {
     { label: "My Awards", href: `${basePath}/awards`, icon: Trophy },
     { label: "My Rankings", href: `${basePath}/rankings`, icon: Star },
     { label: "My Films", href: `${basePath}/films`, icon: Film },
+    { label: "Watchlist", href: `${basePath}/watchlist`, icon: Bookmark },
+    { label: "Lists", href: `${basePath}/lists`, icon: List },
+    { label: "Activity", href: `${basePath}/activity`, icon: Activity },
+    { label: "Following", href: `${basePath}/following`, icon: Users },
   ];
 
   return (
