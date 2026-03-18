@@ -156,7 +156,6 @@ export function useRecognitionFeed(
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topGenre, topGenreExemplar]); // userMovieIds read via ref — intentional
 
   return { rows, loading };

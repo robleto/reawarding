@@ -32,7 +32,7 @@ Read before making any product, UX, or architecture decision:
 | Document | Purpose |
 |---|---|
 | `PRODUCT_LAWS.md` | 25 laws governing product behavior — do not violate |
-| `PRODUCT_CONSTRAINTS.md` | Specific constraints + system safety rules |
+| `PRODUCT_GUARDRAILS.md` | Specific constraints + system safety rules |
 | `PRODUCT_DECISION_LOG.md` | Why major direction decisions were made |
 | `PROJECT_CONTEXT.md` | Philosophy, origin, core truths |
 
