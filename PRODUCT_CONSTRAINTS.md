@@ -10,10 +10,22 @@ Purpose: Prevent regression into previous product models or accidental feature d
 Reawarding is an **opinion-expression tool**, not a cataloging tool.
 
 Primary loop:
-Opinion → Award → Nominees → Optional Rankings → Advanced Systems
+Watch → Rate → ReAward
 
-NOT:
-Seen → Ratings → Rankings → Unlock Awards
+- **Watch** = mark a film seen (`seen_it = true`). This is logging, not tracking.
+- **Rate** = score it 1–10. Films rated 7+ automatically become award contenders.
+- **ReAward** = your nominees emerge, your ballot forms, your winner rises.
+
+The loop produces awards as its *output*. Awards are not a gate to unlock — they are what naturally emerges from watching and rating.
+
+**The anti-pattern this replaced:**
+The previous framing of `Opinion → Award → Nominees → Optional Rankings` was written to prevent awards from being *blocked* behind ratings. That protection still holds — awards must FORM from ratings, not be UNLOCKED by them. The difference: emergence vs gating. Ratings are the engine. Awards are the face.
+
+**What has NOT changed:**
+- Awards are still the primary emotional surface (LAW 1)
+- Ballots still form, never appear instantly (LAW 17)
+- Rankings are still a power tool, not a gate (LAW 12)
+- The system still suggests; the user still owns (LAW 5)
 
 ---
 

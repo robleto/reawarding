@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import HomeHero from "@/app/components/home/HomeHero";
 import PanelPremise from "@/app/components/home/PanelPremise";
@@ -340,6 +339,14 @@ export default function HomePage() {
     // All complete — show most recent
     return yearLeaders[0];
   }, [yearLeaders]);
+
+  // Default-expand the most recent ballot so it acts as the primary continue-rating CTA.
+  // Only sets once — if the user collapses it, their choice is preserved.
+  useEffect(() => {
+    if (mostRecentBallot && expandedCardYear === null) {
+      setExpandedCardYear(mostRecentBallot.year);
+    }
+  }, [mostRecentBallot]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync guest panel visibility with auth state.
   // On guest→logged-in transition, kill GSAP ScrollTriggers before unmounting
@@ -687,84 +694,7 @@ export default function HomePage() {
       </div>
     )}
 
-    {/* ─── 3. Continue rating — CINEMATIC CARD ─── */}
-    {mostRecentBallot && mostRecentBallot.neededForBallot > 0 && (() => {
-      const ballot = mostRecentBallot;
-      const posterSrc =
-        ballot.leader.cached_poster_url ||
-        ballot.leader.poster_url ||
-        ballot.leader.cached_thumb_url ||
-        ballot.leader.thumb_url ||
-        "";
-      return (
-        <section className="mb-10">
-          <p className="mb-3 text-xs font-semibold tracking-wider text-gray-500 uppercase">
-            Keep rating
-          </p>
-          <button
-            type="button"
-            onClick={() => setExplorerYear(ballot.year)}
-            className="group w-full overflow-hidden rounded-2xl border border-yellow-500/25 bg-gray-900 shadow-lg transition-all hover:border-yellow-500/50 hover:shadow-yellow-500/10"
-          >
-            <div className="relative flex min-h-[160px] items-stretch">
-              {/* Subtle overall gradient */}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-transparent" />
-              {/* Content */}
-              <div className="relative flex flex-1 flex-col justify-between p-6 sm:p-8">
-                <div>
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-yellow-400/60">
-                    {ballot.year} · Current leader
-                  </p>
-                  <p className="text-2xl font-bold leading-tight text-white group-hover:text-yellow-100 sm:text-3xl">
-                    {ballot.leader.title}
-                  </p>
-                  <p className="mt-2 text-sm text-yellow-300/70">
-                    {ballot.neededForBallot} more {ballot.neededForBallot === 1 ? "film" : "films"} to complete your ballot
-                  </p>
-                </div>
-                <div className="mt-5 flex items-center gap-2 text-sm font-semibold text-yellow-300">
-                  Continue rating
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </div>
-              {/* Poster — right side */}
-              {posterSrc && (
-                <div className="relative w-[120px] flex-shrink-0 sm:w-[180px]">
-                  <Image
-                    src={posterSrc}
-                    alt={ballot.leader.title}
-                    fill
-                    className="object-cover"
-                    sizes="180px"
-                    unoptimized
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/30 to-transparent" />
-                </div>
-              )}
-            </div>
-          </button>
-        </section>
-      );
-    })()}
-
-    {/* ─── 4. Active workspace header ─── */}
-    {mostRecentBallot && (() => {
-      const ballot = mostRecentBallot;
-      return (
-        <div className="mb-4 flex items-baseline justify-between">
-          <p className="text-sm font-semibold text-gray-300">
-            Your {ballot.year} awards are taking shape
-          </p>
-          {ballot.neededForBallot > 0 && (
-            <span className="text-xs text-yellow-400/70">
-              {ballot.neededForBallot} more {ballot.neededForBallot === 1 ? "rating" : "ratings"} to complete
-            </span>
-          )}
-        </div>
-      );
-    })()}
-
-    {/* ─── 5. Ballots grid ─── */}
+    {/* ─── 3 + 4. Active ballot (primary) + other ballots grid ─── */}
     {yearLeaders.length > 0 && (
       <section className="mb-10">
         {/* Active ballot — full width */}

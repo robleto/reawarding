@@ -33,16 +33,25 @@ Users should be able to express taste immediately.
 
 ---
 
-## 4. The Critical Shift (Important)
+## 4. The Primary Loop (Updated March 2026)
 
-OLD MODEL (Do NOT build toward this):
-Seen → Ratings → Rankings → Awards unlock
+**Primary loop:**
+Watch → Rate → ReAward
 
-NEW MODEL (Correct Model):
-Opinion → Award → Nominees → Optional rankings → Optional ratings
+- Watch a film (seen_it = true)
+- Rate it 1–10
+- Films scored 7+ auto-emerge as award contenders
+- Your ballot forms. Your winner rises.
 
-Awards are FIRST-CLASS objects.  
-They are NOT derived-only outputs.
+Awards are FIRST-CLASS objects — they are the *output* of this loop, not a prerequisite for it.
+
+**The original concern this replaced:**
+An earlier framing said "Opinion → Award" was the entry point to prevent ratings from *gating* awards. That protection still applies — awards must FORM from ratings (emergence), not be UNLOCKED by them (gating). The distinction is critical. What changed: Watch and Rate are now explicitly the primary UX path, because that's how users naturally experience films.
+
+**The anti-pattern that remains forbidden:**
+- Ratings required *before* an award can exist
+- Awards hidden behind activity thresholds
+- Ballots appearing fully-formed without visible formation
 
 ---
 
@@ -54,25 +63,26 @@ If this is not possible, the design is wrong.
 
 ---
 
-## 6. The Golden Onboarding Flow
+## 6. The Onboarding Flow
 
 Primary onboarding action:
 
-"Pick a movie you love."
+"Find a film you've seen."
 
 System response:
 
-→ Adds movie as seed nominee for that movie's year  
-→ System may infer provisional winner based on current ballot state  
-→ Shows the award immediately  
-→ Invites adding nominees  
-→ Invites fixing another year  
+→ Marks film as watched (seen_it = true)
+→ Prompts for a rating (1–10)
+→ If rated 7+: film becomes a contender for its year
+→ Shows the forming ballot for that year
+→ Invites rating more films from the same year
+→ Invites starting another year
 
-No gating.  
-No required tracking first.  
-No required ranking first.  
+No gating.
+No required ranking before the ballot appears.
+No fully-formed ballot presented without visible formation.
 
-System demonstrates how ballots form — it does not skip formation.
+System demonstrates how Watch → Rate → ReAward works — it does not skip formation.
 
 ---
 
