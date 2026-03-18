@@ -75,6 +75,9 @@ The homepage is adaptive across three user states:
 | Building | 1+ active year, 0 completed ballots | Active year card + year-scoped feed |
 | Established | 1+ completed ballot OR 2+ years OR 20+ rated | Ballot grid + lists + taste |
 
+**Established detection (coded):** `completedBallots >= 1 || yearLeaders.length >= 2 || ratedMovies.length >= 20`
+Lives in `src/app/page.tsx` — keep in sync if thresholds change.
+
 ---
 
 ## Key anti-patterns to avoid
@@ -91,6 +94,20 @@ The homepage is adaptive across three user states:
 
 ## Branch strategy
 
-- Docs + immediate fixes: `feature/adaptive-homepage-phase1-3`
-- Foundation + restoration (Storybook + feature restore): same branch
-- Onboarding, Import, Social, Export: one branch each
+- P0–P2 done: `feature/adaptive-homepage-phase1-3` (product docs, Storybook, feature restore)
+- P3 Onboarding: `feature/onboarding`
+- P4 Adaptive homepage: `feature/adaptive-homepage` (LAST — after P3)
+- P5 Import, P6 Friends, P7 Export: one branch each
+
+---
+
+## Dev environment
+
+**TypeScript check** — `node`/`npx` not in default PATH. Use:
+`/opt/homebrew/bin/node /opt/homebrew/lib/node_modules/typescript/bin/tsc --noEmit`
+
+**Git index.lock** — Cursor's Git extension repeatedly re-creates `.git/index.lock`.
+Fix: retry loop: `for i in 1 2 3 4 5; do rm -f .git/index.lock && git commit ... && break || sleep 1; done`
+
+**Storybook** — framework is `@storybook/react-webpack5` (NOT `@storybook/nextjs`), pinned to v8.
+Webpack alias for `@/` paths required in `.storybook/main.ts`. Run: `npm run storybook`
