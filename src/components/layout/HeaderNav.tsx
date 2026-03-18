@@ -10,9 +10,9 @@ import AuthModalManager from "@/components/auth/AuthModalManager";
 import { Logo } from "@/components/ui/Logo";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { useScrollBackground } from "@/hooks/useScrollBackground";
-import { useUser } from "@supabase/auth-helpers-react";
 import { useEnsureProfile } from "@/hooks/useEnsureProfile";
 import AddMovieByTmdbModal from "@/components/movie/AddMovieByTmdbModal";
+import { useAuthState } from "@/hooks/useAuthState";
 
 export default function HeaderNav() {
 	const pathname = usePathname();
@@ -24,7 +24,7 @@ export default function HeaderNav() {
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 	const navRefs = useRef<(HTMLLIElement | null)[]>([]);
 	const hasScrolled = useScrollBackground();
-	const user = useUser();
+	const { user } = useAuthState();
 	const { profile } = useEnsureProfile(user);
 	const displayName = profile?.preferred_name || profile?.full_name || profile?.username || user?.email;
 	const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;

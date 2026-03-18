@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/lib/supabaseBrowser';
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
@@ -8,36 +8,25 @@ import { ToastProvider } from '@/components/providers/ToastProvider';
 import { ErrorBoundary } from '@/components/error/ErrorBoundary';
 import { setupGlobalErrorHandlers } from '@/utils/errorLogger';
 import { useAuthMigration } from '@/utils/authMigration';
-import type { Database } from '@/types/supabase';
-import { User, Session } from '@supabase/supabase-js';
+import { useAuthState } from '@/hooks/useAuthState';
+import useOnboardingState from '@/hooks/useOnboardingState';
+import useGuestRankingStore from '@/hooks/useGuestRankingStore';
 
 interface ProvidersProps {
   children: React.ReactNode;
-  initialUser: User | null;
 }
 
-export function Providers({ children, initialUser }: ProvidersProps) {
-  const [initialSession, setInitialSession] = useState<Session | null>(null);
-
+export function Providers({ children }: ProvidersProps) {
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setInitialSession(session);
-    };
-
-    getSession();
-
     // Set up global error handlers (only on client)
     setupGlobalErrorHandlers();
   }, []);
   
   return (
     <ErrorBoundary componentName="AppRoot">
-      <SessionContextProvider 
-        supabaseClient={supabase} 
-        initialSession={initialSession}
-      >
+      <SessionContextProvider supabaseClient={supabase}>
         <AuthMigrationBridge />
+        <PersistenceBoundaryBridge />
         <ThemeProvider>
           <ToastProvider>
             {children}
@@ -50,5 +39,23 @@ export function Providers({ children, initialUser }: ProvidersProps) {
 
 function AuthMigrationBridge() {
   useAuthMigration();
+  return null;
+}
+
+function PersistenceBoundaryBridge() {
+  const { status, user } = useAuthState();
+  const bindActor = useOnboardingState((state) => state.bindActor);
+  const clearGuestData = useGuestRankingStore((state) => state.clearAllData);
+
+  useEffect(() => {
+    bindActor(user?.id ?? 'guest');
+  }, [bindActor, user?.id]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      clearGuestData();
+    }
+  }, [clearGuestData, status]);
+
   return null;
 }

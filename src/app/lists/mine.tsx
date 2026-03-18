@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import Loader from "@/components/ui/Loading";
+import ScreenState from "@/components/ui/ScreenState";
 import HorizontalListRow from "@/components/list/HorizontalListRow";
+import { useAuthState } from "@/hooks/useAuthState";
 
 type MovieList = {
   id: string;
@@ -19,13 +21,24 @@ type MovieList = {
 export default function MyListsPage() {
   const supabase = useSupabaseClient();
   const user = useUser();
+  const { status } = useAuthState();
   const userId = user?.id;
   const [myLists, setMyLists] = useState<MovieList[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (status === "loading") return;
+    if (status === "unauthenticated") {
+      setLoading(false);
+      setMyLists([]);
+      setError(null);
+      return;
+    }
+
     async function fetchLists() {
       setLoading(true);
+      setError(null);
       let my = [];
       if (userId) {
         // First, get all lists for the current user
@@ -35,7 +48,13 @@ export default function MyListsPage() {
           .eq("user_id", userId)
           .order("updated_at", { ascending: false });
 
-        if (!listsError && listsData) {
+        if (listsError) {
+          setError("Couldn't load your lists.");
+          setLoading(false);
+          return;
+        }
+
+        if (listsData) {
           // For each list, get the count of movies and top 5 poster URLs
           const listsWithCountsAndPosters = await Promise.all(
             listsData.map(async (list) => {
@@ -81,9 +100,33 @@ export default function MyListsPage() {
       setLoading(false);
     }
     fetchLists();
-  }, [userId, supabase]);
+  }, [status, userId, supabase]);
 
   if (loading) return <Loader message="Loading your lists..." />;
+
+  if (status === "unauthenticated") {
+    return (
+      <ScreenState
+        testId="screen-state-auth-required"
+        title="Sign in to view your lists"
+        message="Your private lists are account-specific. Sign in before this page renders them."
+        primaryAction={{ label: "Sign In", href: "/login" }}
+        secondaryAction={{ label: "Back to Lists", href: "/lists" }}
+      />
+    );
+  }
+
+  if (error) {
+    return (
+      <ScreenState
+        testId="screen-state-fetch-failure"
+        tone="error"
+        title="Couldn't load your lists"
+        message="We couldn't verify your list data, so this page is staying closed instead of showing partial results."
+        primaryAction={{ label: "Back to Lists", href: "/lists" }}
+      />
+    );
+  }
 
   return (
     <div className="max-w-screen-xl px-6 py-10 mx-auto">

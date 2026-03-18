@@ -4,14 +4,17 @@ import { useEffect, useState } from "react";
 import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/ui/Loading";
+import ScreenState from "@/components/ui/ScreenState";
 import HorizontalListRow from "@/components/list/HorizontalListRow";
 import ListsEmptyState from "@/components/lists/ListsEmptyState";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import { Plus, X } from "lucide-react";
+import { useAuthState } from "@/hooks/useAuthState";
 
 export default function ListsHomePage() {
   const supabase = useSupabaseClient();
   const user = useUser();
+  const { status } = useAuthState();
   const userId = user?.id;
   const router = useRouter();
   const [myLists, setMyLists] = useState<any[]>([]);
@@ -24,6 +27,7 @@ export default function ListsHomePage() {
   const [createDescription, setCreateDescription] = useState("");
   const [createIsPublic, setCreateIsPublic] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +80,7 @@ export default function ListsHomePage() {
   useEffect(() => {
     async function fetchLists() {
       setLoading(true);
+      setError(null);
       let my = [];
       let pub = [];
       // previously used to show a Ready‑Made CTA row; no longer needed
@@ -88,7 +93,13 @@ export default function ListsHomePage() {
           .eq("user_id", userId)
           .order("updated_at", { ascending: false });
 
-        if (!listsError && listsData) {
+        if (listsError) {
+          setError("Couldn't load your lists.");
+          setLoading(false);
+          return;
+        }
+
+        if (listsData) {
           // For each list, get the count of movies and top 5 poster URLs
           const listsWithCountsAndPosters = await Promise.all(
             listsData.map(async (list) => {
@@ -136,12 +147,18 @@ export default function ListsHomePage() {
       }
       
       // Get public lists
-      const { data: pubData } = await supabase
+      const { data: pubData, error: pubError } = await supabase
         .from("movie_lists")
         .select("*")
         .eq("is_public", true)
         .order("updated_at", { ascending: false });
       
+      if (pubError) {
+        setError("Couldn't load lists right now.");
+        setLoading(false);
+        return;
+      }
+
       if (pubData) {
         // Add counts and posters for public lists too
         const publicListsWithData = await Promise.all(
@@ -190,6 +207,20 @@ export default function ListsHomePage() {
   }, [userId, supabase]);
 
   if (loading) return <Loader message="Loading lists..." />;
+
+  if (status === "loading") return <Loader message="Loading lists..." />;
+
+  if (error) {
+    return (
+      <ScreenState
+        testId="screen-state-fetch-failure"
+        tone="error"
+        title="Couldn't load lists"
+        message="This page is staying closed instead of guessing with partial list data."
+        primaryAction={{ label: "Back Home", href: "/" }}
+      />
+    );
+  }
 
   return (
     <div className="max-w-screen-xl">

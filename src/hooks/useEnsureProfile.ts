@@ -16,6 +16,8 @@ export function useEnsureProfile(user: User | null) {
     if (!user) {
       setProfile(null);
       setCreated(false);
+      setLoading(false);
+      setError(null);
       return;
     }
     let cancelled = false;

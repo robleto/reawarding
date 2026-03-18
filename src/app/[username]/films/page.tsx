@@ -3,8 +3,7 @@
 import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
-import MoviePosterCard from "@/components/movie/MoviePosterCard";
-import MovieRowCard from "@/components/movie/MovieRowCard";
+import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieFilters from "@/components/filters/MovieFilters";
 import {
@@ -63,8 +62,6 @@ export default function ProfileFilmsPage() {
     setIsModalOpen(false);
   };
 
-  // No-op for public profile — read-only
-  const noopUpdate = () => {};
 
   if (loading) {
     return (
@@ -135,13 +132,12 @@ export default function ProfileFilmsPage() {
                 {groupMovieList.map((movie) => {
                   const r = movie.rankings?.[0];
                   return (
-                    <MoviePosterCard
+                    <MovieCard
                       key={movie.id}
                       movie={movie}
-                      currentUserId=""
+                      variant="grid"
                       ranking={r?.ranking ?? null}
                       seenIt={r?.seen_it ?? false}
-                      onUpdate={noopUpdate}
                       onClick={() => handleOpenModal(movie)}
                     />
                   );
@@ -152,16 +148,15 @@ export default function ProfileFilmsPage() {
                 {groupMovieList.map((movie, index) => {
                   const r = movie.rankings?.[0];
                   return (
-                    <MovieRowCard
+                    <MovieCard
                       key={movie.id}
                       movie={movie}
-                      currentUserId=""
+                      variant="compact"
+                      rank={index + 1}
                       ranking={r?.ranking ?? null}
                       seenIt={r?.seen_it ?? false}
-                      isLast={index === groupMovieList.length - 1}
-                      onUpdate={noopUpdate}
+                      showYear
                       onClick={() => handleOpenModal(movie)}
-                      index={index}
                     />
                   );
                 })}

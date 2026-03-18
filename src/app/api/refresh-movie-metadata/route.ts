@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { isUserAdmin } from '@/lib/adminAuth';
 
 interface TMDBMovieDetail {
   id: number;
@@ -33,6 +34,11 @@ async function fetchJSON<T>(url: string): Promise<T> {
 
 export async function POST(request: NextRequest) {
   try {
+    const isAdmin = await isUserAdmin();
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
     const { dbId, tmdbId } = await request.json();
 
     if (!dbId || !tmdbId) {

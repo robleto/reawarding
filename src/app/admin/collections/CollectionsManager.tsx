@@ -61,13 +61,13 @@ export default function CollectionsManager() {
       return;
     }
 
-    const { error } = await supabase
-      .from('film_collections')
-      .delete()
-      .eq('id', id);
+    const response = await fetch(`/api/admin/collections/${id}`, {
+      method: 'DELETE',
+    });
+    const result = await response.json().catch(() => ({}));
 
-    if (error) {
-      alert(`Error deleting collection: ${error.message}`);
+    if (!response.ok) {
+      alert(`Error deleting collection: ${result.error || 'Unknown error'}`);
     } else {
       fetchCollections();
     }

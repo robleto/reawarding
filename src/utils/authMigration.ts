@@ -16,7 +16,18 @@ export function useAuthMigration(onMigrationSuccess?: (count: number) => void) {
     const handleAuthStateChange = async () => {
       if (!user) return;
 
-      const { data: { session } } = await supabase.auth.getSession();
+      let session = null;
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.warn("authMigration.getSession failed; skipping migration", error);
+          return;
+        }
+        session = data.session;
+      } catch (error) {
+        console.warn("authMigration.getSession threw; skipping migration", error);
+        return;
+      }
       // Skip bootstrapping when auth is transitioning (e.g., during sign-out).
       if (!session || session.user.id !== user.id) return;
 

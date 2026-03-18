@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseBrowser';
 import { Bug, MessageSquare, AlertTriangle, TrendingUp } from 'lucide-react';
 
 interface ErrorLog {
@@ -38,31 +37,15 @@ export default function TelemetryDashboard() {
   async function loadTelemetryData() {
     setLoading(true);
     try {
-      // Load recent errors - use service role for admin access
-      const { data: errorsData, error: errorsError } = await supabase
-        .from('error_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      if (errorsData && !errorsError) {
-        setRecentErrors(errorsData);
-      } else if (errorsError) {
-        console.error('Error loading errors:', errorsError);
+      const response = await fetch('/api/admin/telemetry', { cache: 'no-store' });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to load telemetry data');
       }
 
-      // Load recent feedback
-      const { data: feedbackData, error: feedbackError } = await supabase
-        .from('feedback')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (feedbackData && !feedbackError) {
-        setRecentFeedback(feedbackData);
-      } else if (feedbackError) {
-        console.error('Error loading feedback:', feedbackError);
-      }
+      setRecentErrors(payload.recentErrors ?? []);
+      setRecentFeedback(payload.recentFeedback ?? []);
     } catch (error) {
       console.error('Error loading telemetry data:', error);
     } finally {

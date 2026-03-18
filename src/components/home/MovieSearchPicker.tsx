@@ -11,6 +11,8 @@ interface Props {
   autoFocus?: boolean;
   placeholder?: string;
   className?: string;
+  /** When set, pre-fills the search and triggers a lookup */
+  suggestedQuery?: string;
 }
 
 /**
@@ -24,6 +26,7 @@ export default function MovieSearchPicker({
   autoFocus = false,
   placeholder = "Search for a movie...",
   className = "",
+  suggestedQuery,
 }: Props) {
   const [term, setTerm] = useState("");
   const [suggestions, setSuggestions] = useState<Movie[]>([]);
@@ -60,6 +63,16 @@ export default function MovieSearchPicker({
     },
     [filterByYear]
   );
+
+  // When parent injects a suggested query, pre-fill and search
+  React.useEffect(() => {
+    if (!suggestedQuery) return;
+    setTerm(suggestedQuery);
+    setShowSuggestions(true);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => doSearch(suggestedQuery), 0);
+    inputRef.current?.focus();
+  }, [suggestedQuery, doSearch]);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;

@@ -215,3 +215,17 @@ export function getGuestAwardCount(): number {
   const awards = getGuestAwards();
   return Object.keys(awards).length;
 }
+
+export function clearGuestAwards(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(GUEST_AWARDS_KEY);
+  } catch (error) {
+    console.error("Error clearing guest awards:", error);
+  }
+}
+
+export function clearAllGuestData(): void {
+  clearGuestData();
+  clearGuestAwards();
+}

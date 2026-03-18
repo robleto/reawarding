@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import Loader from "@/components/ui/Loading";
+import ScreenState from "@/components/ui/ScreenState";
 import HorizontalListRow from "@/components/list/HorizontalListRow";
 
 type MovieList = {
@@ -21,17 +22,25 @@ export default function PublicListsPage() {
   const supabase = useSupabaseClient();
   const [publicLists, setPublicLists] = useState<MovieList[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchLists() {
       setLoading(true);
+      setError(null);
       // Get public lists
-      const { data: pubData } = await supabase
+      const { data: pubData, error: pubError } = await supabase
         .from("movie_lists")
         .select("*")
         .eq("is_public", true)
         .order("updated_at", { ascending: false });
-      
+
+      if (pubError) {
+        setError("Couldn't load public lists.");
+        setLoading(false);
+        return;
+      }
+
       if (pubData) {
         // Add counts and posters for public lists
         const publicListsWithData = await Promise.all(
@@ -77,6 +86,18 @@ export default function PublicListsPage() {
   }, [supabase]);
 
   if (loading) return <Loader message="Loading public lists..." />;
+
+  if (error) {
+    return (
+      <ScreenState
+        testId="screen-state-fetch-failure"
+        tone="error"
+        title="Couldn't load public lists"
+        message="This page is staying closed instead of showing partial public list data."
+        primaryAction={{ label: "Back to Lists", href: "/lists" }}
+      />
+    );
+  }
 
   return (
     <div className="max-w-screen-xl px-6 py-10 mx-auto">

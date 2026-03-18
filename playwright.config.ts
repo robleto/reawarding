@@ -3,8 +3,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load .env.local first (takes precedence), then .env, matching Next.js behavior.
-// This is needed because Playwright's config/global-setup runs as a standalone
-// Node process that doesn't inherit Next.js's env loading.
+// This is needed because Playwright config and setup projects run as standalone
+// Node processes that don't inherit Next.js's env loading.
 dotenv.config({ path: path.resolve(__dirname, '.env.local'), override: false });
 dotenv.config({ path: path.resolve(__dirname, '.env'), override: false });
 
@@ -21,37 +21,54 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'list',
 
-  // Runs once before any project: logs in and saves playwright/.auth/user.json
-  globalSetup: './tests/global-setup.ts',
-
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3000',
     trace: 'on-first-retry',
   },
 
   projects: [
+    {
+      name: 'auth-setup',
+      testMatch: ['auth.setup.ts'],
+      use: { ...devices['Desktop Chrome'] },
+    },
     /**
      * "prelogin" — public pages, no auth state.
      * Matches the original prelogin.spec.ts.
      */
     {
       name: 'prelogin',
-      testMatch: ['prelogin.spec.ts'],
+      testMatch: ['prelogin.spec.ts', 'login-ui.spec.ts'],
       use: { ...devices['Desktop Chrome'] },
     },
 
     /**
-     * "authenticated" — restores the session saved by global-setup so that
-     * Supabase cookies are present from the very first page load.
-     * Matches authenticated.spec.ts.
+     * "authenticated" — depends on auth-setup and restores the session
+     * saved to playwright/.auth/user.json.
      */
     {
       name: 'authenticated',
-      testMatch: ['authenticated.spec.ts'],
+      testMatch: ['authenticated-features.spec.ts'],
+      dependencies: ['auth-setup'],
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'playwright/.auth/user.json',
       },
+    },
+    {
+      name: 'auth-session',
+      testMatch: ['auth-session.spec.ts'],
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'persistence-boundary',
+      testMatch: ['persistence-boundary.spec.ts'],
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'fail-closed-screens',
+      testMatch: ['fail-closed-screens.spec.ts'],
+      use: { ...devices['Desktop Chrome'] },
     },
     /**
      * "core-loop" — multi-user confidence loop:

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseBrowser";
-import MoviePosterCard from "@/components/movie/MoviePosterCard";
+import MovieCard from "@/components/award/MovieCard";
 import type { Movie } from "@/types/types";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -105,9 +105,9 @@ export default function CollectionRow({
                 key={movie.id} 
                 className="flex-shrink-0 w-[140px] sm:w-[160px] snap-start"
               >
-                <MoviePosterCard
+                <MovieCard
                   movie={movie}
-                  currentUserId={userId}
+                  variant="grid"
                   ranking={ranking?.ranking ?? null}
                   seenIt={ranking?.seen_it ?? false}
                   onUpdate={onUpdateMovie}

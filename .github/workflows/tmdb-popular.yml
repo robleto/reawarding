@@ -1,8 +1,6 @@
 name: TMDB Popular Import
 
 on:
-  schedule:
-    - cron: '5 * * * *' # Hourly at minute 5
   workflow_dispatch:
     inputs:
       dry_run:

@@ -1,16 +1,15 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import EditableYearSection from "@/components/award/EditableYearSection";
 import AwardsEmptyState from "@/components/award/AwardsEmptyState";
-import UnifiedBanner from "@/components/auth/UnifiedBanner";
-import AuthModalManager from "@/components/auth/AuthModalManager";
 import YearExplorer from "@/components/home/YearExplorer";
+import ScreenState from "@/components/ui/ScreenState";
 import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
 import { useUserAwards } from "@/hooks/useUserAwards";
 import { useCreateAward } from "@/hooks/useCreateAward";
 import type { Movie } from "@/types/types";
+import { useAuthState } from "@/hooks/useAuthState";
 
 interface YearData {
   year: string;
@@ -20,9 +19,9 @@ interface YearData {
 }
 
 export default function AwardsPage() {
-  const router = useRouter();
-  const { movies, loading, isGuest, hasMounted, userId, updateMovieRanking } = useMovieDataWithGuest();
-  const { awards } = useUserAwards();
+  const { status } = useAuthState();
+  const { movies, loading, isGuest, hasMounted, userId, updateMovieRanking, error: moviesError } = useMovieDataWithGuest();
+  const { awards, loading: awardsLoading, error: awardsError } = useUserAwards();
   const { createAward } = useCreateAward();
   const tab = "best-picture" as const;
   const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());
@@ -73,19 +72,6 @@ export default function AwardsPage() {
     return awards.find((award) => award.year === explorerYear) ?? null;
   }, [awards, explorerYear]);
 
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
-
-  const handleSignupClick = () => {
-    setAuthMode("signup");
-    setShowAuthModal(true);
-  };
-
-  const handleLoginClick = () => {
-    setAuthMode("login");
-    setShowAuthModal(true);
-  };
-
   const handleCreateAward = useCallback(
     (movie: Movie) => {
       void createAward({
@@ -101,13 +87,6 @@ export default function AwardsPage() {
     if (explorerIsEditing) return;
     setExplorerYear(null);
   }, [explorerIsEditing]);
-
-  useEffect(() => {
-    if (!hasMounted || loading) return;
-    if (isGuest) {
-      router.replace("/");
-    }
-  }, [hasMounted, loading, isGuest, router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -207,7 +186,19 @@ export default function AwardsPage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [explorerYear, explorerIsEditing, handleCloseExplorer]);
 
-  if (loading) {
+  if (status === "unauthenticated" || isGuest) {
+    return (
+      <ScreenState
+        testId="screen-state-auth-required"
+        title="Sign in to view your awards"
+        message="Your awards timeline depends on your saved rankings and nominations. Sign in before we render it."
+        primaryAction={{ label: "Sign In", href: "/login" }}
+        secondaryAction={{ label: "Back Home", href: "/" }}
+      />
+    );
+  }
+
+  if (loading || awardsLoading || status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -218,8 +209,16 @@ export default function AwardsPage() {
     );
   }
 
-  if (isGuest) {
-    return null;
+  if (moviesError || awardsError) {
+    return (
+      <ScreenState
+        testId="screen-state-fetch-failure"
+        tone="error"
+        title="Couldn't load your awards"
+        message="We couldn't verify your awards data, so this page is staying closed instead of falling back to defaults."
+        primaryAction={{ label: "Back Home", href: "/" }}
+      />
+    );
   }
 
   if (formattedYears.length === 0) {
@@ -234,8 +233,6 @@ export default function AwardsPage() {
 
   return (
     <>
-      {isGuest && <UnifiedBanner onSignupClick={handleSignupClick} onLoginClick={handleLoginClick} />}
-
       <div className="max-w-screen-xl mx-auto">
         {formattedYears.map((yearData) => {
           const isVisible = visibleYears.has(yearData.year);
@@ -293,11 +290,6 @@ export default function AwardsPage() {
         </div>
       )}
 
-      <AuthModalManager
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        initialMode={authMode}
-      />
     </>
   );
 }

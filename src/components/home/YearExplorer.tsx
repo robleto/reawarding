@@ -24,7 +24,7 @@ import { getActualWinner } from "@/data/bestPictureWinners";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import EditableYearSection from "@/components/award/EditableYearSection";
 import type { EditableYearSectionHandle } from "@/components/award/EditableYearSection";
-import MoviePosterCard from "@/components/movie/MoviePosterCard";
+import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import type { UserAward } from "@/hooks/useUserAwards";
 
@@ -584,9 +584,9 @@ export default function YearExplorer({
                     </div>
                   )}
 
-                  <MoviePosterCard
+                  <MovieCard
                     movie={movie}
-                    currentUserId={currentUserId}
+                    variant="grid"
                     ranking={ranking}
                     seenIt={movie.rankings?.[0]?.seen_it ?? false}
                     onUpdate={handleRatingFirst}

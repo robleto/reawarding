@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser, useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
 import { LogOut, Mail } from "lucide-react";
 import type { Database } from "@/types/supabase";
+import { signOutEverywhere } from "@/utils/signOut";
+import { useAuthState } from "@/hooks/useAuthState";
 
 export default function SettingsPage() {
-  const user = useUser();
+  const { user, status: authStatus } = useAuthState();
   const supabase = useSupabaseClient<Database>();
   const router = useRouter();
 
@@ -24,18 +26,19 @@ export default function SettingsPage() {
     setLoading(true);
     setError(null);
 
-    const { error: signOutError } = await supabase.auth.signOut();
-    if (signOutError) {
+    try {
+      await signOutEverywhere(supabase);
+      router.replace("/");
+      router.refresh();
+      return;
+    } catch {
       setError("Failed to sign out. Please try again.");
       setLoading(false);
       return;
     }
-
-    router.replace("/");
-    router.refresh();
   };
 
-  if (!user) return null;
+  if (authStatus === "loading" || !user) return null;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">

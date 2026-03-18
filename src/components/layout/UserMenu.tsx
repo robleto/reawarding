@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { LogOut, Moon, Sun, User, Trophy, Star, Film } from 'lucide-react';
 import { useEnsureProfile } from '@/hooks/useEnsureProfile';
-import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import type { Database } from '@/types/supabase';
 import { useTheme } from 'next-themes';
 import UserAvatar from '@/components/ui/UserAvatar';
+import { signOutEverywhere } from '@/utils/signOut';
+import { useAuthState } from '@/hooks/useAuthState';
 
 interface UserMenuProps {
   onLoginClick?: () => void;
@@ -25,7 +27,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const supabase = useSupabaseClient<Database>();
-  const user = useUser();
+  const { user, status: authStatus } = useAuthState();
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme !== 'light';
 
@@ -48,11 +50,14 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
   };
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) console.error('Logout error:', error);
-    setOpen(false);
-    router.replace('/');
-    router.refresh();
+    try {
+      await signOutEverywhere(supabase);
+      setOpen(false);
+      router.replace('/');
+      router.refresh();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   // Close dropdown on outside click / Escape (must be before any early returns)
@@ -73,6 +78,10 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
       document.removeEventListener('keydown', onKey, true);
     };
   }, [open]);
+
+  if (authStatus === 'loading') {
+    return <div className="text-sm text-gray-500">Loading...</div>;
+  }
 
   if (!user) {
     // Logged out state: keep buttons, but style slightly differently when inline

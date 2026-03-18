@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import type { Database } from '@/types/supabase';
-import { updateGuestRanking } from '@/utils/guestMode';
+import { clearAllGuestData, updateGuestRanking } from '@/utils/guestMode';
 
 interface GuestRanking {
   movieId: number;
@@ -149,8 +149,8 @@ const useGuestRankingStore = create<GuestRankingStore>()(
           awards: {},
           hasInteracted: false,
         });
-        // Also clear the save prompt dismissal when rankings are cleared
         if (typeof window !== "undefined") {
+          clearAllGuestData();
           localStorage.removeItem("reawarding-save-prompt-dismissed");
         }
       },

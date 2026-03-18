@@ -1,8 +1,6 @@
 name: Update All Movies (Weekly)
 
 on:
-  schedule:
-    - cron: '30 6 * * 0' # Sundays at 06:30 UTC
   workflow_dispatch:
     inputs:
       dry_run:

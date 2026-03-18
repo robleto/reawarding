@@ -355,6 +355,7 @@ export function ReawardAnimation({
                     className="ra-poster-img"
                     priority
                     draggable={false}
+                    unoptimized
                     onError={() => markImgError(originalWinner.title)}
                   />
                 )}
@@ -412,6 +413,7 @@ export function ReawardAnimation({
                       className="ra-poster-img"
                       priority
                       draggable={false}
+                      unoptimized
                       onError={() => markImgError(newWinner.title)}
                     />
                   )}
@@ -454,6 +456,7 @@ export function ReawardAnimation({
                         sizes="(max-width:640px) 33vw, 140px"
                         className="ra-poster-img"
                         draggable={false}
+                        unoptimized
                         onError={() => markImgError(c.title)}
                       />
                     )}
@@ -504,7 +507,7 @@ function AwardsStage({
         </div>
         <div className="ra-movie-item">
           <div className="ra-poster-box ra-poster-box--winner">
-            <Image src={normalizeImageSrc(winnerMovie.posterUrl)} alt={winnerMovie.title} fill sizes="220px" className="ra-poster-img" priority draggable={false} />
+            <Image src={normalizeImageSrc(winnerMovie.posterUrl)} alt={winnerMovie.title} fill sizes="220px" className="ra-poster-img" priority draggable={false} unoptimized />
             <div className="ra-poster-overlay" />
             {winnerBadge}
           </div>
@@ -520,7 +523,7 @@ function AwardsStage({
           {contenderMovies.map((c) => (
             <div key={c.title} className="ra-movie-item">
               <div className="ra-poster-box ra-poster-box--nominee">
-                <Image src={normalizeImageSrc(c.posterUrl)} alt={c.title} fill sizes="140px" className="ra-poster-img" draggable={false} />
+                <Image src={normalizeImageSrc(c.posterUrl)} alt={c.title} fill sizes="140px" className="ra-poster-img" draggable={false} unoptimized />
                 <div className="ra-poster-overlay" />
               </div>
               <p className="ra-movie-title">{c.title}</p>

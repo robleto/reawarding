@@ -22,6 +22,7 @@ export type ContextualTipId =
   | 'category-unlock';
 
 interface OnboardingState {
+  actorKey: string | null;
   // Core flow
   hasSeenIntro: boolean;
   stage: OnboardingStage;
@@ -49,6 +50,7 @@ interface OnboardingState {
   dismissOnboarding: () => void;
   recordSession: () => void;
   resetOnboarding: () => void;
+  bindActor: (actorKey: string) => void;
 }
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -56,6 +58,7 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 const useOnboardingState = create<OnboardingState>()(
   persist(
     (set, get) => ({
+      actorKey: null,
       hasSeenIntro: false,
       stage: 'intro',
       firstYearSelected: null,
@@ -115,6 +118,7 @@ const useOnboardingState = create<OnboardingState>()(
 
       resetOnboarding: () =>
         set({
+          actorKey: get().actorKey,
           hasSeenIntro: false,
           stage: 'intro',
           firstYearSelected: null,
@@ -124,6 +128,23 @@ const useOnboardingState = create<OnboardingState>()(
           tipsSeen: [],
           sessionCount: 1,
           lastSessionDate: todayISO(),
+        }),
+
+      bindActor: (actorKey: string) =>
+        set((state) => {
+          if (state.actorKey === actorKey) return state;
+          return {
+            actorKey,
+            hasSeenIntro: false,
+            stage: 'intro',
+            firstYearSelected: null,
+            starterRatingsCount: 0,
+            hasSeenPayoff: false,
+            hasDismissedOnboarding: false,
+            tipsSeen: [],
+            sessionCount: 1,
+            lastSessionDate: todayISO(),
+          };
         }),
     }),
     {
@@ -141,6 +162,7 @@ const useOnboardingState = create<OnboardingState>()(
         }
       }),
       partialize: (state) => ({
+        actorKey: state.actorKey,
         hasSeenIntro: state.hasSeenIntro,
         stage: state.stage,
         firstYearSelected: state.firstYearSelected,

@@ -91,8 +91,12 @@ export function useUserAwards() {
 
   const [awards, setAwards] = useState<UserAward[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchAwards = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
     if (isGuest) {
       // guestAwards is a Record<number, GuestAward> — convert to array
       const awardsArray = Object.values(guestAwards) as any[];
@@ -122,6 +126,7 @@ export function useUserAwards() {
         } else {
           console.warn("[useUserAwards] Error fetching awards:", error.message);
           setAwards([]);
+          setError(error.message);
         }
       } else {
         const normalized = (data || [])
@@ -132,6 +137,7 @@ export function useUserAwards() {
     } catch (err) {
       console.warn("[useUserAwards] Unexpected error:", err);
       setAwards([]);
+      setError(err instanceof Error ? err.message : "Failed to load awards");
     }
 
     setLoading(false);
@@ -158,6 +164,7 @@ export function useUserAwards() {
     awards,
     awardCount,
     loading,
+    error,
     refetch: fetchAwards,
   };
 }

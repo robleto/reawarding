@@ -4,8 +4,7 @@ import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { Flame } from "lucide-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
-import MoviePosterCard from "@/components/movie/MoviePosterCard";
-import MovieRowCard from "@/components/movie/MovieRowCard";
+import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieFilters from "@/components/filters/MovieFilters";
 import HotTakeIndicator from "@/components/rankings/HotTakeIndicator";
@@ -103,8 +102,6 @@ export default function ProfileRankingsPage() {
     setIsModalOpen(false);
   };
 
-  // No-op for public profile — rankings are read-only
-  const noopUpdate = () => {};
 
   if (loading) {
     return (
@@ -198,10 +195,9 @@ export default function ProfileRankingsPage() {
                 const def = getRatingDefinition(r.ranking);
                 return (
                   <div key={movie.id} className="relative">
-                    <MoviePosterCard
+                    <MovieCard
                       movie={movie}
-                      currentUserId=""
-                      onUpdate={noopUpdate}
+                      variant="grid"
                       ranking={r.ranking ?? null}
                       ratingLabel={def?.label ?? null}
                       seenIt={r.seen_it ?? false}
@@ -228,17 +224,16 @@ export default function ProfileRankingsPage() {
                 if (!r) return null;
                 const def = getRatingDefinition(r.ranking);
                 return (
-                  <MovieRowCard
+                  <MovieCard
                     key={movie.id}
                     movie={movie}
-                    currentUserId=""
-                    onUpdate={noopUpdate}
+                    variant="compact"
+                    rank={index + 1}
                     ranking={r.ranking ?? null}
                     ratingLabel={def?.label ?? null}
                     seenIt={r.seen_it ?? false}
-                    isLast={index === groupMovieList.length - 1}
-                    index={index}
                     showHotTake={activeTab === "hot-takes"}
+                    showYear
                     onClick={() => handleOpenModal(movie)}
                   />
                 );

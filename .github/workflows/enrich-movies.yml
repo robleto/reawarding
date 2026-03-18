@@ -1,14 +1,24 @@
 name: Enrich Movies (via batch)
 
 on:
-  schedule:
-    - cron: '50 5 * * *' # Daily at 05:50 UTC
   workflow_dispatch:
     inputs:
       dry_run:
         description: 'Skip invoking function, print safe diagnostics only'
         required: false
         default: 'false'
+      start_index:
+        description: 'Starting index for unenriched movies'
+        required: false
+        default: '0'
+      batch_size:
+        description: 'Number of movies per batch'
+        required: false
+        default: '25'
+      max_batches:
+        description: 'Max batches to process this run (prevents long jobs)'
+        required: false
+        default: '4'
 
 jobs:
   run:

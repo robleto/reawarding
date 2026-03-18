@@ -13,6 +13,8 @@
     "start": "next start",
     "lint": "next lint",
     "test:e2e": "playwright test",
+    "test:e2e:launch-gate": "playwright test --project=auth-session --project=persistence-boundary --project=fail-closed-screens",
+    "test:e2e:launch-gate:extended": "playwright test --project=auth-session --project=persistence-boundary --project=fail-closed-screens --project=core-loop",
     "agent:check": "npm run clean && npm run build && npm run lint && npm run test:e2e",
     "ingest:collections": "tsx scripts/import_tmdb_collections.ts",
     "ingest:discover": "tsx scripts/import_tmdb_discover.ts --pages=10 --revenue-pages=5",
