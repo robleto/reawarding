@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { X } from "lucide-react";
+import { X, Check, Star } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 
@@ -39,6 +39,20 @@ export default function RatingModal({
   onClose,
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [confirmedRating, setConfirmedRating] = useState<number | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reset confirmation state when modal opens
+  useEffect(() => {
+    if (isOpen) setConfirmedRating(null);
+  }, [isOpen]);
+
+  // Clear any pending close timer on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   // Close on Escape
   useEffect(() => {
@@ -127,6 +141,27 @@ export default function RatingModal({
           </button>
         </div>
 
+        {/* Post-rating confirmation flash */}
+        {confirmedRating !== null && (
+          <div className="px-4 py-3 border-t border-gray-800 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            {confirmedRating >= 7 ? (
+              <div className="flex items-center gap-2">
+                <Star className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
+                <p className="text-sm text-yellow-300 font-medium">
+                  Rated {confirmedRating} — added to your {new Date().getFullYear()} contenders.
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <p className="text-sm text-gray-300">
+                  Rated {confirmedRating}. Keep rating to build your field.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Rating list */}
         <div className="overflow-y-auto px-3 py-3 space-y-1.5" style={{ maxHeight: "calc(88vh - 120px)" }}>
           {RATING_OPTIONS.map((num) => {
@@ -138,7 +173,9 @@ export default function RatingModal({
                 type="button"
                 onClick={() => {
                   onRate(num);
-                  onClose();
+                  setConfirmedRating(num);
+                  if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+                  closeTimerRef.current = setTimeout(onClose, 900);
                 }}
                 className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all hover:scale-[1.01] active:scale-[0.99] ${
                   isSelected
@@ -159,7 +196,7 @@ export default function RatingModal({
                   </span>
                   {num >= 7 && (
                     <span className="block text-[10px] opacity-70 mt-0.5">
-                      Auto-nominates to ballot
+                      Scores 7+ become contenders
                     </span>
                   )}
                 </span>

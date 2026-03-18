@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Film, Trophy, ChevronDown, Check, Star } from "lucide-react";
 import { getActualWinner } from "@/data/bestPictureWinners";
 import { normalizeImageUrl } from "@/utils/imageUrl";
-import MoviePosterCard from "@/components/movie/MoviePosterCard";
+import MovieCard from "@/components/award/MovieCard";
 import type { Movie } from "@/types/types";
 import type { UserAward } from "@/hooks/useUserAwards";
 
@@ -279,13 +279,23 @@ export default function ExpandableYearCard({
                 {liveNomineeCount}/10
               </span>
             </div>
+            {/* "Rate 7+" hint shown in header when ballot incomplete and not expanded */}
+            {!isExpanded && liveNomineeCount < 10 && (
+              <span className="hidden sm:inline text-[9px] text-gray-600 whitespace-nowrap">
+                Rate 7+ to nominate
+              </span>
+            )}
           </div>
           <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3">
             <p className="truncate text-base font-semibold text-white group-hover:text-yellow-100">
               {leader.title}
             </p>
             <p className="text-[10px] uppercase tracking-wider text-yellow-400/60 flex-shrink-0">
-              {liveNomineeCount >= 10 ? "Your Best Picture" : "Current Leader"}
+              {liveNomineeCount >= 10
+                ? "Your Best Picture"
+                : liveNomineeCount > 0
+                  ? "Leading contender"
+                  : "Start rating"}
             </p>
           </div>
         </div>
@@ -336,12 +346,12 @@ export default function ExpandableYearCard({
             <div>
               <p className="text-sm text-gray-300">
                 Rate films from{" "}
-                <span className="font-semibold text-white">{year}</span> to
-                shape your Best Picture race.
+                <span className="font-semibold text-white">{year}</span> —
+                your awards take shape as you go.
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
                 <Star className="inline w-3 h-3 text-yellow-400/70 mr-0.5 -mt-0.5" />
-                7+ automatically becomes a contender.
+                Scores 7+ automatically become contenders.
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -397,9 +407,9 @@ export default function ExpandableYearCard({
                           </span>
                         </div>
                       )}
-                      <MoviePosterCard
+                      <MovieCard
                         movie={movie}
-                        currentUserId={currentUserId}
+                        variant="grid"
                         ranking={movie.rankings?.[0]?.ranking ?? null}
                         seenIt={movie.rankings?.[0]?.seen_it ?? false}
                         onUpdate={handleRatingFirst}

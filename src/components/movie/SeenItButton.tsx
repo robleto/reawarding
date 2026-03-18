@@ -4,6 +4,8 @@ import { Eye, EyeOff } from "lucide-react";
 interface SeenItButtonProps {
   seenIt: boolean;
   onClick: () => void;
+  /** Called only when transitioning from unseen → seen, after onClick fires */
+  onJustSeen?: () => void;
   showText?: boolean; // Controls whether to show text labels
   size?: 'sm' | 'md' | 'lg'; // Controls icon size
   variant?: 'default' | 'compact'; // Controls button styling
@@ -13,6 +15,7 @@ interface SeenItButtonProps {
 export default function SeenItButton({
   seenIt,
   onClick,
+  onJustSeen,
   showText = true,
   size = 'md',
   variant = 'default',
@@ -27,7 +30,7 @@ export default function SeenItButton({
 
   // Base styles for different variants
   const variants = {
-    default: "flex items-center gap-1 text-sm font-medium focus:outline-none",
+    default: "flex items-center gap-1 text-sm font-medium focus:outline-none min-w-[72px]",
     compact: "flex items-center justify-center p-1 rounded transition-colors focus:outline-none"
   };
 
@@ -44,10 +47,12 @@ export default function SeenItButton({
     <button
       onClick={(e) => {
         e.stopPropagation();
+        const wasUnseen = !seenIt;
         onClick();
+        if (wasUnseen) onJustSeen?.();
       }}
       className={`${variants[variant]} ${seenStyles} ${compactHoverStyles} ${className}`}
-      title={seenIt ? 'Mark as unseen' : 'Mark as seen'}
+      title={seenIt ? 'Remove from tracked films' : 'Track this film'}
     >
       {seenIt ? (
         <>

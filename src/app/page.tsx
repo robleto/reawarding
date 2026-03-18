@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import HomeHero from "@/app/components/home/HomeHero";
 import PanelPremise from "@/app/components/home/PanelPremise";
 import HowItWorksSection from "@/app/components/home/HowItWorksSection";
@@ -18,13 +17,13 @@ import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
 import { useCreateAward } from "@/hooks/useCreateAward";
 import { useUserAwards } from "@/hooks/useUserAwards";
 import { buildTasteProfile, getYearLeaders } from "@/utils/tasteInsights";
-import { getActualWinner } from "@/data/bestPictureWinners";
-import { ArrowRight, Film, Calendar } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import ExpandableYearCard from "@/components/home/ExpandableYearCard";
 import BallotMilestoneOverlay from "@/components/home/BallotMilestoneOverlay";
+import RecognitionFeed from "@/components/home/RecognitionFeed";
 import useOnboardingState from "@/hooks/useOnboardingState";
 import SessionCoach from "@/components/onboarding/SessionCoach";
-import type { Database } from "@/types/supabase";
+import { useRecognitionFeed } from "@/hooks/useRecognitionFeed";
 import type { Movie } from "@/types/types";
 import { useAuthState } from "@/hooks/useAuthState";
 
@@ -39,13 +38,16 @@ const PANEL_IDS = [
 
 type OnboardingTourStep = 0 | 1 | 2 | 3;
 
-const SUGGESTED_YEARS = (() => {
-  const current = new Date().getFullYear();
-  return [current, current - 1, current - 2, 2019, 2014, 2010, 2007, 1999, 1994];
-})();
+// Curated starting-point years — kept to 8 so the row never wraps at desktop width.
+// 2022 is included because it is a commonly active ballot year.
+const SUGGESTED_YEARS = [2026, 2025, 2024, 2022, 2019, 2014, 2007, 1999];
+
+// Extended year list shown when the user asks for more choices (newest → oldest).
+const ALL_OSCAR_YEARS = Array.from({ length: 2026 - 1927 + 1 }, (_, i) => 2026 - i);
+
+const EXAMPLE_FILMS = ["The Dark Knight", "Titanic", "Get Out", "La La Land"];
 
 export default function HomePage() {
-  const supabase = useSupabaseClient<Database>();
   const reducedMotion = usePrefersReducedMotion();
   const { status: authStatus, isAuthenticated, user } = useAuthState();
   const { movies, userId, updateMovieRanking, isGuest, loading, authChecked, error: moviesError } = useMovieDataWithGuest();
@@ -64,14 +66,9 @@ export default function HomePage() {
     milestone: 5 | 10;
     winnerTitle: string;
   } | null>(null);
-  const [userProfile, setUserProfile] = useState<{
-    first_name?: string;
-    last_name?: string;
-    username?: string;
-    preferred_name?: string | null;
-    last_login?: string;
-  } | null>(null);
   const [sessionCoachDismissed, setSessionCoachDismissed] = useState(false);
+  const [showAllYears, setShowAllYears] = useState(false);
+  const [suggestedQuery, setSuggestedQuery] = useState<string | undefined>(undefined);
 
   // Determine if we're showing guest panels (unauthenticated).
   // `showGuestPanels` tracks whether to render the GSAP scroll panels.
@@ -86,13 +83,15 @@ export default function HomePage() {
   );
 
   // ── Onboarding state ──
-  const onboarding = useOnboardingState();
+  const onboardingStage = useOnboardingState((state) => state.stage);
+  const hasDismissedOnboarding = useOnboardingState((state) => state.hasDismissedOnboarding);
+  const recordOnboardingSession = useOnboardingState((state) => state.recordSession);
+  const incrementStarterRatings = useOnboardingState((state) => state.incrementStarterRatings);
 
   // Record session visit on mount
   useEffect(() => {
-    onboarding.recordSession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    recordOnboardingSession();
+  }, [recordOnboardingSession]);
 
   // Compute best year data for session coaching
   const bestYearData = useMemo(() => {
@@ -134,26 +133,6 @@ export default function HomePage() {
     []
   );
 
-  useEffect(() => {
-    async function fetchProfile() {
-      if (!isAuthenticated || !user?.id) {
-        setUserProfile(null);
-        return;
-      }
-      try {
-        const { data } = await supabase
-          .from("profiles")
-          .select("first_name, last_name, username, preferred_name, last_login")
-          .eq("id", user.id)
-          .single();
-        if (data) setUserProfile(data);
-      } catch (err) {
-        console.warn("Profile fetch failed:", err);
-      }
-    }
-    void fetchProfile();
-  }, [isAuthenticated, supabase, user?.id]);
-
   const handleCreateAwardFromExplorer = useCallback(
     (movie: Movie) => {
       void createAward({
@@ -182,18 +161,20 @@ export default function HomePage() {
       if (
         updates.ranking &&
         updates.ranking >= 1 &&
-        onboarding.stage === "rating" &&
-        !onboarding.hasDismissedOnboarding
+        onboardingStage === "rating" &&
+        !hasDismissedOnboarding
       ) {
-        onboarding.incrementStarterRatings();
+        incrementStarterRatings();
       }
     },
-    [updateMovieRanking, onboarding]
+    [updateMovieRanking, onboardingStage, hasDismissedOnboarding, incrementStarterRatings]
   );
 
   const handleSelectMovie = useCallback(
     (movie: Movie) => {
       if (!movie.release_year) return;
+      // Clear any chip-injected query so the same chip can be re-clicked later
+      setSuggestedQuery(undefined);
       if (isGuest) {
         void updateMovieRanking(movie.id as unknown as number, {
           seen_it: true,
@@ -313,6 +294,27 @@ export default function HomePage() {
   const tasteProfile = useMemo(() => buildTasteProfile(ratedMovies), [ratedMovies]);
   const yearLeaders = useMemo(() => getYearLeaders(ratedMovies), [ratedMovies]);
 
+  // ── Recognition feed data ──
+  const userMovieIds = useMemo(
+    () => new Set(movies.map((m) => m.id as number)),
+    [movies]
+  );
+
+  const topGenreData = useMemo(() => {
+    if (tasteProfile.topGenres.length === 0) return { genre: null, exemplar: null };
+    const topGenre = tasteProfile.topGenres[0].genre;
+    const exemplarLeader = yearLeaders.find((yl) =>
+      (yl.leader.genres ?? []).includes(topGenre)
+    );
+    return { genre: topGenre, exemplar: exemplarLeader?.leader.title ?? null };
+  }, [tasteProfile, yearLeaders]);
+
+  const { rows: feedRows, loading: feedLoading } = useRecognitionFeed(
+    userMovieIds,
+    topGenreData.genre,
+    topGenreData.exemplar
+  );
+
   // ── State detection: has the user started any ballots? ──
   const hasStartedBallots = awards.length > 0 || yearLeaders.length > 0;
 
@@ -330,14 +332,6 @@ export default function HomePage() {
     // All complete — show most recent
     return yearLeaders[0];
   }, [yearLeaders]);
-
-  const displayName = useMemo(() => {
-    if (userProfile?.preferred_name) return userProfile.preferred_name;
-    if (userProfile?.first_name) return userProfile.first_name;
-    if (userProfile?.username) return userProfile.username;
-    if (user?.email) return user.email.split("@")[0];
-    return "there";
-  }, [userProfile, user?.email]);
 
   // Sync guest panel visibility with auth state.
   // On guest→logged-in transition, kill GSAP ScrollTriggers before unmounting
@@ -385,7 +379,7 @@ export default function HomePage() {
     return (
       <div className="home-shell flex items-center justify-center min-h-[50vh]">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 rounded-full border-2 border-yellow-400/30 border-t-yellow-400 animate-spin" />
+          <div className="w-8 h-8 border-2 rounded-full border-yellow-400/30 border-t-yellow-400 animate-spin" />
           <p className="text-sm text-gray-500">Loading…</p>
         </div>
       </div>
@@ -395,9 +389,9 @@ export default function HomePage() {
   if (homepageDataError) {
     return (
       <div className="home-shell flex items-center justify-center min-h-[50vh]">
-        <div className="max-w-lg rounded-2xl border border-red-500/20 bg-red-500/5 px-6 py-8 text-center">
+        <div className="max-w-lg px-6 py-8 text-center border rounded-2xl border-red-500/20 bg-red-500/5">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-red-300">Fetch failure</p>
-          <h2 className="mt-3 font-unbounded text-2xl text-white">We couldn&apos;t load your homepage state.</h2>
+          <h2 className="mt-3 text-2xl text-white font-unbounded">We couldn&apos;t load your homepage state.</h2>
           <p className="mt-3 text-sm text-gray-300">
             Authentication resolved, but the session-backed homepage data did not load. Please refresh and try again.
           </p>
@@ -447,103 +441,240 @@ export default function HomePage() {
         /* ══════════════════════════════════════════════════════════
            FIRST-TIME USER: Onboarding
            ═══════════════════════════════════════════════════════ */
-        <div className="px-2 pt-8 sm:px-0">
-          <section className="mx-auto max-w-xl text-center">
-            {/* Step badge */}
-            <div className="inline-flex items-center gap-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 mb-5">
-              <Calendar className="h-3.5 w-3.5 text-yellow-400" />
-              <span className="text-xs font-medium text-yellow-300 uppercase tracking-wider">
-                Step 1 of 3
-              </span>
-            </div>
-
-            <h2 className="font-unbounded text-2xl sm:text-3xl font-bold text-white mb-3">
-              Pick a year you know well enough to have opinions
-            </h2>
-            <p className="text-base text-gray-400 max-w-md mx-auto mb-8">
-              A favorite year, a recent year, or a year with films you remember clearly all work.
+        <div className="px-2 pt-10 sm:px-0">
+          {/* ─── Hero: primary entry point ─── */}
+          <section className="max-w-xl mx-auto mb-10 text-center">
+            <h1 className="mb-3 text-3xl font-semibold leading-tight text-white font-unbounded sm:text-4xl">
+              Track films. Rate favorites. ReAward the year.
+            </h1>
+            <p className="max-w-md mx-auto mb-8 text-base text-gray-400">
+              Start with a movie you&apos;ve seen — your rankings do the rest.
             </p>
 
-            {/* Year chips */}
-            <div className="flex flex-wrap justify-center gap-2 mb-10">
+            {/* Prominent search */}
+            <div className="max-w-lg mx-auto mb-4">
+              <MovieSearchPicker
+                onSelect={handleSelectMovie}
+                placeholder="Add a movie you've watched…"
+                className="text-lg"
+                suggestedQuery={suggestedQuery}
+              />
+            </div>
+
+            {/* Example chips */}
+            <div className="flex flex-wrap justify-center gap-2">
+              {EXAMPLE_FILMS.map((film) => (
+                <button
+                  key={film}
+                  type="button"
+                  onClick={() => setSuggestedQuery(film)}
+                  className="rounded-full border border-gray-700/40 bg-gray-900/50 px-3 py-1.5 text-sm text-gray-400 hover:border-yellow-500/40 hover:text-yellow-300 transition-all"
+                >
+                  {film}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* ─── Divider ─── */}
+          <div className="max-w-xl mx-auto mb-8">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-gray-800" />
+              <span className="text-xs tracking-wider text-gray-600 uppercase">or</span>
+              <div className="flex-1 h-px bg-gray-800" />
+            </div>
+          </div>
+
+          {/* ─── Start a year: secondary entry point ─── */}
+          <section className="max-w-xl mx-auto mb-12 text-center">
+            <p className="mb-1 text-sm font-semibold text-gray-300">Start with a year (optional).</p>
+            <p className="mb-5 text-sm text-gray-500">
+              Jump into a year — or just start rating.
+            </p>
+            <div className="flex flex-nowrap justify-center gap-2 overflow-x-auto pb-1">
               {SUGGESTED_YEARS.map((year) => (
                 <button
                   key={year}
                   type="button"
                   onClick={() => setExplorerYear(year)}
-                  className="rounded-lg border border-gray-700/40 bg-gray-900/50 px-4 py-2.5 font-unbounded text-sm font-bold text-white hover:border-yellow-500/40 hover:bg-gray-800/60 transition-all"
+                  className="flex-shrink-0 rounded-lg border border-gray-700/40 bg-gray-900/50 px-4 py-2.5 font-unbounded text-sm font-bold text-white hover:border-yellow-500/40 hover:bg-gray-800/60 transition-all"
                 >
                   {year}
                 </button>
               ))}
             </div>
-
-            {/* Prominent search */}
-            <div className="mx-auto max-w-lg">
-              <p className="mb-3 text-sm font-medium text-yellow-300/90">
-                Or search for a movie you love
-              </p>
-              <MovieSearchPicker
-                onSelect={handleSelectMovie}
-                placeholder="Search for a movie you love..."
-                className="text-lg"
-              />
-            </div>
-
-            {/* How it works — compact */}
-            <div className="mx-auto mt-12 grid max-w-md grid-cols-1 gap-3 text-left sm:grid-cols-3">
-              <div className="rounded-xl border border-gray-700/30 bg-gray-900/40 px-4 py-3">
-                <span className="text-sm font-semibold text-white">1. Rate</span>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Search a film and give it your score.
-                </p>
+            {/* Extended year picker */}
+            {showAllYears ? (
+              <div className="mt-4">
+                <div className="flex flex-wrap justify-center gap-1.5 max-h-48 overflow-y-auto py-2">
+                  {ALL_OSCAR_YEARS.filter((y) => !SUGGESTED_YEARS.includes(y)).map((year) => (
+                    <button
+                      key={year}
+                      type="button"
+                      onClick={() => { setExplorerYear(year); setShowAllYears(false); }}
+                      className="rounded-md border border-gray-700/30 bg-gray-900/40 px-3 py-1.5 font-unbounded text-xs font-semibold text-gray-300 hover:border-yellow-500/40 hover:text-white transition-all"
+                    >
+                      {year}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAllYears(false)}
+                  className="mt-2 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  Show less ↑
+                </button>
               </div>
-              <div className="rounded-xl border border-gray-700/30 bg-gray-900/40 px-4 py-3">
-                <span className="text-sm font-semibold text-white">2. Rank</span>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Your top-rated films become nominees.
-                </p>
-              </div>
-              <div className="rounded-xl border border-gray-700/30 bg-gray-900/40 px-4 py-3">
-                <span className="text-sm font-semibold text-white">3. Award</span>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Fill 10 nominees and crown your winner.
-                </p>
-              </div>
-            </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowAllYears(true)}
+                className="mt-3 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                Choose another year →
+              </button>
+            )}
           </section>
+
+          {/* ─── Recognition feed: rating triggers ─── */}
+          <div className="max-w-xl mx-auto mb-10 mt-2">
+            <RecognitionFeed
+              rows={feedRows}
+              loading={feedLoading}
+              onSelectMovie={handleSelectMovie}
+            />
+          </div>
+
+          {/* ─── How it works — compact ─── */}
+          <div className="grid max-w-md grid-cols-1 gap-3 mx-auto text-left sm:grid-cols-3">
+            <div className="px-4 py-3 border rounded-xl border-gray-700/30 bg-gray-900/40">
+              <span className="text-sm font-semibold text-white">1. Track</span>
+              <p className="mt-0.5 text-xs text-gray-500">
+                Mark films you&apos;ve seen.
+              </p>
+            </div>
+            <div className="px-4 py-3 border rounded-xl border-gray-700/30 bg-gray-900/40">
+              <span className="text-sm font-semibold text-white">2. Rate</span>
+              <p className="mt-0.5 text-xs text-gray-500">
+                Score your favorites — nominees emerge automatically.
+              </p>
+            </div>
+            <div className="px-4 py-3 border rounded-xl border-gray-700/30 bg-gray-900/40">
+              <span className="text-sm font-semibold text-white">3. ReAward</span>
+              <p className="mt-0.5 text-xs text-gray-500">
+                Your top-rated film becomes Best Picture.
+              </p>
+            </div>
+          </div>
         </div>
       ) : (
         /* ══════════════════════════════════════════════════════════
            RETURNING USER: Dashboard
            ═══════════════════════════════════════════════════════ */
-        <div className="px-2 pt-6 sm:px-0">
-          {/* Session coach (return-visit nudges) */}
-          {!sessionCoachDismissed && (
-            <SessionCoach
-              movies={movies}
-              bestYear={bestYearData.bestYear}
-              bestYearRatedCount={bestYearData.bestCount}
-              leaderTitle={bestYearData.leaderTitle}
-              onOpenYear={(year) => setExplorerYear(year)}
-              onDismiss={() => setSessionCoachDismissed(true)}
-            />
-          )}
+        <div className="px-2 pt-8 sm:px-0">
 
-          {/* ─── Welcome back headline ─── */}
-          <section className="mb-8 text-center">
-            <h2 className="font-unbounded text-2xl sm:text-3xl font-bold text-white">
-              Welcome back{displayName !== "there" ? `, ${displayName}` : ""}
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              {yearLeaders.length} {yearLeaders.length === 1 ? "year" : "years"} in play
-              {" · "}
-              {yearLeaders.filter((yl) => yl.nomineeCount >= 10).length} complete
+          {/* ─── 1. Hero: primary entry point ─── */}
+          <section className="max-w-2xl mx-auto mb-10">
+            <h1 className="mb-2 text-3xl font-semibold leading-tight text-white font-unbounded sm:text-4xl">
+              Track films. Rate favorites. ReAward the year.
+            </h1>
+            <p className="mb-6 text-sm text-gray-400">
+              Start with a movie you&apos;ve seen — your rankings do the rest.
             </p>
+            <MovieSearchPicker
+              onSelect={handleSelectMovie}
+              placeholder="Add a movie you've watched…"
+              className="text-lg"
+              suggestedQuery={suggestedQuery}
+            />
+            {/* Example chips */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              {EXAMPLE_FILMS.map((film) => (
+                <button
+                  key={film}
+                  type="button"
+                  onClick={() => setSuggestedQuery(film)}
+                  className="rounded-full border border-gray-700/40 bg-gray-900/50 px-3 py-1.5 text-sm text-gray-400 hover:border-yellow-500/40 hover:text-yellow-300 transition-all"
+                >
+                  {film}
+                </button>
+              ))}
+            </div>
           </section>
 
-          {/* ─── Primary card: Continue most recent ballot ─── */}
-          {mostRecentBallot && (() => {
+          {/* ─── 2. Start a year: secondary entry point ─── */}
+          <section className="mx-auto max-w-2xl mb-10">
+            <p className="mb-1 text-sm font-semibold text-gray-300">Start with a year (optional).</p>
+            <p className="mb-4 text-xs text-gray-500">
+              Jump into a year — or just start rating.
+            </p>
+            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
+              {SUGGESTED_YEARS.filter(
+                (year) => !yearLeaders.some((yl) => yl.year === year)
+              ).map((year) => (
+                <button
+                  key={year}
+                  type="button"
+                  onClick={() => setExplorerYear(year)}
+                  className="flex-shrink-0 rounded-lg border border-gray-700/40 bg-gray-900/50 px-3.5 py-2 font-unbounded text-sm font-bold text-white hover:border-yellow-500/40 hover:bg-gray-800/60 transition-all"
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
+            {/* Extended year picker */}
+            {showAllYears ? (
+              <div className="mt-4">
+                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto py-1">
+                  {ALL_OSCAR_YEARS.filter(
+                    (y) => !SUGGESTED_YEARS.includes(y) && !yearLeaders.some((yl) => yl.year === y)
+                  ).map((year) => (
+                    <button
+                      key={year}
+                      type="button"
+                      onClick={() => { setExplorerYear(year); setShowAllYears(false); }}
+                      className="rounded-md border border-gray-700/30 bg-gray-900/40 px-3 py-1.5 font-unbounded text-xs font-semibold text-gray-300 hover:border-yellow-500/40 hover:text-white transition-all"
+                    >
+                      {year}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAllYears(false)}
+                  className="mt-2 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  Show less ↑
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowAllYears(true)}
+                className="mt-3 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                Choose another year →
+              </button>
+            )}
+          </section>
+
+          {/* ─── Session coach (between start and resume, for time-sensitive nudges) ─── */}
+          {!sessionCoachDismissed && (
+            <div className="max-w-2xl mx-auto mb-10">
+              <SessionCoach
+                movies={movies}
+                bestYear={bestYearData.bestYear}
+                bestYearRatedCount={bestYearData.bestCount}
+                leaderTitle={bestYearData.leaderTitle}
+                onOpenYear={(year) => setExplorerYear(year)}
+                onDismiss={() => setSessionCoachDismissed(true)}
+              />
+            </div>
+          )}
+
+          {/* ─── 3. Resume progress: pick up where you left off ─── */}
+          {mostRecentBallot && mostRecentBallot.neededForBallot > 0 && (() => {
             const ballot = mostRecentBallot;
             const posterSrc =
               ballot.leader.cached_poster_url ||
@@ -551,119 +682,96 @@ export default function HomePage() {
               ballot.leader.cached_thumb_url ||
               ballot.leader.thumb_url ||
               "";
-            const academy = getActualWinner(ballot.year);
 
             return (
-              <section className="mb-8">
-                <div className="mx-auto max-w-2xl">
-                  <button
-                    type="button"
-                    onClick={() => setExplorerYear(ballot.year)}
-                    className="group w-full rounded-2xl border border-yellow-500/25 bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-transparent p-6 sm:p-7 text-left transition-all hover:border-yellow-500/45 hover:from-yellow-500/15"
-                  >
-                    <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-yellow-400/70">
-                      Continue Your {ballot.year} Ballot
-                    </p>
-                    <div className="flex items-start gap-5">
-                      {posterSrc && (
-                        <div className="relative h-[96px] w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-800 shadow-lg">
-                          <Image
-                            src={posterSrc}
-                            alt={ballot.leader.title}
-                            fill
-                            className="object-cover"
-                            sizes="64px"
-                            unoptimized
-                          />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] uppercase tracking-wider text-yellow-400/60 mb-0.5">
-                          {ballot.neededForBallot <= 0 ? "Your Best Picture" : "Current Leader"}
-                        </p>
-                        <p className="text-lg font-bold text-white truncate group-hover:text-yellow-100">
-                          {ballot.leader.title}
-                        </p>
-                        <p className="text-sm text-gray-400 mt-1">
-                          {ballot.nomineeCount} of 10 nominees
-                        </p>
-                        {ballot.neededForBallot > 0 ? (
-                          <p className="text-sm text-yellow-300/80 mt-1">
-                            Add {ballot.neededForBallot} more {ballot.neededForBallot === 1 ? "film" : "films"} to complete your ballot.
-                          </p>
-                        ) : (
-                          <p className="text-sm text-emerald-400/80 mt-1">
-                            Full ballot. Your Best Picture is decided.
-                          </p>
-                        )}
+              <section className="max-w-2xl mx-auto mb-10">
+                <p className="mb-3 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                  Keep rating
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setExplorerYear(ballot.year)}
+                  className="w-full p-6 text-left transition-all border group rounded-2xl border-yellow-500/25 bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-transparent sm:p-7 hover:border-yellow-500/45 hover:from-yellow-500/15"
+                >
+                  <div className="flex items-start gap-5">
+                    {posterSrc && (
+                      <div className="relative h-[96px] w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-800 shadow-lg">
+                        <Image
+                          src={posterSrc}
+                          alt={ballot.leader.title}
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                          unoptimized
+                        />
                       </div>
-                      <ArrowRight className="h-5 w-5 flex-shrink-0 text-gray-600 transition-colors group-hover:text-yellow-400 mt-1" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] uppercase tracking-wider text-yellow-400/60 mb-0.5">
+                        Current Leader
+                      </p>
+                      <p className="text-lg font-bold text-white truncate group-hover:text-yellow-100">
+                        {ballot.leader.title}
+                      </p>
+                      <p className="mt-1 text-sm text-yellow-300/80">
+                        Your {ballot.year} list is {ballot.neededForBallot} {ballot.neededForBallot === 1 ? "film" : "films"} away from a full ballot.
+                      </p>
                     </div>
-                  </button>
-                </div>
+                    <div className="flex flex-col items-end flex-shrink-0 gap-2">
+                      <span className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-1.5 text-xs font-semibold text-yellow-300 group-hover:bg-yellow-500/20 transition-colors whitespace-nowrap">
+                        Continue rating
+                      </span>
+                      <ArrowRight className="w-4 h-4 text-gray-600 transition-colors group-hover:text-yellow-400" />
+                    </div>
+                  </div>
+                </button>
               </section>
             );
           })()}
 
-          {/* ─── Search (prominent) ─── */}
-          <section className="mb-8">
-            <div className="mx-auto max-w-2xl">
-              <p className="mb-2 text-sm font-medium text-gray-400">
-                Search for a movie you love
-              </p>
-              <MovieSearchPicker
-                onSelect={handleSelectMovie}
-                placeholder="Search for a movie you love..."
-                className="text-lg"
-              />
-            </div>
-          </section>
+          {/* ─── 5. Active workspace: shape your [YEAR] Best Picture race ─── */}
+          {mostRecentBallot && (() => {
+            const ballot = mostRecentBallot;
+            return (
+              <section className="max-w-2xl mx-auto mb-3">
+                <div className="flex items-baseline justify-between mb-1">
+                  <p className="text-sm font-semibold text-gray-300">
+                    Your {ballot.year} awards are taking shape
+                  </p>
+                  {ballot.neededForBallot > 0 && (
+                    <span className="text-xs text-yellow-400/70">
+                      {ballot.neededForBallot} more {ballot.neededForBallot === 1 ? "rating" : "ratings"} to complete your ballot
+                    </span>
+                  )}
+                </div>
+                <p className="mb-3 text-xs text-gray-500">
+                  Rate more films to refine your contenders.
+                </p>
+              </section>
+            );
+          })()}
 
-          {/* ─── Start another year ─── */}
-          <section className="mb-8">
-            <div className="mx-auto max-w-2xl">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                Start another year
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTED_YEARS.filter(
-                  (year) => !yearLeaders.some((yl) => yl.year === year)
-                ).map((year) => (
-                  <button
-                    key={year}
-                    type="button"
-                    onClick={() => setExplorerYear(year)}
-                    className="rounded-lg border border-gray-700/40 bg-gray-900/50 px-3.5 py-2 font-unbounded text-sm font-bold text-white hover:border-yellow-500/40 hover:bg-gray-800/60 transition-all"
-                  >
-                    {year}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* ─── Expandable year cards for in-progress ballots ─── */}
+          {/* ─── 4. Your ballots ─── */}
           {yearLeaders.length > 0 && (
             <section className="mb-10">
-              <div className="mx-auto max-w-2xl">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  Your ballots
-                </p>
+              <div className="max-w-2xl mx-auto">
+                {/* Active ballot first, others under "Your other ballots" */}
                 <div className="space-y-2.5">
-                  {yearLeaders.map((yl) => (
+                  {/* Most recent / active ballot at the top */}
+                  {mostRecentBallot && (
                     <ExpandableYearCard
-                      key={yl.year}
-                      year={yl.year}
-                      leader={yl.leader}
-                      nomineeCount={yl.nomineeCount}
-                      neededForBallot={yl.neededForBallot}
+                      key={mostRecentBallot.year}
+                      year={mostRecentBallot.year}
+                      leader={mostRecentBallot.leader}
+                      nomineeCount={mostRecentBallot.nomineeCount}
+                      neededForBallot={mostRecentBallot.neededForBallot}
                       allMovies={movies}
                       awards={awards}
                       currentUserId={userId}
-                      isExpanded={expandedCardYear === yl.year}
+                      isExpanded={expandedCardYear === mostRecentBallot.year}
                       onToggle={() =>
                         setExpandedCardYear((prev) =>
-                          prev === yl.year ? null : yl.year
+                          prev === mostRecentBallot.year ? null : mostRecentBallot.year
                         )
                       }
                       onUpdateMovieRanking={handleUpdateMovieRanking}
@@ -671,38 +779,86 @@ export default function HomePage() {
                       onOpenFullExplorer={(year) => setExplorerYear(year)}
                       onMilestoneReached={handleBallotMilestone}
                     />
-                  ))}
+                  )}
                 </div>
+
+                {/* Remaining ballots */}
+                {yearLeaders.filter((yl) => yl.year !== mostRecentBallot?.year).length > 0 && (
+                  <>
+                    <p className="mt-6 mb-3 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                      Your other ballots
+                    </p>
+                    <div className="space-y-2.5">
+                      {yearLeaders
+                        .filter((yl) => yl.year !== mostRecentBallot?.year)
+                        .map((yl) => (
+                          <ExpandableYearCard
+                            key={yl.year}
+                            year={yl.year}
+                            leader={yl.leader}
+                            nomineeCount={yl.nomineeCount}
+                            neededForBallot={yl.neededForBallot}
+                            allMovies={movies}
+                            awards={awards}
+                            currentUserId={userId}
+                            isExpanded={expandedCardYear === yl.year}
+                            onToggle={() =>
+                              setExpandedCardYear((prev) =>
+                                prev === yl.year ? null : yl.year
+                              )
+                            }
+                            onUpdateMovieRanking={handleUpdateMovieRanking}
+                            onCreateAward={handleCreateAwardFromExplorer}
+                            onOpenFullExplorer={(year) => setExplorerYear(year)}
+                            onMilestoneReached={handleBallotMilestone}
+                          />
+                        ))}
+                    </div>
+                  </>
+                )}
               </div>
             </section>
           )}
 
-          {/* ─── Compact taste stats ─── */}
+          {/* ─── 5b. Recognition feed: rate more films ─── */}
+          {(feedLoading || feedRows.length > 0) && (
+            <section className="mb-10">
+              <div className="max-w-2xl mx-auto">
+                {/* Divider */}
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="flex-1 h-px bg-gray-800" />
+                  <span className="text-[10px] tracking-wider text-gray-600 uppercase">
+                    More to rate
+                  </span>
+                  <div className="flex-1 h-px bg-gray-800" />
+                </div>
+                <RecognitionFeed
+                  rows={feedRows}
+                  loading={feedLoading}
+                  onSelectMovie={handleSelectMovie}
+                />
+              </div>
+            </section>
+          )}
+
+          {/* ─── 6. Taste / canon: your taste is taking shape ─── */}
           {(tasteProfile.flavourTags.length > 0 || yearLeaders.length > 0) && (
             <section className="mb-10">
-              <div className="mx-auto max-w-2xl rounded-xl border border-gray-700/25 bg-gray-900/30 px-5 py-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Your Canon So Far
+              <div className="max-w-2xl px-5 py-5 mx-auto border rounded-xl border-gray-700/25 bg-gray-900/30">
+                <div className="mb-4">
+                  <p className="mb-1 text-sm font-semibold text-white">
+                    Your taste is taking shape.
                   </p>
-                  <div className="flex gap-5 text-center">
-                    <div>
-                      <p className="text-sm font-bold text-white">{yearLeaders.length}</p>
-                      <p className="text-[10px] text-gray-500">
-                        {yearLeaders.length === 1 ? "Year started" : "Years started"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-white">{tasteProfile.ratedCount}</p>
-                      <p className="text-[10px] text-gray-500">Films rated</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-white">
-                        {yearLeaders.filter((yl) => yl.nomineeCount >= 10).length}
-                      </p>
-                      <p className="text-[10px] text-gray-500">Ballots complete</p>
-                    </div>
-                  </div>
+                  {tasteProfile.eraLabel ? (
+                    <p className="text-sm text-gray-400">
+                      You tend toward{" "}
+                      <span className="text-gray-300">{tasteProfile.eraLabel}</span> films.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-400">
+                      The more you rate, the clearer your canon becomes.
+                    </p>
+                  )}
                 </div>
 
                 {tasteProfile.topGenres.length > 0 && (() => {
@@ -740,18 +896,18 @@ export default function HomePage() {
                   }
                   if (uniqueGenreEntries.length === 0) return null;
                   return (
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 mb-4">
                       {uniqueGenreEntries.map((entry) => (
                         <Link
                           key={entry.label}
                           href={`/films?genre=${encodeURIComponent(entry.genre)}`}
-                          className="flex items-center gap-3 rounded-lg bg-gray-800/30 px-3 py-2 transition-colors hover:bg-gray-800/50"
+                          className="flex items-center gap-3 px-3 py-2 transition-colors rounded-lg bg-gray-800/30 hover:bg-gray-800/50"
                         >
-                          <span className="rounded-full border border-yellow-500/20 bg-yellow-500/10 px-2.5 py-0.5 text-xs font-medium text-yellow-300 transition-colors group-hover:bg-yellow-500/20">
+                          <span className="rounded-full border border-yellow-500/20 bg-yellow-500/10 px-2.5 py-0.5 text-xs font-medium text-yellow-300">
                             {entry.label}
                           </span>
                           {entry.movieTitle && (
-                            <span className="truncate text-xs text-gray-500">{entry.movieTitle}</span>
+                            <span className="text-xs text-gray-500 truncate">{entry.movieTitle}</span>
                           )}
                           <ArrowRight className="ml-auto h-3.5 w-3.5 flex-shrink-0 text-gray-600" />
                         </Link>
@@ -760,12 +916,24 @@ export default function HomePage() {
                   );
                 })()}
 
-                {tasteProfile.eraLabel && (
-                  <p className="mt-2.5 text-xs text-gray-500">
-                    You gravitate toward{" "}
-                    <span className="text-gray-400">{tasteProfile.eraLabel}</span>
-                  </p>
-                )}
+                <div className="flex gap-5 pt-3 text-center border-t border-gray-800/60">
+                  <div>
+                    <p className="text-sm font-bold text-white">{yearLeaders.length}</p>
+                    <p className="text-[10px] text-gray-500">
+                      {yearLeaders.length === 1 ? "Year started" : "Years started"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">{tasteProfile.ratedCount}</p>
+                    <p className="text-[10px] text-gray-500">Films rated</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">
+                      {yearLeaders.filter((yl) => yl.nomineeCount >= 10).length}
+                    </p>
+                    <p className="text-[10px] text-gray-500">Ballots complete</p>
+                  </div>
+                </div>
               </div>
             </section>
           )}
@@ -781,7 +949,7 @@ export default function HomePage() {
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={handleCloseExplorer}
           />
-          <div className="relative h-full overflow-y-auto px-3 py-4 sm:py-16 md:py-24 md:px-6">
+          <div className="relative h-full px-3 py-4 overflow-y-auto sm:py-16 md:py-24 md:px-6">
             <div className="max-w-screen-xl mx-auto">
               <YearExplorer
                 year={explorerYear}
