@@ -1488,8 +1488,7 @@ function WorkshopNomineeRow({
           <GripVertical className="w-3.5 h-3.5" />
         </button>
 
-        {/* Rank — matches MovieCard compact variant */}
-        <span className="w-5 text-center text-[10px] font-bold text-gray-500 tabular-nums flex-shrink-0">{rank}</span>
+        {/* Rank number hidden — total shown in section header instead */}
 
         {/* Thumbnail — matches MovieCard compact variant */}
         <div className="relative flex-shrink-0 overflow-hidden bg-gray-800" style={{ height: 48, borderRadius: 6 }}>

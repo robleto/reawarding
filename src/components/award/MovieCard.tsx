@@ -76,7 +76,7 @@ const RatingBadge = ({ rating, className = "" }: { rating: number; className?: s
 			className={`inline-flex items-center font-bold rounded-md shadow-sm ${className}`}
 			style={{ backgroundColor: background, color: text }}
 		>
-			⭐ {rating}
+			{rating}
 		</span>
 	);
 };
@@ -252,7 +252,7 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 												: { backgroundColor: "rgba(55,55,60,0.7)", color: "#9ca3af" }
 											}
 										>
-											{rating ? <>⭐ {rating}</> : "☆ Rate"}
+											{rating || "Rate"}
 										</button>
 										{ratingLabel && <VariancePill label={ratingLabel} />}
 										{footerAction}
@@ -281,7 +281,7 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 												: { backgroundColor: "rgba(55,55,60,0.7)", color: "#9ca3af" }
 											}
 										>
-											{rating ? <>⭐ {rating}</> : "☆ Rate"}
+											{rating || "Rate"}
 										</button>
 										{ratingLabel && (
 											<span className="mt-0.5"><VariancePill label={ratingLabel} /></span>

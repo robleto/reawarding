@@ -17,7 +17,8 @@ import Image from "next/image";
 import { X, Trophy, Info, Star, Check, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import ContextualTip from "@/components/onboarding/ContextualTip";
-import BallotMilestoneOverlay from "@/components/home/BallotMilestoneOverlay";
+// BallotMilestoneOverlay import removed — confetti/overlay disabled until UX is finalized
+// import BallotMilestoneOverlay from "@/components/home/BallotMilestoneOverlay";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
 import type { Movie } from "@/types/types";
 import { getActualWinner } from "@/data/bestPictureWinners";
@@ -102,14 +103,9 @@ export default function YearExplorer({
   // Real-time workshop nominee IDs — kept in sync via onWorkshopNomineesChange callback
   const [workshopNomineeIds, setWorkshopNomineeIds] = useState<number[]>([]);
   const [workshopWinnerId, setWorkshopWinnerId] = useState<number | null>(null);
-  // Ballot completion state
+  // Ballot completion milestone tracking (overlay/confetti disabled until UX finalized)
   const prevNomineeCountRef = useRef<number>(0);
   const milestoneStateInitializedRef = useRef(false);
-  const [milestoneOverlay, setMilestoneOverlay] = useState<{
-    year: number;
-    milestone: 5 | 10;
-    winnerTitle: string;
-  } | null>(null);
 
   const actualWinner = getActualWinner(year);
 
@@ -277,6 +273,8 @@ export default function YearExplorer({
     return yearMovies.filter((movie) => movie.title.toLowerCase().includes(query));
   }, [yearMovies, searchQuery]);
 
+  // All movies the user has ranked that aren't current nominees — any rating value.
+  // "Rated low" section is folded in here; auto-promotion still only fires for 7+.
   const contenderMovies = useMemo(
     () =>
       filteredYearMovies.filter((movie) => {
@@ -285,9 +283,14 @@ export default function YearExplorer({
         return (
           seenIt &&
           typeof ranking === "number" &&
-          ranking >= 5 &&
+          ranking >= 1 &&
           !activeNomineeIdSet.has(String(movie.id))
         );
+      }).sort((a, b) => {
+        // Highest-rated first within user's ranked films
+        const aR = a.rankings?.[0]?.ranking ?? 0;
+        const bR = b.rankings?.[0]?.ranking ?? 0;
+        return bR - aR;
       }),
     [filteredYearMovies, activeNomineeIdSet]
   );
@@ -358,27 +361,7 @@ export default function YearExplorer({
     [unseenCandidates, topContenderIdSet, otherFilmsIdSet, familiaritySort]
   );
 
-  const lowRatedMovies = useMemo(
-    () =>
-      filteredYearMovies
-        .filter((movie) => {
-          const seenIt = movie.rankings?.[0]?.seen_it === true;
-          const ranking = movie.rankings?.[0]?.ranking;
-          return (
-            seenIt &&
-            typeof ranking === "number" &&
-            ranking < 5 &&
-            !activeNomineeIdSet.has(String(movie.id))
-          );
-        })
-        .sort((a, b) => {
-          const aRanking = a.rankings?.[0]?.ranking ?? 0;
-          const bRanking = b.rankings?.[0]?.ranking ?? 0;
-          if (aRanking !== bRanking) return aRanking - bRanking;
-          return a.title.localeCompare(b.title);
-        }),
-    [filteredYearMovies, activeNomineeIdSet]
-  );
+  // lowRatedMovies removed — folded into contenderMovies (all user-ranked films).
 
   const focusContenders = useCallback(() => {
     contendersSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -480,25 +463,9 @@ export default function YearExplorer({
       (milestone) =>
         prev < milestone && liveNomineeCount >= milestone
     );
-    if (crossedMilestone) {
-      const winnerTitle =
-        liveWinnerMovie?.title ??
-        allMoviesForYear.find(
-          (movie) =>
-            String(movie.id) ===
-            String(workshopWinnerId ?? existingAward?.winnerId ?? defaultWinner?.id)
-        )?.title ??
-        defaultWinner?.title ??
-        "Your current leader";
-      ballotRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      window.setTimeout(() => {
-        setMilestoneOverlay({
-          year,
-          milestone: crossedMilestone as 5 | 10,
-          winnerTitle,
-        });
-      }, 450);
-    }
+    // Milestone overlay/confetti disabled for now — re-enable when celebration UX is finalized.
+    // if (crossedMilestone) { ... setMilestoneOverlay(...) ... }
+    void crossedMilestone;
   }, [
     activeNomineeIdSet,
     allMoviesForYear,
@@ -729,7 +696,7 @@ export default function YearExplorer({
       <div className="lg:grid lg:grid-cols-[minmax(340px,2fr)_3fr] lg:gap-6">
 
         {/* ──── LEFT COLUMN: The Ballot ──────────────────────────────── */}
-        <div className="lg:sticky lg:top-4 lg:self-start">
+        <div className="lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-1">
           <div ref={ballotRef}>
             <EditableYearSection
               ref={workshopRef}
@@ -897,7 +864,7 @@ export default function YearExplorer({
             )}
 
             {/* ─── Movie sections: recognition first ─────────────── */}
-            {renderMovieGrid("Your contenders (rated 5+)", contenderMovies, "contenders", contendersSectionRef)}
+            {renderMovieGrid("Movies you've ranked", contenderMovies, "contenders", contendersSectionRef)}
             <div ref={candidatesSectionRef}>
               {renderMovieGrid(`Top contenders from ${year}`, topContenders, "top-contenders")}
             </div>
@@ -916,7 +883,6 @@ export default function YearExplorer({
               </button>
             )}
             {renderMovieGrid(`Deep cuts from ${year}`, deepCuts.slice(0, 8), "deep-cuts")}
-            {renderMovieGrid("Rated low", lowRatedMovies, "low-rated")}
 
             {/* Loading skeleton */}
             {loading && (
@@ -952,14 +918,7 @@ export default function YearExplorer({
         )}
       </div>
 
-      {milestoneOverlay && (
-        <BallotMilestoneOverlay
-          year={milestoneOverlay.year}
-          milestone={milestoneOverlay.milestone}
-          winnerTitle={milestoneOverlay.winnerTitle}
-          onClose={() => setMilestoneOverlay(null)}
-        />
-      )}
+      {/* BallotMilestoneOverlay disabled — milestone overlay/confetti off until UX is finalized */}
 
       {/* ─── Onboarding tour overlay (portal, fixed to viewport) ───────────────
           Steps 1/3 anchor to the first nominee card. Step 2 anchors to the

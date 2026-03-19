@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/ui/Loading";
@@ -8,8 +8,11 @@ import ScreenState from "@/components/ui/ScreenState";
 import HorizontalListRow from "@/components/list/HorizontalListRow";
 import ListsEmptyState from "@/components/lists/ListsEmptyState";
 import AuthModalManager from "@/components/auth/AuthModalManager";
-import { Plus, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useAuthState } from "@/hooks/useAuthState";
+import { useSmartListAlerts } from "@/hooks/useSmartListAlerts";
+import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
+import type { Movie } from "@/types/types";
 
 export default function ListsHomePage() {
   const supabase = useSupabaseClient();
@@ -19,8 +22,8 @@ export default function ListsHomePage() {
   const router = useRouter();
   const [myLists, setMyLists] = useState<any[]>([]);
   const [publicLists, setPublicLists] = useState<any[]>([]);
+  const [seenMovies, setSeenMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
-  // Ready‑Made CTA row removed; no need to track readiness here
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [createName, setCreateName] = useState("");
@@ -143,7 +146,31 @@ export default function ListsHomePage() {
           my = listsWithCountsAndPosters;
         }
 
-        // Removed Ready‑Made CTA computation
+        // Fetch seen movies for smart list detection
+        const { data: rankingRows } = await supabase
+          .from("rankings")
+          .select("movie_id, seen_it, ranking")
+          .eq("user_id", userId)
+          .eq("seen_it", true);
+
+        const seenIds = (rankingRows || []).map((r: { movie_id: number }) => r.movie_id);
+        if (seenIds.length > 0) {
+          const { data: movieRows } = await supabase
+            .from("movies")
+            .select("id, title, poster_url, director, genres, cast_list, release_year")
+            .in("id", seenIds);
+
+          if (movieRows) {
+            const mapped = movieRows.map((m) => ({
+              ...m,
+              rankings: [{
+                seen_it: true,
+                ranking: rankingRows?.find((r: { movie_id: number }) => r.movie_id === m.id)?.ranking ?? null,
+              }],
+            })) as Movie[];
+            setSeenMovies(mapped);
+          }
+        }
       }
       
       // Get public lists
@@ -206,6 +233,19 @@ export default function ListsHomePage() {
     fetchLists();
   }, [userId, supabase]);
 
+  // Smart list alerts derived from seen movies
+  const smartAlerts = useSmartListAlerts(seenMovies);
+
+  // Build poster URL arrays for each smart list alert
+  const getPosterUrlsForAlert = useMemo(() => (movieIds: number[]) =>
+    movieIds
+      .slice(0, 5)
+      .map((id) => seenMovies.find((m) => m.id === id))
+      .filter((m): m is Movie => Boolean(m))
+      .map((m) => (m as { poster_url?: string | null }).poster_url ?? "")
+      .filter(Boolean),
+  [seenMovies]);
+
   if (loading) return <Loader message="Loading lists..." />;
 
   if (status === "loading") return <Loader message="Loading lists..." />;
@@ -241,7 +281,35 @@ export default function ListsHomePage() {
         </>
       )}
 
-      {/* Top-right create button removed per request; creation via list card only */}
+      {/* Smart Lists — auto-generated from watch history */}
+      {smartAlerts.length > 0 && (
+        <section className="mb-10">
+          <div className="flex items-center justify-between mb-5 px-1">
+            <h2 className="text-xl font-bold text-white tracking-wide">Smart Lists</h2>
+            <a href="/lists/ready-made" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors font-medium">
+              See all →
+            </a>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 overflow-visible">
+            {smartAlerts.slice(0, 6).map((alert) => {
+              const posterUrls = getPosterUrlsForAlert(alert.movieIds);
+              const subtitle = alert.nearMiss
+                ? `${alert.threshold - alert.count} more to create this list`
+                : `${alert.count} films — ready to save as a list`;
+              return (
+                <ReadyMadeCard
+                  key={`${alert.type}-${alert.label}`}
+                  title={alert.label}
+                  count={alert.count}
+                  subtitle={<span className="text-xs text-gray-400">{subtitle}</span>}
+                  posterUrls={posterUrls}
+                  viewHref="/lists/ready-made"
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* My Lists Row */}
       {user && myLists.length > 0 && (

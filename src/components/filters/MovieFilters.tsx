@@ -180,6 +180,7 @@ export default function MovieFilters({
     else if (filterType === "rank") filterLabel = filterValue === "unranked" ? "Rating: No Rating" : `Rating: ${filterValue}`;
     else if (filterType === "movie") filterLabel = "Movie filter";
     else if (filterType === "search") filterLabel = `Query: ${filterValue}`;
+    else if (filterType === "genre") filterLabel = `Genre: ${filterValue}`;
     activeFilters.push({ 
       label: filterLabel, 
       onRemove: () => { setFilterType(defaults.filterType || "none"); setFilterValue(defaults.filterValue || "all"); }

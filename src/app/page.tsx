@@ -19,6 +19,7 @@ import { buildTasteProfile, getYearLeaders } from "@/utils/tasteInsights";
 import { ArrowRight } from "lucide-react";
 import ExpandableYearCard from "@/components/home/ExpandableYearCard";
 import BallotMilestoneOverlay from "@/components/home/BallotMilestoneOverlay";
+import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import RecognitionFeed from "@/components/home/RecognitionFeed";
 import useOnboardingState from "@/hooks/useOnboardingState";
 import SessionCoach from "@/components/onboarding/SessionCoach";
@@ -65,6 +66,7 @@ export default function HomePage() {
   const [onboardingPickedMovie, setOnboardingPickedMovie] = useState<Movie | null>(null);
   const [onboardingRatingTourStep, setOnboardingRatingTourStep] = useState<OnboardingTourStep>(0);
   const [expandedCardYear, setExpandedCardYear] = useState<number | null>(null);
+  const [selectedSearchMovie, setSelectedSearchMovie] = useState<Movie | null>(null);
   const [milestoneOverlay, setMilestoneOverlay] = useState<{
     year: number;
     milestone: 5 | 10;
@@ -74,6 +76,13 @@ export default function HomePage() {
   const [showAllYears, setShowAllYears] = useState(false);
   const [suggestedQuery, setSuggestedQuery] = useState<string | undefined>(undefined);
   const [dismissedAlertKeys, setDismissedAlertKeys] = useState<string[]>([]);
+
+  // Ballot timeline — how many years to show. Persists for the browser session.
+  const [shownBallotCount, setShownBallotCount] = useState<number>(() => {
+    if (typeof window === "undefined") return 10;
+    const stored = sessionStorage.getItem("reawarding-ballot-count");
+    return stored ? parseInt(stored, 10) : 10;
+  });
 
   // Determine if we're showing guest panels (unauthenticated).
   // `showGuestPanels` tracks whether to render the GSAP scroll panels.
@@ -193,6 +202,12 @@ export default function HomePage() {
     },
     [isGuest, updateMovieRanking, handleCreateAwardFromExplorer, openYearExplorerForMovie]
   );
+
+  // For returning users: search picks open movie detail modal, not the YearExplorer
+  const handleOpenMovieDetail = useCallback((movie: Movie) => {
+    setSuggestedQuery(undefined);
+    setSelectedSearchMovie(movie);
+  }, []);
 
   const scrollToPremise = useCallback(() => {
     scrollToElementById("panel-premise", reducedMotion);
@@ -585,7 +600,7 @@ export default function HomePage() {
 
           {/* Recognition feed full-width */}
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-10 mb-10 mt-2">
-            <RecognitionFeed rows={feedRows} loading={feedLoading} onSelectMovie={handleSelectMovie} />
+            <RecognitionFeed rows={feedRows} loading={feedLoading} onSelectMovie={handleSelectMovie} onUpdate={handleUpdateMovieRanking} currentUserId={userId} />
           </div>
 
           {/* How it works */}
@@ -660,22 +675,10 @@ export default function HomePage() {
             Add another film
           </p>
           <MovieSearchPicker
-            onSelect={handleSelectMovie}
+            onSelect={handleOpenMovieDetail}
             placeholder="Search for a film you've watched…"
             suggestedQuery={suggestedQuery}
           />
-          <div className="flex flex-wrap gap-2 mt-3">
-            {EXAMPLE_FILMS.map((film) => (
-              <button
-                key={film}
-                type="button"
-                onClick={() => setSuggestedQuery(film)}
-                className="rounded-full border border-gray-700/40 bg-gray-900/50 px-3 py-1.5 text-sm text-gray-400 hover:border-yellow-500/40 hover:text-yellow-300 transition-all"
-              >
-                {film}
-              </button>
-            ))}
-          </div>
           {/* Start a different year */}
           <div className="mt-4 flex flex-wrap gap-1.5">
             <span className="text-xs text-gray-600 self-center mr-1">Or start a new year:</span>
@@ -748,23 +751,11 @@ export default function HomePage() {
             Rate more films, complete more ballots, grow your canon.
           </p>
           <MovieSearchPicker
-            onSelect={handleSelectMovie}
+            onSelect={handleOpenMovieDetail}
             placeholder="Add a film you've watched…"
             className="text-lg"
             suggestedQuery={suggestedQuery}
           />
-          <div className="flex flex-wrap gap-2 mt-3">
-            {EXAMPLE_FILMS.map((film) => (
-              <button
-                key={film}
-                type="button"
-                onClick={() => setSuggestedQuery(film)}
-                className="rounded-full border border-gray-700/40 bg-gray-900/50 px-3 py-1.5 text-sm text-gray-400 hover:border-yellow-500/40 hover:text-yellow-300 transition-all"
-              >
-                {film}
-              </button>
-            ))}
-          </div>
         </section>
 
         {/* ─── Smart list alerts ─── */}
@@ -804,63 +795,133 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ─── Ballots: active first, then grid ─── */}
+        {/* ─── Ballots: timeline ─── */}
         {yearLeaders.length > 0 && (
           <section className="mb-10">
-            {mostRecentBallot && (
-              <ExpandableYearCard
-                key={mostRecentBallot.year}
-                year={mostRecentBallot.year}
-                leader={mostRecentBallot.leader}
-                nomineeCount={mostRecentBallot.nomineeCount}
-                neededForBallot={mostRecentBallot.neededForBallot}
-                allMovies={movies}
-                awards={awards}
-                currentUserId={userId}
-                isExpanded={expandedCardYear === mostRecentBallot.year}
-                onToggle={() =>
-                  setExpandedCardYear((prev) =>
-                    prev === mostRecentBallot.year ? null : mostRecentBallot.year
-                  )
-                }
-                onUpdateMovieRanking={handleUpdateMovieRanking}
-                onCreateAward={handleCreateAwardFromExplorer}
-                onOpenFullExplorer={(year) => setExplorerYear(year)}
-                onMilestoneReached={handleBallotMilestone}
-              />
-            )}
-            {yearLeaders.filter((yl) => yl.year !== mostRecentBallot?.year).length > 0 && (
-              <>
-                <p className="mt-6 mb-3 text-xs font-semibold tracking-wider text-gray-500 uppercase">
-                  Your other ballots
-                </p>
-                <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
-                  {yearLeaders
-                    .filter((yl) => yl.year !== mostRecentBallot?.year)
-                    .map((yl) => (
-                      <div key={yl.year} className={expandedCardYear === yl.year ? "md:col-span-2" : ""}>
-                        <ExpandableYearCard
-                          year={yl.year}
-                          leader={yl.leader}
-                          nomineeCount={yl.nomineeCount}
-                          neededForBallot={yl.neededForBallot}
-                          allMovies={movies}
-                          awards={awards}
-                          currentUserId={userId}
-                          isExpanded={expandedCardYear === yl.year}
-                          onToggle={() =>
-                            setExpandedCardYear((prev) => (prev === yl.year ? null : yl.year))
-                          }
-                          onUpdateMovieRanking={handleUpdateMovieRanking}
-                          onCreateAward={handleCreateAwardFromExplorer}
-                          onOpenFullExplorer={(year) => setExplorerYear(year)}
-                          onMilestoneReached={handleBallotMilestone}
-                        />
+            {/* All ballots — vertical timeline with dots + lines */}
+            {(() => {
+              const olderBallots = yearLeaders;
+              if (olderBallots.length === 0) return null;
+              const visibleBallots = olderBallots.slice(0, shownBallotCount);
+              const hasMore = olderBallots.length > shownBallotCount;
+              return (
+                <>
+                  <p className="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                    Your ballots
+                  </p>
+                  {/* Timeline container */}
+                  <div className="relative">
+                    {/* Vertical connector line */}
+                    <div className="absolute left-[7px] top-3 bottom-3 w-[2px] bg-gray-800" />
+
+                    <div className="space-y-0">
+                      {visibleBallots.map((yl) => (
+                        <div key={yl.year} className="relative pl-8">
+                          {/* Dot */}
+                          <div
+                            className={`absolute left-0 top-[14px] w-[15px] h-[15px] rounded-full border-2 border-gray-900 transition-colors ${
+                              yl.nomineeCount >= 10
+                                ? "bg-yellow-400"
+                                : "bg-gray-600"
+                            }`}
+                          />
+
+                          {/* Year heading row — collapsed summary or expanded card */}
+                          {expandedCardYear === yl.year ? (
+                            <div className="py-3">
+                              <ExpandableYearCard
+                                year={yl.year}
+                                leader={yl.leader}
+                                nomineeCount={yl.nomineeCount}
+                                neededForBallot={yl.neededForBallot}
+                                allMovies={movies}
+                                awards={awards}
+                                currentUserId={userId}
+                                isExpanded={true}
+                                onToggle={() => setExpandedCardYear(null)}
+                                onUpdateMovieRanking={handleUpdateMovieRanking}
+                                onCreateAward={handleCreateAwardFromExplorer}
+                                onOpenFullExplorer={(year) => setExplorerYear(year)}
+                                onMilestoneReached={handleBallotMilestone}
+                              />
+                            </div>
+                          ) : (
+                            <div className="py-2">
+                              <div className="rounded-xl border border-gray-700/40 bg-gray-900/30 backdrop-blur-sm px-4 py-3 flex items-center gap-3">
+                                {/* Year label */}
+                                <span className="text-sm font-bold text-yellow-400 w-10 shrink-0">{yl.year}</span>
+
+                                {/* Winner + count — grows to fill */}
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedCardYear(expandedCardYear === yl.year ? null : yl.year)}
+                                  className="flex-1 text-left"
+                                >
+                                  <p className="text-sm font-semibold text-gray-100 truncate leading-snug">
+                                    {yl.leader?.title ?? "In progress"}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-0.5">
+                                    {yl.nomineeCount} film{yl.nomineeCount !== 1 ? "s" : ""}
+                                  </p>
+                                </button>
+
+                                {/* Action buttons */}
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => setExplorerYear(yl.year)}
+                                    className="text-xs font-medium text-gray-300 hover:text-white px-3 py-1.5 rounded-lg bg-gray-800/60 hover:bg-gray-700/60 transition-colors"
+                                  >
+                                    Edit Ballot
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedCardYear(expandedCardYear === yl.year ? null : yl.year)}
+                                    className="text-xs font-medium text-gray-300 hover:text-white px-3 py-1.5 rounded-lg bg-gray-800/60 hover:bg-gray-700/60 transition-colors"
+                                  >
+                                    Rate Films
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Show more / show less */}
+                    {(hasMore || shownBallotCount > 10) && (
+                      <div className="pl-8 pt-2">
+                        {hasMore ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = shownBallotCount + 10;
+                              setShownBallotCount(next);
+                              sessionStorage.setItem("reawarding-ballot-count", String(next));
+                            }}
+                            className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                          >
+                            Show {Math.min(olderBallots.length - shownBallotCount, 10)} more ↓
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShownBallotCount(10);
+                              sessionStorage.setItem("reawarding-ballot-count", "10");
+                            }}
+                            className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                          >
+                            Show less ↑
+                          </button>
+                        )}
                       </div>
-                    ))}
-                </div>
-              </>
-            )}
+                    )}
+                  </div>
+                </>
+              );
+            })()}
           </section>
         )}
 
@@ -896,108 +957,100 @@ export default function HomePage() {
           rows={feedRows}
           loading={feedLoading}
           onSelectMovie={handleSelectMovie}
+          onUpdate={handleUpdateMovieRanking}
+          currentUserId={userId}
         />
       </div>
     </section>
   )}
 
   {/* ─── 6. Taste / canon — established only ─── */}
-  {userState === "established" && (tasteProfile.flavourTags.length > 0 || yearLeaders.length > 0) && (
+  {userState === "established" && yearLeaders.length > 0 && (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-10">
       <section className="mb-10">
-        <div className="rounded-xl border border-gray-700/25 bg-gray-900/30 px-5 py-5">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-8">
-            {/* Left: taste */}
-            <div className="flex-1 min-w-0">
-              <p className="mb-1 text-sm font-semibold text-white">
-                Your taste is taking shape.
-              </p>
-              {tasteProfile.eraLabel ? (
-                <p className="text-sm text-gray-400 mb-4">
-                  You tend toward{" "}
-                  <span className="text-gray-300">{tasteProfile.eraLabel}</span> films.
-                </p>
-              ) : (
-                <p className="text-sm text-gray-400 mb-4">
-                  The more you rate, the clearer your canon becomes.
-                </p>
-              )}
-              {tasteProfile.topGenres.length > 0 && (() => {
-                const seenMovies = new Set<string>();
-                const uniqueGenreEntries: { label: string; genre: string; movieTitle: string | null }[] = [];
-                const flavourLabel: Record<string, string> = {
-                  Action: "High-energy action",
-                  Adventure: "Epic adventure",
-                  Animation: "Animation & imagination",
-                  Comedy: "Sharp comedy",
-                  Crime: "Crime & noir",
-                  Documentary: "Documentary storytelling",
-                  Drama: "Character-driven drama",
-                  Family: "Family cinema",
-                  Fantasy: "Fantasy & world-building",
-                  History: "Historical epic",
-                  Horror: "Horror & suspense",
-                  Music: "Musical storytelling",
-                  Mystery: "Mystery & intrigue",
-                  Romance: "Romance",
-                  "Science Fiction": "Sci-fi & speculation",
-                  Thriller: "Tension & thriller",
-                  War: "War & conflict",
-                  Western: "The Western",
-                };
-                for (const g of tasteProfile.topGenres.slice(0, 4)) {
-                  const label = flavourLabel[g.genre] ?? g.genre;
-                  const rep = yearLeaders.find((yl) =>
-                    (yl.leader.genres ?? []).includes(g.genre) && !seenMovies.has(yl.leader.title)
-                  );
-                  if (rep) seenMovies.add(rep.leader.title);
-                  if (uniqueGenreEntries.length < 3) {
-                    uniqueGenreEntries.push({ label, genre: g.genre, movieTitle: rep?.leader.title ?? null });
-                  }
-                }
-                if (uniqueGenreEntries.length === 0) return null;
-                return (
-                  <div className="space-y-1.5">
-                    {uniqueGenreEntries.map((entry) => (
-                      <Link
-                        key={entry.label}
-                        href={`/films?genre=${encodeURIComponent(entry.genre)}`}
-                        className="flex items-center gap-3 px-3 py-2 transition-colors rounded-lg bg-gray-800/30 hover:bg-gray-800/50"
-                      >
-                        <span className="rounded-full border border-yellow-500/20 bg-yellow-500/10 px-2.5 py-0.5 text-xs font-medium text-yellow-300">
-                          {entry.label}
-                        </span>
-                        {entry.movieTitle && (
-                          <span className="text-xs text-gray-500 truncate">{entry.movieTitle}</span>
-                        )}
-                        <ArrowRight className="ml-auto h-3.5 w-3.5 flex-shrink-0 text-gray-600" />
-                      </Link>
-                    ))}
-                  </div>
-                );
-              })()}
-            </div>
-            {/* Right: stats */}
-            <div className="flex gap-6 sm:flex-col sm:gap-4 sm:min-w-[120px] sm:items-end border-t border-gray-800/60 pt-4 sm:border-t-0 sm:pt-0 sm:border-l sm:border-l-gray-800/60 sm:pl-8">
-              <div className="text-center sm:text-right">
-                <p className="text-xl font-bold text-white">{yearLeaders.length}</p>
-                <p className="text-[10px] text-gray-500">
-                  {yearLeaders.length === 1 ? "Year started" : "Years started"}
-                </p>
-              </div>
-              <div className="text-center sm:text-right">
-                <p className="text-xl font-bold text-white">{tasteProfile.ratedCount}</p>
-                <p className="text-[10px] text-gray-500">Films rated</p>
-              </div>
-              <div className="text-center sm:text-right">
-                <p className="text-xl font-bold text-white">
-                  {yearLeaders.filter((yl) => yl.nomineeCount >= 10).length}
-                </p>
-                <p className="text-[10px] text-gray-500">Ballots complete</p>
-              </div>
-            </div>
+        {/* Row 1: Numeric stats across */}
+        <div className="flex items-start gap-6 sm:gap-10 mb-6">
+          <div>
+            <p className="text-2xl font-bold text-white tabular-nums">{yearLeaders.length}</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">
+              {yearLeaders.length === 1 ? "Year" : "Years"}
+            </p>
+          </div>
+          <div className="border-l border-gray-800 pl-6 sm:pl-10">
+            <p className="text-2xl font-bold text-white tabular-nums">{tasteProfile.ratedCount}</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">Films rated</p>
+          </div>
+          <div className="border-l border-gray-800 pl-6 sm:pl-10">
+            <p className="text-2xl font-bold text-white tabular-nums">
+              {yearLeaders.filter((yl) => yl.nomineeCount >= 10).length}
+            </p>
+            <p className="text-[11px] text-gray-500 mt-0.5">Ballots complete</p>
           </div>
         </div>
+
+        {/* Row 2: Taste / genre links */}
+        {(tasteProfile.eraLabel || tasteProfile.topGenres.length > 0) && (
+          <div className="rounded-xl border border-gray-700/25 bg-gray-900/30 px-5 py-4">
+            {tasteProfile.eraLabel && (
+              <p className="text-sm text-gray-400 mb-3">
+                You tend toward{" "}
+                <span className="text-gray-200">{tasteProfile.eraLabel}</span> films.
+              </p>
+            )}
+            {tasteProfile.topGenres.length > 0 && (() => {
+              const seenTitles = new Set<string>();
+              const uniqueGenreEntries: { label: string; genre: string; movieTitle: string | null }[] = [];
+              const flavourLabel: Record<string, string> = {
+                Action: "High-energy action",
+                Adventure: "Epic adventure",
+                Animation: "Animation & imagination",
+                Comedy: "Sharp comedy",
+                Crime: "Crime & noir",
+                Documentary: "Documentary storytelling",
+                Drama: "Character-driven drama",
+                Family: "Family cinema",
+                Fantasy: "Fantasy & world-building",
+                History: "Historical epic",
+                Horror: "Horror & suspense",
+                Music: "Musical storytelling",
+                Mystery: "Mystery & intrigue",
+                Romance: "Romance",
+                "Science Fiction": "Sci-fi & speculation",
+                Thriller: "Tension & thriller",
+                War: "War & conflict",
+                Western: "The Western",
+              };
+              for (const g of tasteProfile.topGenres.slice(0, 4)) {
+                const label = flavourLabel[g.genre] ?? g.genre;
+                const rep = yearLeaders.find((yl) =>
+                  (yl.leader.genres ?? []).includes(g.genre) && !seenTitles.has(yl.leader.title)
+                );
+                if (rep) seenTitles.add(rep.leader.title);
+                if (uniqueGenreEntries.length < 3) {
+                  uniqueGenreEntries.push({ label, genre: g.genre, movieTitle: rep?.leader.title ?? null });
+                }
+              }
+              if (uniqueGenreEntries.length === 0) return null;
+              return (
+                <div className="flex flex-wrap gap-2">
+                  {uniqueGenreEntries.map((entry) => (
+                    <Link
+                      key={entry.label}
+                      href={`/films?genre=${encodeURIComponent(entry.genre)}`}
+                      className="flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg bg-gray-800/40 hover:bg-gray-800/70 border border-gray-700/30 hover:border-gray-600/50"
+                    >
+                      <span className="text-xs font-medium text-yellow-300">{entry.label}</span>
+                      {entry.movieTitle && (
+                        <span className="text-[10px] text-gray-500 truncate max-w-[120px]">{entry.movieTitle}</span>
+                      )}
+                      <ArrowRight className="h-3 w-3 flex-shrink-0 text-gray-600" />
+                    </Link>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        )}
       </section>
     </div>
   )}
@@ -1036,6 +1089,20 @@ export default function HomePage() {
           </div>
         </div>
       ) : null}
+
+      {/* Movie detail modal — opened when a returning user picks a film from search */}
+      {selectedSearchMovie && (
+        <MovieDetailModal
+          movie={selectedSearchMovie}
+          isOpen={true}
+          onClose={() => setSelectedSearchMovie(null)}
+          onUpdate={(movieId, newRanking, newSeenIt) => {
+            handleUpdateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
+          }}
+          initialRanking={selectedSearchMovie.rankings?.[0]?.ranking ?? null}
+          initialSeenIt={selectedSearchMovie.rankings?.[0]?.seen_it ?? false}
+        />
+      )}
 
       {milestoneOverlay && (
         <BallotMilestoneOverlay

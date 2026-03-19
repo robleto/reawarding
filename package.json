@@ -69,7 +69,6 @@
     "@playwright/test": "^1.58.2",
     "@storybook/addon-essentials": "^8.6.18",
     "@storybook/addon-webpack5-compiler-swc": "^1.0.5",
-    "@storybook/nextjs": "^8.6.18",
     "@storybook/react-webpack5": "^8.6.18",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",

@@ -3,7 +3,23 @@ import path from "node:path";
 
 const config: StorybookConfig = {
   stories: ["../src/**/*.stories.@(ts|tsx)"],
-  addons: ["@storybook/addon-webpack5-compiler-swc", "@storybook/addon-essentials"],
+  addons: [
+    {
+      name: "@storybook/addon-webpack5-compiler-swc",
+      options: {
+        swcLoaderOptions: {
+          jsc: {
+            transform: {
+              react: {
+                runtime: "automatic",
+              },
+            },
+          },
+        },
+      },
+    },
+    "@storybook/addon-essentials",
+  ],
   framework: {
     name: "@storybook/react-webpack5",
     options: {},

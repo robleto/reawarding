@@ -140,7 +140,7 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
                   className={`font-bold px-1.5 py-0.5 rounded-md border border-gray-700/60 transition-transform active:scale-95 ${ranking ? 'text-xs min-w-[28px]' : 'text-[10px] min-w-[40px]'}`}
                   style={{ backgroundColor: style.background, color: style.text }}
                 >
-                  {ranking ? <>⭐ {ranking}</> : "☆ Rate"}
+                  {ranking ?? "Rate"}
                 </button>
                 {ratingLabel && (
                   showVariancePill ? (
@@ -185,7 +185,7 @@ export default function MoviePosterCard({ movie, currentUserId, onUpdate, rankin
                   className={`font-bold px-2 py-1 min-h-[32px] rounded-lg border border-gray-700 bg-gray-900/80 text-white transition-transform active:scale-95 ${ranking ? 'text-sm min-w-[32px]' : 'text-[11px] min-w-[48px]'}`}
                   style={{ backgroundColor: style.background, color: style.text }}
                 >
-                  {ranking ? <>⭐ {ranking}</> : "☆ Rate"}
+                  {ranking ?? "Rate"}
                 </button>
                 {ratingLabel && (
                   showVariancePill ? (

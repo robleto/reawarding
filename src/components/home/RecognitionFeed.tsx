@@ -1,7 +1,6 @@
 "use client";
 
-import { Star } from "lucide-react";
-import { normalizeImageUrl } from "@/utils/imageUrl";
+import MoviePosterCard from "@/components/movie/MoviePosterCard";
 import type { Movie } from "@/types/types";
 import type { FeedRow } from "@/hooks/useRecognitionFeed";
 
@@ -9,6 +8,8 @@ interface Props {
   rows: FeedRow[];
   loading: boolean;
   onSelectMovie: (movie: Movie) => void;
+  onUpdate?: (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+  currentUserId?: string | null;
 }
 
 function SkeletonRow() {
@@ -17,8 +18,8 @@ function SkeletonRow() {
       <div className="mb-3 h-2.5 w-28 rounded bg-gray-800 animate-pulse" />
       <div className="flex gap-2.5 overflow-hidden">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="flex-shrink-0 w-[100px]">
-            <div className="w-[100px] aspect-[2/3] rounded-lg bg-gray-800 animate-pulse" />
+          <div key={i} className="flex-shrink-0 w-[160px]">
+            <div className="w-[160px] aspect-[2/3] rounded-lg bg-gray-800 animate-pulse" />
             <div className="mt-1.5 h-2 w-14 rounded bg-gray-800 animate-pulse" />
           </div>
         ))}
@@ -27,75 +28,20 @@ function SkeletonRow() {
   );
 }
 
-function FeedCard({
-  film,
-  onSelect,
-}: {
-  film: Movie;
-  onSelect: (m: Movie) => void;
-}) {
-  const raw =
-    film.cached_poster_url ||
-    film.poster_url ||
-    film.cached_thumb_url ||
-    film.thumb_url ||
-    "";
-  const posterSrc = normalizeImageUrl(raw);
-  const hasPoster =
-    posterSrc &&
-    (posterSrc.startsWith("http://") ||
-      posterSrc.startsWith("https://") ||
-      (posterSrc.startsWith("/") && posterSrc.length > 1));
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(film)}
-      className="flex-shrink-0 w-[100px] snap-start group text-left"
-    >
-      {/* Poster */}
-      <div className="relative w-[100px] aspect-[2/3] overflow-hidden rounded-lg border border-transparent group-hover:border-yellow-500/50 transition-all shadow-sm bg-gray-800">
-        {hasPoster ? (
-          <img
-            src={posterSrc}
-            alt={film.title}
-            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-[1.04]"
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gray-800">
-            <span className="text-[8px] text-gray-500 text-center leading-tight px-1.5">
-              {film.title}
-            </span>
-          </div>
-        )}
-
-        {/* Rate overlay — appears on hover */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
-          <span className="flex items-center gap-1 rounded-full bg-yellow-400 px-2 py-0.5 text-[10px] font-bold text-gray-900">
-            <Star className="h-2.5 w-2.5 fill-current flex-shrink-0" />
-            Rate
-          </span>
-        </div>
-      </div>
-
-      {/* Title */}
-      <p className="mt-1.5 text-[11px] leading-tight text-gray-400 truncate">
-        {film.title}
-      </p>
-      <p className="text-[10px] text-gray-600">{film.release_year}</p>
-    </button>
-  );
-}
-
 /**
  * RecognitionFeed — 2–3 horizontally-scrollable rows of films the user
  * hasn't rated, designed as "rating triggers" (recognition → instant action).
  *
- * Each card shows a poster + hover ⭐ Rate CTA.
- * Clicking a card calls onSelectMovie, which opens the YearExplorer for that film.
+ * Each card uses the canonical MoviePosterCard at compact width.
+ * Clicking opens the YearExplorer for that film.
  */
-export default function RecognitionFeed({ rows, loading, onSelectMovie }: Props) {
+export default function RecognitionFeed({
+  rows,
+  loading,
+  onSelectMovie,
+  onUpdate,
+  currentUserId = null,
+}: Props) {
   if (loading) {
     return (
       <div className="space-y-7">
@@ -107,6 +53,8 @@ export default function RecognitionFeed({ rows, loading, onSelectMovie }: Props)
 
   if (rows.length === 0) return null;
 
+  const handleUpdate = onUpdate ?? (() => {});
+
   return (
     <div className="space-y-7">
       {rows.map((row) => (
@@ -115,9 +63,21 @@ export default function RecognitionFeed({ rows, loading, onSelectMovie }: Props)
             {row.label}
           </p>
           <div className="flex gap-2.5 overflow-x-auto pb-2 snap-x snap-mandatory">
-            {row.films.map((film) => (
-              <FeedCard key={film.id} film={film} onSelect={onSelectMovie} />
-            ))}
+            {row.films.map((film) => {
+              const r = film.rankings?.[0];
+              return (
+                <div key={film.id} className="flex-shrink-0 w-[160px] snap-start">
+                  <MoviePosterCard
+                    movie={film}
+                    currentUserId={currentUserId}
+                    ranking={r?.ranking ?? null}
+                    seenIt={r?.seen_it ?? false}
+                    onUpdate={handleUpdate}
+                    onClick={() => onSelectMovie(film)}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       ))}
