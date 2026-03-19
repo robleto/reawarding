@@ -10,9 +10,7 @@ import FollowButton from "@/components/social/FollowButton";
 import ScreenState from "@/components/ui/ScreenState";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 
-type FollowTab = "following" | "followers";
-
-export default function ProfileFollowingPage() {
+export default function ProfileFollowersPage() {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
   const sessionUser = useUser();
@@ -23,7 +21,6 @@ export default function ProfileFollowingPage() {
   );
 
   const isOwnProfile = sessionUser?.id === profile?.id;
-  const activeTab: FollowTab = "following"; // future: read from search params
 
   if (profileLoading || loading) {
     return (
@@ -81,26 +78,13 @@ export default function ProfileFollowingPage() {
     );
   }
 
-  const list = activeTab === "following" ? following : followers;
-  const emptyTitle = isOwnProfile
-    ? activeTab === "following"
-      ? "You're not following anyone yet"
-      : "No followers yet"
-    : activeTab === "following"
-    ? `@${username} isn't following anyone yet`
-    : `@${username} has no followers yet`;
-
   return (
     <div className="max-w-xl mx-auto px-4 py-6">
       {/* Tab switcher */}
       <div className="flex border-b border-gray-800 mb-6">
         <Link
           href={`/${username}/following`}
-          className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-            activeTab === "following"
-              ? "border-yellow-400 text-white"
-              : "border-transparent text-gray-500 hover:text-gray-300"
-          }`}
+          className="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent -mb-px text-gray-500 hover:text-gray-300 transition-colors"
         >
           Following
           {following.length > 0 && (
@@ -109,7 +93,7 @@ export default function ProfileFollowingPage() {
         </Link>
         <Link
           href={`/${username}/followers`}
-          className="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent -mb-px text-gray-500 hover:text-gray-300 transition-colors"
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors border-yellow-400 text-white`}
         >
           Followers
           {followers.length > 0 && (
@@ -118,18 +102,14 @@ export default function ProfileFollowingPage() {
         </Link>
       </div>
 
-      {list.length === 0 ? (
+      {followers.length === 0 ? (
         <ScreenState
-          title={emptyTitle}
-          message={
-            isOwnProfile && activeTab === "following"
-              ? "Find members to follow and see their ratings on your homepage."
-              : ""
-          }
+          title={isOwnProfile ? "No followers yet" : `@${username} has no followers yet`}
+          message={isOwnProfile ? "Share your profile to attract followers." : ""}
         />
       ) : (
         <div>
-          {list.map((p) => (
+          {followers.map((p) => (
             <ProfileRow key={p.id} p={p} />
           ))}
         </div>
