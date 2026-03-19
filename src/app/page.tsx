@@ -333,13 +333,21 @@ export default function HomePage() {
     (a) => !dismissedAlertKeys.includes(`${a.type}:${a.label}`)
   );
 
-  // ── State detection: has the user started any ballots? ──
+  // ── User state detection (P4: adaptive homepage) ──
   const hasStartedBallots = awards.length > 0 || yearLeaders.length > 0;
-
-  // ── Established user detection for lists surface (P2-e) ──
   const completedBallotCount = yearLeaders.filter((yl) => yl.nomineeCount >= 10).length;
   const isEstablished =
     completedBallotCount >= 1 || yearLeaders.length >= 2 || ratedMovies.length >= 20;
+
+  // Three states govern homepage layout:
+  //   new        → 0 active years AND < 5 rated films
+  //   building   → 1+ active year, 0 completed ballots
+  //   established → 1+ completed ballot OR 2+ years OR 20+ rated
+  const userState: "new" | "building" | "established" = !hasStartedBallots
+    ? "new"
+    : isEstablished
+    ? "established"
+    : "building";
 
   // ── User lists for established homepage (P2-e) ──
   const { lists: userLists, loading: listsLoading } = useUserLists(
@@ -473,7 +481,7 @@ export default function HomePage() {
             onSelectMovie={handleSelectMovie}
           />
         </>
-      ) : !hasStartedBallots ? (
+      ) : userState === "new" ? (
         /* ══════════════════════════════════════════════════════════
            FIRST-TIME USER: Onboarding
            ═══════════════════════════════════════════════════════ */
@@ -606,220 +614,269 @@ export default function HomePage() {
         </div>
       ) : (
         /* ══════════════════════════════════════════════════════════
-           RETURNING USER: Dashboard
+           RETURNING USER: Building or Established dashboard
            ═══════════════════════════════════════════════════════ */
         <div className="pt-8 pb-16">
-  {/* ── Content container ── */}
   <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-10">
 
-    {/* ─── 1. Hero ─── */}
-    <section className="mb-10 max-w-2xl">
-      <h1 className="mb-2 text-4xl font-semibold leading-tight text-white font-unbounded sm:text-5xl">
-        Track films. Rate favorites. ReAward the year.
-      </h1>
-      <p className="mb-6 text-sm text-gray-400">
-        Start with a movie you&apos;ve seen — your rankings do the rest.
-      </p>
-      <MovieSearchPicker
-        onSelect={handleSelectMovie}
-        placeholder="Add a movie you've watched…"
-        className="text-lg"
-        suggestedQuery={suggestedQuery}
-      />
-      <div className="flex flex-wrap gap-2 mt-3">
-        {EXAMPLE_FILMS.map((film) => (
-          <button
-            key={film}
-            type="button"
-            onClick={() => setSuggestedQuery(film)}
-            className="rounded-full border border-gray-700/40 bg-gray-900/50 px-3 py-1.5 text-sm text-gray-400 hover:border-yellow-500/40 hover:text-yellow-300 transition-all"
-          >
-            {film}
-          </button>
-        ))}
-      </div>
-    </section>
+    {/* ═══════════════════════════════════════════════════════
+        BUILDING STATE — ballot card is the hero
+        Show: active ballot → search → alerts → coach
+        ═══════════════════════════════════════════════════ */}
+    {userState === "building" && (
+      <>
+        {/* ─── Hero: active ballot ─── */}
+        {mostRecentBallot && (
+          <section className="mb-8">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Keep going on {mostRecentBallot.year}
+            </p>
+            <ExpandableYearCard
+              key={mostRecentBallot.year}
+              year={mostRecentBallot.year}
+              leader={mostRecentBallot.leader}
+              nomineeCount={mostRecentBallot.nomineeCount}
+              neededForBallot={mostRecentBallot.neededForBallot}
+              allMovies={movies}
+              awards={awards}
+              currentUserId={userId}
+              isExpanded={expandedCardYear === mostRecentBallot.year}
+              onToggle={() =>
+                setExpandedCardYear((prev) =>
+                  prev === mostRecentBallot.year ? null : mostRecentBallot.year
+                )
+              }
+              onUpdateMovieRanking={handleUpdateMovieRanking}
+              onCreateAward={handleCreateAwardFromExplorer}
+              onOpenFullExplorer={(year) => setExplorerYear(year)}
+              onMilestoneReached={handleBallotMilestone}
+            />
+          </section>
+        )}
 
-    {/* ─── 2. Start a year ─── */}
-    <section className="mb-10">
-      <p className="mb-1 text-sm font-semibold text-gray-300">Start with a year (optional).</p>
-      <p className="mb-4 text-xs text-gray-500">
-        Jump into a year — or just start rating.
-      </p>
-      <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
-        {SUGGESTED_YEARS.filter(
-          (year) => !yearLeaders.some((yl) => yl.year === year)
-        ).map((year) => (
-          <button
-            key={year}
-            type="button"
-            onClick={() => setExplorerYear(year)}
-            className="flex-shrink-0 rounded-lg border border-gray-700/40 bg-gray-900/50 px-3.5 py-2 font-unbounded text-sm font-bold text-white hover:border-yellow-500/40 hover:bg-gray-800/60 transition-all"
-          >
-            {year}
-          </button>
-        ))}
-      </div>
-      {showAllYears ? (
-        <div className="mt-4">
-          <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto py-1">
-            {ALL_OSCAR_YEARS.filter(
-              (y) => !SUGGESTED_YEARS.includes(y) && !yearLeaders.some((yl) => yl.year === y)
-            ).map((year) => (
+        {/* ─── Search: add another film ─── */}
+        <section className="mb-8 max-w-2xl">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            Add another film
+          </p>
+          <MovieSearchPicker
+            onSelect={handleSelectMovie}
+            placeholder="Search for a film you've watched…"
+            suggestedQuery={suggestedQuery}
+          />
+          <div className="flex flex-wrap gap-2 mt-3">
+            {EXAMPLE_FILMS.map((film) => (
+              <button
+                key={film}
+                type="button"
+                onClick={() => setSuggestedQuery(film)}
+                className="rounded-full border border-gray-700/40 bg-gray-900/50 px-3 py-1.5 text-sm text-gray-400 hover:border-yellow-500/40 hover:text-yellow-300 transition-all"
+              >
+                {film}
+              </button>
+            ))}
+          </div>
+          {/* Start a different year */}
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            <span className="text-xs text-gray-600 self-center mr-1">Or start a new year:</span>
+            {SUGGESTED_YEARS.filter(
+              (year) => !yearLeaders.some((yl) => yl.year === year)
+            ).slice(0, 6).map((year) => (
               <button
                 key={year}
                 type="button"
-                onClick={() => { setExplorerYear(year); setShowAllYears(false); }}
-                className="rounded-md border border-gray-700/30 bg-gray-900/40 px-3 py-1.5 font-unbounded text-xs font-semibold text-gray-300 hover:border-yellow-500/40 hover:text-white transition-all"
+                onClick={() => setExplorerYear(year)}
+                className="flex-shrink-0 rounded-md border border-gray-700/30 bg-gray-900/40 px-3 py-1.5 font-unbounded text-xs font-semibold text-gray-400 hover:border-yellow-500/30 hover:text-white transition-all"
               >
                 {year}
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={() => setShowAllYears(false)}
-            className="mt-2 text-xs text-gray-500 hover:text-gray-300 transition-colors"
-          >
-            Show less ↑
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setShowAllYears(true)}
-          className="mt-3 text-xs text-gray-500 hover:text-gray-300 transition-colors"
-        >
-          Choose another year →
-        </button>
-      )}
-    </section>
+        </section>
 
-    {/* ─── Session coach ─── */}
-    {!sessionCoachDismissed && (
-      <div className="mb-10">
-        <SessionCoach
-          movies={movies}
-          bestYear={bestYearData.bestYear}
-          bestYearRatedCount={bestYearData.bestCount}
-          leaderTitle={bestYearData.leaderTitle}
-          onOpenYear={(year) => setExplorerYear(year)}
-          onDismiss={() => setSessionCoachDismissed(true)}
-        />
-      </div>
-    )}
+        {/* ─── Smart list alerts ─── */}
+        {visibleAlerts.length > 0 && (
+          <div className="mb-8 space-y-2">
+            {visibleAlerts.map((alert) => {
+              const alertKey = `${alert.type}:${alert.label}`;
+              const remaining = alert.threshold - alert.count;
+              const message = alert.nearMiss
+                ? `${remaining} more ${alert.label} films and you have a list`
+                : `You've seen ${alert.count} ${alert.label} films — enough for a list`;
+              return (
+                <Banner
+                  key={alertKey}
+                  variant="gold"
+                  icon={List}
+                  message={message}
+                  action={{ label: alert.nearMiss ? "See films" : "Create list", onClick: () => { window.location.href = "/lists/ready-made"; } }}
+                  onDismiss={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
+                />
+              );
+            })}
+          </div>
+        )}
 
-    {/* ─── Smart list alerts (P2-d) ─── */}
-    {visibleAlerts.length > 0 && (
-      <div className="mb-8 space-y-2">
-        {visibleAlerts.map((alert) => {
-          const alertKey = `${alert.type}:${alert.label}`;
-          const remaining = alert.threshold - alert.count;
-          const message = alert.nearMiss
-            ? `${remaining} more ${alert.type === "director" || alert.type === "actor" ? alert.label + " films" : alert.type === "genre" ? alert.label + " films" : alert.label + " films"} and you have a list`
-            : `You've seen ${alert.count} ${alert.type === "decade" ? alert.label : alert.label} films — enough for a list`;
-          return (
-            <Banner
-              key={alertKey}
-              variant="gold"
-              icon={List}
-              message={message}
-              action={{
-                label: alert.nearMiss ? "See films" : "Create list",
-                onClick: () => {
-                  window.location.href = alert.nearMiss
-                    ? `/lists/ready-made`
-                    : `/lists/ready-made`;
-                },
-              }}
-              onDismiss={() =>
-                setDismissedAlertKeys((prev) => [...prev, alertKey])
-              }
+        {/* ─── Session coach ─── */}
+        {!sessionCoachDismissed && (
+          <div className="mb-8">
+            <SessionCoach
+              movies={movies}
+              bestYear={bestYearData.bestYear}
+              bestYearRatedCount={bestYearData.bestCount}
+              leaderTitle={bestYearData.leaderTitle}
+              onOpenYear={(year) => setExplorerYear(year)}
+              onDismiss={() => setSessionCoachDismissed(true)}
             />
-          );
-        })}
-      </div>
+          </div>
+        )}
+      </>
     )}
 
-    {/* ─── 3 + 4. Active ballot (primary) + other ballots grid ─── */}
-    {yearLeaders.length > 0 && (
-      <section className="mb-10">
-        {/* Active ballot — full width */}
-        {mostRecentBallot && (
-          <ExpandableYearCard
-            key={mostRecentBallot.year}
-            year={mostRecentBallot.year}
-            leader={mostRecentBallot.leader}
-            nomineeCount={mostRecentBallot.nomineeCount}
-            neededForBallot={mostRecentBallot.neededForBallot}
-            allMovies={movies}
-            awards={awards}
-            currentUserId={userId}
-            isExpanded={expandedCardYear === mostRecentBallot.year}
-            onToggle={() =>
-              setExpandedCardYear((prev) =>
-                prev === mostRecentBallot.year ? null : mostRecentBallot.year
-              )
-            }
-            onUpdateMovieRanking={handleUpdateMovieRanking}
-            onCreateAward={handleCreateAwardFromExplorer}
-            onOpenFullExplorer={(year) => setExplorerYear(year)}
-            onMilestoneReached={handleBallotMilestone}
+    {/* ═══════════════════════════════════════════════════════
+        ESTABLISHED STATE — search leads, full ballot grid
+        Show: search → alerts → coach → ballots → lists
+        ═══════════════════════════════════════════════════ */}
+    {userState === "established" && (
+      <>
+        {/* ─── Hero: search ─── */}
+        <section className="mb-10 max-w-2xl">
+          <h1 className="mb-2 text-3xl font-semibold leading-tight text-white font-unbounded sm:text-4xl">
+            Your film years.
+          </h1>
+          <p className="mb-5 text-sm text-gray-400">
+            Rate more films, complete more ballots, grow your canon.
+          </p>
+          <MovieSearchPicker
+            onSelect={handleSelectMovie}
+            placeholder="Add a film you've watched…"
+            className="text-lg"
+            suggestedQuery={suggestedQuery}
           />
+          <div className="flex flex-wrap gap-2 mt-3">
+            {EXAMPLE_FILMS.map((film) => (
+              <button
+                key={film}
+                type="button"
+                onClick={() => setSuggestedQuery(film)}
+                className="rounded-full border border-gray-700/40 bg-gray-900/50 px-3 py-1.5 text-sm text-gray-400 hover:border-yellow-500/40 hover:text-yellow-300 transition-all"
+              >
+                {film}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* ─── Smart list alerts ─── */}
+        {visibleAlerts.length > 0 && (
+          <div className="mb-8 space-y-2">
+            {visibleAlerts.map((alert) => {
+              const alertKey = `${alert.type}:${alert.label}`;
+              const remaining = alert.threshold - alert.count;
+              const message = alert.nearMiss
+                ? `${remaining} more ${alert.label} films and you have a list`
+                : `You've seen ${alert.count} ${alert.label} films — enough for a list`;
+              return (
+                <Banner
+                  key={alertKey}
+                  variant="gold"
+                  icon={List}
+                  message={message}
+                  action={{ label: alert.nearMiss ? "See films" : "Create list", onClick: () => { window.location.href = "/lists/ready-made"; } }}
+                  onDismiss={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
+                />
+              );
+            })}
+          </div>
         )}
 
-        {/* Other ballots — 2-column grid on desktop */}
-        {yearLeaders.filter((yl) => yl.year !== mostRecentBallot?.year).length > 0 && (
-          <>
-            <p className="mt-6 mb-3 text-xs font-semibold tracking-wider text-gray-500 uppercase">
-              Your other ballots
-            </p>
-            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
-              {yearLeaders
-                .filter((yl) => yl.year !== mostRecentBallot?.year)
-                .map((yl) => (
-                  <div
-                    key={yl.year}
-                    className={expandedCardYear === yl.year ? "md:col-span-2" : ""}
-                  >
-                    <ExpandableYearCard
-                      year={yl.year}
-                      leader={yl.leader}
-                      nomineeCount={yl.nomineeCount}
-                      neededForBallot={yl.neededForBallot}
-                      allMovies={movies}
-                      awards={awards}
-                      currentUserId={userId}
-                      isExpanded={expandedCardYear === yl.year}
-                      onToggle={() =>
-                        setExpandedCardYear((prev) =>
-                          prev === yl.year ? null : yl.year
-                        )
-                      }
-                      onUpdateMovieRanking={handleUpdateMovieRanking}
-                      onCreateAward={handleCreateAwardFromExplorer}
-                      onOpenFullExplorer={(year) => setExplorerYear(year)}
-                      onMilestoneReached={handleBallotMilestone}
-                    />
-                  </div>
-                ))}
-            </div>
-          </>
+        {/* ─── Session coach ─── */}
+        {!sessionCoachDismissed && (
+          <div className="mb-8">
+            <SessionCoach
+              movies={movies}
+              bestYear={bestYearData.bestYear}
+              bestYearRatedCount={bestYearData.bestCount}
+              leaderTitle={bestYearData.leaderTitle}
+              onOpenYear={(year) => setExplorerYear(year)}
+              onDismiss={() => setSessionCoachDismissed(true)}
+            />
+          </div>
         )}
-      </section>
-    )}
 
-    {/* ─── User lists — established users only (P2-e) ─── */}
-    {isEstablished && (userLists.length > 0 || listsLoading) && (
-      <section className="mb-10">
-        <HorizontalListRow
-          title="Your Lists"
-          lists={userLists}
-          seeAllHref="/lists/mine"
-          readOnly={false}
-          onAdd={() => { window.location.href = "/lists"; }}
-        />
-      </section>
+        {/* ─── Ballots: active first, then grid ─── */}
+        {yearLeaders.length > 0 && (
+          <section className="mb-10">
+            {mostRecentBallot && (
+              <ExpandableYearCard
+                key={mostRecentBallot.year}
+                year={mostRecentBallot.year}
+                leader={mostRecentBallot.leader}
+                nomineeCount={mostRecentBallot.nomineeCount}
+                neededForBallot={mostRecentBallot.neededForBallot}
+                allMovies={movies}
+                awards={awards}
+                currentUserId={userId}
+                isExpanded={expandedCardYear === mostRecentBallot.year}
+                onToggle={() =>
+                  setExpandedCardYear((prev) =>
+                    prev === mostRecentBallot.year ? null : mostRecentBallot.year
+                  )
+                }
+                onUpdateMovieRanking={handleUpdateMovieRanking}
+                onCreateAward={handleCreateAwardFromExplorer}
+                onOpenFullExplorer={(year) => setExplorerYear(year)}
+                onMilestoneReached={handleBallotMilestone}
+              />
+            )}
+            {yearLeaders.filter((yl) => yl.year !== mostRecentBallot?.year).length > 0 && (
+              <>
+                <p className="mt-6 mb-3 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                  Your other ballots
+                </p>
+                <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+                  {yearLeaders
+                    .filter((yl) => yl.year !== mostRecentBallot?.year)
+                    .map((yl) => (
+                      <div key={yl.year} className={expandedCardYear === yl.year ? "md:col-span-2" : ""}>
+                        <ExpandableYearCard
+                          year={yl.year}
+                          leader={yl.leader}
+                          nomineeCount={yl.nomineeCount}
+                          neededForBallot={yl.neededForBallot}
+                          allMovies={movies}
+                          awards={awards}
+                          currentUserId={userId}
+                          isExpanded={expandedCardYear === yl.year}
+                          onToggle={() =>
+                            setExpandedCardYear((prev) => (prev === yl.year ? null : yl.year))
+                          }
+                          onUpdateMovieRanking={handleUpdateMovieRanking}
+                          onCreateAward={handleCreateAwardFromExplorer}
+                          onOpenFullExplorer={(year) => setExplorerYear(year)}
+                          onMilestoneReached={handleBallotMilestone}
+                        />
+                      </div>
+                    ))}
+                </div>
+              </>
+            )}
+          </section>
+        )}
+
+        {/* ─── User lists ─── */}
+        {(userLists.length > 0 || listsLoading) && (
+          <section className="mb-10">
+            <HorizontalListRow
+              title="Your Lists"
+              lists={userLists}
+              seeAllHref="/lists/mine"
+              readOnly={false}
+              onAdd={() => { window.location.href = "/lists"; }}
+            />
+          </section>
+        )}
+      </>
     )}
 
   </div>{/* end content container */}
@@ -844,8 +901,8 @@ export default function HomePage() {
     </section>
   )}
 
-  {/* ─── 6. Taste / canon ─── */}
-  {(tasteProfile.flavourTags.length > 0 || yearLeaders.length > 0) && (
+  {/* ─── 6. Taste / canon — established only ─── */}
+  {userState === "established" && (tasteProfile.flavourTags.length > 0 || yearLeaders.length > 0) && (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-10">
       <section className="mb-10">
         <div className="rounded-xl border border-gray-700/25 bg-gray-900/30 px-5 py-5">
