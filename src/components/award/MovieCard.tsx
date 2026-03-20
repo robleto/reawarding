@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { Film, Trophy, Flame, TrendingUp, TrendingDown } from "lucide-react";
+import { Film, Trophy, Flame, TrendingUp, TrendingDown, Star, Bookmark } from "lucide-react";
 import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
@@ -10,6 +10,7 @@ import { normalizeImageUrl } from "@/utils/imageUrl";
 import RatingModal from "@/components/movie/RatingModal";
 import SeenItButton from "@/components/movie/SeenItButton";
 import RankingDropdown from "@/components/movie/RankingDropdown";
+import { useWatchlistContext } from "@/contexts/WatchlistContext";
 
 /**
  * Unified MovieCard for the entire app.
@@ -24,7 +25,7 @@ import RankingDropdown from "@/components/movie/RankingDropdown";
  *  (SeenIt button, Rating modal/dropdown) on hover (grid) or inline (compact).
  */
 
-export type MovieCardVariant = "featured" | "grid" | "compact";
+export type MovieCardVariant = "featured" | "grid" | "compact" | "large";
 
 export interface MovieCardProps {
 	movie: Movie;
@@ -55,6 +56,10 @@ export interface MovieCardProps {
 	showYear?: boolean;
 	/** Subtle visual treatment for seen-but-unrated items */
 	incomplete?: boolean;
+	/** Grid: called when the user taps the watchlist bookmark. Only shown when unseen + not winner. */
+	onWatchlist?: (movieId: number) => void;
+	/** Grid: whether the film is already on the watchlist (fills the bookmark icon) */
+	isOnWatchlist?: boolean;
 }
 
 /* ── Shared helpers ── */
@@ -176,9 +181,11 @@ interface GridCardProps {
 	ratingLabel?: string | null;
 	ratingOnly?: boolean;
 	footerAction?: React.ReactNode;
+	onWatchlist?: (movieId: number) => void;
+	isOnWatchlist?: boolean;
 }
 
-function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interactive, onUpdate, seenIt, ratingLabel, ratingOnly, footerAction }: GridCardProps) {
+function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interactive, onUpdate, seenIt, ratingLabel, ratingOnly, footerAction, onWatchlist, isOnWatchlist }: GridCardProps) {
 	const [showRatingModal, setShowRatingModal] = useState(false);
 	const style = getRatingStyle(rating);
 
@@ -229,10 +236,10 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 						</span>
 					)}
 
-					{/* ── Interactive overlay ── */}
+					{/* ── Interactive overlay: always visible on mobile, hover-only on sm+ ── */}
 					{interactive ? (
 						<div
-							className="movie-card-overlay absolute rounded-b-lg left-0 right-0 bottom-0 flex flex-col justify-end w-full z-20 opacity-100"
+							className="movie-card-overlay absolute rounded-b-lg left-0 right-0 bottom-0 flex flex-col justify-end w-full z-20 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200"
 							style={{ minHeight: ratingOnly ? "38%" : "25%", background: "linear-gradient(to top, rgba(24,24,27,0.92) 80%, rgba(24,24,27,0.0) 100%)" }}
 							onClick={(e) => e.stopPropagation()}
 						>
@@ -532,6 +539,163 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 }
 
 /* ═══════════════════════════════════════════════════════
+   LARGE VARIANT — Full-size poster card (lists, discovery)
+   Larger than grid; title + year below poster; bookmark
+   upper-right; seen/rate overlay lower-left/right.
+   ═══════════════════════════════════════════════════════ */
+
+interface LargeCardProps {
+	movie: Movie;
+	rating: number;
+	posterSrc: string | null;
+	rank?: number;
+	isWinner?: boolean;
+	onClick?: () => void;
+	// interactive
+	interactive: boolean;
+	onUpdate?: (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+	seenIt?: boolean;
+}
+
+function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interactive, onUpdate, seenIt }: LargeCardProps) {
+	const [showRatingModal, setShowRatingModal] = useState(false);
+	const style = getRatingStyle(rating);
+	const { watchlistMovieIds, toggle: toggleWatchlist } = useWatchlistContext();
+	const isOnWatchlist = watchlistMovieIds.has(movie.id);
+
+	const handleClick = (e: React.MouseEvent) => {
+		if (interactive && e.target instanceof HTMLElement) {
+			const isOverlay = e.target.closest(".movie-card-overlay");
+			if (isOverlay) return;
+		}
+		onClick?.();
+	};
+
+	return (
+		<>
+			<div
+				className={`group relative text-left rounded-xl border transition-colors overflow-hidden w-full flex flex-col ${
+					isWinner
+						? "border-yellow-500/40 bg-yellow-500/5 hover:bg-yellow-500/10"
+						: "border-gray-700/50 bg-gray-900/40 hover:bg-gray-800/60"
+				} ${onClick || interactive ? "cursor-pointer" : ""}`}
+				onClick={handleClick}
+			>
+				{/* ── Poster ── */}
+				<div className="relative w-full aspect-[2/3] overflow-hidden bg-gray-800">
+					{posterSrc ? (
+						<Image
+							src={posterSrc}
+							alt={movie.title}
+							fill
+							className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+							sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
+							placeholder="blur"
+							blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(300, 450))}`}
+							unoptimized
+						/>
+					) : (
+						<PosterFallback title={movie.title} />
+					)}
+
+					{/* Rank badge — top-left */}
+					{rank != null && (
+						<span className="absolute top-2 left-2 min-w-[26px] h-[26px] flex items-center justify-center rounded-md bg-black/70 backdrop-blur-sm text-xs font-bold text-white tabular-nums leading-none px-1.5">
+							{rank}
+						</span>
+					)}
+
+					{/* Winner badge — top-left (if no rank) */}
+					{isWinner && rank == null && (
+						<span className="absolute top-2 left-2 flex items-center justify-center w-7 h-7 rounded-md bg-black/70 backdrop-blur-sm">
+							<Trophy className="w-4 h-4 text-yellow-400" />
+						</span>
+					)}
+
+					{/* Bookmark — top-right, icon-only, hover-only (always present via context) */}
+					<button
+						type="button"
+						onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie.id); }}
+						className={`movie-card-overlay absolute top-2 right-2 flex items-center justify-center w-8 h-8 rounded-md bg-black/70 backdrop-blur-sm transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-black/85 ${
+							isOnWatchlist ? "text-amber-400" : "text-gray-300 hover:text-amber-300"
+						}`}
+						title={isOnWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+					>
+						<Bookmark className={`w-4 h-4 ${isOnWatchlist ? "fill-current" : ""}`} />
+					</button>
+
+					{/* Rating badge (display-only mode) */}
+					{!interactive && (
+						<>
+							<RatingBadge rating={rating} className="absolute bottom-2 right-2 text-xs px-1.5 py-0.5" />
+							<div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+						</>
+					)}
+
+					{/* ── Interactive overlay: always visible on mobile, hover-only on sm+ ── */}
+					{interactive && (
+						<div
+							className="movie-card-overlay absolute left-0 right-0 bottom-0 flex items-end justify-between px-2.5 py-2 z-20 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200"
+							style={{ background: "linear-gradient(to top, rgba(18,18,20,0.70) 55%, rgba(18,18,20,0.0) 100%)", minHeight: "30%" }}
+							onClick={(e) => e.stopPropagation()}
+						>
+							{/* Left: Seen / Unseen (3-state when watchlist is wired) */}
+							<SeenItButton
+								seenIt={seenIt ?? false}
+								onClick={() => onUpdate?.(movie.id, { seen_it: !(seenIt ?? false) })}
+								showText={true}
+								size="sm"
+								className="h-9 px-2.5 rounded-lg border border-gray-600/40 bg-black/40 hover:bg-black/60 text-xs font-semibold gap-1"
+							/>
+
+							{/* Right: Rate */}
+							<button
+								type="button"
+								onClick={() => setShowRatingModal(true)}
+								className={`flex items-center gap-1 h-9 px-2.5 rounded-lg border font-semibold transition-colors active:scale-95 ${
+									rating
+										? "text-sm border-gray-700/60"
+										: "text-xs border-gray-600/40 hover:border-gray-500/60"
+								}`}
+								style={rating
+									? { backgroundColor: style.background, color: style.text }
+									: { backgroundColor: "rgba(30,30,34,0.75)", color: "#9ca3af" }
+								}
+							>
+								<Star className={`w-3.5 h-3.5 ${rating ? "fill-current" : ""}`} />
+								<span>{rating || "Rate"}</span>
+							</button>
+						</div>
+					)}
+				</div>
+
+				{/* ── Title below poster ── */}
+				<div className="px-3 py-2.5">
+					<p className="text-sm font-semibold text-white leading-snug line-clamp-2">
+						{movie.title}
+					</p>
+					{movie.release_year && (
+						<p className="text-xs text-gray-500 mt-0.5">{movie.release_year}</p>
+					)}
+				</div>
+			</div>
+
+			{/* Rating Modal */}
+			{interactive && (
+				<RatingModal
+					isOpen={showRatingModal}
+					movieTitle={movie.title}
+					posterUrl={movie.poster_url}
+					currentRating={rating || null}
+					onRate={(value) => onUpdate?.(movie.id, { ranking: value })}
+					onClose={() => setShowRatingModal(false)}
+				/>
+			)}
+		</>
+	);
+}
+
+/* ═══════════════════════════════════════════════════════
    MAIN EXPORT
    ═══════════════════════════════════════════════════════ */
 
@@ -550,6 +714,8 @@ export default function MovieCard({
 	footerAction,
 	showYear,
 	incomplete,
+	onWatchlist,
+	isOnWatchlist,
 }: MovieCardProps) {
 	// Use explicit ranking if provided, otherwise pull from movie data
 	const resolvedRating = ranking !== undefined ? Math.round(ranking ?? 0) : Math.round(movie.rankings?.[0]?.ranking ?? 0);
@@ -578,6 +744,20 @@ export default function MovieCard({
 					incomplete={incomplete}
 				/>
 			);
+		case "large":
+			return (
+				<LargeCard
+					movie={movie}
+					rating={resolvedRating}
+					posterSrc={posterSrc}
+					rank={rank}
+					isWinner={isWinner}
+					onClick={onClick}
+					interactive={interactive}
+					onUpdate={onUpdate}
+					seenIt={seenIt}
+				/>
+			);
 		case "grid":
 		default:
 			return (
@@ -594,6 +774,8 @@ export default function MovieCard({
 					ratingLabel={ratingLabel}
 					ratingOnly={ratingOnly}
 					footerAction={footerAction}
+					onWatchlist={onWatchlist}
+					isOnWatchlist={isOnWatchlist}
 				/>
 			);
 	}

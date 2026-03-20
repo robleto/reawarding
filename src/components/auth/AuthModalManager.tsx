@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import LoginModal from "./LoginModal";
 import SignupModal from "./SignupModal";
 import type { User } from "@supabase/auth-helpers-nextjs";
@@ -19,6 +19,10 @@ export default function AuthModalManager({
   onAuthSuccess,
 }: AuthModalManagerProps) {
   const [currentMode, setCurrentMode] = useState<"login" | "signup">(initialMode);
+
+  useEffect(() => {
+    setCurrentMode(initialMode);
+  }, [initialMode, isOpen]);
 
   const handleSwitchToSignup = () => {
     setCurrentMode("signup");
@@ -43,6 +47,7 @@ export default function AuthModalManager({
   if (currentMode === "signup") {
     return (
       <SignupModal
+        key="signup"
         isOpen={isOpen}
         onClose={handleClose}
         onAuthSuccess={handleAuthSuccess}
@@ -53,6 +58,7 @@ export default function AuthModalManager({
 
   return (
     <LoginModal
+      key="login"
       isOpen={isOpen}
       onClose={handleClose}
       onAuthSuccess={handleAuthSuccess}

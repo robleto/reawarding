@@ -29,6 +29,7 @@
     "ingest:images": "python scripts/download_movie_images.py",
     "ingest:images:r2": "node scripts/ingest-tmdb-images-to-r2.mjs",
     "ingest:all": "bash -lc 'set -euo pipefail; npm run ingest:collections; npm run ingest:discover; npm run ingest:edge:fresh; npm run ingest:enrich; npm run ingest:images'",
+    "diagnose:metadata": "tsx scripts/report-metadata-backlog.ts",
     "backfill:imdb": "TS_NODE_TRANSPILE_ONLY=1 npx ts-node scripts/backfill-imdb-ids.ts",
     "backfill:tmdb": "TS_NODE_TRANSPILE_ONLY=1 npx ts-node scripts/backfill-tmdb-ids.ts",
     "func:deploy:backfill-ids": "supabase functions deploy backfill-external-ids",

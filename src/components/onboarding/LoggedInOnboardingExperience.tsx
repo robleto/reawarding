@@ -1,0 +1,445 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  Clapperboard,
+  Film,
+  Sparkles,
+  Star,
+  Trophy,
+} from "lucide-react";
+import MovieSearchPicker from "@/components/home/MovieSearchPicker";
+import type { Movie } from "@/types/types";
+import type { UserAward } from "@/hooks/useUserAwards";
+import {
+  useLoggedInOnboarding,
+  type LoggedInOnboardingStage,
+} from "@/hooks/useLoggedInOnboarding";
+
+const STORAGE_KEY = "reawarding-guide-collapsed";
+
+interface RecentRating {
+  title: string;
+  year: number | null;
+  rating: number | null;
+}
+
+interface LoggedInOnboardingExperienceProps {
+  movies: Movie[];
+  awards: UserAward[];
+  suggestedQuery?: string;
+  onSelectMovie: (movie: Movie) => void;
+  onSuggestedQuery: (query: string) => void;
+  onOpenYear: (year: number) => void;
+  onShowHowItWorks: () => void;
+  onDismiss: () => void;
+  recentlyRated: RecentRating | null;
+}
+
+interface StageCopy {
+  eyebrow: string;
+  headline: string;
+  body: string;        // one sentence — shown directly under headline
+  searchHint: string;  // one sentence — shown under search input
+}
+
+const EXAMPLE_FILMS = ["The Dark Knight", "Titanic", "Get Out", "La La Land"];
+
+const STAGE_COPY: Record<LoggedInOnboardingStage, StageCopy> = {
+  welcome: {
+    eyebrow: "First-time setup",
+    headline: "Start with one film you know.",
+    body: "Rate something you remember clearly and ReAwarding places it in its year — your first winner begins to emerge from there.",
+    searchHint: "Rate one film to give ReAwarding its first signal.",
+  },
+  "first-rating": {
+    eyebrow: "Your first signal is in",
+    headline: "Keep rating what you know best.",
+    body: "A few more films from the same year are enough for contenders to start sorting themselves out.",
+    searchHint: "Two or three more ratings in the same year will make the pattern obvious.",
+  },
+  "year-taking-shape": {
+    eyebrow: "The field is forming",
+    headline: "Your first year is starting to take shape.",
+    body: "Strong ratings rise toward nominees — lower ratings still help define what stays out.",
+    searchHint: "Ratings of 7 or higher rise into nominees for that year.",
+  },
+  "winner-emerging": {
+    eyebrow: "A leader is emerging",
+    headline: "You can already feel the winner forming.",
+    body: "ReAwarding is reading your taste, not consensus. The current leader is provisional — overrule it whenever you disagree.",
+    searchHint: "A few more ratings will make the current winner feel much more earned.",
+  },
+  "timeline-building": {
+    eyebrow: "Your history is beginning",
+    headline: "You are starting to build a personal history.",
+    body: "One year becomes two, then a timeline. Start another year or strengthen the one already in motion.",
+    searchHint: "Keep rating and your canon starts to feel coherent across time.",
+  },
+  complete: {
+    eyebrow: "",
+    headline: "",
+    body: "",
+    searchHint: "",
+  },
+};
+
+// ─── Step pipeline ────────────────────────────────────────────────────────────
+
+const STEPS = [
+  { icon: Clapperboard, label: "Rate a film",      detail: "Start with something you know well." },
+  { icon: Film,         label: "It joins its year", detail: "Placed automatically. No setup needed." },
+  { icon: Sparkles,     label: "Contenders form",   detail: "Strong ratings rise toward nominees." },
+  { icon: Trophy,       label: "A winner emerges",  detail: "Your top-rated film leads the year." },
+  { icon: Star,         label: "You refine it",     detail: "Adjust or overrule whenever you want." },
+];
+
+function StepPipeline({ activeStep }: { activeStep: number }) {
+  return (
+    <div className="flex items-stretch divide-x divide-white/[0.06]">
+      {STEPS.map((step, i) => {
+        const isActive   = i === activeStep;
+        const isComplete = i < activeStep;
+        const Icon = step.icon;
+        return (
+          <div
+            key={step.label}
+            className={[
+              "flex flex-col gap-1.5 px-3 py-3 flex-1 min-w-0 transition-colors",
+              i === 0 ? "rounded-l-xl" : "",
+              i === STEPS.length - 1 ? "rounded-r-xl" : "",
+              isActive   ? "bg-yellow-500/[0.08] ring-1 ring-inset ring-yellow-500/20" : "",
+              isComplete ? "bg-emerald-500/[0.04]" : "",
+            ].join(" ")}
+          >
+            <div className="flex items-center gap-1.5">
+              <span
+                className={[
+                  "flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold leading-none",
+                  isActive   ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/35" : "",
+                  isComplete ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" : "",
+                  !isActive && !isComplete ? "bg-white/[0.04] text-gray-600 border border-white/[0.10]" : "",
+                ].join(" ")}
+              >
+                {isComplete ? "✓" : i + 1}
+              </span>
+              <Icon
+                className={`h-3.5 w-3.5 flex-shrink-0 ${
+                  isActive ? "text-yellow-300" : isComplete ? "text-emerald-400" : "text-gray-600"
+                }`}
+              />
+            </div>
+            <p className={`text-xs font-semibold leading-tight ${
+              isActive ? "text-yellow-200" : isComplete ? "text-emerald-300" : "text-gray-500"
+            }`}>
+              {step.label}
+            </p>
+            <p className="hidden sm:block text-[11px] leading-snug text-gray-600">
+              {step.detail}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── State indicator row (replaces 4 full cards) ──────────────────────────────
+
+function StateRow({
+  label,
+  value,
+  accent,
+  cta,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  accent?: "gold" | "green" | "dim";
+  cta?: string;
+  onClick?: () => void;
+}) {
+  const dotColor =
+    accent === "gold"  ? "bg-yellow-400" :
+    accent === "green" ? "bg-emerald-400" :
+                         "bg-gray-700";
+  const valColor =
+    accent === "gold"  ? "text-yellow-200" :
+    accent === "green" ? "text-emerald-300" :
+                         "text-gray-500";
+
+  return (
+    <div className="flex items-center gap-2.5 py-2.5 border-b border-white/[0.05] last:border-0">
+      <span className={`flex-shrink-0 w-1.5 h-1.5 rounded-full ${dotColor}`} />
+      <span className="text-xs text-gray-500 w-24 flex-shrink-0">{label}</span>
+      <span className={`text-xs font-medium flex-1 min-w-0 truncate ${valColor}`}>{value}</span>
+      {cta && onClick ? (
+        <button
+          type="button"
+          onClick={onClick}
+          className="flex-shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-yellow-500/70 hover:text-yellow-300 transition-colors"
+        >
+          {cta}
+          <ArrowRight className="h-2.5 w-2.5" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export default function LoggedInOnboardingExperience({
+  movies,
+  awards,
+  suggestedQuery,
+  onSelectMovie,
+  onSuggestedQuery,
+  onOpenYear,
+  onShowHowItWorks,
+  onDismiss,
+  recentlyRated,
+}: LoggedInOnboardingExperienceProps) {
+  const onboarding = useLoggedInOnboarding(movies, awards, false);
+  const copy = STAGE_COPY[onboarding.stage];
+
+  // Collapse state — localStorage so it survives navigation but isn't permanent
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(STORAGE_KEY) === "1";
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEY, isCollapsed ? "1" : "0");
+  }, [isCollapsed]);
+
+  const activeStep = useMemo(() => {
+    switch (onboarding.stage) {
+      case "welcome":           return 0;
+      case "first-rating":      return 1;
+      case "year-taking-shape": return 2;
+      case "winner-emerging":   return 3;
+      case "timeline-building": return 4;
+      default:                  return 4;
+    }
+  }, [onboarding.stage]);
+
+  const momentMessage = useMemo(() => {
+    if (recentlyRated?.title && recentlyRated.year) {
+      return `${recentlyRated.title} now belongs to ${recentlyRated.year}. Keep feeding that year and the race gets sharper.`;
+    }
+    if (onboarding.stage === "first-rating" && onboarding.strongestYear) {
+      return `Your early signal is landing in ${onboarding.strongestYear}. Stay with that year for the clearest next payoff.`;
+    }
+    if (onboarding.stage === "year-taking-shape" && onboarding.strongestYear) {
+      return `${onboarding.strongestYear} has started to cohere. Strong ratings rise fastest, but every score helps define the field.`;
+    }
+    if (onboarding.stage === "winner-emerging" && onboarding.strongestYear && onboarding.strongestYearWinnerTitle) {
+      return `${onboarding.strongestYearWinnerTitle} is your current ${onboarding.strongestYear} leader based on the ratings so far.`;
+    }
+    if (onboarding.stage === "timeline-building" && onboarding.yearsStarted > 1) {
+      return `${onboarding.yearsStarted} years are now in motion. This is where ReAwarding starts to feel like your own history.`;
+    }
+    return null;
+  }, [onboarding, recentlyRated]);
+
+  // ── State row data — compact single-line values ───────────────────────────
+  const yearValue = onboarding.strongestYear
+    ? `${onboarding.strongestYear} · ${onboarding.strongestYearCount} film${onboarding.strongestYearCount === 1 ? "" : "s"} rated`
+    : "—";
+  const nomineeValue = onboarding.strongestYearNomineeCount > 0
+    ? `${onboarding.strongestYearNomineeCount} contender${onboarding.strongestYearNomineeCount === 1 ? "" : "s"} rising`
+    : "—";
+  const winnerValue = onboarding.strongestYearWinnerTitle ?? "—";
+  const historyValue = onboarding.yearsStarted > 1
+    ? `${onboarding.yearsStarted} years underway`
+    : "—";
+
+  // ── Collapsed strip ───────────────────────────────────────────────────────
+  if (isCollapsed) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsCollapsed(false)}
+        className="w-full mb-6 flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-left hover:border-yellow-500/25 hover:bg-white/[0.03] transition-colors group"
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-yellow-500/60" />
+          <span className="text-xs font-medium text-gray-500 group-hover:text-gray-300 transition-colors">
+            {copy.eyebrow || "First-time setup"}
+          </span>
+          <span className="hidden sm:inline text-xs text-gray-700 truncate">
+            — {copy.headline || "Start with one film you know."}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 flex-shrink-0 text-[11px] text-gray-600 group-hover:text-gray-400 transition-colors">
+          Show guide
+          <ChevronDown className="h-3 w-3" />
+        </div>
+      </button>
+    );
+  }
+
+  // ── Expanded guide ────────────────────────────────────────────────────────
+  return (
+    <div className="mb-8">
+      {/* Outer wrapper: shadow + border + radius — NO overflow-hidden so search glow isn't clipped */}
+      <div
+        className="rounded-2xl border border-yellow-500/25"
+        style={{
+          background: "#0B0F14",
+          boxShadow: "0 10px 40px rgba(0,0,0,0.60), 0 0 0 1px rgba(255,255,255,0.06)",
+        }}
+      >
+        {/* Gold top-edge accent clipped inside its own rounded wrapper */}
+        <div className="rounded-t-2xl overflow-hidden" aria-hidden>
+          <div
+            style={{
+              height: "2px",
+              background: "linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.55) 30%, rgba(212,175,55,0.55) 70%, transparent 100%)",
+            }}
+          />
+        </div>
+
+        <div className="p-6 sm:p-8">
+
+          {/* ── Row 1: Badge + dismiss control ──────────────────────────── */}
+          {/* Low visual weight — badge fades, dismiss is ghost text */}
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/30 bg-yellow-500/[0.10] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-yellow-400">
+              <Sparkles className="h-2.5 w-2.5" />
+              {copy.eyebrow || "First-time setup"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsCollapsed(true)}
+              className="flex items-center gap-1.5 text-[11px] font-medium text-gray-600 hover:text-gray-400 transition-colors"
+            >
+              Hide
+              <ChevronUp className="h-3 w-3" />
+            </button>
+          </div>
+
+          {/* ── Row 2: Headline ─────────────────────────────────────────── */}
+          {/* Dominant — largest type on the card, nothing competes */}
+          <h2 className="font-unbounded text-2xl font-bold text-white leading-tight sm:text-3xl">
+            {copy.headline || "Start with one film you know."}
+          </h2>
+          {/* Body: single sentence, clearly subordinate */}
+          <p className="mt-3 text-sm leading-relaxed text-gray-300 max-w-xl">
+            {copy.body}
+          </p>
+
+          {/* ── Row 3: Search — primary action, card-level space ────────── */}
+          {/* No inner container. The search field IS the card's focal point. */}
+          <div className="mt-7">
+            <MovieSearchPicker
+              onSelect={onSelectMovie}
+              placeholder="Search for a movie to rate…"
+              variant="hero"
+              suggestedQuery={suggestedQuery}
+            />
+            {/* Hint: one sentence, small, immediately below input */}
+            <p className="mt-2.5 text-xs text-gray-500">{copy.searchHint}</p>
+            {/* Chips: example shortcuts, clearly tertiary */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {EXAMPLE_FILMS.map((film) => (
+                <button
+                  key={film}
+                  type="button"
+                  onClick={() => onSuggestedQuery(film)}
+                  className="rounded-full border border-white/[0.08] bg-transparent px-3 py-1 text-xs text-gray-500 hover:border-yellow-500/35 hover:text-yellow-300 transition-colors"
+                >
+                  {film}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Moment message — appears only post-rating ───────────────── */}
+          {momentMessage ? (
+            <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] px-4 py-3">
+              <span className="flex-shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <p className="text-xs leading-relaxed text-emerald-300">{momentMessage}</p>
+            </div>
+          ) : null}
+
+          {/* ── Visual divider separating primary from secondary ─────────── */}
+          <div className="mt-8 border-t border-white/[0.06]" />
+
+          {/* ── Secondary zone: pipeline + state ────────────────────────── */}
+          {/* Deliberately lower contrast throughout — these recede */}
+          <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_200px]">
+
+            {/* Step pipeline */}
+            <div>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-700">
+                Core loop
+              </p>
+              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+                <StepPipeline activeStep={activeStep} />
+              </div>
+            </div>
+
+            {/* State — compact row list, not competing cards */}
+            <div>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-700">
+                Your progress
+              </p>
+              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-1">
+                <StateRow
+                  label="Current year"
+                  value={yearValue}
+                  accent={onboarding.strongestYear ? "gold" : "dim"}
+                  cta={onboarding.strongestYear ? "Open" : undefined}
+                  onClick={onboarding.strongestYear ? () => onOpenYear(onboarding.strongestYear!) : undefined}
+                />
+                <StateRow
+                  label="Nominees"
+                  value={nomineeValue}
+                  accent={onboarding.strongestYearNomineeCount > 0 ? "green" : "dim"}
+                />
+                <StateRow
+                  label="Current winner"
+                  value={winnerValue}
+                  accent={onboarding.strongestYearWinnerTitle ? "gold" : "dim"}
+                  cta={onboarding.strongestYear && onboarding.strongestYearWinnerTitle ? "Refine" : undefined}
+                  onClick={onboarding.strongestYear ? () => onOpenYear(onboarding.strongestYear!) : undefined}
+                />
+                <StateRow
+                  label="History"
+                  value={historyValue}
+                  accent={onboarding.yearsStarted > 1 ? "green" : "dim"}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Footer: permanent dismiss, lowest possible visibility ────── */}
+          <div className="mt-5 flex items-center justify-between gap-4">
+            <button
+              type="button"
+              onClick={onShowHowItWorks}
+              className="inline-flex items-center gap-1.5 text-[11px] text-gray-600 hover:text-gray-400 transition-colors"
+            >
+              How ratings shape a year
+              <ArrowRight className="h-2.5 w-2.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="text-[11px] text-gray-700 hover:text-gray-500 transition-colors"
+            >
+              Don't show again
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -4,9 +4,9 @@ This repo uses **GitHub Actions** for scheduled jobs. There are **no active Edge
 
 ## Active GitHub Actions
 
-There are currently no active scheduled GitHub Actions in the repo.
+- `enrich-movies` - runs every 6 hours to backfill missing movie metadata from TMDB/OMDb using `scripts/enrich_movies_enhanced.py`
 
-The previously scheduled ingestion workflows are now manual-only:
+The following workflows remain manual-only:
 
 - `ingest-discover-enrich` - run on demand when you want to pull in a new batch of TMDB movies and enrich metadata
 - `mirror-movie-images` - run on demand when you need to refresh cached poster/thumb assets in Supabase storage

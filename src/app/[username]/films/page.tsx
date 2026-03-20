@@ -128,14 +128,14 @@ export default function ProfileFilmsPage() {
               </h2>
             )}
             {viewMode === "grid" ? (
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                 {groupMovieList.map((movie) => {
                   const r = movie.rankings?.[0];
                   return (
                     <MovieCard
                       key={movie.id}
                       movie={movie}
-                      variant="grid"
+                      variant="large"
                       ranking={r?.ranking ?? null}
                       seenIt={r?.seen_it ?? false}
                       onClick={() => handleOpenModal(movie)}

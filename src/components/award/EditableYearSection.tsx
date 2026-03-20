@@ -176,7 +176,11 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
   const [isEditing, setIsEditing] = useState(false);
   const [nominees, setNominees] = useState<Movie[]>([]);
-  const [selectedWinner, setSelectedWinner] = useState<Movie | null>(null);
+  // Workshop mode: seed selectedWinner from the winner prop so the crown
+  // reflects the user's saved choice immediately on open.
+  const [selectedWinner, setSelectedWinner] = useState<Movie | null>(
+    isWorkshop ? (winner ?? null) : null
+  );
   const [availableMovies, setAvailableMovies] = useState<Movie[]>(() => {
     const nomineeIds = initialNominees.map((m) => m.id);
     return allMoviesForYear.filter((m) => !nomineeIds.includes(m.id));
@@ -290,7 +294,11 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
               updated_at: new Date().toISOString(),
             });
           }
-          const shouldUseCustom = (isWorkshop || isUsingCustomViewRef.current) && nomineeMovies.length > 0;
+          // Use saved nominations unless the user has explicitly chosen 'default'.
+          // When storedPref is null (first visit, no preference yet), default to
+          // showing the saved data so the Awards page matches YearExplorer.
+          const storedPref = user?.id ? getViewPreference(user.id, resolvedCategory, year) : null;
+          const shouldUseCustom = (isWorkshop || storedPref !== 'default') && nomineeMovies.length > 0;
           if (shouldUseCustom) {
             syncView('custom', {
               nominees: nomineeMovies,
@@ -501,8 +509,11 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     if (!isWorkshop) return;
     if (nominees.length === 0) return;
     if (selectedWinner && nominees.some((m) => m.id === selectedWinner.id)) return;
-    setSelectedWinner(nominees[0]);
-  }, [isWorkshop, nominees, selectedWinner]);
+    // Prefer the passed winner prop if it's still in nominees; fall back to first.
+    const preferred =
+      winner && nominees.some((m) => m.id === winner.id) ? winner : nominees[0];
+    setSelectedWinner(preferred);
+  }, [isWorkshop, nominees, selectedWinner, winner]);
 
   const handleSave = async () => {
     // Wait for session to load before checking user
@@ -1131,7 +1142,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     })()}
                   </div>
                   <div className="flex items-center gap-2">
-                    {user && !isEditing && (
+                    {user && !isEditing && !isWorkshop && (
                       <button
                         onClick={onEditRequest ?? handleStartEditing}
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 border border-gray-700/40 rounded-md hover:text-white hover:border-gray-600 hover:bg-gray-800/60 transition-all"

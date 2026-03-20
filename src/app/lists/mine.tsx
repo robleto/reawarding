@@ -41,11 +41,12 @@ export default function MyListsPage() {
       setError(null);
       let my = [];
       if (userId) {
-        // First, get all lists for the current user
+        // First, get all lists for the current user (exclude E2E test artifacts)
         const { data: listsData, error: listsError } = await supabase
           .from("movie_lists")
           .select("*")
           .eq("user_id", userId)
+          .not("name", "ilike", "E2E%")
           .order("updated_at", { ascending: false });
 
         if (listsError) {

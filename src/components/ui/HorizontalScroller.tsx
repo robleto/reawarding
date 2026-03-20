@@ -46,10 +46,6 @@ export default function HorizontalScroller({ children, className = "", innerClas
 
   return (
     <div className={`relative -mx-10 sm:-mx-6 px-10 sm:px-6 ${className}`}>
-      {/* Fades */}
-      <div className={`pointer-events-none absolute inset-y-0 left-0 w-8 sm:w-10 bg-gradient-to-r from-gray-950/90 to-transparent ${canScrollLeft ? '' : 'opacity-0'} transition-opacity`}/>
-      <div className={`pointer-events-none absolute inset-y-0 right-0 w-10 sm:w-12 bg-gradient-to-l from-gray-950/90 to-transparent ${canScrollRight ? '' : 'opacity-0'} transition-opacity`}/>
-
       {/* Arrows */}
       {showArrows && (
         <>

@@ -188,7 +188,7 @@ export default function ProfileRankingsPage() {
             </h2>
           )}
           {viewMode === "grid" ? (
-            <div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
               {groupMovieList.map((movie) => {
                 const r = movie.rankings?.[0];
                 if (!r) return null;
@@ -197,7 +197,7 @@ export default function ProfileRankingsPage() {
                   <div key={movie.id} className="relative">
                     <MovieCard
                       movie={movie}
-                      variant="grid"
+                      variant="large"
                       ranking={r.ranking ?? null}
                       ratingLabel={def?.label ?? null}
                       seenIt={r.seen_it ?? false}

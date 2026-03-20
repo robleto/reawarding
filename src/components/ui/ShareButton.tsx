@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Share2, Check, Copy } from "lucide-react";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
 

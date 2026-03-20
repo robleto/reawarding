@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Image from "next/image";
 import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
 import { normalizeImageUrl } from "@/utils/imageUrl";

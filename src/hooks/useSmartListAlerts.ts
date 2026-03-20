@@ -15,11 +15,12 @@ export type SmartListAlert = {
 };
 
 // Thresholds: [near-miss starts at, unlocks at]
+// Aligned with the Ready-Made Lists page so home and dedicated page agree on what's available.
 const THRESHOLDS: Record<SmartListAlertType, [number, number]> = {
-  director: [5, 8],
-  genre:    [12, 15],
-  decade:   [15, 20],
-  actor:    [5, 8],
+  director: [5,  8],
+  actor:    [5,  8],
+  genre:    [8, 10],   // was [12,15] — lowered to match Ready-Made page threshold
+  decade:   [10, 15],  // was [15,20] — lowered to match Ready-Made page threshold
 };
 
 function decadeLabel(year: number): string {
@@ -139,13 +140,29 @@ export function useSmartListAlerts(movies: Movie[]): SmartListAlert[] {
       }
     }
 
-    // Sort: unlocked first, then near-miss; within each group sort by count desc
+    // Priority order within each lock-status group:
+    //   directors → actors → decades → genres
+    // Genres expand so quickly (Drama/Thriller hit 12+ fast) that without this
+    // they crowd out the more distinctive director/actor/decade signals.
+    const TYPE_PRIORITY: Record<SmartListAlertType, number> = {
+      director: 0,
+      actor:    1,
+      decade:   2,
+      genre:    3,
+    };
+
     alerts.sort((a, b) => {
+      // Unlocked lists before near-misses
       if (a.nearMiss !== b.nearMiss) return a.nearMiss ? 1 : -1;
+      // Directors/actors/decades before genres
+      const pa = TYPE_PRIORITY[a.type];
+      const pb = TYPE_PRIORITY[b.type];
+      if (pa !== pb) return pa - pb;
+      // Within same type: more seen = higher signal
       return b.count - a.count;
     });
 
-    // Cap at 5 — don't overwhelm the UI
-    return alerts.slice(0, 5);
+    // Cap at 6 — enough to fill a horizontal row at any viewport
+    return alerts.slice(0, 6);
   }, [movies]);
 }

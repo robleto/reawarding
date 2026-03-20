@@ -171,7 +171,12 @@ export default function YearExplorer({
   const canonicalWinnerMovie = hasCanonicalBestPictureAward
     ? (existingNomineeMovies.find((m) => String(m.id) === String(existingAward?.winnerId)) ?? existingNomineeMovies[0] ?? null)
     : null;
-  const activeWinnerId = canonicalWinnerMovie?.id
+  // workshopWinnerId is the real-time value from onWorkshopNomineesChange;
+  // it must lead the chain so live selections update the sticky-bar crown
+  // immediately, before existingAward re-fetches from the API.
+  const activeWinnerId =
+    workshopWinnerId
+    ?? canonicalWinnerMovie?.id
     ?? existingAward?.winnerId
     ?? defaultWinner?.id
     ?? null;
@@ -530,7 +535,7 @@ export default function YearExplorer({
           <p className="text-xs uppercase tracking-wide text-gray-400 font-medium mb-3">
             {rowTitle}
           </p>
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {movies.map((movie) => {
               const justNominated = recentlyNominated.has(movie.id);
               const ranking = movie.rankings?.[0]?.ranking ?? null;
@@ -552,13 +557,12 @@ export default function YearExplorer({
                   )}
 
                   <MovieCard
-                    movie={movie}
                     variant="grid"
+                    movie={movie}
                     ranking={ranking}
                     seenIt={movie.rankings?.[0]?.seen_it ?? false}
                     onUpdate={handleRatingFirst}
                     onClick={() => setSelectedMovie(movie)}
-                    ratingOnly
                     footerAction={
                       canPromote ? (
                         <button
@@ -886,7 +890,7 @@ export default function YearExplorer({
 
             {/* Loading skeleton */}
             {loading && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {Array.from({ length: 10 }).map((_, i) => (
                   <div
                     key={i}

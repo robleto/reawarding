@@ -439,6 +439,34 @@ export function useMovieDataWithGuest() {
 								thumb_url: movie.thumb_url ?? "",
 							} as Movie;
 						});
+
+						// ── Rescue ranked movies outside the page-0 range ──────────────────
+						// Movies ranked by the user that fall outside range(0,2999) won't be
+						// in moviesResult. Fetch them separately so smart-list hooks see every
+						// film the user has actually interacted with.
+						if (rankingsResult.data && rankingsResult.data.length > 0) {
+							const enrichedIds = new Set(enriched.map((m) => m.id));
+							const missingIds = rankingsResult.data
+								.map((r: any) => r.movie_id as number)
+								.filter((id: number) => !enrichedIds.has(id));
+							if (missingIds.length > 0) {
+								const { data: extraMovies } = await supabase
+									.from("movies")
+									.select(MOVIE_LIST_FIELDS)
+									.in("id", missingIds);
+								if (extraMovies) {
+									for (const movie of extraMovies) {
+										const ranking = rankingsMap.get(movie.id);
+										enriched.push({
+											...movie,
+											rankings: ranking ? [ranking] : [],
+											thumb_url: movie.thumb_url ?? "",
+										} as Movie);
+									}
+								}
+							}
+						}
+
 							if (requestId === requestSeqRef.current) {
 								setMovies(enriched);
 								setError(null);

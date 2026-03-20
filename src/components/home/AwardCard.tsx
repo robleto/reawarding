@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Trophy, Share2 } from "lucide-react";
 import { getActualWinner } from "@/data/bestPictureWinners";
 

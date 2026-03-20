@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, LineChart, Film } from "lucide-react";
+import { Home, Trophy, LineChart, Film, List } from "lucide-react";
 
 export default function MobileTabBar() {
   const pathname = usePathname() || "/";
@@ -12,6 +12,7 @@ export default function MobileTabBar() {
     { href: "/awards", label: "Awards", icon: Trophy, match: (p: string) => p.startsWith("/awards") },
     { href: "/rankings", label: "Rank", icon: LineChart, match: (p: string) => p.startsWith("/rankings") },
     { href: "/films", label: "Films", icon: Film, match: (p: string) => p.startsWith("/films") },
+    { href: "/lists", label: "Lists", icon: List, match: (p: string) => p.startsWith("/lists") },
   ];
 
   return (
@@ -20,7 +21,7 @@ export default function MobileTabBar() {
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px))" }}
       aria-label="Primary"
     >
-      <ul className="grid grid-cols-4 py-2">
+      <ul className="grid grid-cols-5 py-2">
         {tabs.map(({ href, label, icon: Icon, match }) => {
           const active = match(pathname);
           return (

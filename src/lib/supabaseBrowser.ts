@@ -7,18 +7,15 @@
  *   - Client-side utils that run in the browser
  *
  * Do NOT use in Server Components or API Route Handlers — use supabaseServer or supabaseAdmin instead.
+ *
+ * Uses createBrowserClient from @supabase/ssr so auth tokens are stored in
+ * cookies (not just localStorage). This lets server components and middleware
+ * read the session via cookies().
  */
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from '@/types/supabase';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    flowType: 'implicit',
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    persistSession: true,
-  },
-});
+export const supabase = createBrowserClient<Database>(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+);

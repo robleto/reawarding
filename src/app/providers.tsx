@@ -11,6 +11,7 @@ import { useAuthMigration } from '@/utils/authMigration';
 import { useAuthState } from '@/hooks/useAuthState';
 import useOnboardingState from '@/hooks/useOnboardingState';
 import useGuestRankingStore from '@/hooks/useGuestRankingStore';
+import { WatchlistProvider } from '@/contexts/WatchlistContext';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -29,7 +30,9 @@ export function Providers({ children }: ProvidersProps) {
         <PersistenceBoundaryBridge />
         <ThemeProvider>
           <ToastProvider>
-            {children}
+            <WatchlistProvider>
+              {children}
+            </WatchlistProvider>
           </ToastProvider>
         </ThemeProvider>
       </SessionContextProvider>

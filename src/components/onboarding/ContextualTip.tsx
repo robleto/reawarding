@@ -17,9 +17,9 @@ interface TipDefinition {
 export const CONTEXTUAL_TIPS: Record<ContextualTipId, TipDefinition> = {
   "first-rating": {
     id: "first-rating",
-    title: "Ratings are your starting signal",
+    title: "Your ratings are the signal",
     message:
-      "They help us estimate how strongly you feel about each film. These are a first signal, not a permanent verdict.",
+      "Each score tells us how strongly a film belongs in the race. It is a starting signal, not a permanent verdict.",
   },
   "first-comparison": {
     id: "first-comparison",
@@ -29,15 +29,15 @@ export const CONTEXTUAL_TIPS: Record<ContextualTipId, TipDefinition> = {
   },
   "incomplete-year": {
     id: "incomplete-year",
-    title: "This year is still early",
+    title: "This year is still taking shape",
     message:
-      "A few more ratings will make your contenders and rankings much more reliable. You can always come back to add more.",
+      "A few more ratings from this year will sharpen the contenders and make the current winner feel more earned.",
   },
   disagreement: {
     id: "disagreement",
-    title: "Your race, your rules",
+    title: "Your race, your call",
     message:
-      "Interesting \u2014 your current leader isn\u2019t the usual favorite. That\u2019s the point: this race reflects your taste, not consensus.",
+      "Interesting \u2014 your current leader is not the usual favorite. That is the point: this race reflects your taste, not consensus.",
   },
   "category-unlock": {
     id: "category-unlock",

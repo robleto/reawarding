@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
 import { useAuthState } from "@/hooks/useAuthState";
+import { useWatchlist } from "@/hooks/useWatchlist";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieCard from "@/components/award/MovieCard";
 import type { Movie } from "@/types/types";
@@ -21,19 +22,17 @@ export default function ProfileWatchlistPage() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const isOwner = !!user && !!profile && user.email !== undefined
-    ? profile.username === username && (user.user_metadata?.username === username || user.email === undefined)
-    : false;
-
   // Determine ownership by matching profile id with user id
   const isViewer = !!user && !!profile && profile.id === user.id;
+
+  // Live watchlist toggle — only active when the viewer is the owner
+  const { watchlistMovieIds, toggle: toggleWatchlist } = useWatchlist(isViewer ? (user?.id ?? null) : null);
 
   useEffect(() => {
     if (profileLoading || !profile) return;
 
     async function fetchWatchlist() {
       setLoading(true);
-      // Find the watchlist list for this user
       const { data: listData } = await supabase
         .from("movie_lists")
         .select("id")
@@ -48,7 +47,6 @@ export default function ProfileWatchlistPage() {
         return;
       }
 
-      // Get movie IDs in watchlist
       const { data: items } = await supabase
         .from("movie_list_items")
         .select("movie_id")
@@ -61,7 +59,6 @@ export default function ProfileWatchlistPage() {
       }
 
       const movieIds = items.map((item) => item.movie_id as number);
-
       const { data: movies } = await supabase
         .from("movies")
         .select("*")
@@ -73,6 +70,39 @@ export default function ProfileWatchlistPage() {
 
     fetchWatchlist();
   }, [profileLoading, profile, supabase]);
+
+  // When the owner removes a film via the bookmark button, drop it from the list immediately
+  useEffect(() => {
+    if (!isViewer) return;
+    setWatchlistMovies((prev) => prev.filter((m) => watchlistMovieIds.has(m.id)));
+  }, [watchlistMovieIds, isViewer]);
+
+  // Update seen_it / ranking for a watchlist film (owner only)
+  const handleUpdateMovie = useCallback(async (
+    movieId: number,
+    updates: { seen_it?: boolean; ranking?: number | null }
+  ) => {
+    if (!isViewer || !user?.id) return;
+    await supabase
+      .from("rankings")
+      .upsert({ user_id: user.id, movie_id: movieId, ...updates }, { onConflict: "user_id,movie_id" });
+    // Reflect change locally so button states update immediately
+    setWatchlistMovies((prev) =>
+      prev.map((m) =>
+        m.id === movieId
+          ? {
+              ...m,
+              rankings: [
+                {
+                  ...(m.rankings?.[0] ?? { id: 0, user_id: user.id, movie_id: movieId }),
+                  ...updates,
+                },
+              ],
+            }
+          : m
+      )
+    );
+  }, [isViewer, user?.id, supabase]);
 
   if (profileLoading || loading) {
     return (
@@ -96,13 +126,30 @@ export default function ProfileWatchlistPage() {
 
   if (watchlistMovies.length === 0) {
     return (
-      <div className="text-center py-16">
-        <h3 className="text-lg font-semibold text-white mb-2">No films on the watchlist yet</h3>
-        <p className="text-gray-400 text-sm">
-          {isViewer
-            ? "Add films you want to watch using the bookmark icon on any movie."
-            : `@${username} hasn't added any films to their watchlist yet.`}
-        </p>
+      <div>
+        {/* Placeholder poster grid */}
+        <div
+          className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 mb-8 pointer-events-none select-none"
+          aria-hidden="true"
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="aspect-[2/3] rounded-xl bg-gray-800/50 border border-gray-700/20"
+              style={{ opacity: Math.max(0.08, 0.25 - i * 0.03) }}
+            />
+          ))}
+        </div>
+        <div className="text-center -mt-4">
+          <h3 className="text-lg font-semibold text-white mb-2">
+            {isViewer ? "Your watchlist is empty" : "No films on the watchlist yet"}
+          </h3>
+          <p className="text-gray-400 text-sm">
+            {isViewer
+              ? 'Tap "Want to See" on any movie to queue it up here.'
+              : `@${username} hasn't added any films to their watchlist yet.`}
+          </p>
+        </div>
       </div>
     );
   }
@@ -114,20 +161,24 @@ export default function ProfileWatchlistPage() {
           Only you can see this watchlist.
         </p>
       )}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
-        {watchlistMovies.map((movie) => (
-          <MovieCard
-            key={movie.id}
-            movie={movie}
-            variant="grid"
-            ranking={null}
-            seenIt={false}
-            onClick={() => {
-              setSelectedMovie(movie);
-              setIsModalOpen(true);
-            }}
-          />
-        ))}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        {watchlistMovies.map((movie) => {
+          const r = movie.rankings?.[0];
+          return (
+            <MovieCard
+              key={movie.id}
+              movie={movie}
+              variant="large"
+              ranking={r?.ranking ?? null}
+              seenIt={r?.seen_it ?? false}
+              onUpdate={isViewer ? handleUpdateMovie : undefined}
+              onClick={() => {
+                setSelectedMovie(movie);
+                setIsModalOpen(true);
+              }}
+            />
+          );
+        })}
       </div>
 
       {selectedMovie && isModalOpen && (

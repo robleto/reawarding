@@ -25,12 +25,11 @@ export default function SessionCoach({
   onOpenYear,
   onDismiss,
 }: SessionCoachProps) {
-  const { sessionCount, stage, hasDismissedOnboarding } = useOnboardingState();
+  const { sessionCount, hasDismissedOnboarding } = useOnboardingState();
 
   const coaching = useMemo(() => {
     // Only show for sessions 2-3, or low-data users in early sessions
     if (hasDismissedOnboarding) return null;
-    if (stage !== "complete") return null;
     if (sessionCount > 4) return null;
 
     const totalRated = movies.filter(
@@ -92,7 +91,7 @@ export default function SessionCoach({
     }
 
     return null;
-  }, [sessionCount, stage, hasDismissedOnboarding, movies, bestYear, bestYearRatedCount, leaderTitle]);
+  }, [sessionCount, hasDismissedOnboarding, movies, bestYear, bestYearRatedCount, leaderTitle]);
 
   if (!coaching) return null;
 

@@ -410,7 +410,7 @@ function RankingsPageContent() {
                   )}
 
                   {viewMode === "grid" ? (
-                    <div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-5">
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                       {sectionMovies.map((movie, index) => {
                         const r = movie.rankings?.[0];
                         if (!r) return null;
@@ -422,12 +422,10 @@ function RankingsPageContent() {
                           <div key={movie.id} className="relative">
                             <MovieCard
                               movie={movie}
-                              variant="grid"
+                              variant="large"
                               rank={sectionType === "ranked" ? index + 1 : undefined}
                               ranking={rating}
                               seenIt={r.seen_it ?? false}
-                              ratingLabel={def?.label ?? null}
-                              ratingOnly={sectionType === "unranked"}
                               onUpdate={updateMovieRanking}
                               onClick={() => handleOpenModal(movie)}
                             />

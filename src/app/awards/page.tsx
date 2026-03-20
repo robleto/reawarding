@@ -56,16 +56,31 @@ export default function AwardsPage() {
 
         const defaultWinner = defaultNominees.length > 0 ? defaultNominees[0] : sorted[0];
 
+        // If the user has a saved award for this year, use its winner and nominees
+        // for the initial render so the Awards page matches YearExplorer immediately
+        // (before EditableYearSection's own API call completes).
+        const savedAward = awards.find((a) => a.year === Number(year));
+
+        const savedNominees = savedAward?.nomineeIds?.length
+          ? (savedAward.nomineeIds
+              .map((id) => sorted.find((m) => m.id === Number(id)))
+              .filter((m): m is Movie => Boolean(m)))
+          : null;
+
+        const savedWinner = savedAward?.winnerId
+          ? (sorted.find((m) => m.id === Number(savedAward.winnerId)) ?? null)
+          : null;
+
         return {
           year,
-          winner: defaultWinner,
-          nominees: defaultNominees,
+          winner: savedWinner ?? defaultWinner,
+          nominees: savedNominees?.length ? savedNominees : defaultNominees,
           allMovies: sorted,
         };
       })
       .filter((yearData) => yearData.allMovies.length >= 1)
       .sort((a, b) => Number(b.year) - Number(a.year));
-  }, [movies, hasMounted]);
+  }, [movies, hasMounted, awards]);
 
   const existingAward = useMemo(() => {
     if (explorerYear == null) return null;

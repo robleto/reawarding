@@ -30,8 +30,9 @@ export async function createSupabaseServerClient() {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options);
             });
-          } catch (error) {
-            console.error('Failed to set auth cookies:', error);
+          } catch {
+            // In RSCs, cookies cannot be written — this is expected.
+            // The middleware handles token refresh and cookie persistence.
           }
         },
       },

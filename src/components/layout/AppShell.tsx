@@ -15,7 +15,7 @@ export default function AppShell({ children }: AppShellProps) {
   return (
     <div className="relative z-10 min-h-screen flex flex-col">
       <HeaderNav />
-      <main className={`flex-1 pt-20 px-10 sm:px-6 max-w-screen-xl mx-auto w-full ${isAuthenticated ? 'pb-24 md:pb-8' : 'pb-8'}`}>
+      <main className={`flex-1 pt-20 px-4 sm:px-6 w-full max-w-screen-xl mx-auto ${isAuthenticated ? 'pb-24 md:pb-8' : 'pb-8'}`}>
         {children}
       </main>
       {isAuthenticated && <MobileTabBar />}
