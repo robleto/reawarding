@@ -4,8 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Flame } from "lucide-react";
 import type { Movie } from "@/types/types";
-import MoviePosterCard from "@/components/movie/MoviePosterCard";
-import MovieRowCard from "@/components/movie/MovieRowCard";
+import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import Loader from "@/components/ui/Loading";
 import RankingsEmptyState from "@/components/rankings/RankingsEmptyState";
@@ -40,6 +39,20 @@ export default function RankingsPage() {
   );
 }
 
+function getMovieRating(movie: Movie) {
+  const rating = movie.rankings?.[0]?.ranking;
+  return typeof rating === "number" ? rating : null;
+}
+
+function isRankedMovie(movie: Movie) {
+  const rating = getMovieRating(movie);
+  return typeof rating === "number" && rating >= 1 && rating <= 10;
+}
+
+function isUnrankedMovie(movie: Movie) {
+  return movie.rankings?.[0]?.seen_it === true && getMovieRating(movie) == null;
+}
+
 function RankingsPageContent() {
   const searchParams = useSearchParams();
   const { status } = useAuthState();
@@ -61,17 +74,14 @@ function RankingsPageContent() {
   }, [viewMode]);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "hot-takes">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "unranked" | "hot-takes">("all");
   
-  // Show only truly rated movies (1-10). Ignore rows with null/0 ratings.
-  const moviesWithRankings = movies.filter((movie) => {
-    const rating = movie.rankings?.[0]?.ranking;
-    return typeof rating === "number" && rating >= 1 && rating <= 10;
-  });
+  const rankedMovies = movies.filter(isRankedMovie);
+  const unrankedMovies = movies.filter(isUnrankedMovie);
   
   // Calculate hot takes (movies with significant rating disparity)
-  const hotTakes = moviesWithRankings.filter((movie) => {
-    const myRating = movie.rankings?.[0]?.ranking || 0;
+  const hotTakes = rankedMovies.filter((movie) => {
+    const myRating = getMovieRating(movie) || 0;
     
     // Convert ratings to 10-point scale
     const imdbRating = movie.imdb_rating || 0; // Already 0-10
@@ -100,7 +110,12 @@ function RankingsPageContent() {
   }).sort((a, b) => Math.abs(b.disparity) - Math.abs(a.disparity)); // Sort by biggest disparity
   
   // Use appropriate movie list based on active tab
-  const displayMovies = activeTab === "hot-takes" ? hotTakes : moviesWithRankings;
+  const displayMovies =
+    activeTab === "hot-takes"
+      ? hotTakes
+      : activeTab === "unranked"
+        ? [...unrankedMovies, ...rankedMovies]
+        : rankedMovies;
   
   // Rankings-specific filter state with custom defaults
   const [hasMounted, setHasMounted] = useState(false);
@@ -195,12 +210,13 @@ function RankingsPageContent() {
   
   // Use shared grouping/sorting for consistency across pages
   const groupedMovies = groupMovies(filteredMovies, groupBy, sortBy, sortOrder);
+  const filteredUnrankedMovies = filteredMovies.filter(isUnrankedMovie);
   
   // Generate unique years and ranks for filter dropdowns
-  const uniqueYears = Array.from(new Set(moviesWithRankings.map((m) => m.release_year).filter((y): y is number => typeof y === 'number'))).sort((a, b) => b - a);
+  const uniqueYears = Array.from(new Set(displayMovies.map((m) => m.release_year).filter((y): y is number => typeof y === 'number'))).sort((a, b) => b - a);
   const uniqueRanks = Array.from(
     new Set(
-      moviesWithRankings
+      rankedMovies
         .map((m) => m.rankings?.[0]?.ranking)
         .filter((rank): rank is number => typeof rank === "number")
     )
@@ -228,6 +244,18 @@ function RankingsPageContent() {
     hasMounted &&
     !loading &&
     movies.length > 0;
+
+  if (status === "unauthenticated") {
+    return (
+      <ScreenState
+        testId="screen-state-auth-required"
+        title="Sign in to view your rankings"
+        message="Rankings are tied to your account. Sign in to load your ratings and hot takes."
+        primaryAction={{ label: "Sign In", href: "/login" }}
+        secondaryAction={{ label: "Back Home", href: "/" }}
+      />
+    );
+  }
 
   // Show skeleton loader while loading
   if (!hasMounted || loading) {
@@ -265,18 +293,6 @@ function RankingsPageContent() {
     );
   }
 
-  if (status === "unauthenticated") {
-    return (
-      <ScreenState
-        testId="screen-state-auth-required"
-        title="Sign in to view your rankings"
-        message="Rankings are tied to your account. Sign in to load your ratings and hot takes."
-        primaryAction={{ label: "Sign In", href: "/login" }}
-        secondaryAction={{ label: "Back Home", href: "/" }}
-      />
-    );
-  }
-
   if (status === "authenticated" && error) {
     return (
       <ScreenState
@@ -290,7 +306,7 @@ function RankingsPageContent() {
   }
 
   // Show empty state for authenticated users with no rankings
-  if (!isGuest && moviesWithRankings.length === 0) {
+  if (!isGuest && rankedMovies.length === 0 && unrankedMovies.length === 0) {
     return (
       <div className="max-w-screen-xl px-6 py-10 mx-auto">
         <RankingsEmptyState onSelectMovie={handleEmptyStateSelect} />
@@ -311,7 +327,18 @@ function RankingsPageContent() {
           }`}
         >
           All Rankings
-          <span className="ml-2 text-xs text-gray-500">({moviesWithRankings.length})</span>
+          <span className="ml-2 text-xs text-gray-500">({rankedMovies.length})</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("unranked")}
+          className={`px-4 py-3 text-sm font-medium transition-colors relative ${
+            activeTab === "unranked"
+              ? "text-blue-300 border-b-2 border-blue-300"
+              : "text-gray-400 hover:text-gray-300"
+          }`}
+        >
+          Unranked
+          <span className="ml-2 text-xs text-gray-500">({unrankedMovies.length})</span>
         </button>
         <button
           onClick={() => setActiveTab("hot-takes")}
@@ -330,7 +357,7 @@ function RankingsPageContent() {
       <MovieFilters
         localSearchMode={true}
         availableMovies={displayMovies}
-        searchContext={activeTab === "hot-takes" ? "hot takes" : "rankings"}
+        searchContext={activeTab === "hot-takes" ? "hot takes" : activeTab === "unranked" ? "unranked films" : "rankings"}
         viewMode={viewMode}
         setViewMode={setViewMode}
         sortBy={sortBy}
@@ -355,72 +382,114 @@ function RankingsPageContent() {
         }}
       />
 
-      {groupedMovies.map(({ key, movies }: { key: string; movies: Movie[] }) => (
-        <div key={key} className="mb-10">
-          {groupBy !== "none" && (
-            <h2
-              className="mb-6 text-4xl font-unbounded font-regular text-gray-800 dark:text-gray-100 tracking-wider"
-            >
-              {key}
-            </h2>
-          )}
-          {viewMode === "grid" ? (
-            <div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-5">
-              {movies.map((movie) => {
-                const r = movie.rankings?.[0];
-                if (!r) return null;
-                const def = getRatingDefinition(r.ranking);
-                return (
-                  <div key={movie.id} className="relative">
-                    <MoviePosterCard
-                      movie={movie}
-                      currentUserId={userId ?? ""}
-                      onUpdate={updateMovieRanking}
-                      ranking={r.ranking ?? null}
-                      ratingLabel={def?.label ?? null}
-                      seenIt={r.seen_it ?? false}
-                      onClick={() => handleOpenModal(movie)}
-                    />
-                    {activeTab === "hot-takes" && (
-                      <div className="mt-2">
-                        <HotTakeIndicator
-                          myRating={r.ranking ?? 0}
-                          imdbRating={movie.imdb_rating}
-                          metacriticScore={movie.metacritic_score}
-                          compact={true}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex flex-col">
-              {movies.map((movie, index) => {
-                const r = movie.rankings?.[0];
-                if (!r) return null;
-                const def = getRatingDefinition(r.ranking);
-                return (
-                  <MovieRowCard
-                    key={movie.id}
-                    movie={movie}
-                    currentUserId={userId ?? ""}
-                    onUpdate={updateMovieRanking}
-                    ranking={r.ranking ?? null}
-                    ratingLabel={def?.label ?? null}
-                    seenIt={r.seen_it ?? false}
-                    isLast={index === movies.length - 1}
-                    index={index}
-                    showHotTake={activeTab === "hot-takes"}
-                    onClick={() => handleOpenModal(movie)}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </div>
-      ))}
+      {activeTab === "unranked" && filteredUnrankedMovies.length === 0
+        ? (
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-6 py-8 text-center">
+            <h2 className="text-2xl font-semibold text-emerald-200">You&apos;re all caught up</h2>
+            <p className="mt-2 text-sm text-emerald-100/80">
+              Congrats. Every film you&apos;ve marked as seen has a rating.
+            </p>
+          </div>
+        )
+        : groupedMovies.map(({ key, movies }: { key: string; movies: Movie[] }) => {
+            const rankedGroupMovies = movies.filter(isRankedMovie);
+            const unrankedGroupMovies = activeTab === "unranked" ? movies.filter(isUnrankedMovie) : [];
+
+            const renderMovieSection = (sectionMovies: Movie[], sectionType: "unranked" | "ranked") => {
+              if (sectionMovies.length === 0) return null;
+
+              return (
+                <div className={sectionType === "unranked" ? "mb-8" : ""}>
+                  {activeTab === "unranked" && (
+                    <div className="mb-4">
+                      <h3 className="text-lg font-semibold text-gray-100">Unranked</h3>
+                      <p className="mt-1 text-sm text-gray-400">
+                        Films you&apos;ve seen but haven&apos;t rated yet
+                      </p>
+                    </div>
+                  )}
+
+                  {viewMode === "grid" ? (
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                      {sectionMovies.map((movie, index) => {
+                        const r = movie.rankings?.[0];
+                        if (!r) return null;
+
+                        const rating = getMovieRating(movie);
+                        const def = rating != null ? getRatingDefinition(rating) : null;
+
+                        return (
+                          <div key={movie.id} className="relative">
+                            <MovieCard
+                              movie={movie}
+                              variant="large"
+                              rank={sectionType === "ranked" ? index + 1 : undefined}
+                              ranking={rating}
+                              seenIt={r.seen_it ?? false}
+                              onUpdate={updateMovieRanking}
+                              onClick={() => handleOpenModal(movie)}
+                            />
+                            {activeTab === "hot-takes" && rating != null && (
+                              <div className="mt-2">
+                                <HotTakeIndicator
+                                  myRating={rating}
+                                  imdbRating={movie.imdb_rating}
+                                  metacriticScore={movie.metacritic_score}
+                                  compact={true}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col">
+                      {sectionMovies.map((movie, index) => {
+                        const r = movie.rankings?.[0];
+                        if (!r) return null;
+
+                        const rating = getMovieRating(movie);
+                        const def = rating != null ? getRatingDefinition(rating) : null;
+
+                        return (
+                          <MovieCard
+                            key={movie.id}
+                            movie={movie}
+                            variant="compact"
+                            rank={sectionType === "ranked" ? index + 1 : undefined}
+                            ranking={rating}
+                            ratingLabel={def?.label ?? null}
+                            seenIt={r.seen_it ?? false}
+                            showHotTake={activeTab === "hot-takes"}
+                            showYear
+                            incomplete={sectionType === "unranked"}
+                            onUpdate={updateMovieRanking}
+                            onClick={() => handleOpenModal(movie)}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
+            return (
+              <div key={key} className="mb-10">
+                {groupBy !== "none" && (
+                  <h2
+                    className="mb-6 text-4xl font-unbounded font-regular text-gray-800 dark:text-gray-100 tracking-wider"
+                  >
+                    {key}
+                  </h2>
+                )}
+                {activeTab === "unranked"
+                  ? renderMovieSection(unrankedGroupMovies, "unranked")
+                  : renderMovieSection(rankedGroupMovies, "ranked")}
+              </div>
+            );
+          })}
 
       {/* Movie Detail Modal */}
       {selectedMovie && (

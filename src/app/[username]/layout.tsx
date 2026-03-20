@@ -2,9 +2,12 @@
 
 import { useParams, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Star, Trophy, Film, Home, Share2, Check } from "lucide-react";
+import { Star, Trophy, Film, Home, Share2, Check, Bookmark, List, Activity, Users } from "lucide-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
+import { useFollowing } from "@/hooks/useFollowing";
 import UserAvatar from "@/components/ui/UserAvatar";
+import FollowButton from "@/components/social/FollowButton";
+import { useUser } from "@supabase/auth-helpers-react";
 import { useState } from "react";
 
 function ProfileHeader({
@@ -13,7 +16,10 @@ function ProfileHeader({
   username: string;
 }) {
   const { profile, stats, loading, notFound } = usePublicProfile(username);
+  const sessionUser = useUser();
+  const { followingIds, toggleFollow } = useFollowing(profile?.id ?? null);
   const [copied, setCopied] = useState(false);
+  const isOwnProfile = sessionUser?.id === profile?.id;
 
   const handleCopyProfileUrl = async () => {
     try {
@@ -90,23 +96,34 @@ function ProfileHeader({
             ) : (
               <p className="mt-1.5 text-xs text-gray-500 italic">Curating film history one year at a time.</p>
             )}
-            {/* Share button */}
-            <button
-              onClick={handleCopyProfileUrl}
-              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-gray-400 hover:text-white bg-gray-800/40 hover:bg-gray-700/60 border border-gray-700/30 hover:border-gray-600/50 transition-all"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-3 h-3 text-green-400" />
-                  <span className="text-green-400">Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Share2 className="w-3 h-3" />
-                  Share Profile
-                </>
+            {/* Actions: follow + share */}
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              {sessionUser && profile && (
+                <FollowButton
+                  targetProfileId={profile.id}
+                  isFollowing={followingIds.has(profile.id)}
+                  isOwnProfile={isOwnProfile}
+                  onToggle={toggleFollow}
+                  size="sm"
+                />
               )}
-            </button>
+              <button
+                onClick={handleCopyProfileUrl}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-gray-400 hover:text-white bg-gray-800/40 hover:bg-gray-700/60 border border-gray-700/30 hover:border-gray-600/50 transition-all"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3 h-3 text-green-400" />
+                    <span className="text-green-400">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-3 h-3" />
+                    Share Profile
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -142,6 +159,10 @@ function ProfileTabs({ username }: { username: string }) {
     { label: "My Awards", href: `${basePath}/awards`, icon: Trophy },
     { label: "My Rankings", href: `${basePath}/rankings`, icon: Star },
     { label: "My Films", href: `${basePath}/films`, icon: Film },
+    { label: "Watchlist", href: `${basePath}/watchlist`, icon: Bookmark },
+    { label: "Lists", href: `${basePath}/lists`, icon: List },
+    { label: "Activity", href: `${basePath}/activity`, icon: Activity },
+    { label: "Following", href: `${basePath}/following`, icon: Users },
   ];
 
   return (

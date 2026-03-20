@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Film, Settings, Users, BarChart3, MessageSquare } from 'lucide-react';
+import { Film, Settings, Users, BarChart3, MessageSquare, FileWarning } from 'lucide-react';
 
 export default function AdminDashboard() {
   return (
@@ -100,6 +100,24 @@ export default function AdminDashboard() {
               </p>
             </div>
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </Link>
+
+          <Link
+            href="/admin/metadata"
+            className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-600/5 border border-amber-500/20 p-8 hover:border-amber-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/10"
+          >
+            <div className="relative z-10">
+              <div className="w-14 h-14 rounded-lg bg-amber-500/20 flex items-center justify-center mb-4 group-hover:bg-amber-500/30 transition-colors">
+                <FileWarning className="w-7 h-7 text-amber-300" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">
+                Metadata Backlog
+              </h3>
+              <p className="text-gray-400 text-sm">
+                Inspect films that are still missing overview, runtime, director, cast, or TMDB IDs
+              </p>
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/0 to-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           </Link>
         </div>
 

@@ -1,8 +1,6 @@
 name: Enrich Movie Details (Weekly)
 
 on:
-  schedule:
-    - cron: '10 6 * * 0' # Sundays at 06:10 UTC
   workflow_dispatch:
     inputs:
       dry_run:

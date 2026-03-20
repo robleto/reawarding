@@ -1,6 +1,5 @@
 import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
-import type { Database } from '@/types/supabase';
+import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { redirect } from 'next/navigation';
 import { normalizeImageUrl } from '@/utils/imageUrl';
 import Image from 'next/image';
@@ -66,18 +65,7 @@ type AlmostDecade = { decade: string; startYear: number; seen_count: number };
 
 async function getSuggestions() {
   const cookieStore = await cookies();
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {},
-      },
-    }
-  );
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },
@@ -649,19 +637,7 @@ async function saveList(formData: FormData) {
     .map((s) => Number(s))
     .filter((n) => Number.isFinite(n));
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {},
-      },
-    }
-  );
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -817,16 +793,7 @@ async function saveActorList(formData: FormData) {
     .split(',')
     .map((s) => Number(s))
     .filter((n) => Number.isFinite(n));
-  const cookieStore = await cookies();
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); }, setAll() {},
-      },
-    }
-  );
+  const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   // Fallback derive actor movie IDs
@@ -884,12 +851,7 @@ async function saveGenreList(formData: FormData) {
     .split(',')
     .map((s) => Number(s))
     .filter((n) => Number.isFinite(n));
-  const cookieStore = await cookies();
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } }
-  );
+  const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   if (ids.length === 0 && genre) {
@@ -949,12 +911,7 @@ async function saveDecadeList(formData: FormData) {
     .split(',')
     .map((s) => Number(s))
     .filter((n) => Number.isFinite(n));
-  const cookieStore = await cookies();
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll(); }, setAll() {} } }
-  );
+  const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   if (ids.length === 0 && startYear) {

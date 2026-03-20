@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { Film, Trophy, ChevronDown, Check, Star } from "lucide-react";
+import { Film, Trophy, Check, Star } from "lucide-react";
 import { getActualWinner } from "@/data/bestPictureWinners";
 import { normalizeImageUrl } from "@/utils/imageUrl";
-import MoviePosterCard from "@/components/movie/MoviePosterCard";
+import MovieCard from "@/components/award/MovieCard";
 import type { Movie } from "@/types/types";
+import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import type { UserAward } from "@/hooks/useUserAwards";
 
 interface Props {
@@ -49,10 +50,21 @@ export default function ExpandableYearCard({
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(0);
   const [recentlyNominated, setRecentlyNominated] = useState<Set<string | number>>(new Set());
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const autoPromotedRef = useRef<Set<string | number>>(new Set());
   const [posterError, setPosterError] = useState(false);
   const prevNomineeCountRef = useRef(0);
   const milestoneStateInitializedRef = useRef(false);
+
+  // ── Stable rail snapshot ────────────────────────────────────────────────
+  // Rail IDs are frozen when the clamshell opens so that marking a film
+  // seen / unseen / rated doesn't eject it from the list mid-session.
+  // Each film is still resolved against live allMovies data so the
+  // SeenIt / Rate buttons always reflect current state.
+  // Nominations DO remove films — that transition is intentional.
+  // Snapshot is cleared on close so the next open starts fresh.
+  const frozenRailIdsRef = useRef<number[] | null>(null);
+  const [frozenRailIds, setFrozenRailIds] = useState<number[] | null>(null);
 
   // Reset poster error when leader changes
   useEffect(() => {
@@ -120,17 +132,47 @@ export default function ExpandableYearCard({
     return Math.max(tmdb, imdb, meta);
   }, []);
 
-  // Movies for the rail: recognition-first, unseen candidates
-  const railMovies = useMemo(() => {
+  // Snapshot rail IDs on open; clear on close so next open starts fresh.
+  // Intentionally omits allMovies/year/etc. from deps — we want a one-time
+  // capture of the state at the moment the clamshell opens, not a live filter.
+  useEffect(() => {
+    if (!isExpanded) {
+      frozenRailIdsRef.current = null;
+      setFrozenRailIds(null);
+      return;
+    }
+    if (frozenRailIdsRef.current !== null) return; // already snapshotted
     const yearMovies = allMovies.filter((m) => m.release_year === year);
     const unseen = yearMovies.filter((m) => {
       const seenIt = m.rankings?.[0]?.seen_it === true;
       return !seenIt && !activeNomineeIdSet.has(String(m.id));
     });
-    // Sort by best rating descending (recognition-first)
-    const sorted = [...unseen].sort((a, b) => bestRating(b) - bestRating(a));
-    return sorted.slice(0, RAIL_LIMIT);
-  }, [allMovies, year, activeNomineeIdSet, bestRating]);
+    const ids = [...unseen]
+      .sort((a, b) => bestRating(b) - bestRating(a))
+      .slice(0, RAIL_LIMIT)
+      .map((m) => m.id);
+    frozenRailIdsRef.current = ids;
+    setFrozenRailIds(ids);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isExpanded]);
+
+  // Movies for the rail: stable snapshot while open, live fallback when closed.
+  // Nominations still remove films; seen/rating changes only update button state.
+  const railMovies = useMemo(() => {
+    if (frozenRailIds !== null) {
+      return frozenRailIds
+        .map((id) => allMovies.find((m) => m.id === id))
+        .filter((m): m is Movie => m !== undefined)
+        .filter((m) => !activeNomineeIdSet.has(String(m.id)));
+    }
+    // Pre-open fallback (clamshell not yet expanded)
+    const yearMovies = allMovies.filter((m) => m.release_year === year);
+    const unseen = yearMovies.filter((m) => {
+      const seenIt = m.rankings?.[0]?.seen_it === true;
+      return !seenIt && !activeNomineeIdSet.has(String(m.id));
+    });
+    return [...unseen].sort((a, b) => bestRating(b) - bestRating(a)).slice(0, RAIL_LIMIT);
+  }, [frozenRailIds, allMovies, year, activeNomineeIdSet, bestRating]);
 
   // Contender movies (rated 7+ but not yet nominated)
   const contenderMovies = useMemo(() => {
@@ -226,6 +268,7 @@ export default function ExpandableYearCard({
   const progressPct = Math.min(100, (liveNomineeCount / 10) * 100);
 
   return (
+    <>
     <div
       ref={cardRef}
       className={`rounded-xl border transition-all duration-300 ${
@@ -279,14 +322,33 @@ export default function ExpandableYearCard({
                 {liveNomineeCount}/10
               </span>
             </div>
+            {/* "Rate 7+" hint shown in header when ballot incomplete and not expanded */}
+            {!isExpanded && liveNomineeCount < 10 && (
+              <span className="hidden sm:inline text-[9px] text-gray-600 whitespace-nowrap">
+                Rate 7+ to nominate
+              </span>
+            )}
           </div>
           <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3">
             <p className="truncate text-base font-semibold text-white group-hover:text-yellow-100">
               {leader.title}
             </p>
-            <p className="text-[10px] uppercase tracking-wider text-yellow-400/60 flex-shrink-0">
-              {liveNomineeCount >= 10 ? "Your Best Picture" : "Current Leader"}
-            </p>
+            {/* Status badge — click opens full YearExplorer for this year */}
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); onOpenFullExplorer(year); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); onOpenFullExplorer(year); } }}
+              className="text-[10px] uppercase tracking-wider text-yellow-400/60 flex-shrink-0 hover:text-yellow-300 transition-colors text-left cursor-pointer"
+            >
+              {existingAward?.winnerId
+                ? "Winner (selected)"
+                : liveNomineeCount >= 10
+                ? "Winner (auto)"
+                : liveNomineeCount > 0
+                ? "Leading contender"
+                : "Start rating"}
+            </span>
           </div>
         </div>
 
@@ -311,12 +373,6 @@ export default function ExpandableYearCard({
           </div>
         )}
 
-        {/* Expand chevron */}
-        <ChevronDown
-          className={`h-4 w-4 flex-shrink-0 text-gray-500 transition-transform duration-300 ${
-            isExpanded ? "rotate-180 text-yellow-400" : "group-hover:text-yellow-400"
-          }`}
-        />
       </button>
 
       {/* ── Expandable content ── */}
@@ -336,12 +392,12 @@ export default function ExpandableYearCard({
             <div>
               <p className="text-sm text-gray-300">
                 Rate films from{" "}
-                <span className="font-semibold text-white">{year}</span> to
-                shape your Best Picture race.
+                <span className="font-semibold text-white">{year}</span> —
+                your awards take shape as you go.
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
                 <Star className="inline w-3 h-3 text-yellow-400/70 mr-0.5 -mt-0.5" />
-                7+ automatically becomes a contender.
+                Scores 7+ automatically become contenders.
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -384,7 +440,7 @@ export default function ExpandableYearCard({
                   return (
                     <div
                       key={movie.id}
-                      className="relative flex-shrink-0 w-[110px] sm:w-[120px] snap-start"
+                      className="relative flex-shrink-0 w-[160px] sm:w-[180px] snap-start"
                     >
                       {/* Nomination flash overlay */}
                       {justNominated && (
@@ -397,20 +453,18 @@ export default function ExpandableYearCard({
                           </span>
                         </div>
                       )}
-                      <MoviePosterCard
+                      <MovieCard
+                        variant="large"
                         movie={movie}
-                        currentUserId={currentUserId}
                         ranking={movie.rankings?.[0]?.ranking ?? null}
                         seenIt={movie.rankings?.[0]?.seen_it ?? false}
                         onUpdate={handleRatingFirst}
-                        ratingOnly
+                        onClick={() => setSelectedMovie(movie)}
                       />
                     </div>
                   );
                 })}
               </div>
-              {/* Fade edge hint */}
-              <div className="pointer-events-none absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-gray-800/80 to-transparent rounded-r-lg" />
             </div>
           ) : (
             <p className="text-xs text-gray-500 py-3 text-center">
@@ -429,5 +483,25 @@ export default function ExpandableYearCard({
         </div>
       </div>
     </div>
+
+    {/* Film detail modal — opened when a poster card is clicked */}
+    {selectedMovie && (
+      <MovieDetailModal
+        movie={selectedMovie}
+        isOpen={true}
+        initialRanking={selectedMovie.rankings?.[0]?.ranking ?? null}
+        initialSeenIt={selectedMovie.rankings?.[0]?.seen_it ?? false}
+        onUpdate={(movieId, newRanking, newSeenIt) => {
+          handleRatingFirst(movieId, { ranking: newRanking, seen_it: newSeenIt });
+          setSelectedMovie((prev) =>
+            prev
+              ? { ...prev, rankings: [{ ...prev.rankings?.[0], ranking: newRanking, seen_it: newSeenIt }] }
+              : null
+          );
+        }}
+        onClose={() => setSelectedMovie(null)}
+      />
+    )}
+    </>
   );
 }

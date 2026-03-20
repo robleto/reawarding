@@ -3,8 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
-import MoviePosterCard from "@/components/movie/MoviePosterCard";
-import MovieRowCard from "@/components/movie/MovieRowCard";
+import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieFilters from "@/components/filters/MovieFilters";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
@@ -278,14 +277,14 @@ function FilmsPageContent() {
 							</h2>
 						)}
 						{viewMode === "grid" ? (
-							<div className="grid grid-cols-2 gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
+							<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
 								{movies.map((movie) => {
 									const r = movie.rankings?.[0];
 									return (
-										<MoviePosterCard
+										<MovieCard
 											key={movie.id}
 											movie={movie}
-											currentUserId={userId ?? ""}
+											variant="large"
 											ranking={r?.ranking ?? null}
 											seenIt={r?.seen_it ?? false}
 											onUpdate={updateMovieRanking}
@@ -299,16 +298,16 @@ function FilmsPageContent() {
 								{movies.map((movie, index) => {
 									const r = movie.rankings?.[0];
 									return (
-										<MovieRowCard
+										<MovieCard
 											key={movie.id}
 											movie={movie}
-											currentUserId={userId ?? ""}
+											variant="compact"
+											rank={index + 1}
 											ranking={r?.ranking ?? null}
 											seenIt={r?.seen_it ?? false}
-											isLast={index === movies.length - 1}
+											showYear
 											onUpdate={updateMovieRanking}
 											onClick={() => handleOpenModal(movie)}
-											index={index}
 										/>
 									);
 								})}

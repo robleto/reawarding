@@ -25,6 +25,11 @@ interface ExistingAwardRecord {
   revisionNumber: number;
 }
 
+interface ExistingAwardLookup {
+  award: ExistingAwardRecord | null;
+  error?: string;
+}
+
 interface LastMutation {
   actorKey: string;
   signature: string;
@@ -136,31 +141,39 @@ export function useCreateAward() {
   );
 
   const fetchExistingAward = useCallback(
-    async (year: number): Promise<ExistingAwardRecord | null> => {
+    async (year: number): Promise<ExistingAwardLookup> => {
       if (isGuest) {
         const guest = guestStore.getAward(year);
-        if (!guest) return null;
+        if (!guest) return { award: null };
         return {
-          nomineeIds: guest.nomineeIds,
-          winnerId: guest.winnerId,
-          revisionNumber: guest.revisionNumber,
+          award: {
+            nomineeIds: guest.nomineeIds,
+            winnerId: guest.winnerId,
+            revisionNumber: guest.revisionNumber,
+          },
         };
       }
 
       try {
         const res = await fetch(`/api/awards?year=${year}&category=best-picture`);
-        if (!res.ok) return null;
+        if (res.status === 404) return { award: null };
+        if (res.status === 401) {
+          return { award: null, error: "Your session expired. Please sign in again." };
+        }
+        if (!res.ok) {
+          return { award: null, error: "Couldn't verify your existing award. Try again." };
+        }
         const data = await res.json();
         const nominations = data?.nominations;
-        if (!nominations) return null;
+        if (!nominations) return { award: null };
         const nomineeIds = Array.isArray(nominations.nominee_ids) ? nominations.nominee_ids : [];
         const winnerId = nominations.winner_id ?? null;
         const revisionNumber =
           typeof nominations.revision_number === "number" ? nominations.revision_number : 0;
-        if (nomineeIds.length === 0 && winnerId === null) return null;
-        return { nomineeIds, winnerId, revisionNumber };
+        if (nomineeIds.length === 0 && winnerId === null) return { award: null };
+        return { award: { nomineeIds, winnerId, revisionNumber } };
       } catch {
-        return null;
+        return { award: null, error: "Couldn't verify your existing award. Try again." };
       }
     },
     [isGuest, guestStore]
@@ -216,7 +229,21 @@ export function useCreateAward() {
       const source: AwardResult["source"] = "seed_pick";
       const year = movie.release_year;
 
-      const existing = await fetchExistingAward(year);
+      const existingLookup = await fetchExistingAward(year);
+      if (existingLookup.error) {
+        const failed: AwardResult = {
+          success: false,
+          year,
+          winnerId: movie.id,
+          nomineeIds: [movie.id],
+          contextMessage: "",
+          agreedWithAcademy: false,
+          source,
+          error: existingLookup.error,
+        };
+        return failed;
+      }
+      const existing = existingLookup.award;
 
       // If an award already exists with a winner, preserve that winner
       // and add the new movie as a nominee instead of overwriting.
@@ -334,7 +361,21 @@ export function useCreateAward() {
       const winnerId = winner.id;
       const nomineeIds = [...new Set([winnerId, ...nominees.map((n) => n.id)])].slice(0, 10);
 
-      const existing = await fetchExistingAward(year);
+      const existingLookup = await fetchExistingAward(year);
+      if (existingLookup.error) {
+        const failed: AwardResult = {
+          success: false,
+          year,
+          winnerId,
+          nomineeIds,
+          contextMessage: "",
+          agreedWithAcademy: false,
+          source,
+          error: existingLookup.error,
+        };
+        return failed;
+      }
+      const existing = existingLookup.award;
       const revisionNumber = (existing?.revisionNumber ?? 0) + 1;
 
       const signature = buildSignature(year, winnerId, nomineeIds, source);

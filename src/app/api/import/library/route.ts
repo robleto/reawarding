@@ -1,0 +1,169 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
+import type { Database } from "@/types/supabase";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export type ImportRow = {
+  title: string;
+  year: number;
+  /** 1–10, already converted from source scale */
+  rating: number | null;
+  /** IMDb tt-id, used for precise matching when available */
+  imdbId?: string;
+  /** true = Watch (seen_it); false = Watchlist only */
+  watched: boolean;
+};
+
+export type ImportSource = "letterboxd" | "imdb";
+
+export type ImportRequestBody = {
+  rows: ImportRow[];
+  source: ImportSource;
+};
+
+export type ImportResult = {
+  imported: number;
+  skipped: number;
+  watchlistAdded: number;
+  notFound: string[];
+};
+
+// ── Route handler ─────────────────────────────────────────────────────────────
+
+export async function POST(req: NextRequest) {
+  const supabase = createRouteHandlerClient<Database>({ cookies });
+
+  // Auth check
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+
+  const body = (await req.json()) as ImportRequestBody;
+  const { rows, source } = body;
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return NextResponse.json({ error: "No rows provided" }, { status: 400 });
+  }
+
+  const importedAt = new Date().toISOString();
+
+  // ── 1. Collect IMDb IDs and (title, year) pairs for batch lookup ──
+  const imdbIds = rows
+    .map((r) => r.imdbId)
+    .filter((id): id is string => Boolean(id));
+
+  const titleYearPairs = rows
+    .filter((r) => !r.imdbId)
+    .map((r) => ({ title: r.title.toLowerCase(), year: r.year }));
+
+  // ── 2. Batch fetch matching movie rows ──
+  type MovieMatch = { id: string; title: string; release_year: number; imdb_id: string | null };
+  const matchedMovies: MovieMatch[] = [];
+
+  // Fetch by IMDb ID first (highest precision)
+  if (imdbIds.length > 0) {
+    const { data } = await supabase
+      .from("movies")
+      .select("id, title, release_year, imdb_id")
+      .in("imdb_id", imdbIds);
+    if (data) matchedMovies.push(...(data as MovieMatch[]));
+  }
+
+  // Fetch by title+year for the rest
+  if (titleYearPairs.length > 0) {
+    const years = [...new Set(titleYearPairs.map((p) => p.year))];
+    const { data } = await supabase
+      .from("movies")
+      .select("id, title, release_year, imdb_id")
+      .in("release_year", years);
+
+    if (data) {
+      // Filter client-side for title match to avoid N+1 queries
+      const byYearTitle = new Map<string, MovieMatch>();
+      for (const m of data as MovieMatch[]) {
+        byYearTitle.set(`${m.title.toLowerCase()}::${m.release_year}`, m);
+      }
+      for (const p of titleYearPairs) {
+        const hit = byYearTitle.get(`${p.title}::${p.year}`);
+        if (hit) matchedMovies.push(hit);
+      }
+    }
+  }
+
+  // Build lookup maps
+  const byImdbId = new Map<string, MovieMatch>(
+    matchedMovies.filter((m) => m.imdb_id).map((m) => [m.imdb_id!, m])
+  );
+  const byTitleYear = new Map<string, MovieMatch>(
+    matchedMovies.map((m) => [
+      `${m.title.toLowerCase()}::${m.release_year}`,
+      m,
+    ])
+  );
+
+  // ── 3. Build rankings upsert payload ──
+  const rankingsToUpsert: Array<{
+    user_id: string;
+    movie_id: string;
+    seen_it: boolean;
+    ranking: number | null;
+    imported_from: string;
+    updated_at: string;
+  }> = [];
+
+  const notFound: string[] = [];
+  let watchlistAdded = 0;
+
+  for (const row of rows) {
+    const movie = row.imdbId
+      ? byImdbId.get(row.imdbId)
+      : byTitleYear.get(`${row.title.toLowerCase()}::${row.year}`);
+
+    if (!movie) {
+      notFound.push(`${row.title} (${row.year})`);
+      continue;
+    }
+
+    if (row.watched) {
+      rankingsToUpsert.push({
+        user_id: user.id,
+        movie_id: movie.id,
+        seen_it: true,
+        ranking: row.rating,
+        imported_from: importedAt,
+        updated_at: importedAt,
+      });
+    } else {
+      // Watchlist-only rows: handled separately via movie_list_items
+      // For now just count them — full watchlist import is a separate concern
+      watchlistAdded++;
+    }
+  }
+
+  // ── 4. Batch upsert — chunk to avoid Supabase row limits ──
+  const CHUNK = 500;
+  let imported = 0;
+
+  for (let i = 0; i < rankingsToUpsert.length; i += CHUNK) {
+    const chunk = rankingsToUpsert.slice(i, i + CHUNK);
+    const { error } = await supabase
+      .from("rankings")
+      .upsert(chunk, { onConflict: "user_id,movie_id", ignoreDuplicates: false });
+
+    if (!error) imported += chunk.length;
+  }
+
+  const skipped = rows.length - imported - notFound.length - watchlistAdded;
+
+  return NextResponse.json({
+    imported,
+    skipped: Math.max(0, skipped),
+    watchlistAdded,
+    notFound,
+  } satisfies ImportResult);
+}

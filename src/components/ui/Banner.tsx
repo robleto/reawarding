@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { X, LucideIcon } from "lucide-react";
 import { ReactNode } from "react";
 

@@ -1,50 +1,32 @@
-# Reawarding — Project Context & Product Philosophy
+# Reawarding — Project Context
 
 ---
 
-## 1. Product One-Line
+## 1. One-Line
 
 Reawarding lets people rewrite film award history based on what they actually watched and how films aged over time.
 
----
-
 ## 2. Origin
 
-Inspired by cultural re-awarding concepts (ex: retrospective Oscar re-evaluations with hindsight).
+Inspired by cultural re-awarding concepts — retrospective Oscar re-evaluations with the benefit of hindsight.
 
-Core idea:
-Institutional awards capture a moment in time.  
-Reawarding captures *lived audience history*.
-
----
+Institutional awards capture a moment in time. Reawarding captures *lived audience history*.
 
 ## 3. Core Product Truth
 
-Reawarding is:
+Reawarding is opinion-first, emotion-first, and hindsight-aware. Users should be able to express taste immediately. The product is not completion-driven and not database-driven.
 
-- Opinion-first
-- Emotion-first
-- Hindsight-aware
-- Lightweight and personal
-- Not completion-driven
-- Not database-driven
+## 4. The Primary Loop
 
-Users should be able to express taste immediately.
+**Watch → Rate → ReAward**
 
----
+A user watches a film, rates it 1–10, and films scored 7+ auto-emerge as award contenders. The ballot forms. The winner rises.
 
-## 4. The Critical Shift (Important)
+Awards are first-class objects — they are the *output* of this loop, not a prerequisite for it.
 
-OLD MODEL (Do NOT build toward this):
-Seen → Ratings → Rankings → Awards unlock
+**What this replaced:** An earlier framing said "Opinion → Award" was the entry point, to prevent ratings from gating awards. That protection still applies — awards must *form* from ratings (emergence), not be *unlocked* by them (gating). What changed: Watch and Rate are now explicitly the primary UX path, because that's how users naturally experience films.
 
-NEW MODEL (Correct Model):
-Opinion → Award → Nominees → Optional rankings → Optional ratings
-
-Awards are FIRST-CLASS objects.  
-They are NOT derived-only outputs.
-
----
+**The anti-pattern that remains forbidden:** Ratings required before an award can exist. Awards hidden behind activity thresholds. Ballots appearing fully-formed without visible formation.
 
 ## 5. V1 Core Experience Goal
 
@@ -52,215 +34,52 @@ A brand new user can create or influence a Best Picture award in under 30 second
 
 If this is not possible, the design is wrong.
 
----
+## 6. Onboarding Flow
 
-## 6. The Golden Onboarding Flow
+Primary action: "Find a film you've seen."
 
-Primary onboarding action:
+The system marks the film as watched, prompts for a rating, and if rated 7+, the film becomes a contender for its year. The user sees the forming ballot, gets invited to rate more films from the same year, then to start another year.
 
-"Pick a movie you love."
+No gating. No required ranking before the ballot appears. No fully-formed ballot presented without visible formation. The system demonstrates how Watch → Rate → ReAward works — it does not skip formation.
 
-System response:
+## 7. Product Character
 
-→ Adds movie as seed nominee for that movie's year  
-→ System may infer provisional winner based on current ballot state  
-→ Shows the award immediately  
-→ Invites adding nominees  
-→ Invites fixing another year  
+**The product should feel:** Light, curious, inviting, opinion-validating. Not competitive. Not "prove you're a real cinephile."
 
-No gating.  
-No required tracking first.  
-No required ranking first.  
+**Design for:** Fast emotional reward, opinion expression, low friction, clarity over completeness, progressive depth, visible ballot formation.
 
-System demonstrates how ballots form — it does not skip formation.
+**Data philosophy:** Awards must be creatable from a single movie selection. Awards may exist without full rankings, ratings, or seen history. Partial data is valid data. Messy opinions are valid product output.
 
----
+## 8. Home Surface
 
-## 7. Ballot Formation Philosophy (New)
+Homepage is stateful.
 
-Ballots are living structures, not instant outputs.
+**New users** see an action screen — one primary CTA ("Pick a movie you love"), minimal distraction, no dashboards, no stats walls, no empty tables.
 
-Ballots evolve through observable states:
+**Established users** see a control room — recently edited awards, in-progress ballots, fast entry into opinion expression. Home emphasizes active creative work, not total historical coverage. Full historical browsing belongs to the Awards page.
 
-Seed → Forming → Established → Mature
+## 9. What Reawarding Is Not
 
-Thin ballots produce provisional authority.  
-Thick ballots produce canonical authority.
+Not a social network. Not a film logging database. Not Letterboxd. Not IMDb. Not gamification-first. Not completion-driven. Social features may exist later but are not core value.
 
-Users should always feel ballots are forming, not appearing fully assembled.
+## 10. Success Metrics (V1)
 
----
+**Primary:** User creates first award.
 
-## 8. Canonical Award Rule (New)
+**Secondary:** User adds a nominee. User creates a second award. User edits a winner.
 
-For Best Picture V1:
+**Not primary:** Total movies logged. Total ratings volume. Collection completion.
 
-One year = One canonical award outcome.
+## 11. Ballot Formation & Award Rules
 
-System may track revisions internally, but users should always experience a single authoritative award state.
+Ballot formation philosophy, canonical award rules, and authority scaling are governed by the Product Laws. See Laws 3, 4, 6, and 7.
 
----
-
-## 9. Homepage Philosophy
-
-Homepage is STATEFUL.
-
----
-
-### New Users
-Homepage = Action Screen
-
-Primary CTA:
-Pick a movie you love
-
-Minimal distraction.  
-No dashboards.  
-No stats walls.  
-No empty tables.  
-
----
-
-### Established Users
-Homepage = Control Room
-
-May include:
-- Greeting + quick actions
-- Current awards
-- Awards timeline
-- Rankings snapshot
-- Suggestions
-- Stats (secondary)
-
----
-
-## 10. What Reawarding Is NOT
-
-Not a social network.  
-Not a film logging database competitor.  
-Not Letterboxd.  
-Not IMDb.  
-Not gamification-first.  
-Not completion-driven.  
-
-Social features may exist later but are NOT core value.
-
----
-
-## 11. Data Model Principles
-
-Awards must be creatable from a single movie selection.
-
-Awards may exist without:
-- Full rankings
-- Full ratings
-- Full seen history
-
-Partial data is valid data.  
-Messy opinions are valid product output.
-
----
-
-## 12. UX Principles
-
-Design for:
-Fast emotional reward  
-Opinion expression  
-Low friction  
-Clarity over completeness  
-Progressive depth  
-Visible ballot formation  
-
-Avoid:
-Empty states with no action  
-Locked feature gates  
-Long onboarding flows  
-"Complete profile first" style UX  
-
----
-
-## 13. Success Metrics (V1)
-
-Primary:
-User creates first award  
-
-Secondary:
-User adds nominee  
-User creates second award  
-User edits winner  
-
-Not Primary:
-Total movies logged  
-Total ratings volume  
-Collection completion  
-
----
-
-## 14. Tone of Product
-
-Reawarding should feel:
-
-Light  
-Curious  
-Inviting  
-Opinion-validating  
-Not competitive  
-Not "prove you're a real cinephile"  
-
----
-
-## 15. Implementation Guardrails
-
-If a design introduces:
-
-- Mandatory tracking before awards
-- Mandatory ranking before awards
-- Heavy onboarding
-- Feature gating based on data volume
-- Instant fully-formed ballots with no formation visibility
-
-Stop and re-evaluate.
-
----
-
-## 16. Future Expansion (Not V1)
-
-Possible later:
-Social graph  
-Collections  
-Badges  
-Journaling  
-Community awards  
-
-Only AFTER core loop is strong.
-
----
-
-## 17. The North Star Question
+## 12. The North Star Question
 
 Can a new user express an opinion about film history immediately?
 
-If yes → Correct direction  
-If no → Redesign required  
+If yes → correct direction. If no → redesign required.
 
----
+## 13. Future Expansion (Not V1)
 
-## 18  Home Surface Interaction Principle
-
-Home emphasizes active creative work, not total historical coverage.
-
-Home should prioritize:
-
-- Recently edited or evolving awards
-- In-progress ballots
-- Fast entry into opinion expression
-- Immediate continuation of user taste activity
-
-Home should avoid becoming:
-
-- A complete historical archive
-- A full year-by-year award index
-- A substitute for the Awards timeline view
-
-Full historical browsing belongs to the Awards page.
-
----
+Possible later: Social graph, collections, badges, journaling, community awards. Only after the core loop is strong.

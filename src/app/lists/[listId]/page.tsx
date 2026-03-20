@@ -25,11 +25,13 @@ import { restrictToParentElement } from "@dnd-kit/modifiers";
 import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
 import Loader from "@/components/ui/Loading";
+import ScreenState from "@/components/ui/ScreenState";
 import DraggableMovieCard from "@/components/list/DraggableMovieCard";
 import AddMovieModal from "@/components/list/AddMovieModal";
 import { useViewMode, useMovieFilters, SORT_OPTIONS, GROUP_OPTIONS, type SortKey, type GroupKey, type SortOrder } from "@/utils/sharedMovieUtils";
 import MovieFilters from "@/components/filters/MovieFilters";
 import { Edit2, Plus, Globe, Lock, MoreVertical, ArrowLeft, Trash } from "lucide-react";
+import { useAuthState } from "@/hooks/useAuthState";
 
 export const dynamic = "force-dynamic";
 
@@ -100,8 +102,10 @@ export default function ListDetailPage() {
   
   const supabase = useSupabaseClient<Database>();
   const user = useUser();
+  const { status } = useAuthState();
   const userId = user?.id;
   const [viewMode, setViewMode] = useViewMode("grid");
+  const [errorKind, setErrorKind] = useState<"not_found" | "unauthorized" | "fetch" | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -239,11 +243,12 @@ export default function ListDetailPage() {
   ).sort((a, b) => a - b);
 
   useEffect(() => {
-    if (!listId || !userId) return;
+    if (!listId || status === "loading") return;
 
     async function fetchListData() {
       setLoading(true);
       setError(null);
+      setErrorKind(null);
 
       try {
         // Fetch the list details
@@ -255,13 +260,20 @@ export default function ListDetailPage() {
 
         if (listError) {
           setError("List not found");
+          setErrorKind("not_found");
           setLoading(false);
           return;
         }
 
         // Check if user has access to this list
-        if (!listData.is_public && listData.user_id !== userId) {
-          setError("You don't have permission to view this list");
+        const isAuthenticated = status === "authenticated";
+        if (!listData.is_public && (!isAuthenticated || listData.user_id !== userId)) {
+          setError(
+            isAuthenticated
+              ? "You don't have permission to view this list"
+              : "Sign in to view this private list"
+          );
+          setErrorKind("unauthorized");
           setLoading(false);
           return;
         }
@@ -299,7 +311,7 @@ export default function ListDetailPage() {
 
         // Fetch global rankings for these movies for this user
         let rankingsData: any[] = [];
-        if (movieIds.length > 0) {
+        if (movieIds.length > 0 && status === "authenticated" && userId) {
           const { data: rankings, error: rankingsError } = await supabase
             .from("rankings")
             .select("id, movie_id, seen_it, ranking")
@@ -340,20 +352,22 @@ export default function ListDetailPage() {
       } catch (err) {
         console.error("Error fetching list data:", err);
         setError("Failed to load list");
+        setErrorKind("fetch");
       } finally {
         setLoading(false);
       }
     }
 
     fetchListData();
-  }, [listId, userId, supabase]);
+  }, [listId, status, userId, supabase]);
 
   // Update global ranking/seen_it for a movie
   // Refetch list items and rankings after update
   const refetchListItems = async () => {
-    if (!listId || !userId) return;
+    if (!listId) return;
     setLoading(true);
     setError(null);
+    setErrorKind(null);
     try {
       // Fetch the list items with movie details
       const { data: itemsData, error: itemsError } = await supabase
@@ -370,7 +384,7 @@ export default function ListDetailPage() {
       const movieIds = (itemsData || []).map(item => item.movie_id);
       // Fetch global rankings for these movies for this user
       let rankingsData: any[] = [];
-      if (movieIds.length > 0) {
+      if (movieIds.length > 0 && status === "authenticated" && userId) {
         const { data: rankings, error: rankingsError } = await supabase
           .from("rankings")
           .select("id, movie_id, seen_it, ranking")
@@ -405,6 +419,7 @@ export default function ListDetailPage() {
       setListItems(transformedItems);
     } catch (err) {
       setError("Failed to refresh list items");
+      setErrorKind("fetch");
     } finally {
       setLoading(false);
     }
@@ -572,6 +587,30 @@ export default function ListDetailPage() {
   }
 
   if (error || !list) {
+    if (errorKind === "unauthorized") {
+      return (
+        <ScreenState
+          testId="screen-state-auth-required"
+          title="This list isn't available"
+          message={error || "Sign in to view this private list."}
+          primaryAction={{ label: "Sign In", href: "/login" }}
+          secondaryAction={{ label: "Back to Lists", href: "/lists" }}
+        />
+      );
+    }
+
+    if (errorKind === "fetch") {
+      return (
+        <ScreenState
+          testId="screen-state-fetch-failure"
+          tone="error"
+          title="Couldn't load this list"
+          message="We couldn't verify the current list state, so this page is staying closed instead of showing partial content."
+          primaryAction={{ label: "Back to Lists", href: "/lists" }}
+        />
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center h-48 text-gray-500 dark:text-gray-400">
         <p className="text-lg">{error || "List not found"}</p>

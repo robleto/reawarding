@@ -176,7 +176,11 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
   const [isEditing, setIsEditing] = useState(false);
   const [nominees, setNominees] = useState<Movie[]>([]);
-  const [selectedWinner, setSelectedWinner] = useState<Movie | null>(null);
+  // Workshop mode: seed selectedWinner from the winner prop so the crown
+  // reflects the user's saved choice immediately on open.
+  const [selectedWinner, setSelectedWinner] = useState<Movie | null>(
+    isWorkshop ? (winner ?? null) : null
+  );
   const [availableMovies, setAvailableMovies] = useState<Movie[]>(() => {
     const nomineeIds = initialNominees.map((m) => m.id);
     return allMoviesForYear.filter((m) => !nomineeIds.includes(m.id));
@@ -290,7 +294,11 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
               updated_at: new Date().toISOString(),
             });
           }
-          const shouldUseCustom = (isWorkshop || isUsingCustomViewRef.current) && nomineeMovies.length > 0;
+          // Use saved nominations unless the user has explicitly chosen 'default'.
+          // When storedPref is null (first visit, no preference yet), default to
+          // showing the saved data so the Awards page matches YearExplorer.
+          const storedPref = user?.id ? getViewPreference(user.id, resolvedCategory, year) : null;
+          const shouldUseCustom = (isWorkshop || storedPref !== 'default') && nomineeMovies.length > 0;
           if (shouldUseCustom) {
             syncView('custom', {
               nominees: nomineeMovies,
@@ -501,8 +509,11 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     if (!isWorkshop) return;
     if (nominees.length === 0) return;
     if (selectedWinner && nominees.some((m) => m.id === selectedWinner.id)) return;
-    setSelectedWinner(nominees[0]);
-  }, [isWorkshop, nominees, selectedWinner]);
+    // Prefer the passed winner prop if it's still in nominees; fall back to first.
+    const preferred =
+      winner && nominees.some((m) => m.id === winner.id) ? winner : nominees[0];
+    setSelectedWinner(preferred);
+  }, [isWorkshop, nominees, selectedWinner, winner]);
 
   const handleSave = async () => {
     // Wait for session to load before checking user
@@ -1025,7 +1036,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
   const contentBlock = (
     <>
-    <div className={`award-editable-section flex flex-col w-full rounded-xl shadow-md light-glass dark:dark-glass p-4 md:p-6${compact ? '' : ' mb-24'}${isEditing ? ' pb-32 md:pb-0' : ''}`}>
+    <div className={`award-editable-section flex flex-col w-full rounded-xl shadow-md light-glass dark:dark-glass p-5 md:p-8${compact ? '' : ' mb-24'}${isEditing ? ' pb-32 md:pb-0' : ''}`}>
 
           {/* Error Message */}
           {error && (
@@ -1092,24 +1103,13 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
           {/* Content */}
           {!isEditing ? (
             /* READ MODE LAYOUT */
-            <div className="flex flex-col gap-12 md:flex-row">
+            <div className="flex flex-col gap-8 md:flex-row">
               {/* Winner */}
               {!compact && (
               <div className="w-full md:w-1/3">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">🏆</span>
-                    <h3 className="text-2xl font-bold text-yellow-500">Winner</h3>
-                  </div>
-                  {user && !isEditing && (
-                    <button
-                      onClick={onEditRequest ?? handleStartEditing}
-                      className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-blue-600 transition-colors rounded-lg dark:text-gray-500 dark:border-gray-600 bg-blue-50 dark:bg-gray-800 hover:bg-blue-100"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      Edit
-                    </button>
-                  )}
+                <div className="flex items-center gap-2 mb-4">
+                  <Trophy className="w-3.5 h-3.5 text-yellow-500/60" />
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-yellow-500/60">Best Picture</p>
                 </div>
                 {displayWinner ? (
                   <WinnerCard
@@ -1125,58 +1125,46 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
               )}
 
               {/* Divider */}
-              {!compact && <div className="hidden w-px bg-gray-200 md:block dark:bg-gray-700" />}
+              {!compact && <div className="hidden w-px bg-gray-700/40 md:block" />}
 
               {/* Nominees */}
               <div className={`w-full ${compact ? "" : "md:w-2/3"}`}>
-                <div className="flex flex-col items-start justify-between gap-2 mb-4 sm:flex-row sm:items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">✉️</span>
-                    <h3 className="text-2xl font-bold text-[#7e7e7e]">
-                      Nominees
-                    </h3>
+                {/* Section header row — nominees label + edit ballot top-right */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-baseline gap-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Nominees</p>
+                    {(() => {
+                      const count = isWorkshop ? activeWorkshopNominees.length : nomineeCount;
+                      if (count >= 10) return <span className="text-xs font-medium text-emerald-400">Full Ballot</span>;
+                      if (count >= 5) return <span className="text-xs font-medium text-gray-400">{count} nominees</span>;
+                      if (count > 0) return <span className="text-xs font-medium text-gray-500">{count} nominee{count !== 1 ? "s" : ""}</span>;
+                      return null;
+                    })()}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {!isWorkshop && compact && user && !isEditing && (
+                  <div className="flex items-center gap-2">
+                    {user && !isEditing && !isWorkshop && (
                       <button
                         onClick={onEditRequest ?? handleStartEditing}
-                        className="flex items-center gap-2 px-3 py-1 text-xs font-medium text-blue-600 transition-colors rounded-lg dark:text-gray-500 dark:border-gray-600 bg-blue-50 dark:bg-gray-800 hover:bg-blue-100"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 border border-gray-700/40 rounded-md hover:text-white hover:border-gray-600 hover:bg-gray-800/60 transition-all"
                       >
-                        <Edit3 className="w-4 h-4" />
-                        Edit
+                        <Edit3 className="w-3 h-3" />
+                        Edit ballot
                       </button>
                     )}
                     {loadingNominations && (
                       <span className="flex items-center gap-1 text-xs font-medium text-gray-400">
                         <Loader2 className="w-3 h-3 animate-spin" />
-                        Refreshing…
                       </span>
                     )}
-                    {!isWorkshop && hasCustomNominations ? (
-                      <>
-                        <span
-                          className={`px-2 py-1 text-xs font-medium rounded transition-colors ${isUsingCustomView
-                            ? 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-gray-900'
-                            : 'text-gray-500 bg-gray-50 dark:text-gray-400 dark:bg-gray-900'
-                          }`}
-                        >
-                          {isUsingCustomView
-                            ? `Viewing Custom (${customNominees?.length ?? 0})`
-                            : `Saved Custom (${customNominees?.length ?? 0})`}
-                        </span>
-                        <button
-                          onClick={handleViewToggle}
-                          disabled={!hasStoredCustom}
-                          className="text-xs font-medium text-yellow-300 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isUsingCustomView ? 'Show Default' : 'View Custom'}
-                        </button>
-                      </>
-                    ) : !isWorkshop ? (
-                      <span className="px-2 py-1 text-xs font-medium text-gray-500 rounded dark:bg-gray-950 bg-gray-50">
-                        {resolvedCategory === 'best-picture' ? 'Default (Top 10 • 7+ first)' : 'Default (Top 10)'}
-                      </span>
-                    ) : null}
+                    {!isWorkshop && hasCustomNominations && (
+                      <button
+                        onClick={handleViewToggle}
+                        disabled={!hasStoredCustom}
+                        className="text-xs font-medium text-yellow-300/70 hover:text-yellow-300 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isUsingCustomView ? 'Show default' : 'Show custom'}
+                      </button>
+                    )}
                     {isWorkshop && (
                       <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-500 dark:text-emerald-400">
                         {isSaving ? (
@@ -1194,39 +1182,38 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     )}
                   </div>
                 </div>
-                <div className="mb-3">
+                {/* Ballot guidance — secondary info below header, tertiary metadata last */}
+                <div className="mb-4 space-y-0.5">
                   {(() => {
                     const count = isWorkshop ? activeWorkshopNominees.length : nomineeCount;
-                    if (count >= 10) {
-                      return (
-                        <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-300">
-                          Full Ballot complete (10 nominees)
-                        </p>
-                      );
-                    }
+                    if (count >= 10) return null; /* Full ballot — no guidance needed */
                     if (count >= 5) {
                       return (
-                        <>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                            Standard Ballot ({count} nominees)
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Add up to {10 - count} more to expand to a Full Ballot (10 nominees).
-                          </p>
-                        </>
+                        <p className="text-xs text-gray-500">
+                          {10 - count} more {10 - count === 1 ? "film" : "films"} to complete a Full Ballot
+                        </p>
                       );
                     }
-                    return (
-                      <>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                          {count} nominee{count !== 1 ? "s" : ""} so far
+                    if (count > 0 && count < 5) {
+                      return (
+                        <p className="text-xs text-amber-400/60">
+                          {5 - count} more {5 - count === 1 ? "film" : "films"} to reach a Standard Ballot
                         </p>
-                        <p className="text-xs text-amber-600 dark:text-amber-300/90">
-                          Add {5 - count} more to create a Standard Ballot (5 nominees).
-                        </p>
-                      </>
-                    );
+                      );
+                    }
+                    return null;
                   })()}
+                  {/* Tertiary — system metadata, visually de-emphasized */}
+                  {!isWorkshop && !hasCustomNominations && nomineeCount > 0 && (
+                    <p className="text-[9px] text-gray-600 pt-1">
+                      Auto-selected · top rated · 7+ first
+                    </p>
+                  )}
+                  {!isWorkshop && hasCustomNominations && (
+                    <p className={`text-[9px] pt-1 ${isUsingCustomView ? 'text-yellow-500/40' : 'text-gray-600'}`}>
+                      {isUsingCustomView ? 'Custom selection' : 'Custom saved'}
+                    </p>
+                  )}
                 </div>
                 {isWorkshop ? (
                   <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -1260,50 +1247,38 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     </SortableContext>
                   </DndContext>
                 ) : (
-                  <div className="space-y-1">
-                    {displayNominees.map((movie, index) => {
-                      const thumbSrc = normalizeImageUrl(movie.cached_thumb_url || movie.thumb_url || movie.cached_poster_url || movie.poster_url);
-                      const ranking = Math.round(movie.rankings?.[0]?.ranking ?? 0);
-                      const rStyle = getRatingStyle(ranking);
-                      const isWinner = index === 0;
-                      return (
-                        <button
+                  /* Responsive nominee grid using unified MovieCard:
+                     mobile  → single-column compact rows
+                     desktop → 5-column poster grid (2 rows of 5) */
+                  <>
+                    {/* Desktop: 5-col poster grid */}
+                    <div className="hidden md:grid md:grid-cols-5 gap-2">
+                      {displayNominees.map((movie, index) => (
+                        <MovieCard
                           key={movie.id}
-                          type="button"
+                          movie={movie}
+                          variant="grid"
+                          isWinner={index === 0}
                           onClick={() => handleOpenModal(movie)}
-                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors text-left hover:bg-gray-800/60 ${
-                            isWinner
-                              ? "border-yellow-500/40 bg-yellow-500/5"
-                              : "border-gray-700/30 bg-gray-900/30"
-                          }`}
-                        >
-                          <span className="w-5 text-center text-[10px] font-bold text-gray-500 tabular-nums flex-shrink-0">{index + 1}</span>
-                          <div className="relative flex-shrink-0 overflow-hidden bg-gray-800" style={{ height: 48, borderRadius: 6 }}>
-                            {thumbSrc ? (
-                              <img src={thumbSrc} alt="" className="h-full w-auto object-contain" style={{ borderRadius: 6 }} />
-                            ) : (
-                              <div className="flex items-center justify-center" style={{ width: 64, height: 48 }}><Film className="w-4 h-4 text-gray-600" /></div>
-                            )}
-                          </div>
-                          <p className="flex-1 text-sm font-medium text-white truncate">{movie.title}</p>
-                          <span className="flex items-center gap-1.5 flex-shrink-0">
-                            {isWinner && <Trophy className="w-3.5 h-3.5 text-yellow-400" />}
-                            {ranking > 0 && (
-                              <span
-                                className="text-xs font-bold px-1.5 py-0.5 rounded"
-                                style={{ backgroundColor: rStyle.background, color: rStyle.text }}
-                              >
-                                ⭐ {ranking}
-                              </span>
-                            )}
-                          </span>
-                        </button>
-                      );
-                    })}
+                        />
+                      ))}
+                    </div>
+                    {/* Mobile: single-column compact rows */}
+                    <div className="flex flex-col gap-1.5 md:hidden">
+                      {displayNominees.map((movie, index) => (
+                        <MovieCard
+                          key={movie.id}
+                          movie={movie}
+                          variant="compact"
+                          isWinner={index === 0}
+                          onClick={() => handleOpenModal(movie)}
+                        />
+                      ))}
+                    </div>
                     {displayNominees.length === 0 && (
                       <p className="text-xs text-gray-500 py-3 text-center">No nominees yet.</p>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
             </div>
@@ -1315,17 +1290,15 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                 {/* Nominees Section - Left 2/3 */}
                 <div className="relative pb-32 lg:col-span-2 md:pb-0">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xl">✉️</span>
-                      <h3 className="text-2xl font-bold text-[#7e7e7e]">
-                        Nominees
-                      </h3>
-                      <span className="text-sm text-gray-500">
-                        ({nominees.length}/10)
+                    <div className="flex flex-wrap items-center gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">Nominees</p>
+                      <span className="text-xs text-gray-500 tabular-nums">
+                        {nominees.length}/10
                       </span>
                       {selectedWinner && (
-                        <span className="text-sm font-medium text-yellow-600">
-                          • Winner: {selectedWinner.title}
+                        <span className="flex items-center gap-1 text-xs font-medium text-yellow-500/80">
+                          <Trophy className="w-3 h-3" />
+                          {selectedWinner.title}
                         </span>
                       )}
                     </div>
@@ -1456,14 +1429,14 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
   return (
     <section className="w-full max-w-screen-xl px-0 py-0 mx-auto my-0 font-sans md:px-6">
-      <div className="relative flex flex-col gap-6 md:flex-row md:gap-8">
-        {/* Timeline and year label */}
-        <h2 className="md:absolute block top-0 md:top-[125px] left-0 text-3xl font-bold text-[#A0A0A0] mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-widest">
+      <div className="relative flex flex-col gap-6 md:flex-row md:gap-10">
+        {/* Year label — cinematic vertical treatment */}
+        <h2 className="md:absolute block top-0 md:top-[120px] left-0 text-3xl font-bold text-gray-600/60 mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-[0.25em]">
           {year}
         </h2>
         <div className="top-0 bottom-0 flex-col items-center hidden md:absolute md:flex left-4">
-          <div className="w-5 h-5 mt-2 bg-gray-400 border-2 border-gray-100 rounded-full dark:bg-gray-700 dark:border-gray-900" />
-          <div className="w-[2px] flex-1 bg-gray-300 dark:bg-gray-700" />
+          <div className="w-4 h-4 mt-2 bg-gray-600 border-2 border-gray-900 rounded-full" />
+          <div className="w-px flex-1 bg-gray-700/50" />
         </div>
 
         {/* Spacer to account for timeline offset */}
@@ -1526,10 +1499,9 @@ function WorkshopNomineeRow({
           <GripVertical className="w-3.5 h-3.5" />
         </button>
 
-        {/* Rank number */}
-        <span className="w-5 text-center text-[10px] font-bold text-gray-500 tabular-nums flex-shrink-0">{rank}</span>
+        {/* Rank number hidden — total shown in section header instead */}
 
-        {/* Thumbnail */}
+        {/* Thumbnail — matches MovieCard compact variant */}
         <div className="relative flex-shrink-0 overflow-hidden bg-gray-800" style={{ height: 48, borderRadius: 6 }}>
           {thumbSrc ? (
             <img src={thumbSrc} alt="" className="h-full w-auto object-contain" style={{ borderRadius: 6 }} />
@@ -1538,14 +1510,14 @@ function WorkshopNomineeRow({
           )}
         </div>
 
-        {/* Title */}
+        {/* Title — matches MovieCard compact variant */}
         <p className="flex-1 text-sm font-medium text-white truncate">{movie.title}</p>
 
-        {/* Rating badge */}
+        {/* Rating badge — matches MovieCard rating badge style */}
         <button
           type="button"
           onClick={() => setShowRatingModal(true)}
-          className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded transition-transform active:scale-95"
+          className="flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-md shadow-sm transition-transform active:scale-95"
           style={ranking > 0 ? { backgroundColor: ratingStyle.background, color: ratingStyle.text } : { backgroundColor: 'rgba(75,85,99,0.4)', color: '#9ca3af' }}
         >
           {ranking > 0 ? `⭐ ${ranking}` : "☆ Rate"}

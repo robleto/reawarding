@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import type { Database } from '@/types/supabase';
 import Link from 'next/link';
 import { ArrowLeft, Save } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -55,7 +53,6 @@ const CATEGORY_OPTIONS = [
 
 export default function CollectionForm({ mode, collection }: CollectionFormProps) {
   const router = useRouter();
-  const supabase = useSupabaseClient<Database>();
   const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState<Collection>({
@@ -89,9 +86,10 @@ export default function CollectionForm({ mode, collection }: CollectionFormProps
 
     try {
       if (mode === 'create') {
-        const { error } = await supabase
-          .from('film_collections')
-          .insert({
+        const response = await fetch('/api/admin/collections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             slug: formData.slug,
             title: formData.title,
             description: formData.description,
@@ -99,9 +97,13 @@ export default function CollectionForm({ mode, collection }: CollectionFormProps
             color: formData.color,
             category: formData.category,
             featured: formData.featured,
-          });
+          }),
+        });
 
-        if (error) throw error;
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create collection');
+        }
       } else {
         if (!collection?.id) {
           throw new Error('Collection ID is required for updates');

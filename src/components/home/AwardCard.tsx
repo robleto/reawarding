@@ -1,6 +1,7 @@
 "use client";
 
-import { Trophy } from "lucide-react";
+import React from "react";
+import { Trophy, Share2 } from "lucide-react";
 import { getActualWinner } from "@/data/bestPictureWinners";
 
 interface Props {
@@ -9,18 +10,21 @@ interface Props {
   winnerPoster?: string | null;
   nomineeCount: number;
   onClick?: () => void;
+  /** If provided, a share icon appears below the card */
+  onShare?: () => void;
 }
 
 /**
  * AwardCard — prestige poster card for "Your Awards" shelf.
  * Receives pre-resolved movie data — no database fetching.
  */
-export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCount, onClick }: Props) {
+export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCount, onClick, onShare }: Props) {
   const actualWinner = getActualWinner(year);
   const isAcademyMatch =
     actualWinner && winnerTitle && actualWinner.title.toLowerCase() === winnerTitle.toLowerCase();
 
   return (
+    <div className="flex flex-col items-center gap-1.5">
     <button
       onClick={onClick}
       className="group relative flex-shrink-0 w-[160px] sm:w-[180px] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500/50 rounded-xl"
@@ -107,5 +111,18 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
         </div>
       </div>
     </button>
+
+    {onShare && (
+      <button
+        type="button"
+        onClick={onShare}
+        className="inline-flex items-center gap-1 text-[11px] text-gray-600 hover:text-yellow-400 transition-colors"
+        aria-label={`Share ${year} ballot`}
+      >
+        <Share2 className="h-3 w-3" />
+        Share
+      </button>
+    )}
+    </div>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { Award, Trophy, X } from "lucide-react";
+import React, { useEffect, useRef } from "react";
+import Link from "next/link";
+import { Award, Trophy, X, ArrowRight } from "lucide-react";
 
 interface Props {
   year: number;
@@ -70,6 +71,16 @@ export default function BallotMilestoneOverlay({
             </p>
             <h3 className="mt-1 text-lg font-semibold text-white">{heading}</h3>
             <p className="mt-1 text-sm leading-6 text-gray-300">{body}</p>
+            {milestone === 10 && (
+              <Link
+                href="/awards"
+                onClick={onClose}
+                className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-yellow-300 hover:text-yellow-200 transition-colors"
+              >
+                See your {year} awards
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            )}
           </div>
           <button
             type="button"

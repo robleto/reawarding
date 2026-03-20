@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { hasGuestInteracted, shouldShowSignupPrompt, getGuestInteractionCount, getGuestAwardCount } from "@/utils/guestMode";
+import { useAuthState } from "@/hooks/useAuthState";
 
 export type BannerType = 
   | 'welcome'           // First-time user welcome banner
@@ -23,6 +24,10 @@ export function useBannerPriority(): BannerPriorityState & {
   dismissBanner: () => void;
   dismissPermanently: () => void;
 } {
+  const { status, user } = useAuthState();
+  const actorKey = user?.id ?? "guest";
+  const permanentDismissKey = `${BANNER_DISMISSED_KEY}:${actorKey}`;
+  const sessionDismissKey = `${BANNER_DISMISSED_SESSION_KEY}:${actorKey}`;
   const [state, setState] = useState<BannerPriorityState>({
     activeBanner: 'none',
     interactionCount: 0,
@@ -31,12 +36,16 @@ export function useBannerPriority(): BannerPriorityState & {
   });
 
   const calculateBannerPriority = (): BannerType => {
+    if (status === 'authenticated') {
+      return 'none';
+    }
+
     const hasInteracted = hasGuestInteracted();
     const shouldShowPrompt = shouldShowSignupPrompt();
     const count = getGuestInteractionCount();
     const awardCount = getGuestAwardCount();
-    const wasDismissedPermanently = localStorage.getItem(BANNER_DISMISSED_KEY) === "true";
-    const wasDismissedThisSession = sessionStorage.getItem(BANNER_DISMISSED_SESSION_KEY) === "true";
+    const wasDismissedPermanently = localStorage.getItem(permanentDismissKey) === "true";
+    const wasDismissedThisSession = sessionStorage.getItem(sessionDismissKey) === "true";
 
     // If user dismissed banners, show nothing
     if (wasDismissedPermanently || wasDismissedThisSession) {
@@ -91,15 +100,15 @@ export function useBannerPriority(): BannerPriorityState & {
     const interval = setInterval(updateState, 1000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [status, permanentDismissKey, sessionDismissKey]);
 
   const dismissBanner = () => {
-    sessionStorage.setItem(BANNER_DISMISSED_SESSION_KEY, "true");
+    sessionStorage.setItem(sessionDismissKey, "true");
     setState(prev => ({ ...prev, activeBanner: 'none', shouldShowBanner: false }));
   };
 
   const dismissPermanently = () => {
-    localStorage.setItem(BANNER_DISMISSED_KEY, "true");
+    localStorage.setItem(permanentDismissKey, "true");
     setState(prev => ({ ...prev, activeBanner: 'none', shouldShowBanner: false }));
   };
 

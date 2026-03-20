@@ -11,6 +11,14 @@ interface Props {
   autoFocus?: boolean;
   placeholder?: string;
   className?: string;
+  /** When set, pre-fills the search and triggers a lookup */
+  suggestedQuery?: string;
+  /**
+   * "hero"  — gold border + gold icon + focus glow. Use for the primary
+   *           search surface on the homepage.
+   * "default" — standard gray treatment (existing behaviour).
+   */
+  variant?: "default" | "hero";
 }
 
 /**
@@ -24,11 +32,14 @@ export default function MovieSearchPicker({
   autoFocus = false,
   placeholder = "Search for a movie...",
   className = "",
+  suggestedQuery,
+  variant = "default",
 }: Props) {
   const [term, setTerm] = useState("");
   const [suggestions, setSuggestions] = useState<Movie[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -61,6 +72,16 @@ export default function MovieSearchPicker({
     [filterByYear]
   );
 
+  // When parent injects a suggested query, pre-fill and search
+  React.useEffect(() => {
+    if (!suggestedQuery) return;
+    setTerm(suggestedQuery);
+    setShowSuggestions(true);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => doSearch(suggestedQuery), 0);
+    inputRef.current?.focus();
+  }, [suggestedQuery, doSearch]);
+
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setTerm(value);
@@ -83,21 +104,44 @@ export default function MovieSearchPicker({
     }
   };
 
+  const isHero = variant === "hero";
+
+  // Container styles — hero variant owns its own elevated, gold-accented shell.
+  // Level 2 surface: gradient background sits visibly above the Level 1 card.
+  // Glow replaces border-only treatment — perceived light, not just lines.
+  const containerClasses = isHero
+    ? [
+        "flex items-center gap-3 rounded-xl border px-4 h-14 transition-all duration-200",
+        "bg-gradient-to-b from-[#121826] to-[#0E1420]",
+        isFocused
+          ? "border-yellow-500/70 shadow-[0_0_0_3px_rgba(212,175,55,0.30),_0_0_20px_rgba(212,175,55,0.15),_0_4px_24px_rgba(0,0,0,0.50)]"
+          : "border-yellow-500/45 shadow-[0_0_0_1px_rgba(212,175,55,0.20),_0_0_12px_rgba(212,175,55,0.08),_0_4px_20px_rgba(0,0,0,0.40)]",
+      ].join(" ")
+    : "flex items-center gap-2 rounded-xl border border-gray-300/60 dark:border-gray-600/60 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm px-4 h-12";
+
+  const iconClasses = isHero
+    ? "w-5 h-5 flex-shrink-0 text-yellow-500"
+    : "w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0";
+
+  const inputClasses = isHero
+    ? "bg-transparent text-base text-gray-100 placeholder-gray-400 focus:outline-none w-full"
+    : "bg-transparent text-base text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none w-full";
+
   return (
     <div className={`relative ${className}`}>
       <form onSubmit={handleSubmit}>
-        <div className="flex items-center gap-2 rounded-xl border border-gray-300/60 dark:border-gray-600/60 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm px-4 h-12">
-          <Search className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+        <div className={containerClasses}>
+          <Search className={iconClasses} />
           <input
             ref={inputRef}
             type="text"
             placeholder={placeholder}
             value={term}
             onChange={onChange}
-            onFocus={() => setShowSuggestions(!!term)}
-            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            onFocus={() => { setIsFocused(true); setShowSuggestions(!!term); }}
+            onBlur={() => { setIsFocused(false); setTimeout(() => setShowSuggestions(false), 200); }}
             autoFocus={autoFocus}
-            className="bg-transparent text-base text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none w-full"
+            className={inputClasses}
           />
           {term && (
             <button

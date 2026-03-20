@@ -1,29 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/ui/Loading";
+import ScreenState from "@/components/ui/ScreenState";
 import HorizontalListRow from "@/components/list/HorizontalListRow";
 import ListsEmptyState from "@/components/lists/ListsEmptyState";
 import AuthModalManager from "@/components/auth/AuthModalManager";
-import { Plus, X } from "lucide-react";
+import { X } from "lucide-react";
+import { useAuthState } from "@/hooks/useAuthState";
+import { useSmartListAlerts } from "@/hooks/useSmartListAlerts";
+import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
+import { slugifyTitle } from "@/utils/slug";
+import type { Movie } from "@/types/types";
 
 export default function ListsHomePage() {
   const supabase = useSupabaseClient();
   const user = useUser();
+  const { status } = useAuthState();
   const userId = user?.id;
   const router = useRouter();
   const [myLists, setMyLists] = useState<any[]>([]);
   const [publicLists, setPublicLists] = useState<any[]>([]);
+  const [seenMovies, setSeenMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
-  // Ready‑Made CTA row removed; no need to track readiness here
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
   const [createIsPublic, setCreateIsPublic] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,21 +82,33 @@ export default function ListsHomePage() {
   };
 
   useEffect(() => {
+    // Don't fetch until auth has resolved — avoids a race where userId is
+    // undefined on first render and seenMovies never gets populated.
+    if (status === "loading") return;
+
     async function fetchLists() {
       setLoading(true);
+      setError(null);
       let my = [];
       let pub = [];
       // previously used to show a Ready‑Made CTA row; no longer needed
-      
+
       if (userId) {
-        // First, get all lists for the current user
+        // First, get all lists for the current user (exclude E2E test artifacts)
         const { data: listsData, error: listsError } = await supabase
           .from("movie_lists")
           .select("*")
           .eq("user_id", userId)
+          .not("name", "ilike", "E2E%")
           .order("updated_at", { ascending: false });
 
-        if (!listsError && listsData) {
+        if (listsError) {
+          setError("Couldn't load your lists.");
+          setLoading(false);
+          return;
+        }
+
+        if (listsData) {
           // For each list, get the count of movies and top 5 poster URLs
           const listsWithCountsAndPosters = await Promise.all(
             listsData.map(async (list) => {
@@ -132,16 +152,46 @@ export default function ListsHomePage() {
           my = listsWithCountsAndPosters;
         }
 
-        // Removed Ready‑Made CTA computation
+        // Fetch seen movies for smart list detection
+        const { data: rankingRows } = await supabase
+          .from("rankings")
+          .select("movie_id, seen_it, ranking")
+          .eq("user_id", userId)
+          .eq("seen_it", true);
+
+        const seenIds = (rankingRows || []).map((r: { movie_id: number }) => r.movie_id);
+        if (seenIds.length > 0) {
+          const { data: movieRows } = await supabase
+            .from("movies")
+            .select("id, title, poster_url, director, genres, cast_list, release_year")
+            .in("id", seenIds);
+
+          if (movieRows) {
+            const mapped = movieRows.map((m) => ({
+              ...m,
+              rankings: [{
+                seen_it: true,
+                ranking: rankingRows?.find((r: { movie_id: number }) => r.movie_id === m.id)?.ranking ?? null,
+              }],
+            })) as Movie[];
+            setSeenMovies(mapped);
+          }
+        }
       }
       
       // Get public lists
-      const { data: pubData } = await supabase
+      const { data: pubData, error: pubError } = await supabase
         .from("movie_lists")
         .select("*")
         .eq("is_public", true)
         .order("updated_at", { ascending: false });
       
+      if (pubError) {
+        setError("Couldn't load lists right now.");
+        setLoading(false);
+        return;
+      }
+
       if (pubData) {
         // Add counts and posters for public lists too
         const publicListsWithData = await Promise.all(
@@ -187,9 +237,65 @@ export default function ListsHomePage() {
       setLoading(false);
     }
     fetchLists();
-  }, [userId, supabase]);
+  }, [status, userId, supabase]);
+
+  // Smart list alerts derived from seen movies
+  const smartAlerts = useSmartListAlerts(seenMovies);
+  const [savingAlertKey, setSavingAlertKey] = useState<string | null>(null);
+  const [savedAlertKeys, setSavedAlertKeys] = useState<string[]>([]);
+  const [dismissedAlertKeys, setDismissedAlertKeys] = useState<string[]>([]);
+
+  const handleSaveSmartList = async (alert: { type: string; label: string; movieIds: number[] }) => {
+    if (!userId) return;
+    const key = `${alert.type}:${alert.label}`;
+    setSavingAlertKey(key);
+    try {
+      const { data: list, error } = await supabase
+        .from("movie_lists")
+        .insert({
+          user_id: userId,
+          name: alert.label,
+          description: `Auto-generated from your seen films • ${alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}`,
+          is_public: false,
+        })
+        .select("id")
+        .single();
+      if (error || !list) throw error ?? new Error("No list returned");
+      const items = alert.movieIds.map((id: number, idx: number) => ({ list_id: list.id, movie_id: id, ranking: idx + 1 }));
+      await supabase.from("movie_list_items").insert(items);
+      setSavedAlertKeys((prev) => [...prev, key]);
+    } catch (e) {
+      console.error("Failed to save smart list:", e);
+    } finally {
+      setSavingAlertKey(null);
+    }
+  };
+
+  // Build poster URL arrays for each smart list alert
+  const getPosterUrlsForAlert = useMemo(() => (movieIds: number[]) =>
+    movieIds
+      .slice(0, 5)
+      .map((id) => seenMovies.find((m) => m.id === id))
+      .filter((m): m is Movie => Boolean(m))
+      .map((m) => (m as { poster_url?: string | null }).poster_url ?? "")
+      .filter(Boolean),
+  [seenMovies]);
 
   if (loading) return <Loader message="Loading lists..." />;
+
+  if (status === "loading") return <Loader message="Loading lists..." />;
+
+  if (error) {
+    return (
+      <ScreenState
+        testId="screen-state-fetch-failure"
+        tone="error"
+        title="Couldn't load lists"
+        message="This page is staying closed instead of guessing with partial list data."
+        primaryAction={{ label: "Back Home", href: "/" }}
+      />
+    );
+  }
 
   return (
     <div className="max-w-screen-xl">
@@ -201,8 +307,8 @@ export default function ListsHomePage() {
           <div className="p-5 mt-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-yellow-200">Try Ready‑Made Lists</h3>
-                <p className="text-sm text-gray-300">We’ll auto-suggest lists like “Directors you’ve seen 10+ films from.”</p>
+                <h3 className="text-lg font-semibold text-yellow-200">Ready-Made Lists</h3>
+                <p className="text-sm text-gray-300">Pre-built from your ratings — directors, decades, genres and more.</p>
               </div>
               <a href="/lists/ready-made" className="px-3 py-2 text-black bg-yellow-500 rounded hover:bg-yellow-400">Explore</a>
             </div>
@@ -210,9 +316,7 @@ export default function ListsHomePage() {
         </>
       )}
 
-      {/* Top-right create button removed per request; creation via list card only */}
-
-      {/* My Lists Row */}
+      {/* My Lists — always first, primary */}
       {user && myLists.length > 0 && (
         <HorizontalListRow
           title="My Lists"
@@ -220,6 +324,67 @@ export default function ListsHomePage() {
           seeAllHref={myLists.length > 3 ? "/lists/mine" : undefined}
           onAdd={handleCreateListClick}
         />
+      )}
+
+      {/* Ready-Made Lists — auto-generated from watch history */}
+      {smartAlerts.filter((a) => !a.nearMiss && !dismissedAlertKeys.includes(`${a.type}:${a.label}`)).length > 0 && (
+        <section className="mb-10">
+          <div className="flex items-center justify-between mb-5 px-1">
+            <div>
+              <h2 className="text-xl font-bold text-white tracking-wide">Ready-Made Lists</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Pre-built from your ratings — save any of these in one tap.</p>
+            </div>
+            <a href="/lists/ready-made" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors font-medium">
+              See all →
+            </a>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 overflow-visible">
+            {smartAlerts.filter((a) => !a.nearMiss).slice(0, 6).map((alert) => {
+              const alertKey = `${alert.type}:${alert.label}`;
+              if (dismissedAlertKeys.includes(alertKey)) return null;
+              const posterUrls = getPosterUrlsForAlert(alert.movieIds);
+              const typeLabel = alert.type.charAt(0).toUpperCase() + alert.type.slice(1);
+              const isSaving = savingAlertKey === alertKey;
+              const isSaved = savedAlertKeys.includes(alertKey);
+              return (
+                <ReadyMadeCard
+                  key={alertKey}
+                  title={alert.label}
+                  count={alert.count}
+                  subtitle={<span>Auto-generated from your seen films • {typeLabel}</span>}
+                  posterUrls={posterUrls}
+                  viewHref={`/lists/ready-made/${slugifyTitle(alert.label)}`}
+                  headerRight={
+                    isSaved ? (
+                      <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleSaveSmartList(alert)}
+                        disabled={isSaving}
+                        className="px-3 py-1.5 text-sm bg-yellow-500 text-black rounded hover:bg-yellow-400 disabled:opacity-50 font-medium"
+                      >
+                        {isSaving ? "Saving…" : "Save"}
+                      </button>
+                    )
+                  }
+                  dismissForm={
+                    !isSaved && (
+                      <button
+                        type="button"
+                        onClick={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
+                        className="text-sm text-gray-400 hover:text-gray-300"
+                        title="Hide this suggestion"
+                      >
+                        Dismiss
+                      </button>
+                    )
+                  }
+                />
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {/* Public Lists Row */}

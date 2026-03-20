@@ -13,4 +13,4 @@ test('primary CTA navigates to login', async ({ page }) => {
 
 // NOTE: The theme-toggle lives inside the authenticated user dropdown and is
 // only rendered when a user is logged in. This test has been moved to
-// tests/authenticated.spec.ts where auth state is available.
+// tests/authenticated-features.spec.ts where auth state is available.

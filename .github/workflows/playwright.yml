@@ -16,29 +16,36 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: 'Run Playwright E2E tests'
+        required: false
+        default: 'false'
 
 jobs:
   ci:
-    name: Build, Lint & E2E Tests
+    name: Build & Lint
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    concurrency:
+      group: ci-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
 
     env:
       # Public vars needed for next build
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co' }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
+      NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL || 'http://127.0.0.1:3000' }}
       # Server-side vars needed for build + runtime
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key' }}
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY || '' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET || '' }}
       # Playwright auth
-      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
-      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL || '' }}
+      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD || '' }}
       # Tell Playwright to run against the dev server spun up by the webServer config
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
 
@@ -59,11 +66,49 @@ jobs:
       - name: Lint
         run: npm run lint
 
+  e2e:
+    name: E2E Tests (Manual)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: ci
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_e2e == 'true' }}
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL || 'http://127.0.0.1:3000' }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY || '' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET || '' }}
+      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL || '' }}
+      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD || '' }}
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Validate E2E secrets
+        run: |
+          [ -n "$NEXT_PUBLIC_SUPABASE_URL" ] || { echo "Missing NEXT_PUBLIC_SUPABASE_URL repo secret" >&2; exit 1; }
+          [ -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] || { echo "Missing NEXT_PUBLIC_SUPABASE_ANON_KEY repo secret" >&2; exit 1; }
+          [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || { echo "Missing SUPABASE_SERVICE_ROLE_KEY repo secret" >&2; exit 1; }
+          [ -n "$TEST_USER_EMAIL" ] || { echo "Missing TEST_USER_EMAIL repo secret" >&2; exit 1; }
+          [ -n "$TEST_USER_PASSWORD" ] || { echo "Missing TEST_USER_PASSWORD repo secret" >&2; exit 1; }
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
-      - name: E2E tests
-        run: npm run test:e2e
+      - name: Launch-gate E2E tests
+        run: npm run test:e2e:launch-gate
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4

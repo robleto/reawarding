@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseBrowser";
-import MoviePosterCard from "@/components/movie/MoviePosterCard";
-import MovieRowCard from "@/components/movie/MovieRowCard";
+import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieFilters from "@/components/filters/MovieFilters";
 import type { Movie } from "@/types/types";
@@ -347,22 +346,23 @@ export default function CollectionDetailPage() {
             {filteredMovies.map((movie) => {
               const userRanking = movie.rankings.find((r) => r.user_id === userId);
               return viewMode === "grid" ? (
-                <MoviePosterCard
+                <MovieCard
                   key={movie.id}
                   movie={movie}
-                  currentUserId={userId || 'guest'}
+                  variant="grid"
                   ranking={userRanking?.ranking || null}
                   seenIt={userRanking?.seen_it || false}
                   onUpdate={(movieId, updates) => updateMovieRanking(movieId, updates)}
                   onClick={() => handleMovieClick(movie)}
                 />
               ) : (
-                <MovieRowCard
+                <MovieCard
                   key={movie.id}
                   movie={movie}
-                  currentUserId={userId || 'guest'}
+                  variant="compact"
                   ranking={userRanking?.ranking || null}
                   seenIt={userRanking?.seen_it || false}
+                  showYear
                   onUpdate={(movieId, updates) => updateMovieRanking(movieId, updates)}
                   onClick={() => handleMovieClick(movie)}
                 />

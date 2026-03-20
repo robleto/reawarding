@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { isUserAdmin } from '@/lib/adminAuth';
 
 export async function POST(req: NextRequest) {
+  const isAdmin = await isUserAdmin();
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
   const { tmdbId } = await req.json();
   if (!tmdbId || (typeof tmdbId !== "string" && typeof tmdbId !== "number")) {
     return NextResponse.json({ error: "Missing or invalid TMDB ID" }, { status: 400 });

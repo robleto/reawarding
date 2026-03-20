@@ -194,10 +194,10 @@ export default function ProfileSetupPage() {
       }
       
       setSuccess('Profile saved successfully!');
-      
-      // Redirect home after a short delay
+
+      // First-time profile creation → taste setup. Edits go back home.
       setTimeout(() => {
-        router.push('/');
+        router.push(profile ? '/' : '/onboarding');
       }, 1500);
       
     } catch (error) {
