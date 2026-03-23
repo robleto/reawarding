@@ -127,7 +127,14 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
     return <div className="text-gray-500">Loading profile...</div>;
   }
   if (profileError) {
-    return <div className="text-red-500">Profile error: {profileError}</div>;
+    return (
+      <button
+        onClick={async () => { await signOutEverywhere(supabase); router.replace('/'); }}
+        className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+      >
+        Sign out
+      </button>
+    );
   }
 
   const displayName = profile?.full_name || profile?.username || user.email;

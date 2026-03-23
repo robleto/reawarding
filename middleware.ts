@@ -55,8 +55,9 @@ export async function middleware(request: NextRequest) {
   // Redirect unauthenticated users away from protected routes.
   if (isProtectedRoute(pathname) && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/login";
     url.search = "";
+    url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 

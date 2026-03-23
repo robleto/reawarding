@@ -134,7 +134,7 @@ function ResetPasswordContent() {
       } else {
         setSuccess(true);
         setTimeout(() => {
-          router.push('/rankings');
+          router.push('/');
         }, 2000);
       }
     } catch (err) {
