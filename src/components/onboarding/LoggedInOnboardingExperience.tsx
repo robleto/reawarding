@@ -305,10 +305,10 @@ export default function LoggedInOnboardingExperience({
           />
         </div>
 
-        <div className="p-6 sm:p-8">
+        <div className={onboarding.stage === "welcome" ? "p-5 sm:p-6" : "p-6 sm:p-8"}>
 
           {/* ── Row 1: Badge only — no chrome competing with the headline ── */}
-          <div className="mb-6">
+          <div className="mb-3">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/30 bg-yellow-500/[0.10] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-yellow-400">
               <Sparkles className="h-2.5 w-2.5" />
               {copy.eyebrow || "First-time setup"}
@@ -329,7 +329,7 @@ export default function LoggedInOnboardingExperience({
 
           {/* ── Row 3: Search — primary action, card-level space ────────── */}
           {/* No inner container. The search field IS the card's focal point. */}
-          <div className="mt-7">
+          <div className={onboarding.stage === "welcome" ? "mt-4" : "mt-7"}>
             <MovieSearchPicker
               onSelect={onSelectMovie}
               placeholder="Search for a movie to rate…"
