@@ -50,8 +50,11 @@ export default function ExpandableYearCard({
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(0);
   const [recentlyNominated, setRecentlyNominated] = useState<Set<string | number>>(new Set());
+  const [newNomineeTitle, setNewNomineeTitle] = useState<string | null>(null);
+  const [cardPulsing, setCardPulsing] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const autoPromotedRef = useRef<Set<string | number>>(new Set());
+  const nomineeConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [posterError, setPosterError] = useState(false);
   const prevNomineeCountRef = useRef(0);
   const milestoneStateInitializedRef = useRef(false);
@@ -163,7 +166,8 @@ export default function ExpandableYearCard({
       return frozenRailIds
         .map((id) => allMovies.find((m) => m.id === id))
         .filter((m): m is Movie => m !== undefined)
-        .filter((m) => !activeNomineeIdSet.has(String(m.id)));
+        // Keep recently-nominated films visible briefly so the chip renders
+        .filter((m) => !activeNomineeIdSet.has(String(m.id)) || recentlyNominated.has(m.id));
     }
     // Pre-open fallback (clamshell not yet expanded)
     const yearMovies = allMovies.filter((m) => m.release_year === year);
@@ -172,7 +176,7 @@ export default function ExpandableYearCard({
       return !seenIt && !activeNomineeIdSet.has(String(m.id));
     });
     return [...unseen].sort((a, b) => bestRating(b) - bestRating(a)).slice(0, RAIL_LIMIT);
-  }, [frozenRailIds, allMovies, year, activeNomineeIdSet, bestRating]);
+  }, [frozenRailIds, allMovies, year, activeNomineeIdSet, bestRating, recentlyNominated]);
 
   // Contender movies (rated 7+ but not yet nominated)
   const contenderMovies = useMemo(() => {
@@ -206,7 +210,16 @@ export default function ExpandableYearCard({
           next.delete(movie.id);
           return next;
         });
-      }, 1800);
+      }, 2000);
+
+      // Card-level + title confirmation — visible to new users
+      setNewNomineeTitle(movie.title);
+      setCardPulsing(true);
+      if (nomineeConfirmTimerRef.current) clearTimeout(nomineeConfirmTimerRef.current);
+      nomineeConfirmTimerRef.current = setTimeout(() => {
+        setNewNomineeTitle(null);
+        setCardPulsing(false);
+      }, 2500);
 
       onCreateAward(movie);
     }
@@ -265,6 +278,13 @@ export default function ExpandableYearCard({
     }, 350);
   }, [liveNomineeCount, onMilestoneReached, winnerTitle, year]);
 
+  // Cleanup nomination confirm timer on unmount
+  useEffect(() => {
+    return () => {
+      if (nomineeConfirmTimerRef.current) clearTimeout(nomineeConfirmTimerRef.current);
+    };
+  }, []);
+
   const progressPct = Math.min(100, (liveNomineeCount / 10) * 100);
 
   return (
@@ -272,7 +292,9 @@ export default function ExpandableYearCard({
     <div
       ref={cardRef}
       className={`rounded-xl border transition-all duration-300 ${
-        isExpanded
+        cardPulsing
+          ? "border-yellow-400 bg-yellow-900/15 ring-2 ring-yellow-400/60 shadow-xl shadow-yellow-400/20"
+          : isExpanded
           ? "border-yellow-500/40 bg-gray-800/60 shadow-lg shadow-yellow-500/5"
           : "border-gray-700/30 bg-gray-900/40 hover:border-yellow-500/30 hover:bg-gray-800/50"
       }`}
@@ -387,6 +409,17 @@ export default function ExpandableYearCard({
           {/* Divider */}
           <div className="mb-3 border-t border-gray-700/40" />
 
+          {/* ── Nominee confirmation banner ── */}
+          {newNomineeTitle && (
+            <div className="mb-3 flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-yellow-400/15 border border-yellow-400/40 animate-in fade-in slide-in-from-top-1 duration-200">
+              <Trophy className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+              <p className="text-sm font-medium text-gray-200 leading-snug">
+                <span className="font-bold text-yellow-300">{newNomineeTitle}</span>
+                {" "}just entered your <span className="font-bold text-white">{year}</span> ballot
+              </p>
+            </div>
+          )}
+
           {/* Instruction + progress */}
           <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
@@ -440,8 +473,15 @@ export default function ExpandableYearCard({
                   return (
                     <div
                       key={movie.id}
-                      className={`relative flex-shrink-0 w-[160px] sm:w-[180px] snap-start rounded-lg${justNominated ? " nominee-glow" : ""}`}
+                      className={`relative flex-shrink-0 w-[160px] sm:w-[180px] snap-start rounded-lg transition-all duration-300${justNominated ? " ring-2 ring-yellow-400 shadow-lg shadow-yellow-400/30" : ""}`}
                     >
+                      {justNominated && (
+                        <div className="absolute bottom-2 left-0 right-0 flex justify-center z-10 pointer-events-none animate-in fade-in duration-200">
+                          <span className="px-2.5 py-1 rounded-full bg-yellow-400 text-yellow-900 text-[10px] font-bold uppercase tracking-wide shadow-lg">
+                            New nominee
+                          </span>
+                        </div>
+                      )}
                       <MovieCard
                         variant="large"
                         movie={movie}

@@ -39,14 +39,14 @@
   box-shadow: 0 10px 15px -3px rgba(17, 24, 39, 0.7), 0 4px 6px -4px rgba(17, 24, 39, 0.7);
 }
 
-/* Nominee promotion glow — gold border + scale-in, fades after 1800ms */
+/* Nominee promotion glow — gold ring + scale-in, fades over 2000ms (YearExplorer grid) */
 @keyframes nominee-glow {
-  0%   { transform: scale(1.02); box-shadow: 0 0 0 2px rgba(234,179,8,0.70), 0 0 18px rgba(234,179,8,0.30); }
-  35%  { transform: scale(1.00); box-shadow: 0 0 0 2px rgba(234,179,8,0.55), 0 0 14px rgba(234,179,8,0.20); }
+  0%   { transform: scale(1.04); box-shadow: 0 0 0 3px rgba(234,179,8,0.90), 0 0 28px rgba(234,179,8,0.45); }
+  40%  { transform: scale(1.00); box-shadow: 0 0 0 2px rgba(234,179,8,0.65), 0 0 18px rgba(234,179,8,0.28); }
   100% { transform: scale(1.00); box-shadow: 0 0 0 2px rgba(234,179,8,0.00), 0 0  0px rgba(234,179,8,0.00); }
 }
 .nominee-glow {
-  animation: nominee-glow 1800ms ease-out forwards;
+  animation: nominee-glow 2000ms ease-out forwards;
 }
 
 /* Support components using the literal class 'dark:dark-glass' (Tailwind variant on custom class doesn't apply) */

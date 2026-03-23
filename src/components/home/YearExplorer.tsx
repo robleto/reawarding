@@ -559,7 +559,13 @@ export default function YearExplorer({
 
               return (
                 <div key={`${rowKey}-${movie.id}`} className={`group relative rounded-lg${justNominated ? " nominee-glow" : ""}`}>
-
+                  {justNominated && (
+                    <div className="absolute bottom-2 left-0 right-0 flex justify-center z-10 pointer-events-none animate-in fade-in duration-200">
+                      <span className="px-2.5 py-1 rounded-full bg-yellow-400 text-yellow-900 text-[10px] font-bold uppercase tracking-wide shadow-lg">
+                        New nominee
+                      </span>
+                    </div>
+                  )}
                   <MovieCard
                     variant="grid"
                     movie={movie}
