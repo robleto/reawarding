@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Film, Trophy, Check, Star } from "lucide-react";
 import { getActualWinner } from "@/data/bestPictureWinners";
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import { usePrefersReducedMotion } from "@/lib/motion";
 import MovieCard from "@/components/award/MovieCard";
 import type { Movie } from "@/types/types";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
@@ -17,7 +18,7 @@ interface Props {
   neededForBallot: number;
   allMovies: Movie[];
   awards: UserAward[];
-  currentUserId: string;
+  currentUserId: string | null;
   isExpanded: boolean;
   onToggle: () => void;
   onUpdateMovieRanking: (
@@ -46,6 +47,7 @@ export default function ExpandableYearCard({
   onOpenFullExplorer,
   onMilestoneReached,
 }: Props) {
+  const reducedMotion = usePrefersReducedMotion();
   const cardRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentHeight, setContentHeight] = useState(0);
@@ -114,6 +116,14 @@ export default function ExpandableYearCard({
     }
     return leader.title;
   }, [allMovies, existingAward?.winnerId, leader.title]);
+
+  // Flag if the saved winner has been re-rated below the nomination threshold.
+  const winnerBelowThreshold = useMemo(() => {
+    const winnerId = existingAward?.winnerId;
+    if (winnerId == null) return false;
+    const winnerMovie = allMovies.find((m) => String(m.id) === String(winnerId));
+    return winnerMovie != null && (winnerMovie.rankings?.[0]?.ranking ?? 0) < 7;
+  }, [allMovies, existingAward?.winnerId]);
 
   // Best available rating helper
   const bestRating = useCallback((m: Movie) => {
@@ -322,12 +332,22 @@ export default function ExpandableYearCard({
                 {liveNomineeCount}/10
               </span>
             </div>
-            {/* "Rate 7+" hint shown in header when ballot incomplete and not expanded */}
-            {!isExpanded && liveNomineeCount < 10 && (
+            {/* Milestone badge (persistent) or instructional hint (collapsed only) */}
+            {liveNomineeCount >= 10 ? (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-semibold text-yellow-400/80 whitespace-nowrap">
+                <Trophy className="w-2.5 h-2.5" />
+                Full Ballot — pick your winner
+              </span>
+            ) : liveNomineeCount >= 5 ? (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400/70 whitespace-nowrap">
+                <Check className="w-2.5 h-2.5" />
+                Your ballot is forming
+              </span>
+            ) : !isExpanded ? (
               <span className="hidden sm:inline text-[9px] text-gray-600 whitespace-nowrap">
                 Rate 7+ to nominate
               </span>
-            )}
+            ) : null}
           </div>
           <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3">
             <p className="truncate text-base font-semibold text-white group-hover:text-yellow-100">
@@ -342,14 +362,25 @@ export default function ExpandableYearCard({
               className="text-[10px] uppercase tracking-wider text-yellow-400/60 flex-shrink-0 hover:text-yellow-300 transition-colors text-left cursor-pointer"
             >
               {existingAward?.winnerId
-                ? "Winner (selected)"
+                ? "Winner"
                 : liveNomineeCount >= 10
-                ? "Winner (auto)"
+                ? "Pick your winner"
                 : liveNomineeCount > 0
-                ? "Leading contender"
+                ? "Leading"
                 : "Start rating"}
             </span>
           </div>
+          {winnerBelowThreshold && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); onOpenFullExplorer(year); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); onOpenFullExplorer(year); } }}
+              className="mt-0.5 block text-[9px] text-amber-400/80 hover:text-amber-300 transition-colors cursor-pointer text-left"
+            >
+              Your winner has been re-rated below 7 · update ballot
+            </span>
+          )}
         </div>
 
         {/* Academy contrast */}
@@ -377,10 +408,11 @@ export default function ExpandableYearCard({
 
       {/* ── Expandable content ── */}
       <div
-        className="overflow-hidden transition-[max-height,opacity] duration-400 ease-in-out"
+        className="overflow-hidden transition-[max-height,opacity] duration-[400ms] ease-in-out"
         style={{
-          maxHeight: isExpanded ? `${contentHeight + 32}px` : "0px",
+          maxHeight: reducedMotion ? (isExpanded ? "none" : "0px") : (isExpanded ? `${contentHeight + 32}px` : "0px"),
           opacity: isExpanded ? 1 : 0,
+          transition: reducedMotion ? "opacity 200ms ease-in-out" : undefined,
         }}
       >
         <div ref={contentRef} className="px-4 pb-4">
@@ -397,7 +429,7 @@ export default function ExpandableYearCard({
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
                 <Star className="inline w-3 h-3 text-yellow-400/70 mr-0.5 -mt-0.5" />
-                Scores 7+ automatically become contenders.
+                Scores of 7+ become nominees.
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -407,7 +439,7 @@ export default function ExpandableYearCard({
               </span>
               {liveNomineeCount >= 10 && (
                 <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">
-                  Complete
+                  Full Ballot
                 </span>
               )}
             </div>

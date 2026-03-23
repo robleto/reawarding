@@ -134,7 +134,7 @@ function ResetPasswordContent() {
       } else {
         setSuccess(true);
         setTimeout(() => {
-          router.push('/rankings');
+          router.push('/');
         }, 2000);
       }
     } catch (err) {
@@ -160,7 +160,7 @@ function ResetPasswordContent() {
             </h1>
             
             <p className="mb-6 text-gray-600">
-              Your password has been successfully updated. You&apos;ll be redirected to your dashboard in a moment.
+              Your password has been successfully updated. You&apos;ll be redirected in a moment.
             </p>
 
             <div className="w-8 h-8 mx-auto border-4 border-blue-600 rounded-full border-t-transparent animate-spin" />

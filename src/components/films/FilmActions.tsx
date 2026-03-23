@@ -93,10 +93,17 @@ export default function FilmActions({ movieId }: Props) {
         seenIt={seenIt}
         onClick={() => handleUpdate({ seen_it: !seenIt })}
       />
-      <RankingDropdown
-        ranking={ranking}
-        onChange={(value) => handleUpdate({ ranking: value })}
-      />
+      <div className="flex flex-col items-center">
+        <RankingDropdown
+          ranking={ranking}
+          onChange={(value) => handleUpdate({ ranking: value })}
+        />
+        {seenIt && ranking === null && (
+          <span className="mt-0.5 text-[10px] leading-tight text-blue-400/70 whitespace-nowrap">
+            7+ joins ballot
+          </span>
+        )}
+      </div>
     </div>
   );
 }

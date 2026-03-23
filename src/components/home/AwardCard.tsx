@@ -26,6 +26,7 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
   return (
     <div className="flex flex-col items-center gap-1.5">
     <button
+      type="button"
       onClick={onClick}
       className="group relative flex-shrink-0 w-[160px] sm:w-[180px] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500/50 rounded-xl"
     >

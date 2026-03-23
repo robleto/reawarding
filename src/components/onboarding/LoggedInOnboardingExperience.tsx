@@ -58,14 +58,14 @@ const STAGE_COPY: Record<LoggedInOnboardingStage, StageCopy> = {
   "first-rating": {
     eyebrow: "Your first signal is in",
     headline: "Keep rating what you know best.",
-    body: "A few more films from the same year are enough for contenders to start sorting themselves out.",
+    body: "A few more films from the same year are enough for nominees to start sorting themselves out.",
     searchHint: "Two or three more ratings in the same year will make the pattern obvious.",
   },
   "year-taking-shape": {
     eyebrow: "The field is forming",
     headline: "Your first year is starting to take shape.",
     body: "Strong ratings rise toward nominees — lower ratings still help define what stays out.",
-    searchHint: "Ratings of 7 or higher rise into nominees for that year.",
+    searchHint: "Scores of 7+ become nominees for that year.",
   },
   "winner-emerging": {
     eyebrow: "A leader is emerging",
@@ -92,7 +92,7 @@ const STAGE_COPY: Record<LoggedInOnboardingStage, StageCopy> = {
 const STEPS = [
   { icon: Clapperboard, label: "Rate a film",      detail: "Start with something you know well." },
   { icon: Film,         label: "It joins its year", detail: "Placed automatically. No setup needed." },
-  { icon: Sparkles,     label: "Contenders form",   detail: "Strong ratings rise toward nominees." },
+  { icon: Sparkles,     label: "Nominees form",     detail: "Scores of 7+ become nominees." },
   { icon: Trophy,       label: "A winner emerges",  detail: "Your top-rated film leads the year." },
   { icon: Star,         label: "You refine it",     detail: "Adjust or overrule whenever you want." },
 ];
@@ -252,7 +252,7 @@ export default function LoggedInOnboardingExperience({
     ? `${onboarding.strongestYear} · ${onboarding.strongestYearCount} film${onboarding.strongestYearCount === 1 ? "" : "s"} rated`
     : "—";
   const nomineeValue = onboarding.strongestYearNomineeCount > 0
-    ? `${onboarding.strongestYearNomineeCount} contender${onboarding.strongestYearNomineeCount === 1 ? "" : "s"} rising`
+    ? `${onboarding.strongestYearNomineeCount} nominee${onboarding.strongestYearNomineeCount === 1 ? "" : "s"} rising`
     : "—";
   const winnerValue = onboarding.strongestYearWinnerTitle ?? "—";
   const historyValue = onboarding.yearsStarted > 1
@@ -373,7 +373,7 @@ export default function LoggedInOnboardingExperience({
 
           {/* ── Secondary zone: pipeline + state ────────────────────────── */}
           {/* Deliberately lower contrast throughout — these recede */}
-          <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_200px]">
+          <div id="logged-in-onboarding-steps" className="mt-6 grid gap-6 lg:grid-cols-[1fr_200px]">
 
             {/* Step pipeline */}
             <div>

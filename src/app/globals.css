@@ -1072,6 +1072,25 @@ body {
     animation: none !important;
     transform: none !important;
   }
+
+  /* Award card shimmer — stop looping animations, keep static prestige appearance */
+  .award-card-frame,
+  .award-card-frame:hover {
+    animation: none !important;
+    background: linear-gradient(
+      135deg,
+      rgba(234, 179, 8, 0.3) 0%,
+      rgba(161, 98, 7, 0.1) 50%,
+      rgba(234, 179, 8, 0.3) 100%
+    ) !important;
+    background-size: 100% 100% !important;
+  }
+
+  .award-year-plaque {
+    animation: none !important;
+    background: rgba(234, 179, 8, 0.9) !important;
+    background-size: 100% 100% !important;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════

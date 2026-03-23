@@ -336,6 +336,7 @@ export function useMovieDataWithGuest() {
 		thumb_url,
 		cached_poster_url,
 		cached_thumb_url,
+		backdrop_url,
 		created_at,
 		overview,
 		tmdb_id,

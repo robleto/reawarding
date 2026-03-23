@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { supabase } from "@/lib/supabaseBrowser";
-import { Github, Mail, Chrome, Eye, EyeOff, User, Lock, Facebook } from 'lucide-react';
+import { Github, Mail, Eye, EyeOff, User, Lock } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { buildSiteUrl } from '@/utils/siteUrl';
 
@@ -162,26 +162,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleProviderSignIn = async (provider: 'google' | 'apple' | 'facebook') => {
-    setLoading(provider);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: buildSiteUrl('/auth/callback?next=/') || undefined,
-        },
-      });
-      if (error) {
-        console.error(`${provider} sign-in error:`, error);
-        setError(`Failed to sign in with ${provider}. Please try again.`);
-      }
-    } catch (error) {
-      console.error(`${provider} sign-in error:`, error);
-      setError(`Failed to sign in with ${provider}. Please try again.`);
-    } finally {
-      setLoading(null);
-    }
-  };
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4">
@@ -399,33 +379,6 @@ export default function LoginPage() {
               Continue with GitHub
             </button>
 
-            {/* Google Sign In */}
-            <button
-              onClick={() => handleProviderSignIn('google')}
-              disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              {loading === 'google' ? (
-                <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Chrome className="w-5 h-5 text-blue-500" />
-              )}
-              Continue with Google
-            </button>
-
-            {/* Facebook Sign In */}
-            <button
-              onClick={() => handleProviderSignIn('facebook')}
-              disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              {loading === 'facebook' ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Facebook className="w-5 h-5" />
-              )}
-              Continue with Facebook
-            </button>
           </div>
 
           {/* Footer */}

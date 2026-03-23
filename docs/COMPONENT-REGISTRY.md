@@ -8,11 +8,14 @@ PRs that introduce a new card type not listed here must justify the addition exp
 
 ## Cards
 
-### `MoviePosterCard`
-**Path:** `src/components/movie/MoviePosterCard.tsx`
-**Use for:** Any grid or row display of a single film as a poster.
-**Variants:** default, ratingOnly, withWatchlist, incomplete
-**Storybook:** `src/stories/MoviePosterCard.stories.tsx`
+### `MovieCard`
+**Path:** `src/components/award/MovieCard.tsx`
+**Use for:** Any display of a single film — poster grid, compact row, featured hero, or nominee within a ballot.
+**Variants:** `featured`, `grid`, `compact`, `large`
+**Note:** This is the unified canonical movie card. Use the appropriate variant; do not create bespoke card variants.
+**Storybook:** See `src/stories/HomeDashboardSlices.stories.tsx`
+
+> ⚠️ `MoviePosterCard` has been deleted. Use `<MovieCard variant="grid" />` or `<MovieCard variant="large" />` as replacements.
 
 ### `MovieRowCard`
 **Path:** `src/components/movie/MovieRowCard.tsx`

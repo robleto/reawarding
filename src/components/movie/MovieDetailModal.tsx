@@ -52,6 +52,8 @@ export default function MovieDetailModal({
   const [ranking, setRanking] = useState(initialRanking);
   const [isLoading, setIsLoading] = useState(false);
   const [hasValidImage, setHasValidImage] = useState(true);
+  const [healedPosterUrl, setHealedPosterUrl] = useState<string | null>(null);
+  const [healedBackdropUrl, setHealedBackdropUrl] = useState<string | null>(null);
   const [copiedTmdb, setCopiedTmdb] = useState(false);
 
   // Reset state when modal opens with new movie
@@ -69,6 +71,29 @@ export default function MovieDetailModal({
       setHasValidImage(Boolean(isValidUrl && !normalized.includes('placeholder')));
     }
   }, [isOpen, movie, initialRanking, initialSeenIt]);
+
+  // On-demand poster heal — fires silently when poster is missing and user is logged in
+  useEffect(() => {
+    if (!isOpen || hasValidImage || !movie.tmdb_id || !user) return;
+    let cancelled = false;
+    fetch("/api/heal-movie-poster", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dbId: movie.id, tmdbId: movie.tmdb_id }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data.poster_url) setHealedPosterUrl(data.poster_url);
+        if (data.backdrop_url) setHealedBackdropUrl(data.backdrop_url);
+      })
+      .catch(() => {
+        // Non-critical — poster stays as fallback tile
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, hasValidImage, movie.id, movie.tmdb_id, user]);
 
   // Close modal on escape key
   useEffect(() => {
@@ -167,6 +192,18 @@ export default function MovieDetailModal({
 
   if (!isOpen) return null;
 
+  const backdropSrc = normalizeImageUrl(
+    healedBackdropUrl ?? movie.backdrop_url ?? ""
+  ) || null;
+
+  const hasDetails =
+    !!movie.overview ||
+    !!movie.runtime ||
+    !!movie.mpaa_rating ||
+    !!movie.director ||
+    (movie.genres?.length ?? 0) > 0 ||
+    (movie.cast_list?.length ?? 0) > 0;
+
 
   return (
     <div
@@ -177,13 +214,31 @@ export default function MovieDetailModal({
         className="bg-gray-900/80 border border-yellow-500/20 rounded-2xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto text-gray-200"
         onClick={e => e.stopPropagation()}
       >
+        {/* Backdrop hero — shown when backdrop_url is available */}
+        {backdropSrc && (
+          <div
+            key={backdropSrc}
+            className="relative h-32 sm:h-44 w-full overflow-hidden rounded-t-2xl animate-in fade-in duration-700"
+          >
+            <Image
+              src={backdropSrc}
+              alt=""
+              fill
+              className="object-cover object-center"
+              unoptimized
+              aria-hidden="true"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-gray-900/95" />
+          </div>
+        )}
+
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-start justify-between p-4 border-b sm:p-6 border-yellow-500/20 bg-gray-900/80 backdrop-blur-sm">
+        <div className={`sticky top-0 z-10 flex items-start justify-between p-4 border-b sm:p-6 border-yellow-500/20 bg-gray-900/80 backdrop-blur-sm ${backdropSrc ? "-mt-12" : ""}`}>
           <div>
             <h2 className="text-2xl font-bold text-yellow-400">
               {movie.title}
             </h2>
-            <p className="text-gray-400 text-md">{movie.release_year}</p>
+            <p className="text-gray-400 text-md">{movie.release_year ?? "Unknown year"}</p>
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -209,12 +264,16 @@ export default function MovieDetailModal({
             {/* Left Column: Poster & Actions */}
             <div className="w-full space-y-4 md:w-1/3">
               <div className="aspect-[2/3] relative bg-gray-800 rounded-lg overflow-hidden shadow-lg">
-                {hasValidImage ? (
+                {hasValidImage || healedPosterUrl ? (
                   <Image
-                    src={normalizeImageUrl((movie.cached_poster_url?.trim() || movie.poster_url || '').trim())}
+                    key={healedPosterUrl ?? "original"}
+                    src={normalizeImageUrl(
+                      healedPosterUrl ??
+                      (movie.cached_poster_url?.trim() || movie.poster_url || "").trim()
+                    )}
                     alt={movie.title}
                     fill
-                    className="object-cover"
+                    className="object-cover animate-in fade-in duration-500"
                     unoptimized
                     onError={() => setHasValidImage(false)}
                   />
@@ -264,6 +323,14 @@ export default function MovieDetailModal({
 
             {/* Right Column: Details */}
             <div className="flex-1 space-y-6">
+              {/* Empty state — when no detail fields are populated */}
+              {!hasDetails && (
+                <div className="flex flex-col items-center justify-center py-10 text-center text-gray-500">
+                  <Film className="w-8 h-8 mb-3 text-gray-600" />
+                  <p className="text-sm">Details not yet available for this film.</p>
+                </div>
+              )}
+
               {/* Overview */}
               {movie.overview && (
                 <div>

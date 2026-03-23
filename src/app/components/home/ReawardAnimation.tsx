@@ -113,6 +113,7 @@ export function ReawardAnimation({
   // ── GSAP ScrollTrigger setup ────────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (window.innerWidth < 640) return; // no pin on mobile viewports
     gsap.registerPlugin(ScrollTrigger);
 
     const section         = sectionRef.current;

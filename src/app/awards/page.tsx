@@ -206,7 +206,7 @@ export default function AwardsPage() {
       <ScreenState
         testId="screen-state-auth-required"
         title="Sign in to view your awards"
-        message="Your awards timeline depends on your saved rankings and nominations. Sign in before we render it."
+        message="Your awards are waiting. Sign in to see your timeline."
         primaryAction={{ label: "Sign In", href: "/login" }}
         secondaryAction={{ label: "Back Home", href: "/" }}
       />
@@ -230,7 +230,7 @@ export default function AwardsPage() {
         testId="screen-state-fetch-failure"
         tone="error"
         title="Couldn't load your awards"
-        message="We couldn't verify your awards data, so this page is staying closed instead of falling back to defaults."
+        message="Your awards didn't load. Head home and come back — that usually clears it up."
         primaryAction={{ label: "Back Home", href: "/" }}
       />
     );

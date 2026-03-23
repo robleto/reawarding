@@ -127,7 +127,18 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
     return <div className="text-gray-500">Loading profile...</div>;
   }
   if (profileError) {
-    return <div className="text-red-500">Profile error: {profileError}</div>;
+    // Don't surface raw DB error strings in the nav — render a minimal fallback
+    // that still allows the user to sign out.
+    return (
+      <button
+        onClick={handleSignOut}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 hover:text-white rounded-lg hover:bg-gray-700/50 transition-colors"
+        title="Sign out"
+      >
+        <User className="w-4 h-4" />
+        Sign out
+      </button>
+    );
   }
 
   const displayName = profile?.full_name || profile?.username || user.email;

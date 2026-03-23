@@ -52,11 +52,12 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Redirect unauthenticated users away from protected routes.
+  // Redirect unauthenticated users to /login, preserving intended destination.
   if (isProtectedRoute(pathname) && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/login";
     url.search = "";
+    url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 

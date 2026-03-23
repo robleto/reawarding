@@ -46,7 +46,7 @@ Do NOT introduce new card types. All UI uses these canonical components:
 
 | Type | Component | Path |
 |---|---|---|
-| Movie card (poster) | `MoviePosterCard` | `src/components/movie/MoviePosterCard.tsx` |
+| Movie card (any) | `MovieCard` | `src/components/award/MovieCard.tsx` |
 | Movie card (row) | `MovieRowCard` | `src/components/movie/MovieRowCard.tsx` |
 | Year/ballot card | `ExpandableYearCard` | `src/components/home/ExpandableYearCard.tsx` |
 | Award card | `AwardCard` | `src/components/home/AwardCard.tsx` |
@@ -54,6 +54,8 @@ Do NOT introduce new card types. All UI uses these canonical components:
 | Discovery feed | `RecognitionFeed` | `src/components/home/RecognitionFeed.tsx` |
 | Watch action | `SeenItButton` | `src/components/movie/SeenItButton.tsx` |
 | Rate action | `RatingModal` | `src/components/movie/RatingModal.tsx` |
+
+`MovieCard` has variants: `featured`, `grid`, `compact`, `large` — use the appropriate one. `MoviePosterCard` has been deleted; it no longer exists.
 
 See `docs/COMPONENT-REGISTRY.md` for full registry and Storybook story index.
 

@@ -52,7 +52,7 @@ export default function BallotMilestoneOverlay({
       });
   }, [onClose]);
 
-  const heading = milestone === 10 ? "Your full ballot is complete." : "You just built a standard ballot.";
+  const heading = milestone === 10 ? "Your Full Ballot is complete." : "You just built a Standard Ballot.";
   const body =
     milestone === 10
       ? `${winnerTitle} is holding Best Picture with all 10 nominee slots filled for ${year}.`

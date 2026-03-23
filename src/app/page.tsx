@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import HomeHero from "@/app/components/home/HomeHero";
@@ -44,8 +45,8 @@ import { useAuthState } from "@/hooks/useAuthState";
 gsap.registerPlugin(ScrollTrigger);
 
 const PANEL_IDS = [
-  "panel-premise",
   "panel-how-it-works",
+  "panel-premise",
   "panel-hook",
   "panel-timeline",
   "panel-reassurance",
@@ -79,6 +80,7 @@ const SUGGESTED_YEARS = [0, -1, -2, -4, -7, -12, -19, -27].map(
 export default function HomePage() {
   const reducedMotion = usePrefersReducedMotion();
   const { status: authStatus, isAuthenticated, user } = useAuthState();
+  const router = useRouter();
   const { movies, userId, updateMovieRanking, isGuest, loading, authChecked, error: moviesError } = useMovieDataWithGuest();
   const { createAward } = useCreateAward();
   const { awards, loading: awardsLoading, error: awardsError } = useUserAwards();
@@ -293,11 +295,9 @@ export default function HomePage() {
       // Clear any chip-injected query so the same chip can be re-clicked later
       setSuggestedQuery(undefined);
       if (isGuest) {
-        void updateMovieRanking(movie.id as unknown as number, {
-          seen_it: true,
-          ranking: 10,
-        });
-        handleCreateAwardFromExplorer(movie);
+        // Watch only — do not collapse Watch + Rate into one write.
+        // The year explorer opens so the guest can choose their own rating.
+        void updateMovieRanking(movie.id as unknown as number, { seen_it: true });
         openYearExplorerForMovie(movie, 1);
         return;
       }
@@ -307,7 +307,7 @@ export default function HomePage() {
   );
 
   const scrollToPremise = useCallback(() => {
-    scrollToElementById("panel-premise", reducedMotion);
+    scrollToElementById("panel-how-it-works", reducedMotion);
   }, [reducedMotion]);
 
   const handleCloseExplorer = useCallback(() => {
@@ -465,7 +465,8 @@ export default function HomePage() {
   //   new        → 0 active years AND < 5 rated films
   //   building   → 1+ active year, 0 completed ballots
   //   established → 1+ completed ballot OR 2+ years OR 20+ rated
-  const userState: "new" | "building" | "established" = !hasStartedBallots
+  const isNew = !hasStartedBallots || ratedMovies.length < 5;
+  const userState: "new" | "building" | "established" = isNew
     ? "new"
     : isEstablished
     ? "established"
@@ -602,8 +603,8 @@ export default function HomePage() {
             onExploreYear={scrollToPremise}
           />
 
-          <PanelPremise reducedMotion={reducedMotion} />
           <HowItWorksSection reducedMotion={reducedMotion} />
+          <PanelPremise reducedMotion={reducedMotion} />
           <PanelHook reducedMotion={reducedMotion} />
           <PanelTimeline reducedMotion={reducedMotion} />
           <PanelReassurance reducedMotion={reducedMotion} />
@@ -747,7 +748,7 @@ export default function HomePage() {
                   variant="gold"
                   icon={List}
                   message={message}
-                  action={{ label: alert.nearMiss ? "See films" : "Create list", onClick: () => { window.location.href = "/lists/ready-made"; } }}
+                  action={{ label: alert.nearMiss ? "See films" : "Create list", onClick: () => { router.push("/lists/ready-made"); } }}
                   onDismiss={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
                 />
               );
@@ -970,7 +971,7 @@ export default function HomePage() {
               lists={userLists}
               seeAllHref="/lists/mine"
               readOnly={false}
-              onAdd={() => { window.location.href = "/lists"; }}
+              onAdd={() => { router.push("/lists"); }}
             />
           </section>
         )}
@@ -988,9 +989,9 @@ export default function HomePage() {
                 <h2 className="text-xl font-bold text-white tracking-wide">Ready-Made Lists</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Pre-built from your ratings — save any of these in one tap.</p>
               </div>
-              <a href="/lists/ready-made" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors font-medium">
+              <Link href="/lists/ready-made" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors font-medium">
                 See all →
-              </a>
+              </Link>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 overflow-visible">
               {smartAlerts.filter((a) => !a.nearMiss).map((alert) => {
@@ -1041,11 +1042,10 @@ export default function HomePage() {
             </div>
           </section>
         )}
+        {/* ─── Up Next ─── */}
+        <WatchlistMovieRow userId={userId} username={user?.user_metadata?.username ?? null} />
       </>
     )}
-
-  {/* ─── Up Next — first horizontal row ─── */}
-  <WatchlistMovieRow userId={userId} username={user?.user_metadata?.username ?? null} />
 
   {/* ─── Recognition feed ─── */}
   {(feedLoading || feedRows.length > 0) && (

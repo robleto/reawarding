@@ -322,6 +322,7 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 					movieTitle={movie.title}
 					posterUrl={movie.poster_url}
 					currentRating={rating || null}
+					releaseYear={movie.release_year}
 					onRate={(value) => onUpdate?.(movie.id, { ranking: value })}
 					onClose={() => setShowRatingModal(false)}
 				/>
@@ -444,7 +445,6 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 				<div className="flex-1 min-w-0">
 					<h3 className="text-base font-semibold text-white leading-snug truncate">{movie.title}</h3>
 					{showYear && <p className="text-sm text-gray-400">{movie.release_year}</p>}
-					{incomplete && <p className="text-xs text-gray-500">Seen, not rated yet</p>}
 				</div>
 				<div className="flex items-center gap-2">
 					{showHotTakeIndicator ? (
@@ -478,6 +478,11 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 						<RankingDropdown ranking={rating || null} onChange={handleRatingSelect} />
 						{ratingLabel && (
 							<span className="mt-0.5 text-[10px] leading-tight text-gray-400">{ratingLabel}</span>
+						)}
+						{(seenIt ?? false) && !rating && !ratingLabel && (
+							<span className="mt-0.5 text-[10px] leading-tight text-blue-400/70 whitespace-nowrap">
+								7+ joins ballot
+							</span>
 						)}
 					</div>
 				</div>
@@ -514,7 +519,6 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 						<div className="flex-1 min-w-0">
 							<h3 className="text-sm font-semibold text-white leading-tight line-clamp-2 break-words">{movie.title}</h3>
 							{showYear && <p className="text-xs text-gray-400">{movie.release_year}</p>}
-							{incomplete && <p className="text-[10px] text-gray-500">Seen, not rated yet</p>}
 						</div>
 						<div className="flex items-center gap-2 ml-2">
 							<SeenItButton
@@ -528,6 +532,11 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 								<RankingDropdown ranking={rating || null} onChange={handleRatingSelect} />
 								{ratingLabel && (
 									<span className="mt-0.5 text-[10px] leading-tight text-gray-400">{ratingLabel}</span>
+								)}
+								{(seenIt ?? false) && !rating && !ratingLabel && (
+									<span className="mt-0.5 text-[10px] leading-tight text-blue-400/70 whitespace-nowrap">
+										7+ joins ballot
+									</span>
 								)}
 							</div>
 						</div>
@@ -687,6 +696,7 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 					movieTitle={movie.title}
 					posterUrl={movie.poster_url}
 					currentRating={rating || null}
+					releaseYear={movie.release_year}
 					onRate={(value) => onUpdate?.(movie.id, { ranking: value })}
 					onClose={() => setShowRatingModal(false)}
 				/>

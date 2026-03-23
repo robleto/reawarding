@@ -870,7 +870,7 @@ export default function YearExplorer({
             {/* ─── Movie sections: recognition first ─────────────── */}
             {renderMovieGrid("Movies you've ranked", contenderMovies, "contenders", contendersSectionRef)}
             <div ref={candidatesSectionRef}>
-              {renderMovieGrid(`Top contenders from ${year}`, topContenders, "top-contenders")}
+              {renderMovieGrid(`Top nominees from ${year}`, topContenders, "top-contenders")}
             </div>
             {renderMovieGrid(
               `Other notable films from ${year}`,
@@ -1007,7 +1007,7 @@ export default function YearExplorer({
                   )}
                   {ratingTourStep === 3 && (
                     <>
-                      <p className="text-[15px] font-semibold text-white mb-1.5">Top contenders are waiting below</p>
+                      <p className="text-[15px] font-semibold text-white mb-1.5">Top nominees are waiting below</p>
                       <p className="text-sm text-gray-300 leading-relaxed">
                         {genreMatchLabel
                           ? `${genreMatchLabel.charAt(0).toUpperCase() + genreMatchLabel.slice(1)} films are listed first.`

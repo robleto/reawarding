@@ -250,7 +250,7 @@ function RankingsPageContent() {
       <ScreenState
         testId="screen-state-auth-required"
         title="Sign in to view your rankings"
-        message="Rankings are tied to your account. Sign in to load your ratings and hot takes."
+        message="Your ratings live on your account. Sign in to pick up where you left off."
         primaryAction={{ label: "Sign In", href: "/login" }}
         secondaryAction={{ label: "Back Home", href: "/" }}
       />
@@ -299,7 +299,7 @@ function RankingsPageContent() {
         testId="screen-state-fetch-failure"
         tone="error"
         title="Couldn't load your rankings"
-        message="We couldn't verify your rankings state, so this screen is staying closed instead of showing stale or partial data."
+        message="Your rankings didn't load. Head home and come back."
         primaryAction={{ label: "Back Home", href: "/" }}
       />
     );

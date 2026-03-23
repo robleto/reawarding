@@ -10,6 +10,7 @@ interface TMDBMovieDetail {
   runtime?: number | null;
   release_date?: string;
   poster_path?: string | null;
+  backdrop_path?: string | null;
   genres?: { id: number; name: string }[];
   vote_average?: number;
   vote_count?: number;
@@ -118,6 +119,9 @@ export async function POST(request: NextRequest) {
     const poster_url = detail.poster_path
       ? `https://image.tmdb.org/t/p/original${detail.poster_path}`
       : null;
+    const backdrop_url = detail.backdrop_path
+      ? `https://image.tmdb.org/t/p/original${detail.backdrop_path}`
+      : null;
     const genres = detail.genres?.map((g) => g.name) || [];
     const tmdb_rating = detail.vote_average
       ? Number(detail.vote_average.toFixed(1))
@@ -138,6 +142,7 @@ export async function POST(request: NextRequest) {
       release_year,
       runtime: detail.runtime || null,
       poster_url,
+      backdrop_url,
       thumb_url,
       tmdb_rating,
       vote_count,

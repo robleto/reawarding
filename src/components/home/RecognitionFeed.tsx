@@ -53,7 +53,13 @@ export default function RecognitionFeed({
     );
   }
 
-  if (rows.length === 0) return null;
+  if (rows.length === 0) {
+    return (
+      <p className="text-sm text-gray-500 py-4">
+        Rate a few films and we&apos;ll find more you&apos;re likely to know.
+      </p>
+    );
+  }
 
   const handleUpdate = onUpdate ?? (() => {});
 

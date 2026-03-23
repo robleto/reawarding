@@ -831,6 +831,21 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   const workshopWinnerDiffers = (activeWorkshopWinner?.id ?? null) !== defaultWinnerId;
   const showWorkshopReset = isWorkshop && (workshopOrderDiffers || workshopWinnerDiffers);
 
+  // Nominees whose rating has dropped below the nomination threshold.
+  // Only applies to saved/custom ballots — auto-assembled ballots are always live-filtered.
+  const staleNomineeIds = isUsingCustomView
+    ? new Set(
+        (isWorkshop ? activeWorkshopNominees : displayNominees)
+          .filter((m) => (m.rankings?.[0]?.ranking ?? 0) < 7)
+          .map((m) => m.id)
+      )
+    : new Set<number>();
+
+  const winnerIsBelowThreshold =
+    isUsingCustomView &&
+    displayWinner != null &&
+    (displayWinner.rankings?.[0]?.ranking ?? 0) < 7;
+
   const upsertAwardsClientSide = React.useCallback(
     async (nextNominees: Movie[], nextWinner: Movie | null) => {
       if (!user) {
@@ -1112,13 +1127,42 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                   <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-yellow-500/60">Best Picture</p>
                 </div>
                 {displayWinner ? (
-                  <WinnerCard
-                    movie={displayWinner}
-                    onClick={() => handleOpenModal(displayWinner)}
-                  />
+                  <>
+                    <WinnerCard
+                      movie={displayWinner}
+                      onClick={() => handleOpenModal(displayWinner)}
+                    />
+                    {winnerIsBelowThreshold && (
+                      <p className="mt-2 text-xs text-amber-400/80 leading-snug">
+                        Re-rated below 7 — still your pick.{" "}
+                        <button
+                          type="button"
+                          onClick={onEditRequest ?? handleStartEditing}
+                          className="underline hover:text-amber-300 transition-colors"
+                        >
+                          Update ballot
+                        </button>{" "}
+                        if that&apos;s changed.
+                      </p>
+                    )}
+                  </>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    No winner selected yet.
+                  <div className="flex flex-col items-start gap-3 py-2">
+                    <p className="text-sm text-gray-400 leading-relaxed">
+                      {nomineeCount > 0
+                        ? "Your nominees are set. Who wins?"
+                        : "No nominees yet — rate more films to get started."}
+                    </p>
+                    {user && nomineeCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={onEditRequest ?? handleStartEditing}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-yellow-300/80 border border-yellow-500/30 rounded-md hover:text-yellow-200 hover:border-yellow-400/60 hover:bg-yellow-500/5 transition-all"
+                      >
+                        <Trophy className="w-3 h-3" />
+                        Pick your winner
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -1223,15 +1267,24 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     >
                       <div className="space-y-1" data-tour-grid="nominees">
                         {activeWorkshopNominees.map((movie, index) => (
-                          <WorkshopNomineeRow
+                          <div
                             key={movie.id}
-                            movie={movie}
-                            rank={index + 1}
-                            isWinner={activeWorkshopWinner?.id === movie.id}
-                            onSetWinner={() => handleWorkshopWinner(movie)}
-                            onRemove={() => handleWorkshopRemove(movie.id)}
-                            onRankingChange={(value) => handleWorkshopRankingChange(movie.id, value)}
-                          />
+                            className={staleNomineeIds.has(movie.id) ? "rounded-lg ring-1 ring-amber-700/40 overflow-hidden" : undefined}
+                          >
+                            <WorkshopNomineeRow
+                              movie={movie}
+                              rank={index + 1}
+                              isWinner={activeWorkshopWinner?.id === movie.id}
+                              onSetWinner={() => handleWorkshopWinner(movie)}
+                              onRemove={() => handleWorkshopRemove(movie.id)}
+                              onRankingChange={(value) => handleWorkshopRankingChange(movie.id, value)}
+                            />
+                            {staleNomineeIds.has(movie.id) && (
+                              <p className="px-3 pb-1.5 text-[9px] text-amber-400/70">
+                                Rated below 7 — remove to update your ballot.
+                              </p>
+                            )}
+                          </div>
                         ))}
                         {activeWorkshopNominees.length < 10 && (
                           <button
@@ -1253,26 +1306,51 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                   <>
                     {/* Desktop: 5-col poster grid */}
                     <div className="hidden md:grid md:grid-cols-5 gap-2">
-                      {displayNominees.map((movie, index) => (
-                        <MovieCard
-                          key={movie.id}
-                          movie={movie}
-                          variant="grid"
-                          isWinner={index === 0}
-                          onClick={() => handleOpenModal(movie)}
-                        />
+                      {displayNominees.map((movie, idx) => (
+                        <div key={movie.id}>
+                          <MovieCard
+                            movie={movie}
+                            variant="grid"
+                            isWinner={movie.id === displayWinner?.id}
+                            onClick={() => handleOpenModal(movie)}
+                          />
+                          {staleNomineeIds.has(movie.id) && (
+                            <p className="mt-0.5 text-center text-[9px] font-medium text-amber-400/80">
+                              Rated below 7
+                            </p>
+                          )}
+                          {idx === 0 && !displayWinner && !staleNomineeIds.has(movie.id) && (
+                            <p className="mt-0.5 text-center text-[9px] font-medium text-yellow-400/60">
+                              Leading
+                            </p>
+                          )}
+                        </div>
                       ))}
                     </div>
                     {/* Mobile: single-column compact rows */}
                     <div className="flex flex-col gap-1.5 md:hidden">
-                      {displayNominees.map((movie, index) => (
-                        <MovieCard
+                      {displayNominees.map((movie, idx) => (
+                        <div
                           key={movie.id}
-                          movie={movie}
-                          variant="compact"
-                          isWinner={index === 0}
-                          onClick={() => handleOpenModal(movie)}
-                        />
+                          className={staleNomineeIds.has(movie.id) ? "rounded-lg ring-1 ring-amber-700/40" : undefined}
+                        >
+                          <MovieCard
+                            movie={movie}
+                            variant="compact"
+                            isWinner={movie.id === displayWinner?.id}
+                            onClick={() => handleOpenModal(movie)}
+                          />
+                          {staleNomineeIds.has(movie.id) && (
+                            <p className="px-2 pb-1 text-[9px] text-amber-400/70">
+                              Rated below 7 — still on your ballot.
+                            </p>
+                          )}
+                          {idx === 0 && !displayWinner && !staleNomineeIds.has(movie.id) && (
+                            <p className="px-2 pb-1 text-[9px] font-medium text-yellow-400/60">
+                              Leading
+                            </p>
+                          )}
+                        </div>
                       ))}
                     </div>
                     {displayNominees.length === 0 && (
@@ -1553,6 +1631,7 @@ function WorkshopNomineeRow({
         movieTitle={movie.title}
         posterUrl={movie.poster_url}
         currentRating={ranking || null}
+        releaseYear={movie.release_year}
         onRate={(value) => onRankingChange(value)}
         onClose={() => setShowRatingModal(false)}
       />

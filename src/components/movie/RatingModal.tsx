@@ -26,6 +26,7 @@ interface Props {
   movieTitle: string;
   posterUrl: string | null;
   currentRating: number | null;
+  releaseYear?: number | null;
   onRate: (value: number | null) => void;
   onClose: () => void;
 }
@@ -35,6 +36,7 @@ export default function RatingModal({
   movieTitle,
   posterUrl,
   currentRating,
+  releaseYear,
   onRate,
   onClose,
 }: Props) {
@@ -85,7 +87,7 @@ export default function RatingModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[220] flex items-center justify-center"
+      className="fixed inset-0 z-[220] flex items-end sm:items-center justify-center"
       role="dialog"
       aria-modal="true"
       aria-label={`Rate ${movieTitle}`}
@@ -101,10 +103,15 @@ export default function RatingModal({
       {/* Panel */}
       <div
         ref={panelRef}
-        className="relative z-10 w-[340px] max-w-[92vw] max-h-[88vh] overflow-hidden rounded-2xl border border-gray-700/60 bg-gray-900 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        className="relative z-10 w-full sm:w-[340px] sm:max-w-[92vw] max-h-[85vh] sm:max-h-[88vh] overflow-hidden rounded-t-2xl sm:rounded-2xl border border-gray-700/60 bg-gray-900 shadow-2xl animate-in fade-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200"
       >
+        {/* Mobile drag handle */}
+        <div className="flex justify-center pt-2.5 sm:hidden" aria-hidden="true">
+          <div className="w-9 h-1 rounded-full bg-gray-600/80" />
+        </div>
+
         {/* Header: poster + title */}
-        <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-gray-800">
+        <div className="flex items-center gap-3 px-4 pt-2 sm:pt-4 pb-3 border-b border-gray-800">
           <div className="relative w-12 h-[72px] flex-shrink-0 overflow-hidden rounded-lg bg-gray-800">
             {hasPoster ? (
               <Image
@@ -148,7 +155,7 @@ export default function RatingModal({
               <div className="flex items-center gap-2">
                 <Star className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
                 <p className="text-sm text-yellow-300 font-medium">
-                  Rated {confirmedRating} — added to your {new Date().getFullYear()} contenders.
+                  Rated {confirmedRating} — added to your {releaseYear ?? new Date().getFullYear()} nominees.
                 </p>
               </div>
             ) : (
@@ -163,7 +170,7 @@ export default function RatingModal({
         )}
 
         {/* Rating list */}
-        <div className="overflow-y-auto px-3 py-3 space-y-1.5" style={{ maxHeight: "calc(88vh - 120px)" }}>
+        <div className="overflow-y-auto px-3 pt-3 pb-8 sm:py-3 space-y-1.5" style={{ maxHeight: "calc(85vh - 120px)" }}>
           {RATING_OPTIONS.map((num) => {
             const style = getRatingStyle(num);
             const isSelected = currentRating === num;
@@ -196,7 +203,7 @@ export default function RatingModal({
                   </span>
                   {num >= 7 && (
                     <span className="block text-[10px] opacity-70 mt-0.5">
-                      Scores 7+ become contenders
+                      Scores of 7+ become nominees
                     </span>
                   )}
                 </span>
