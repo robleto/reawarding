@@ -14,7 +14,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import Image from "next/image";
-import { X, Trophy, Info, Star, Check, Plus } from "lucide-react";
+import { X, Trophy, Info, Star, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import ContextualTip from "@/components/onboarding/ContextualTip";
 // BallotMilestoneOverlay import removed — confetti/overlay disabled until UX is finalized
@@ -516,7 +516,7 @@ export default function YearExplorer({
         next.delete(movieId);
         return next;
       });
-    }, 1200);
+    }, 1800);
   }, []);
 
   const handlePromoteContender = useCallback(
@@ -558,15 +558,7 @@ export default function YearExplorer({
                 !activeNomineeIdSet.has(String(movie.id));
 
               return (
-                <div key={`${rowKey}-${movie.id}`} className="group relative">
-                  {justNominated && (
-                    <div className="absolute inset-0 z-30 rounded-lg bg-emerald-900/70 flex flex-col items-center justify-center pointer-events-none animate-in fade-in duration-200">
-                      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center mb-1.5">
-                        <Check className="w-5 h-5 text-white" />
-                      </div>
-                      <span className="text-xs font-semibold text-emerald-200">Nominated</span>
-                    </div>
-                  )}
+                <div key={`${rowKey}-${movie.id}`} className={`group relative rounded-lg${justNominated ? " nominee-glow" : ""}`}>
 
                   <MovieCard
                     variant="grid"

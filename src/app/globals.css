@@ -39,6 +39,16 @@
   box-shadow: 0 10px 15px -3px rgba(17, 24, 39, 0.7), 0 4px 6px -4px rgba(17, 24, 39, 0.7);
 }
 
+/* Nominee promotion glow — gold border + scale-in, fades after 1800ms */
+@keyframes nominee-glow {
+  0%   { transform: scale(1.02); box-shadow: 0 0 0 2px rgba(234,179,8,0.70), 0 0 18px rgba(234,179,8,0.30); }
+  35%  { transform: scale(1.00); box-shadow: 0 0 0 2px rgba(234,179,8,0.55), 0 0 14px rgba(234,179,8,0.20); }
+  100% { transform: scale(1.00); box-shadow: 0 0 0 2px rgba(234,179,8,0.00), 0 0  0px rgba(234,179,8,0.00); }
+}
+.nominee-glow {
+  animation: nominee-glow 1800ms ease-out forwards;
+}
+
 /* Support components using the literal class 'dark:dark-glass' (Tailwind variant on custom class doesn't apply) */
 .dark .dark\:dark-glass {
   @apply rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer border;

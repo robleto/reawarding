@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { Film, Trophy, Check, Star } from "lucide-react";
+import { Film, Trophy, Star } from "lucide-react";
 import { getActualWinner } from "@/data/bestPictureWinners";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import MovieCard from "@/components/award/MovieCard";
@@ -206,7 +206,7 @@ export default function ExpandableYearCard({
           next.delete(movie.id);
           return next;
         });
-      }, 1500);
+      }, 1800);
 
       onCreateAward(movie);
     }
@@ -440,19 +440,8 @@ export default function ExpandableYearCard({
                   return (
                     <div
                       key={movie.id}
-                      className="relative flex-shrink-0 w-[160px] sm:w-[180px] snap-start"
+                      className={`relative flex-shrink-0 w-[160px] sm:w-[180px] snap-start rounded-lg${justNominated ? " nominee-glow" : ""}`}
                     >
-                      {/* Nomination flash overlay */}
-                      {justNominated && (
-                        <div className="absolute inset-0 z-30 rounded-lg bg-emerald-900/70 flex flex-col items-center justify-center pointer-events-none animate-in fade-in duration-200">
-                          <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center mb-1">
-                            <Check className="w-4 h-4 text-white" />
-                          </div>
-                          <span className="text-[10px] font-semibold text-emerald-200">
-                            Nominated!
-                          </span>
-                        </div>
-                      )}
                       <MovieCard
                         variant="large"
                         movie={movie}
