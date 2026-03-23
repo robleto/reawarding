@@ -307,21 +307,12 @@ export default function LoggedInOnboardingExperience({
 
         <div className="p-6 sm:p-8">
 
-          {/* ── Row 1: Badge + dismiss control ──────────────────────────── */}
-          {/* Low visual weight — badge fades, dismiss is ghost text */}
-          <div className="flex items-center justify-between gap-4 mb-6">
+          {/* ── Row 1: Badge only — no chrome competing with the headline ── */}
+          <div className="mb-6">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/30 bg-yellow-500/[0.10] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-yellow-400">
               <Sparkles className="h-2.5 w-2.5" />
               {copy.eyebrow || "First-time setup"}
             </span>
-            <button
-              type="button"
-              onClick={() => setIsCollapsed(true)}
-              className="flex items-center gap-1.5 text-[11px] font-medium text-gray-600 hover:text-gray-400 transition-colors"
-            >
-              Hide
-              <ChevronUp className="h-3 w-3" />
-            </button>
           </div>
 
           {/* ── Row 2: Headline ─────────────────────────────────────────── */}
@@ -329,10 +320,12 @@ export default function LoggedInOnboardingExperience({
           <h2 className="font-unbounded text-2xl font-bold text-white leading-tight sm:text-3xl">
             {copy.headline || "Start with one film you know."}
           </h2>
-          {/* Body: single sentence, clearly subordinate */}
-          <p className="mt-3 text-sm leading-relaxed text-gray-300 max-w-xl">
-            {copy.body}
-          </p>
+          {/* Body: only shown post-welcome — at welcome the search IS the next step */}
+          {onboarding.stage !== "welcome" && copy.body && (
+            <p className="mt-3 text-sm leading-relaxed text-gray-300 max-w-xl">
+              {copy.body}
+            </p>
+          )}
 
           {/* ── Row 3: Search — primary action, card-level space ────────── */}
           {/* No inner container. The search field IS the card's focal point. */}
@@ -360,66 +353,58 @@ export default function LoggedInOnboardingExperience({
             </div>
           </div>
 
-          {/* ── Moment message — appears only post-rating ───────────────── */}
+          {/* ── Moment message — emotional anchor, stronger than secondary zone ── */}
           {momentMessage ? (
-            <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] px-4 py-3">
-              <span className="flex-shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <p className="text-xs leading-relaxed text-emerald-300">{momentMessage}</p>
+            <div className="mt-5 flex items-start gap-3 rounded-xl border border-emerald-500/35 bg-emerald-500/[0.10] px-4 py-3.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Sparkles className="flex-shrink-0 mt-0.5 h-4 w-4 text-emerald-400" />
+              <p className="text-sm font-medium leading-relaxed text-emerald-200">{momentMessage}</p>
             </div>
           ) : null}
 
-          {/* ── Visual divider separating primary from secondary ─────────── */}
-          <div className="mt-8 border-t border-white/[0.06]" />
+          {/* ── Secondary zone: only visible post-welcome, fades in as system becomes visible ── */}
+          {onboarding.stage !== "welcome" && (
+            <>
+              <div className="mt-8 border-t border-white/[0.06] animate-in fade-in duration-500" />
 
-          {/* ── Secondary zone: pipeline + state ────────────────────────── */}
-          {/* Deliberately lower contrast throughout — these recede */}
-          <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_200px]">
+              <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_200px] animate-in fade-in duration-700">
 
-            {/* Step pipeline */}
-            <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-700">
-                Core loop
-              </p>
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-                <StepPipeline activeStep={activeStep} />
+                {/* Step pipeline — no section label */}
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+                  <StepPipeline activeStep={activeStep} />
+                </div>
+
+                {/* State rows — no section label */}
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-1">
+                  <StateRow
+                    label="Current year"
+                    value={yearValue}
+                    accent={onboarding.strongestYear ? "gold" : "dim"}
+                    cta={onboarding.strongestYear ? "Open" : undefined}
+                    onClick={onboarding.strongestYear ? () => onOpenYear(onboarding.strongestYear!) : undefined}
+                  />
+                  <StateRow
+                    label="Nominees"
+                    value={nomineeValue}
+                    accent={onboarding.strongestYearNomineeCount > 0 ? "green" : "dim"}
+                  />
+                  <StateRow
+                    label="Current winner"
+                    value={winnerValue}
+                    accent={onboarding.strongestYearWinnerTitle ? "gold" : "dim"}
+                    cta={onboarding.strongestYear && onboarding.strongestYearWinnerTitle ? "Refine" : undefined}
+                    onClick={onboarding.strongestYear ? () => onOpenYear(onboarding.strongestYear!) : undefined}
+                  />
+                  <StateRow
+                    label="History"
+                    value={historyValue}
+                    accent={onboarding.yearsStarted > 1 ? "green" : "dim"}
+                  />
+                </div>
               </div>
-            </div>
+            </>
+          )}
 
-            {/* State — compact row list, not competing cards */}
-            <div>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-700">
-                Your progress
-              </p>
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-1">
-                <StateRow
-                  label="Current year"
-                  value={yearValue}
-                  accent={onboarding.strongestYear ? "gold" : "dim"}
-                  cta={onboarding.strongestYear ? "Open" : undefined}
-                  onClick={onboarding.strongestYear ? () => onOpenYear(onboarding.strongestYear!) : undefined}
-                />
-                <StateRow
-                  label="Nominees"
-                  value={nomineeValue}
-                  accent={onboarding.strongestYearNomineeCount > 0 ? "green" : "dim"}
-                />
-                <StateRow
-                  label="Current winner"
-                  value={winnerValue}
-                  accent={onboarding.strongestYearWinnerTitle ? "gold" : "dim"}
-                  cta={onboarding.strongestYear && onboarding.strongestYearWinnerTitle ? "Refine" : undefined}
-                  onClick={onboarding.strongestYear ? () => onOpenYear(onboarding.strongestYear!) : undefined}
-                />
-                <StateRow
-                  label="History"
-                  value={historyValue}
-                  accent={onboarding.yearsStarted > 1 ? "green" : "dim"}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* ── Footer: permanent dismiss, lowest possible visibility ────── */}
+          {/* ── Footer: hide + dismiss controls live here, not at the top ── */}
           <div className="mt-5 flex items-center justify-between gap-4">
             <button
               type="button"
@@ -429,13 +414,23 @@ export default function LoggedInOnboardingExperience({
               How ratings shape a year
               <ArrowRight className="h-2.5 w-2.5" />
             </button>
-            <button
-              type="button"
-              onClick={onDismiss}
-              className="text-[11px] text-gray-700 hover:text-gray-500 transition-colors"
-            >
-              Don't show again
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setIsCollapsed(true)}
+                className="flex items-center gap-1 text-[11px] text-gray-700 hover:text-gray-500 transition-colors"
+              >
+                Hide guide
+                <ChevronUp className="h-3 w-3" />
+              </button>
+              <button
+                type="button"
+                onClick={onDismiss}
+                className="text-[11px] text-gray-700 hover:text-gray-500 transition-colors"
+              >
+                Don't show again
+              </button>
+            </div>
           </div>
 
         </div>
