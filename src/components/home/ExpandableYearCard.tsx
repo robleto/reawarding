@@ -346,7 +346,7 @@ export default function ExpandableYearCard({
                 : liveNomineeCount >= 10
                 ? "Winner (auto)"
                 : liveNomineeCount > 0
-                ? "Leading contender"
+                ? "Leading nominee"
                 : "Start rating"}
             </span>
           </div>
@@ -397,7 +397,7 @@ export default function ExpandableYearCard({
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
                 <Star className="inline w-3 h-3 text-yellow-400/70 mr-0.5 -mt-0.5" />
-                Scores 7+ automatically become contenders.
+                Scores 7+ automatically become nominees.
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">

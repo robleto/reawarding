@@ -6,7 +6,7 @@ import { useUser } from "@supabase/auth-helpers-react";
 import Image from "next/image";
 import { X, Maximize2, Eye, EyeOff, Film, Clock, Users, Clapperboard, ExternalLink, Copy } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
-import RankingDropdown from "@/components/movie/RankingDropdown";
+import RatingModal from "@/components/movie/RatingModal";
 import type { Movie } from "@/types/types";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -53,6 +53,7 @@ export default function MovieDetailModal({
   const [isLoading, setIsLoading] = useState(false);
   const [hasValidImage, setHasValidImage] = useState(true);
   const [copiedTmdb, setCopiedTmdb] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
 
   // Reset state when modal opens with new movie
   useEffect(() => {
@@ -149,7 +150,10 @@ export default function MovieDetailModal({
 
   const handleRankingChange = (newRanking: number | null) => {
     setRanking(newRanking);
-    updateRanking(newRanking, seenIt);
+    // Auto-mark seen when a positive rating is chosen; preserves manual toggle
+    const autoSeenIt = newRanking != null && newRanking >= 1 ? true : seenIt;
+    if (autoSeenIt !== seenIt) setSeenIt(autoSeenIt);
+    updateRanking(newRanking, autoSeenIt);
   };
 
   // Removed unused handleRankingClear function
@@ -166,7 +170,6 @@ export default function MovieDetailModal({
   };
 
   if (!isOpen) return null;
-
 
   return (
     <div
@@ -252,11 +255,18 @@ export default function MovieDetailModal({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-gray-200">Your Rating</span>
-                    <RankingDropdown
-                      ranking={ranking}
-                      onChange={handleRankingChange}
+                    <button
+                      type="button"
+                      onClick={() => setShowRatingModal(true)}
                       disabled={isLoading}
-                    />
+                      className={`font-bold px-3 py-1.5 min-h-[32px] rounded-lg border transition-colors disabled:opacity-50 ${
+                        ranking
+                          ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20"
+                          : "border-gray-600 bg-gray-800/60 text-gray-400 hover:text-gray-200 hover:border-gray-500"
+                      }`}
+                    >
+                      {ranking ? `⭐ ${ranking}` : "Rate"}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -384,6 +394,20 @@ export default function MovieDetailModal({
           </div>
         </div>
       </div>
+
+      {/* Rating modal — opened via Rate button */}
+      <RatingModal
+        isOpen={showRatingModal}
+        movieTitle={movie.title}
+        posterUrl={normalizeImageUrl((movie.cached_poster_url?.trim() || movie.poster_url || '').trim())}
+        currentRating={ranking}
+        movieYear={movie.release_year ?? undefined}
+        onRate={(newRanking) => {
+          handleRankingChange(newRanking);
+          setShowRatingModal(false);
+        }}
+        onClose={() => setShowRatingModal(false)}
+      />
     </div>
   );
 }

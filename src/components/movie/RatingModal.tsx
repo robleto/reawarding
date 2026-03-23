@@ -26,6 +26,7 @@ interface Props {
   movieTitle: string;
   posterUrl: string | null;
   currentRating: number | null;
+  movieYear?: number | null;
   onRate: (value: number | null) => void;
   onClose: () => void;
 }
@@ -35,6 +36,7 @@ export default function RatingModal({
   movieTitle,
   posterUrl,
   currentRating,
+  movieYear,
   onRate,
   onClose,
 }: Props) {
@@ -148,7 +150,7 @@ export default function RatingModal({
               <div className="flex items-center gap-2">
                 <Star className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
                 <p className="text-sm text-yellow-300 font-medium">
-                  Rated {confirmedRating} — added to your {new Date().getFullYear()} contenders.
+                  Rated {confirmedRating} — added to your {movieYear ?? new Date().getFullYear()} nominees.
                 </p>
               </div>
             ) : (
@@ -196,7 +198,7 @@ export default function RatingModal({
                   </span>
                   {num >= 7 && (
                     <span className="block text-[10px] opacity-70 mt-0.5">
-                      Scores 7+ become contenders
+                      Scores 7+ become nominees
                     </span>
                   )}
                 </span>

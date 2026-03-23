@@ -169,15 +169,27 @@ export default function YearExplorer({
   const displayNomineeCount = displayNominees.length;
   const nomineesNeededForValidBallot = Math.max(0, 5 - (workshopNomineeIds.length > 0 ? workshopNomineeIds.length : displayNomineeCount));
   const canonicalWinnerMovie = hasCanonicalBestPictureAward
-    ? (existingNomineeMovies.find((m) => String(m.id) === String(existingAward?.winnerId)) ?? existingNomineeMovies[0] ?? null)
+    ? (existingNomineeMovies.find((m) => String(m.id) === String(existingAward?.winnerId))
+       // Fall back to highest-rated nominee, not arbitrary insertion order
+       ?? [...existingNomineeMovies].sort((a, b) => (b.rankings?.[0]?.ranking ?? 0) - (a.rankings?.[0]?.ranking ?? 0))[0]
+       ?? null)
     : null;
   // workshopWinnerId is the real-time value from onWorkshopNomineesChange;
   // it must lead the chain so live selections update the sticky-bar crown
   // immediately, before existingAward re-fetches from the API.
+  // Only use existingAward.winnerId if that movie is actually present in the
+  // current display nominees — stale winner IDs that no longer match should
+  // fall through to defaultWinner so the highest-rated film shows correctly.
+  const validatedAwardWinnerId = useMemo(() => {
+    if (!existingAward?.winnerId) return null;
+    const inNominees = displayNominees.some((m) => String(m.id) === String(existingAward.winnerId));
+    return inNominees ? existingAward.winnerId : null;
+  }, [existingAward?.winnerId, displayNominees]);
+
   const activeWinnerId =
     workshopWinnerId
     ?? canonicalWinnerMovie?.id
-    ?? existingAward?.winnerId
+    ?? validatedAwardWinnerId
     ?? defaultWinner?.id
     ?? null;
   const activeNomineeIdSet = useMemo(
@@ -870,7 +882,7 @@ export default function YearExplorer({
             {/* ─── Movie sections: recognition first ─────────────── */}
             {renderMovieGrid("Movies you've ranked", contenderMovies, "contenders", contendersSectionRef)}
             <div ref={candidatesSectionRef}>
-              {renderMovieGrid(`Top contenders from ${year}`, topContenders, "top-contenders")}
+              {renderMovieGrid(`Top nominees from ${year}`, topContenders, "top-contenders")}
             </div>
             {renderMovieGrid(
               `Other notable films from ${year}`,
@@ -1007,7 +1019,7 @@ export default function YearExplorer({
                   )}
                   {ratingTourStep === 3 && (
                     <>
-                      <p className="text-[15px] font-semibold text-white mb-1.5">Top contenders are waiting below</p>
+                      <p className="text-[15px] font-semibold text-white mb-1.5">Top nominees are waiting below</p>
                       <p className="text-sm text-gray-300 leading-relaxed">
                         {genreMatchLabel
                           ? `${genreMatchLabel.charAt(0).toUpperCase() + genreMatchLabel.slice(1)} films are listed first.`
