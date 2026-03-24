@@ -815,7 +815,7 @@ export default function HomePage() {
                   ─────────────────────────────────────────────────────── */}
               <div className="relative mb-6">
                 <div
-                  className="flex items-start overflow-x-auto pb-3"
+                  className="flex items-start overflow-x-auto pb-3 snap-x snap-mandatory"
                   style={{ scrollbarWidth: "none" }}
                 >
                   {sortedLeaders.map((yl, idx) => {
@@ -825,7 +825,7 @@ export default function HomePage() {
                     const gapSize     = nextYl ? yl.year - nextYl.year : 0;
 
                     return (
-                      <div key={yl.year} className="flex-shrink-0 flex items-start">
+                      <div key={yl.year} className="flex-shrink-0 flex items-start snap-start">
 
                         {/* ── Year node (dot + label + count) ── */}
                         <button
@@ -1071,7 +1071,7 @@ export default function HomePage() {
           </p>
 
           {/* Stats row — larger, more intentional */}
-          <div className="flex items-start gap-8 sm:gap-14 mb-5">
+          <div className="flex items-start gap-4 sm:gap-8 mb-5">
             <div>
               <p className="text-4xl font-bold text-white tabular-nums leading-none">
                 {yearLeaders.length}
@@ -1080,13 +1080,13 @@ export default function HomePage() {
                 {yearLeaders.length === 1 ? "Year" : "Years"}
               </p>
             </div>
-            <div className="border-l border-gray-700/50 pl-8 sm:pl-14">
+            <div className="border-l border-gray-700/50 pl-4 sm:pl-8">
               <p className="text-4xl font-bold text-white tabular-nums leading-none">
                 {tasteProfile.ratedCount}
               </p>
               <p className="text-xs text-gray-500 mt-1.5">Films rated</p>
             </div>
-            <div className="border-l border-gray-700/50 pl-8 sm:pl-14">
+            <div className="border-l border-gray-700/50 pl-4 sm:pl-8">
               <p className="text-4xl font-bold text-yellow-400 tabular-nums leading-none">
                 {yearLeaders.filter((yl) => yl.nomineeCount >= 10).length}
               </p>

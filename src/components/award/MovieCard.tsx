@@ -249,10 +249,10 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 										<button
 											type="button"
 											onClick={() => setShowRatingModal(true)}
-											className={`font-bold px-1.5 py-0.5 rounded-md border transition-colors active:scale-95 ${
+											className={`font-bold px-1.5 py-2 rounded-md border transition-colors active:scale-95 ${
 												rating
 													? "text-xs min-w-[28px] border-gray-700/60"
-													: "text-[10px] min-w-[40px] border-gray-600/40 hover:border-gray-500/60 hover:brightness-125"
+													: "text-xs min-w-[40px] border-gray-600/40 hover:border-gray-500/60 hover:brightness-125"
 											}`}
 											style={rating
 												? { backgroundColor: style.background, color: style.text }
@@ -264,7 +264,7 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 										{ratingLabel && <VariancePill label={ratingLabel} />}
 										{footerAction}
 									</div>
-									<p className="text-[10px] sm:text-xs font-semibold text-white leading-tight line-clamp-2">
+									<p className="text-xs font-semibold text-white leading-tight line-clamp-2">
 										{movie.title}
 									</p>
 								</div>
@@ -278,10 +278,10 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 										<button
 											type="button"
 											onClick={() => setShowRatingModal(true)}
-											className={`font-bold px-2 py-1 min-h-[32px] rounded-lg border transition-colors active:scale-95 ${
+											className={`font-bold px-2 py-1 min-h-[44px] rounded-lg border transition-colors active:scale-95 ${
 												rating
-													? "text-sm min-w-[32px] border-gray-700"
-													: "text-[11px] min-w-[48px] border-gray-600/50 hover:border-gray-500/70 hover:brightness-125"
+													? "text-sm min-w-[44px] border-gray-700"
+													: "text-xs min-w-[48px] border-gray-600/50 hover:border-gray-500/70 hover:brightness-125"
 											}`}
 											style={rating
 												? { backgroundColor: style.background, color: style.text }
@@ -477,7 +477,7 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 					<div className="flex flex-col items-center">
 						<RankingDropdown ranking={rating || null} onChange={handleRatingSelect} />
 						{ratingLabel && (
-							<span className="mt-0.5 text-[10px] leading-tight text-gray-400">{ratingLabel}</span>
+							<span className="mt-0.5 text-xs leading-tight text-gray-400">{ratingLabel}</span>
 						)}
 					</div>
 				</div>
@@ -514,7 +514,7 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 						<div className="flex-1 min-w-0">
 							<h3 className="text-sm font-semibold text-white leading-tight line-clamp-2 break-words">{movie.title}</h3>
 							{showYear && <p className="text-xs text-gray-400">{movie.release_year}</p>}
-							{incomplete && <p className="text-[10px] text-gray-500">Seen, not rated yet</p>}
+							{incomplete && <p className="text-xs text-gray-500">Seen, not rated yet</p>}
 						</div>
 						<div className="flex items-center gap-2 ml-2">
 							<SeenItButton
@@ -527,7 +527,7 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 							<div className="flex flex-col items-center">
 								<RankingDropdown ranking={rating || null} onChange={handleRatingSelect} />
 								{ratingLabel && (
-									<span className="mt-0.5 text-[10px] leading-tight text-gray-400">{ratingLabel}</span>
+									<span className="mt-0.5 text-xs leading-tight text-gray-400">{ratingLabel}</span>
 								)}
 							</div>
 						</div>

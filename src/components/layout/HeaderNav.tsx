@@ -159,7 +159,7 @@ export default function HeaderNav() {
 
 							<button
 								onClick={() => setShowAddMovieModal(true)}
-								className="md:hidden inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+								className="md:hidden inline-flex items-center justify-center w-11 h-11 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
 								aria-label="Add movie by TMDB ID"
 								title="Add movie by TMDB ID"
 							>
@@ -167,7 +167,7 @@ export default function HeaderNav() {
 							</button>
 							{user && (
 								<button
-									className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+									className="md:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
 									aria-label="Open user menu"
 									onClick={() => { setMobileUserOpen(!mobileUserOpen); if (!mobileUserOpen) setMobileMenuOpen(false); }}
 								>

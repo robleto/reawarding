@@ -17,7 +17,7 @@ function SkeletonRow() {
   return (
     <div>
       <div className="mb-3 h-2.5 w-28 rounded bg-gray-800 animate-pulse" />
-      <div className="flex gap-4 overflow-hidden">
+      <div className="flex gap-4 overflow-x-auto">
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="flex-shrink-0 w-[160px] sm:w-[180px]">
             <div className="w-full aspect-[2/3] rounded-xl bg-gray-800 animate-pulse" />

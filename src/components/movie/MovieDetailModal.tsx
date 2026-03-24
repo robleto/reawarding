@@ -191,7 +191,7 @@ export default function MovieDetailModal({
           <div className="flex items-center gap-1">
             <button
               onClick={() => router.push(`/films/${slugifyTitle(movie.title)}/${movie.id}`)}
-              className="p-2 transition-colors rounded-full hover:bg-gray-700/50"
+              className="p-3 transition-colors rounded-full hover:bg-gray-700/50"
               title="Open full film page"
             >
               <Maximize2 className="w-4 h-4 text-gray-400 hover:text-white" />
@@ -259,7 +259,7 @@ export default function MovieDetailModal({
                       type="button"
                       onClick={() => setShowRatingModal(true)}
                       disabled={isLoading}
-                      className={`font-bold px-3 py-1.5 min-h-[32px] rounded-lg border transition-colors disabled:opacity-50 ${
+                      className={`font-bold px-3 py-1.5 min-h-[44px] rounded-lg border transition-colors disabled:opacity-50 ${
                         ranking
                           ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20"
                           : "border-gray-600 bg-gray-800/60 text-gray-400 hover:text-gray-200 hover:border-gray-500"
