@@ -505,7 +505,7 @@ export default function ExpandableYearCard({
           <button
             type="button"
             onClick={() => onOpenFullExplorer(year)}
-            className="mt-2 text-xs font-medium text-yellow-400/80 hover:text-yellow-300 transition-colors"
+            className="mt-2 py-2 text-xs font-medium text-yellow-400/80 hover:text-yellow-300 transition-colors"
           >
             Open full {year} workspace →
           </button>

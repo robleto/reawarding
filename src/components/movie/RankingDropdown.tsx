@@ -63,7 +63,7 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
         type="button"
         disabled={disabled}
         onClick={() => setShowDropdown(!showDropdown)}
-        className={`font-bold px-2 py-1 min-h-[32px] rounded-lg border border-gray-700 bg-gray-900/80 text-white ${ranking ? 'text-sm min-w-[32px]' : 'text-[11px] min-w-[48px]'}`}
+        className={`font-bold px-2 py-1 min-h-[44px] rounded-lg border border-gray-700 bg-gray-900/80 text-white ${ranking ? 'text-sm min-w-[44px]' : 'text-[11px] min-w-[48px]'}`}
         style={{ backgroundColor: style.background, color: style.text }}
       >
         {ranking ? <>⭐ {ranking}</> : "☆ Rate"}

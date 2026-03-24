@@ -89,7 +89,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
 
   return (
     <div
-      className={`px-1 py-1 md:px-2 md:py-2 mb-2 md:mb-2 rounded-xl border border-[#232326]/80 bg-[#1c1c1e]/60 hover:bg-[#232326]/90 transition duration-200 shadow-sm ${
+      className={`px-1 py-1 md:px-2 md:py-2 mb-2 md:mb-2 rounded-xl border border-[#232326]/80 bg-[#1c1c1e]/60 hover:bg-[#232326]/90 active:bg-[#2a2a2e]/90 transition duration-200 shadow-sm ${
       onClick ? 'cursor-pointer' : ''
       }`}
       onClick={handleClick}
@@ -137,7 +137,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onWatchlist(movie.id); }}
-              className="flex items-center justify-center w-7 h-7 rounded-md transition-colors hover:bg-gray-800/60"
+              className="flex items-center justify-center min-w-[44px] min-h-[44px] rounded-md transition-colors hover:bg-gray-800/60"
               title={isOnWatchlist ? "On your watchlist" : "Add to watchlist"}
             >
               <Bookmark className={`w-4 h-4 ${isOnWatchlist ? "fill-yellow-400 text-yellow-400" : "text-gray-400"}`} />
@@ -238,7 +238,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onWatchlist(movie.id); }}
-                  className="flex items-center justify-center w-7 h-7 rounded-md transition-colors hover:bg-gray-800/60"
+                  className="flex items-center justify-center min-w-[44px] min-h-[44px] rounded-md transition-colors hover:bg-gray-800/60"
                   title={isOnWatchlist ? "On your watchlist" : "Add to watchlist"}
                 >
                   <Bookmark className={`w-4 h-4 ${isOnWatchlist ? "fill-yellow-400 text-yellow-400" : "text-gray-400"}`} />

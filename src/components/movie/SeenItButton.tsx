@@ -44,7 +44,7 @@ export default function SeenItButton({
 
   const baseVariant =
     variant === "compact"
-      ? "flex items-center justify-center p-1 rounded transition-colors focus:outline-none"
+      ? "flex items-center justify-center p-2.5 rounded transition-colors focus:outline-none"
       : "flex items-center gap-1 text-sm font-medium focus:outline-none";
 
   // Derive current watch-state

@@ -151,7 +151,7 @@ export default function MovieSearchPicker({
                 setSuggestions([]);
                 inputRef.current?.focus();
               }}
-              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
               aria-label="Clear search"
             >
               <X className="w-4 h-4 text-gray-500" />
@@ -166,7 +166,7 @@ export default function MovieSearchPicker({
             <li
               key={m.id}
               className="px-3 py-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 border-b last:border-b-0 border-gray-100 dark:border-gray-800"
-              onMouseDown={() => handleSelect(m)}
+              onPointerDown={() => handleSelect(m)}
             >
               <div className="flex items-center gap-3">
                 {m.thumb_url || m.poster_url ? (

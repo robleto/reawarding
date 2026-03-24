@@ -116,7 +116,7 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
       <button
         type="button"
         onClick={onShare}
-        className="inline-flex items-center gap-1 text-[11px] text-gray-600 hover:text-yellow-400 transition-colors"
+        className="inline-flex items-center gap-1 min-h-[44px] px-2 text-[11px] text-gray-600 hover:text-yellow-400 transition-colors"
         aria-label={`Share ${year} ballot`}
       >
         <Share2 className="h-3 w-3" />
