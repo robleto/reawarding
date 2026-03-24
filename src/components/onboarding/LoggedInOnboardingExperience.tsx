@@ -99,46 +99,37 @@ const STEPS = [
 
 function StepPipeline({ activeStep }: { activeStep: number }) {
   return (
-    <div className="flex items-stretch divide-x divide-white/[0.06]">
+    <div className="flex items-stretch divide-x divide-white/[0.04]">
       {STEPS.map((step, i) => {
-        const isActive   = i === activeStep;
         const isComplete = i < activeStep;
         const Icon = step.icon;
         return (
           <div
             key={step.label}
             className={[
-              "flex flex-col gap-1.5 px-3 py-3 flex-1 min-w-0 transition-colors",
+              "flex flex-col gap-1 px-2.5 py-2 flex-1 min-w-0",
               i === 0 ? "rounded-l-xl" : "",
               i === STEPS.length - 1 ? "rounded-r-xl" : "",
-              isActive   ? "bg-yellow-500/[0.08] ring-1 ring-inset ring-yellow-500/20" : "",
-              isComplete ? "bg-emerald-500/[0.04]" : "",
+              isComplete ? "bg-emerald-500/[0.03]" : "",
             ].join(" ")}
           >
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               <span
                 className={[
-                  "flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold leading-none",
-                  isActive   ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/35" : "",
-                  isComplete ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" : "",
-                  !isActive && !isComplete ? "bg-white/[0.04] text-gray-600 border border-white/[0.10]" : "",
+                  "flex-shrink-0 flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold leading-none",
+                  isComplete ? "bg-emerald-500/10 text-emerald-500/60 border border-emerald-500/20" : "bg-white/[0.03] text-gray-700 border border-white/[0.07]",
                 ].join(" ")}
               >
                 {isComplete ? "✓" : i + 1}
               </span>
               <Icon
-                className={`h-3.5 w-3.5 flex-shrink-0 ${
-                  isActive ? "text-yellow-300" : isComplete ? "text-emerald-400" : "text-gray-600"
-                }`}
+                className={`h-3 w-3 flex-shrink-0 ${isComplete ? "text-emerald-500/50" : "text-gray-700"}`}
               />
             </div>
-            <p className={`text-xs font-semibold leading-tight ${
-              isActive ? "text-yellow-200" : isComplete ? "text-emerald-300" : "text-gray-500"
+            <p className={`text-[11px] font-medium leading-tight ${
+              isComplete ? "text-emerald-500/60" : "text-gray-600"
             }`}>
               {step.label}
-            </p>
-            <p className="hidden sm:block text-[11px] leading-snug text-gray-600">
-              {step.detail}
             </p>
           </div>
         );
@@ -289,28 +280,36 @@ export default function LoggedInOnboardingExperience({
     <div className="mb-8">
       {/* Outer wrapper: shadow + border + radius — NO overflow-hidden so search glow isn't clipped */}
       <div
-        className="rounded-2xl border border-yellow-500/25"
+        className={`rounded-2xl border ${onboarding.stage === "welcome" ? "border-white/[0.06]" : "border-yellow-500/25"}`}
         style={{
           background: "#0B0F14",
-          boxShadow: "0 10px 40px rgba(0,0,0,0.60), 0 0 0 1px rgba(255,255,255,0.06)",
+          boxShadow: onboarding.stage === "welcome"
+            ? "0 4px 16px rgba(0,0,0,0.40)"
+            : "0 10px 40px rgba(0,0,0,0.60), 0 0 0 1px rgba(255,255,255,0.06)",
         }}
       >
-        {/* Gold top-edge accent clipped inside its own rounded wrapper */}
-        <div className="rounded-t-2xl overflow-hidden" aria-hidden>
-          <div
-            style={{
-              height: "2px",
-              background: "linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.55) 30%, rgba(212,175,55,0.55) 70%, transparent 100%)",
-            }}
-          />
-        </div>
+        {/* Gold top-edge accent — hidden at welcome to reduce chrome */}
+        {onboarding.stage !== "welcome" && (
+          <div className="rounded-t-2xl overflow-hidden" aria-hidden>
+            <div
+              style={{
+                height: "2px",
+                background: "linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.55) 30%, rgba(212,175,55,0.55) 70%, transparent 100%)",
+              }}
+            />
+          </div>
+        )}
 
         <div className={onboarding.stage === "welcome" ? "p-5 sm:p-6" : "p-6 sm:p-8"}>
 
           {/* ── Row 1: Badge only — no chrome competing with the headline ── */}
           <div className="mb-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/30 bg-yellow-500/[0.10] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-yellow-400">
-              <Sparkles className="h-2.5 w-2.5" />
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${
+              onboarding.stage === "welcome"
+                ? "border border-white/[0.08] bg-transparent text-gray-600"
+                : "border border-yellow-500/30 bg-yellow-500/[0.10] text-yellow-400"
+            }`}>
+              {onboarding.stage !== "welcome" && <Sparkles className="h-2.5 w-2.5" />}
               {copy.eyebrow || "First-time setup"}
             </span>
           </div>
@@ -329,7 +328,7 @@ export default function LoggedInOnboardingExperience({
 
           {/* ── Row 3: Search — primary action, card-level space ────────── */}
           {/* No inner container. The search field IS the card's focal point. */}
-          <div className={onboarding.stage === "welcome" ? "mt-4" : "mt-7"}>
+          <div className={onboarding.stage === "welcome" ? "mt-6" : "mt-7"}>
             <MovieSearchPicker
               onSelect={onSelectMovie}
               placeholder="Search for a movie to rate…"
