@@ -126,7 +126,7 @@ function StepPipeline({ activeStep }: { activeStep: number }) {
                 className={`h-3 w-3 flex-shrink-0 ${isComplete ? "text-emerald-500/50" : "text-gray-700"}`}
               />
             </div>
-            <p className={`text-[11px] font-medium leading-tight ${
+            <p className={`text-xs font-medium leading-tight ${
               isComplete ? "text-emerald-500/60" : "text-gray-600"
             }`}>
               {step.label}
@@ -171,7 +171,7 @@ function StateRow({
         <button
           type="button"
           onClick={onClick}
-          className="flex-shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-yellow-500/70 hover:text-yellow-300 transition-colors"
+          className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-medium text-yellow-500/70 hover:text-yellow-300 transition-colors"
         >
           {cta}
           <ArrowRight className="h-2.5 w-2.5" />
@@ -263,7 +263,7 @@ export default function LoggedInOnboardingExperience({
           <span className="text-xs font-medium text-gray-500 group-hover:text-gray-300 transition-colors">
             {copy.eyebrow || "First-time setup"}
           </span>
-          <span className="hidden sm:inline text-xs text-gray-700 truncate">
+          <span className="inline text-xs text-gray-700 truncate">
             — {copy.headline || "Start with one film you know."}
           </span>
         </div>
@@ -408,7 +408,7 @@ export default function LoggedInOnboardingExperience({
             <button
               type="button"
               onClick={onShowHowItWorks}
-              className="inline-flex items-center gap-1.5 text-[11px] text-gray-600 hover:text-gray-400 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-400 transition-colors"
             >
               How ratings shape a year
               <ArrowRight className="h-2.5 w-2.5" />
@@ -417,7 +417,7 @@ export default function LoggedInOnboardingExperience({
               <button
                 type="button"
                 onClick={() => setIsCollapsed(true)}
-                className="flex items-center gap-1 text-[11px] text-gray-700 hover:text-gray-500 transition-colors"
+                className="flex items-center gap-1 text-xs text-gray-700 hover:text-gray-500 transition-colors"
               >
                 Hide guide
                 <ChevronUp className="h-3 w-3" />
@@ -425,7 +425,7 @@ export default function LoggedInOnboardingExperience({
               <button
                 type="button"
                 onClick={onDismiss}
-                className="text-[11px] text-gray-700 hover:text-gray-500 transition-colors"
+                className="text-xs text-gray-700 hover:text-gray-500 transition-colors"
               >
                 Don't show again
               </button>

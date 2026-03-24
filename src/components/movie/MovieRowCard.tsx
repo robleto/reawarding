@@ -178,7 +178,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
           <div className="flex flex-col items-center">
             <RankingDropdown ranking={ranking} onChange={handleRatingSelect} />
             {ratingLabel && (
-              <span className="mt-0.5 text-[10px] leading-tight text-gray-400">
+              <span className="mt-0.5 text-xs leading-tight text-gray-400">
                 {ratingLabel}
               </span>
             )}
@@ -257,7 +257,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
               <div className="flex flex-col items-center">
                 <RankingDropdown ranking={ranking} onChange={handleRatingSelect} />
                 {ratingLabel && (
-                  <span className="mt-0.5 text-[10px] leading-tight text-gray-400">
+                  <span className="mt-0.5 text-xs leading-tight text-gray-400">
                     {ratingLabel}
                   </span>
                 )}

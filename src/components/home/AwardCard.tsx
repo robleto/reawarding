@@ -101,7 +101,7 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
                       </span>
                     )}
                   </div>
-                  <span className="text-[9px] text-gray-400/90 font-medium">
+                  <span className="text-[10px] text-gray-400/90 font-medium">
                     {nomineeCount} nominee{nomineeCount !== 1 ? "s" : ""}
                   </span>
                 </div>

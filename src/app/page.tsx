@@ -853,7 +853,7 @@ export default function HomePage() {
                           </span>
 
                           {/* Progress */}
-                          <span className={`text-[9px] tabular-nums leading-none ${
+                          <span className={`text-[10px] tabular-nums leading-none ${
                             isActive ? "text-yellow-500/60" : "text-gray-700"
                           }`}>
                             {yl.nomineeCount}/10
@@ -1066,7 +1066,7 @@ export default function HomePage() {
         <div className="rounded-2xl border border-gray-700/30 bg-gray-900/50 px-6 py-6">
 
           {/* Section label */}
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500 mb-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 mb-5">
             Your Canon
           </p>
 
@@ -1147,7 +1147,7 @@ export default function HomePage() {
                       >
                         <span className="text-xs font-medium text-yellow-300">{entry.label}</span>
                         {entry.movieTitle && (
-                          <span className="text-[10px] text-gray-500 truncate max-w-[120px]">{entry.movieTitle}</span>
+                          <span className="text-xs text-gray-500 truncate max-w-[120px]">{entry.movieTitle}</span>
                         )}
                         <ArrowRight className="h-3 w-3 flex-shrink-0 text-gray-600" />
                       </Link>

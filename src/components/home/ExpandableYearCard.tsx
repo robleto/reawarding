@@ -331,7 +331,7 @@ export default function ExpandableYearCard({
               {year}
             </span>
             {/* Mini progress bar */}
-            <div className="hidden sm:flex items-center gap-1.5 flex-1 max-w-[120px]">
+            <div className="flex items-center gap-1.5 flex-1 max-w-[120px]">
               <div className="h-1 flex-1 overflow-hidden rounded-full bg-gray-700/50">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
@@ -346,7 +346,7 @@ export default function ExpandableYearCard({
             </div>
             {/* "Rate 7+" hint shown in header when ballot incomplete and not expanded */}
             {!isExpanded && liveNomineeCount < 10 && (
-              <span className="hidden sm:inline text-[9px] text-gray-600 whitespace-nowrap">
+              <span className="text-[10px] text-gray-600 whitespace-nowrap">
                 Rate 7+ to nominate
               </span>
             )}
@@ -361,7 +361,7 @@ export default function ExpandableYearCard({
               tabIndex={0}
               onClick={(e) => { e.stopPropagation(); onOpenFullExplorer(year); }}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); onOpenFullExplorer(year); } }}
-              className="text-[10px] uppercase tracking-wider text-yellow-400/60 flex-shrink-0 hover:text-yellow-300 transition-colors text-left cursor-pointer"
+              className="text-xs tracking-wide text-yellow-400/60 flex-shrink-0 hover:text-yellow-300 transition-colors text-left cursor-pointer"
             >
               {existingAward?.winnerId
                 ? "Winner (selected)"
@@ -376,7 +376,7 @@ export default function ExpandableYearCard({
 
         {/* Academy contrast */}
         {academy && (
-          <div className="hidden sm:flex flex-col items-end flex-shrink-0 text-right">
+          <div className="flex flex-col items-end flex-shrink-0 text-right">
             <p className="text-[10px] uppercase tracking-wider text-gray-600">
               Academy
             </p>

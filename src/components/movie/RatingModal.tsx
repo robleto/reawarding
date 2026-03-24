@@ -247,7 +247,7 @@ export default function RatingModal({
                 <span className="flex-1 min-w-0">
                   <span className="text-sm font-semibold">{RATING_LABELS[num]}</span>
                   {num >= 7 && (
-                    <span className="block text-[10px] opacity-70 mt-0.5">
+                    <span className="block text-xs opacity-70 mt-0.5">
                       Scores 7+ become nominees
                     </span>
                   )}
