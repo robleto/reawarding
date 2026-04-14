@@ -280,7 +280,7 @@ export default function AddMovieModal({
               <div className="absolute z-30 left-0 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg mt-1 shadow-lg">
                 <div className="px-4 py-6 text-center">
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">No movies found for "{searchTerm}"</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                  <p className="text-xs text-gray-400 dark:text-gray-400">
                     Can't find your movie? <a href="/help/add-movie" className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300">Learn how to add it</a>
                   </p>
                 </div>

@@ -53,7 +53,7 @@ async function getData(slug: string): Promise<ReadyMadeData> {
   // Build maps from seen movies and match by slug across director/genre/decade
   const { data: rows } = await supabase
     .from('rankings')
-    .select('ranking, seen_it, movie:movies(id, title, director, genres, release_year, poster_url, cached_poster_url)')
+    .select('ranking, seen_it, movie:movies(id, title, director, genres, release_year, poster_url)')
     .eq('user_id', user.id)
     .eq('seen_it', true);
 
@@ -70,7 +70,7 @@ async function getData(slug: string): Promise<ReadyMadeData> {
         id: m.id as number,
         title: m.title as string,
         release_year: (m.release_year as number | null) ?? null,
-        poster_url: (m.cached_poster_url as string | null) ?? (m.poster_url as string | null),
+        poster_url: (m.poster_url as string | null),
         ranking: (r.ranking as number | null) ?? null,
       });
       byDirector.set(director, bucket);
@@ -83,7 +83,7 @@ async function getData(slug: string): Promise<ReadyMadeData> {
           id: m.id as number,
           title: m.title as string,
           release_year: (m.release_year as number | null) ?? null,
-          poster_url: (m.cached_poster_url as string | null) ?? (m.poster_url as string | null),
+          poster_url: (m.poster_url as string | null),
           ranking: (r.ranking as number | null) ?? null,
         });
         byGenre.set(g, gb);
@@ -97,7 +97,7 @@ async function getData(slug: string): Promise<ReadyMadeData> {
         id: m.id as number,
         title: m.title as string,
         release_year: (m.release_year as number | null) ?? null,
-        poster_url: (m.cached_poster_url as string | null) ?? (m.poster_url as string | null),
+        poster_url: (m.poster_url as string | null),
         ranking: (r.ranking as number | null) ?? null,
       });
       byDecade.set(start, db);

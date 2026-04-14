@@ -77,7 +77,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
   }, [open]);
 
   if (authStatus === 'loading') {
-    return <div className="text-sm text-gray-500">Loading...</div>;
+    return <div className="w-8 h-8 rounded-full bg-gray-700/40 animate-pulse" />;
   }
 
   if (!user) {
@@ -95,7 +95,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
           <button
             type="button"
             onClick={handleSignup}
-            className="w-full py-2 px-3 rounded-md text-sm font-medium text-white bg-[#CAAC4C] hover:bg-yellow-600 dark:bg-[#CAAC4C] dark:hover:bg-yellow-400 transition-colors shadow"
+            className="w-full py-2 px-3 rounded-md text-sm font-medium text-gray-900 bg-[#CAAC4C] hover:bg-yellow-600 dark:bg-[#CAAC4C] dark:hover:bg-yellow-400 transition-colors shadow"
           >
             Sign Up
           </button>
@@ -115,7 +115,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
         <button
           type="button"
           onClick={handleSignup}
-          className="px-4 py-2 text-sm font-medium text-white bg-[#CAAC4C] hover:bg-yellow-600 dark:bg-[#CAAC4C] dark:hover:bg-yellow-400 rounded-lg transition-colors shadow"
+          className="px-4 py-2 text-sm font-medium text-gray-900 bg-[#CAAC4C] hover:bg-yellow-600 dark:bg-[#CAAC4C] dark:hover:bg-yellow-400 rounded-lg transition-colors shadow"
         >
           Sign Up
         </button>

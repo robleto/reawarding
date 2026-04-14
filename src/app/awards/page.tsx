@@ -21,7 +21,7 @@ interface YearData {
 export default function AwardsPage() {
   const { status } = useAuthState();
   const { movies, loading, isGuest, hasMounted, userId, updateMovieRanking, error: moviesError } = useMovieDataWithGuest();
-  const { awards, loading: awardsLoading, error: awardsError } = useUserAwards();
+  const { awards, loading: awardsLoading, error: awardsError, refetch: refetchAwards } = useUserAwards();
   const { createAward } = useCreateAward();
   const tab = "best-picture" as const;
   const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());
@@ -29,6 +29,8 @@ export default function AwardsPage() {
   const yearElementsRef = useRef<Record<string, HTMLDivElement | null>>({});
   const [explorerYear, setExplorerYear] = useState<number | null>(null);
   const [explorerIsEditing, setExplorerIsEditing] = useState(false);
+  const lastExplorerYearRef = useRef<number | null>(null);
+  const [sectionRevisions, setSectionRevisions] = useState<Record<number, number>>({});
 
   const formattedYears = useMemo<YearData[]>(() => {
     if (!hasMounted || movies.length === 0) return [];
@@ -181,6 +183,27 @@ export default function AwardsPage() {
     };
   }, [formattedYears]);
 
+  // Track which year the explorer last opened so we know what to refresh on close
+  useEffect(() => {
+    if (explorerYear !== null) {
+      lastExplorerYearRef.current = explorerYear;
+    }
+  }, [explorerYear]);
+
+  // When explorer closes: refetch awards data AND force remount the edited section
+  // so EditableYearSection re-reads fresh state from localStorage + API instead of
+  // keeping its stale internal cache (hasLoadedInitialRef prevents a natural re-fetch)
+  useEffect(() => {
+    if (explorerYear === null && lastExplorerYearRef.current !== null) {
+      const editedYear = lastExplorerYearRef.current;
+      refetchAwards();
+      setSectionRevisions((prev) => ({
+        ...prev,
+        [editedYear]: (prev[editedYear] ?? 0) + 1,
+      }));
+    }
+  }, [explorerYear, refetchAwards]);
+
   // Lock body scroll when YearExplorer is open
   useEffect(() => {
     if (!explorerYear) return;
@@ -206,9 +229,21 @@ export default function AwardsPage() {
       <ScreenState
         testId="screen-state-auth-required"
         title="Sign in to view your awards"
-        message="Your awards timeline depends on your saved rankings and nominations. Sign in before we render it."
+        message="Your awards are built from your ratings. Sign in to see them take shape."
         primaryAction={{ label: "Sign In", href: "/login" }}
         secondaryAction={{ label: "Back Home", href: "/" }}
+      />
+    );
+  }
+
+  // Guest gate — resolve immediately once auth is known; don't wait on data hooks.
+  // Falls through to AwardsEmptyState which has the correct guest CTA.
+  if (status !== "loading" && isGuest) {
+    return (
+      <AwardsEmptyState
+        onSelectMovie={(movie) => {
+          updateMovieRanking(movie.id, { seen_it: true, ranking: 10 });
+        }}
       />
     );
   }
@@ -253,7 +288,7 @@ export default function AwardsPage() {
           const isVisible = visibleYears.has(yearData.year);
           return (
             <div
-              key={`${yearData.year}-${tab}`}
+              key={`${yearData.year}-${tab}-${sectionRevisions[Number(yearData.year)] ?? 0}`}
               data-year={yearData.year}
               ref={(el) => yearContainerRef(el, yearData.year)}
               style={{ minHeight: isVisible ? "auto" : "600px" }}

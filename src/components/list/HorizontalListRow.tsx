@@ -1,6 +1,7 @@
 import React from "react";
 import ListCard from "@/components/list/ListCard";
 import Link from "next/link";
+import { List } from "lucide-react";
 
 interface HorizontalListRowProps {
   title: string;
@@ -17,7 +18,7 @@ const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, see
       <div className="flex items-center justify-between mb-3 px-1">
         <h2 className="text-xl font-bold text-white tracking-wide">{title}</h2>
         {seeAllHref && (
-          <Link href={seeAllHref} className="text-blue-400 hover:underline text-sm font-medium">
+          <Link href={seeAllHref} className="text-[#CAAC4C] hover:text-yellow-400 text-sm font-medium transition-colors">
             See All
           </Link>
         )}
@@ -38,10 +39,10 @@ const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, see
               role="button"
               aria-label="Create New List"
             >
-              <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-gray-700/40 group-hover:bg-blue-700/60 transition-all">
-                <svg className="w-10 h-10 text-blue-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+              <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-gray-700/40 group-hover:bg-yellow-500/30 transition-all">
+                <svg className="w-10 h-10 text-[#CAAC4C] group-hover:text-yellow-300 transition-colors" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
               </div>
-              <span className="mt-2 text-base font-semibold text-white group-hover:text-blue-400 transition-colors">Create New List</span>
+              <span className="mt-2 text-base font-semibold text-white group-hover:text-yellow-300 transition-colors">Create New List</span>
             </div>
           )}
           {!readOnly && (
@@ -51,7 +52,7 @@ const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, see
               aria-label="Ready‑Made Lists"
             >
               <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-yellow-500/20 group-hover:bg-yellow-500/40 transition-all">
-                <span className="text-2xl">⭐</span>
+                <List className="w-7 h-7 text-yellow-300" />
               </div>
               <span className="mt-2 text-base font-semibold text-yellow-200 group-hover:text-yellow-300 transition-colors">Ready‑Made Lists</span>
               <span className="mt-1 text-xs text-gray-300">Auto‑generated from your ratings</span>

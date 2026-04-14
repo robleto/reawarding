@@ -57,6 +57,10 @@ Ranking determines contender eligibility, auto-nominee promotion (rated 7+), and
 
 Watch (seen_it = true) and Rate (1-10 score) are two separate user actions in the primary loop. Never collapse them into a single gesture, auto-prompt a rating on mark-seen, or require one to trigger the other. A user may watch without rating. A user may rate later. The loop is Watch → Rate → ReAward — three steps, not two.
 
+### 11 — Poster Images Must Never Be Cropped
+
+Film poster images are canonical art — they are always displayed at their full `aspect-[2/3]` ratio with `object-cover` only filling their container. Never use a fixed height that clips the poster on any viewport. On mobile, solve layout constraints by making the poster container narrower (e.g., side-by-side with actions), not by overriding the aspect ratio.
+
 ---
 
 ## FINAL CHECK

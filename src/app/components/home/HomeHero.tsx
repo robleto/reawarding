@@ -71,7 +71,7 @@ export default function HomeHero({
 					}`}
 					style={{ transitionDelay: getDelay(3) }}
 				>
-					Rate movies. Rebuild each year&apos;s nominees. Choose <u>your</u> winner.
+					Rate movies. Rebuild each year&apos;s nominees. Choose <em>your</em> winner.
 				</p>
 
 				<div

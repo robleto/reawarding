@@ -62,7 +62,6 @@ export default function BackdropGallery({ images, className = "" }: BackdropGall
                 alt={`Backdrop ${index + 1}`}
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-300"
-                unoptimized
               />
               {/* Hover Overlay */}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
@@ -107,7 +106,6 @@ export default function BackdropGallery({ images, className = "" }: BackdropGall
                 alt={`Backdrop ${selectedIndex + 1}`}
                 fill
                 className="object-contain"
-                unoptimized
               />
             </div>
 

@@ -51,8 +51,8 @@ const ImageFallback = ({
 
 export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, ratingLabel = null, seenIt, isLast = false, onClick, index, showHotTake = false, onWatchlist, isOnWatchlist }: Props) {
 
-  // Prefer cached thumb when available; compute normalized URL and only render Image if non-empty
-  const thumbSrc = movie.cached_thumb_url?.trim() || movie.thumb_url;
+  // Compute normalized URL and only render Image if non-empty
+  const thumbSrc = movie.thumb_url;
   const normalizedThumb = normalizeImageUrl(thumbSrc);
   // Ensure we have a valid absolute URL or proper relative path (not just "/" or malformed)
   const isValidUrl = normalizedThumb && 

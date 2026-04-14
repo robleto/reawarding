@@ -88,7 +88,7 @@ export default function CollectionRow({
         
         <Link
           href={`/films/collections/${collection.slug}`}
-          className="flex items-center gap-1 text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors whitespace-nowrap"
+          className="flex items-center gap-1 text-sm font-medium text-[#CAAC4C] hover:text-yellow-400 transition-colors whitespace-nowrap"
         >
           See All {collection.movie_count && `(${collection.movie_count})`}
           <ChevronRight className="w-4 h-4" />
@@ -122,9 +122,9 @@ export default function CollectionRow({
             href={`/films/collections/${collection.slug}`}
             className="flex-shrink-0 w-[140px] sm:w-[160px] snap-start"
           >
-            <div className="aspect-[2/3] rounded-lg border-2 border-dashed border-gray-600 hover:border-blue-500 bg-gray-900/40 hover:bg-gray-800/60 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group">
-              <ChevronRight className="w-8 h-8 text-gray-500 group-hover:text-blue-400 transition-colors" />
-              <span className="text-sm font-medium text-gray-400 group-hover:text-blue-400 transition-colors">
+            <div className="aspect-[2/3] rounded-lg border-2 border-dashed border-gray-600 hover:border-yellow-500/60 bg-gray-900/40 hover:bg-gray-800/60 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group">
+              <ChevronRight className="w-8 h-8 text-gray-500 group-hover:text-[#CAAC4C] transition-colors" />
+              <span className="text-sm font-medium text-gray-400 group-hover:text-[#CAAC4C] transition-colors">
                 See All
               </span>
               {collection.movie_count && (

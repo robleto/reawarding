@@ -163,21 +163,21 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <Logo size="lg" />
           </div>
-          <p className="text-gray-400 dark:text-gray-500">Sign in to rate and track your favorite films</p>
+          <p className="text-gray-400 dark:text-gray-300">Rate films. Watch your nominees form. Give your own awards.</p>
         </div>
 
         {/* Sign In Card */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl dark:shadow-gray-700 p-8">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
             {isSignUp ? 'Create your account' : 'Welcome back'}
-          </h3>
+          </h1>
 
           {/* Error/Success Messages */}
           {error && (
@@ -192,7 +192,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleResendConfirmation}
                 disabled={loading !== null}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                className="text-sm text-[#CAAC4C] hover:text-yellow-400 transition-colors"
               >
                 Resend confirmation email
               </button>
@@ -220,7 +220,7 @@ export default function LoginPage() {
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="your_username"
                       required
                     />
@@ -238,7 +238,7 @@ export default function LoginPage() {
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="Your Full Name"
                     />
                   </div>
@@ -257,7 +257,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="your@email.com"
                   required
                 />
@@ -275,13 +275,14 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -301,7 +302,7 @@ export default function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     placeholder="••••••••"
                     required
                   />
@@ -312,7 +313,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading === 'email'}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#CAAC4C] hover:bg-yellow-600 text-gray-900 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
             >
               {loading === 'email' ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -326,7 +327,7 @@ export default function LoginPage() {
               <div className="text-center">
                 <a
                   href="/auth/forgot-password"
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                  className="text-sm text-[#CAAC4C] hover:text-yellow-400 transition-colors"
                 >
                   Forgot your password?
                 </a>
@@ -347,7 +348,7 @@ export default function LoginPage() {
                 setUsername('');
                 setFullName('');
               }}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              className="text-sm text-[#CAAC4C] hover:text-yellow-400 transition-colors"
             >
               {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
             </button>
@@ -381,14 +382,14 @@ export default function LoginPage() {
           </div>
 
           {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-gray-200 text-center">
-            <p className="text-sm text-gray-500">
+          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               By signing in, you agree to our{' '}
-              <a href="/legal/terms" className="text-blue-600 hover:text-blue-700">
+              <a href="/legal/terms" className="underline hover:text-gray-400 transition-colors">
                 Terms of Service
               </a>{' '}
               and{' '}
-              <a href="/legal/privacy" className="text-blue-600 hover:text-blue-700">
+              <a href="/legal/privacy" className="underline hover:text-gray-400 transition-colors">
                 Privacy Policy
               </a>.
             </p>
@@ -399,12 +400,12 @@ export default function LoginPage() {
         <div className="mt-6 text-center">
           <p className="text-gray-400 text-sm">
             Need help? Contact us at{' '}
-            <a href="mailto:support@reawarding.com" className="text-blue-400 hover:text-blue-300">
+            <a href="mailto:support@reawarding.com" className="text-[#CAAC4C] hover:text-yellow-400 transition-colors">
               support@reawarding.com
             </a>
           </p>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

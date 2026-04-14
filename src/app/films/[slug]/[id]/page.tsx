@@ -39,7 +39,7 @@ export default async function MovieDetailPage({ params }: any) {
     redirect(`/films/${canonicalSlug}/${movie.id}`);
   }
 
-  const poster = normalizeImageUrl(movie.cached_poster_url || movie.poster_url);
+  const poster = normalizeImageUrl(movie.poster_url);
   const supabaseServer = await createSupabaseServerClient();
   const {
     data: { user },
@@ -56,7 +56,6 @@ export default async function MovieDetailPage({ params }: any) {
   type SimilarMovie = {
     id: number;
     title: string;
-    cached_thumb_url?: string | null;
     thumb_url?: string | null;
     poster_url?: string | null;
     release_year?: number | null;
@@ -85,13 +84,13 @@ export default async function MovieDetailPage({ params }: any) {
 
   // Peer movies for FilmEntryPanel — top acclaimed films from the same year (logged-out only)
   // Non-blocking: failures silently produce an empty array so the page still renders.
-  type PeerMovie = { id: number; title: string; cached_poster_url?: string | null; poster_url?: string | null };
+  type PeerMovie = { id: number; title: string; poster_url?: string | null };
   let peerMovies: PeerMovie[] = [];
   if (isGuest && movie.release_year) {
     try {
       const { data: peerData } = await supabaseAdmin
         .from("movies")
-        .select("id, title, cached_poster_url, poster_url")
+        .select("id, title, poster_url")
         .eq("release_year", movie.release_year)
         .neq("id", movie.id)
         .gte("tmdb_rating", 6.5)

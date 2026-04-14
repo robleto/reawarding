@@ -186,8 +186,8 @@ export default function SignupModal({
 
         {emailSent ? (
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-              <Mail className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
+              <Mail className="h-6 w-6 text-[#CAAC4C] dark:text-yellow-400" />
             </div>
             <p className="text-gray-600 dark:text-gray-300">
               A confirmation link has been sent to <strong>{email}</strong>.
@@ -205,7 +205,7 @@ export default function SignupModal({
             </div>
             <button
               onClick={handleClose}
-              className="mt-5 w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 font-medium touch-manipulation min-h-[44px]"
+              className="mt-5 w-full bg-[#CAAC4C] text-gray-900 py-3 px-4 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 font-medium touch-manipulation min-h-[44px]"
             >
               Got it
             </button>
@@ -259,7 +259,7 @@ export default function SignupModal({
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
-                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
+                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
                   />
                 </div>
               </div>
@@ -279,7 +279,7 @@ export default function SignupModal({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
+                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
                   />
                 </div>
               </div>
@@ -299,7 +299,7 @@ export default function SignupModal({
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
-                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
+                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
                   />
                   <button
                     type="button"
@@ -352,7 +352,7 @@ export default function SignupModal({
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
+                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
                   />
                   <button
                     type="button"
@@ -374,7 +374,7 @@ export default function SignupModal({
                   type="checkbox"
                   checked={emailOptIn}
                   onChange={(e) => setEmailOptIn(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-yellow-500 focus:ring-yellow-500"
                 />
                 <span>Send me product updates by email (optional).</span>
               </label>
@@ -388,7 +388,7 @@ export default function SignupModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 font-medium touch-manipulation min-h-[44px]"
+                className="w-full bg-[#CAAC4C] hover:bg-yellow-600 text-gray-900 py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50 font-medium touch-manipulation min-h-[44px]"
               >
                 {loading ? "Creating account..." : "Create Account"}
               </button>
@@ -399,7 +399,7 @@ export default function SignupModal({
                 Already have an account?{" "}
                 <button
                   onClick={onSwitchToLogin}
-                  className="font-medium text-blue-600 hover:underline"
+                  className="font-medium text-[#CAAC4C] hover:text-yellow-400 transition-colors"
                 >
                   Sign in
                 </button>

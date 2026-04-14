@@ -14,19 +14,19 @@ function ProfileAwardsGallerySlice() {
     {
       year: 2023,
       winnerTitle: fixtureMovies.oppenheimer.title,
-      winnerPoster: fixtureMovies.oppenheimer.cached_poster_url,
+      winnerPoster: fixtureMovies.oppenheimer.poster_url,
       nomineeCount: 5,
     },
     {
       year: 2022,
       winnerTitle: fixtureMovies.eeaao.title,
-      winnerPoster: fixtureMovies.eeaao.cached_poster_url,
+      winnerPoster: fixtureMovies.eeaao.poster_url,
       nomineeCount: 6,
     },
     {
       year: 2019,
       winnerTitle: fixtureMovies.parasite.title,
-      winnerPoster: fixtureMovies.parasite.cached_poster_url,
+      winnerPoster: fixtureMovies.parasite.poster_url,
       nomineeCount: 5,
     },
     {

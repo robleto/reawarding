@@ -133,12 +133,12 @@ export default function ListsHomePage() {
                 // Fetch poster URLs for these movies
                 const { data: movies } = await supabase
                   .from("movies")
-                  .select("id,poster_url,cached_poster_url")
+                  .select("id,poster_url")
                   .in("id", movieIds);
                 // Preserve order
                 posterUrls = movieIds.map((id) => {
                   const m = movies?.find((mm) => mm.id === id);
-                  return (m?.cached_poster_url || m?.poster_url || "") as string;
+                  return (m?.poster_url || "") as string;
                 });
               }
 
@@ -214,11 +214,11 @@ export default function ListsHomePage() {
             if (movieIds.length > 0) {
               const { data: movies } = await supabase
                 .from("movies")
-                .select("id,poster_url,cached_poster_url")
+                .select("id,poster_url")
                 .in("id", movieIds);
               posterUrls = movieIds.map((id) => {
                 const m = movies?.find((mm) => mm.id === id);
-                return (m?.cached_poster_url || m?.poster_url || "") as string;
+                return (m?.poster_url || "") as string;
               });
             }
 

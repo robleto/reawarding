@@ -41,7 +41,7 @@ export async function GET(
       .from("movies")
       .select(
         `
-        id, title, release_year, poster_url, thumb_url, cached_poster_url,
+        id, title, release_year, poster_url, thumb_url,
         backdrop_url, imdb_rating, metacritic_score, tmdb_rating,
         director, writer, cast_list, genres, runtime, created_at,
         rankings!inner(ranking, seen_it, user_id)

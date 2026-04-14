@@ -51,7 +51,6 @@ export default function SelectableMovieItem({
             width={80}
             height={60}
             className="rounded object-cover"
-            unoptimized
             onError={(e) => {
               e.currentTarget.style.display = 'none';
               const fallback = e.currentTarget.nextElementSibling as HTMLElement;

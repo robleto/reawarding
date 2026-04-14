@@ -32,13 +32,13 @@ export default function ScreenState({
       : "border-gray-700 bg-gray-900/70 text-gray-100";
 
   return (
-    <div className="max-w-screen-xl px-6 py-10 mx-auto">
+    <div className="flex flex-1 items-center w-full">
       <div
         data-testid={testId}
-        className={`rounded-2xl border p-6 md:p-8 ${toneClasses}`}
+        className={`w-full max-w-2xl rounded-2xl border p-6 md:p-10 ${toneClasses}`}
       >
         <h1 className="text-2xl font-semibold">{title}</h1>
-        <p className="mt-3 max-w-2xl text-sm text-gray-300">{message}</p>
+        <p className="mt-3 text-sm text-gray-300">{message}</p>
         {(primaryAction || secondaryAction) && (
           <div className="mt-6 flex flex-wrap gap-3">
             {primaryAction && (

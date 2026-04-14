@@ -1,5 +1,10 @@
+const { withSentryConfig } = require("@sentry/nextjs");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    instrumentationHook: true,
+  },
   async redirects() {
     return [
       {
@@ -10,7 +15,6 @@ const nextConfig = {
     ];
   },
   eslint: {
-    // During builds, only warn for linting issues instead of failing the build
     ignoreDuringBuilds: false,
   },
   images: {
@@ -18,50 +22,19 @@ const nextConfig = {
     deviceSizes: [320, 420, 640, 750, 828, 1080],
     imageSizes: [160, 210, 320],
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'assets.fanart.tv', // Movie assets
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.fanart.tv', // Fanart CDN alternate
-      },
-      {
-        protocol: 'https',
-        hostname: 'image.tmdb.org', // TMDB images
-      },
-      {
-        protocol: 'https',
-        hostname: 'media.themoviedb.org', // Alternate TMDB media host
-      },
-      {
-        protocol: 'https',
-        hostname: 'img.youtube.com', // YouTube thumbnails
-      },
-      {
-        protocol: 'https',
-        hostname: 'avatars.githubusercontent.com', // GitHub avatars
-      },
-      {
-        protocol: 'https',
-        hostname: 'placehold.co', // fallback avatar
-      },
-      {
-        protocol: 'https',
-        hostname: 'cjrpnzwrldlxajkvznca.supabase.co', // Supabase Storage
-      },
-      {
-        protocol: 'https',
-        hostname: '**.r2.dev', // Cloudflare R2 public bucket domains
-      },
-      {
-        protocol: 'https',
-        hostname: 'pub-6b3a2dfce3484ea291e496348a19d788.r2.dev', // Current media cache domain
-      },
+      { protocol: 'https', hostname: 'assets.fanart.tv' },
+      { protocol: 'https', hostname: 'images.fanart.tv' },
+      { protocol: 'https', hostname: 'image.tmdb.org' },
+      { protocol: 'https', hostname: 'media.themoviedb.org' },
+      { protocol: 'https', hostname: 'img.youtube.com' },
+      { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
+      { protocol: 'https', hostname: 'placehold.co' },
+      { protocol: 'https', hostname: 'cjrpnzwrldlxajkvznca.supabase.co' },
+      { protocol: 'https', hostname: '**.r2.dev' },
+      { protocol: 'https', hostname: 'pub-6b3a2dfce3484ea291e496348a19d788.r2.dev' },
     ],
   },
   webpack: (config, { isServer }) => {
-    // Handle Node.js modules that shouldn't be bundled for the browser
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -72,7 +45,24 @@ const nextConfig = {
     }
     return config;
   },
-  // ...add other config here if needed
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  org: "creative-madness",
+  project: "reawarding",
+
+  // Auth token for source map uploads — set SENTRY_AUTH_TOKEN in Netlify env vars.
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  // Only print logs for uploading source maps in CI
+  silent: !process.env.CI,
+
+  // Upload a larger set of source maps for prettier stack traces
+  widenClientFileUpload: true,
+
+  // Hide source maps from the client bundle
+  hideSourceMaps: true,
+
+  // Tree-shake Sentry debug code in production
+  disableLogger: true,
+});

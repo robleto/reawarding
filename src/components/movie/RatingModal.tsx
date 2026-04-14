@@ -182,7 +182,6 @@ export default function RatingModal({
                   fill
                   className="object-cover"
                   sizes="48px"
-                  unoptimized
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-gray-800">
@@ -207,6 +206,13 @@ export default function RatingModal({
               <X className="w-4 h-4" />
             </button>
           </div>
+        )}
+
+        {/* ── Threshold hint — always visible before a pick is made ─────── */}
+        {!isConfirming && (
+          <p className="px-4 pt-2.5 pb-0 text-xs text-gray-500 text-center">
+            Rate 7 or higher to nominate
+          </p>
         )}
 
         {/* ── Rating list ─────────────────────────────────────────────────── */}
@@ -248,7 +254,7 @@ export default function RatingModal({
                   <span className="text-sm font-semibold">{RATING_LABELS[num]}</span>
                   {num >= 7 && (
                     <span className="block text-xs opacity-70 mt-0.5">
-                      Scores 7+ become nominees
+                      Earns a nomination
                     </span>
                   )}
                 </span>

@@ -4,7 +4,6 @@ import HorizontalScroller from "@/components/ui/HorizontalScroller";
 type SimilarItem = {
   id: number | string;
   title: string;
-  cached_thumb_url?: string | null;
   thumb_url?: string | null;
   poster_url?: string | null;
 };

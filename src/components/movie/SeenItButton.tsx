@@ -61,7 +61,7 @@ export default function SeenItButton({
       ? "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
       : watchState === "watchlist"
       ? "text-amber-400 hover:text-amber-300"
-      : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400";
+      : "text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300";
 
   const compactHoverClass =
     variant === "compact"

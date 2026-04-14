@@ -49,7 +49,6 @@ export default function UserAvatar({
         height={size}
         className={`rounded-full object-cover ${className}`}
         onError={() => setImageFailed(true)}
-        unoptimized
       />
     );
   }

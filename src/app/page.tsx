@@ -451,7 +451,7 @@ export default function HomePage() {
       .slice(0, 5)
       .map((id) => movies.find((m) => m.id === id))
       .filter((m): m is Movie => Boolean(m))
-      .map((m) => m.cached_poster_url || m.poster_url || "")
+      .map((m) => m.poster_url || "")
       .filter(Boolean) as string[],
   [movies]);
 
@@ -548,7 +548,9 @@ export default function HomePage() {
   // awards, hasStartedBallots is false and onboarding renders
   // even for returning users.
   // ══════════════════════════════════════════════════════════════
-  const dataStillLoading = authStatus === "loading" || !authChecked || (isAuthenticated && (loading || awardsLoading));
+  // For guests: once auth resolves we know they're unauthenticated — don't wait on authChecked.
+  // For authenticated users: wait for both authChecked and data hooks.
+  const dataStillLoading = authStatus === "loading" || (!authChecked && isAuthenticated) || (isAuthenticated && (loading || awardsLoading));
   const homepageDataError = moviesError || (isAuthenticated ? awardsError : null);
   if (dataStillLoading) {
     return (
@@ -696,10 +698,6 @@ export default function HomePage() {
               onMilestoneReached={handleBallotMilestone}
             />
           </section>
-        )}
-
-        {!onboardingFlow.shouldShow && (
-          <WatchlistMovieRow userId={userId} username={user?.user_metadata?.username ?? null} />
         )}
 
         {/* ─── Search: add another film ─── */}

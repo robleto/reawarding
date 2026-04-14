@@ -63,7 +63,7 @@ export function useHomePanelPosters(lookups: HomePosterLookup[]) {
     (async () => {
       const { data, error } = await supabase
         .from("movies")
-        .select("title, release_year, poster_url, cached_poster_url, thumb_url")
+        .select("title, release_year, poster_url, thumb_url")
         .in("release_year", missingYears);
 
       if (cancelled) return;
@@ -71,7 +71,7 @@ export function useHomePanelPosters(lookups: HomePosterLookup[]) {
 
       for (const row of data ?? []) {
         const releaseYear = Number(row.release_year);
-        const resolvedPoster = normalizeImageUrl(row.poster_url || row.cached_poster_url || "");
+        const resolvedPoster = normalizeImageUrl(row.poster_url || "");
         if (!releaseYear || !resolvedPoster) continue;
         const key = movieKey(releaseYear, row.title ?? "");
         if (!posterCache.has(key)) {
@@ -86,11 +86,6 @@ export function useHomePanelPosters(lookups: HomePosterLookup[]) {
         const posterLeaf = imageLeaf(row.poster_url);
         if (posterLeaf && !posterLeafCache.has(posterLeaf)) {
           posterLeafCache.set(posterLeaf, resolvedPoster);
-        }
-
-        const cachedPosterLeaf = imageLeaf(row.cached_poster_url);
-        if (cachedPosterLeaf && !posterLeafCache.has(cachedPosterLeaf)) {
-          posterLeafCache.set(cachedPosterLeaf, resolvedPoster);
         }
       }
 

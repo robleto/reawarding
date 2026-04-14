@@ -34,8 +34,6 @@ export default function ReadyMadeDetailClient({ movies }: { movies: ReadyMadeMov
           ranking: m.ranking ?? null,
         },
       ],
-      cached_poster_url: undefined,
-      cached_thumb_url: undefined,
     } as Movie;
     setSelected(movie);
     setSelectedInitialRanking(m.ranking ?? null);

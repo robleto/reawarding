@@ -382,7 +382,6 @@ function SignaturePicks({
                     width={160}
                     height={240}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    unoptimized
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-600">
@@ -483,7 +482,6 @@ function SignaturePicks({
                           width={120}
                           height={180}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-70 group-hover:opacity-100"
-                          unoptimized
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-700">

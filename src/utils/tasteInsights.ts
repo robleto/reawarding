@@ -125,8 +125,8 @@ export function getYearLeaders(ratedMovies: Movie[]): YearLeader[] {
       return {
         year,
         leader,
-        nomineeCount: Math.max(nomineeCount, 1),
-        neededForBallot: Math.max(0, 10 - Math.max(nomineeCount, 1)),
+        nomineeCount,
+        neededForBallot: Math.max(0, 10 - nomineeCount),
       };
     })
     .sort((a, b) => b.year - a.year);

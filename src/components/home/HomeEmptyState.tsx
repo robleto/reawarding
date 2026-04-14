@@ -51,7 +51,7 @@ export default function HomeEmptyState({ onMovieSelected }: HomeEmptyStateProps)
           {/* Divider */}
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700" />
-            <span className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+            <span className="text-xs text-gray-400 dark:text-gray-400 uppercase tracking-wider">
               Great starting points
             </span>
             <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700" />

@@ -203,7 +203,7 @@ export default function LoginModal({
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 placeholder-gray-500 dark:placeholder-gray-300"
+                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-gray-500 dark:placeholder-gray-300"
                 placeholder="Enter your email"
                 required
               />
@@ -220,7 +220,7 @@ export default function LoginModal({
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-4 pr-10 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 placeholder-gray-500 dark:placeholder-gray-300"
+                className="w-full pl-4 pr-10 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-gray-500 dark:placeholder-gray-300"
                 placeholder="Enter your password"
                 required
               />
@@ -237,7 +237,7 @@ export default function LoginModal({
           <div className="flex items-center justify-between text-sm">
             <Link
               href="/auth/forgot-password"
-              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium hover:underline"
+              className="text-[#CAAC4C] hover:text-yellow-400 font-medium transition-colors"
             >
               Forgot password?
             </Link>
@@ -271,7 +271,7 @@ export default function LoginModal({
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg transition-colors disabled:opacity-50 font-medium touch-manipulation min-h-[44px]"
+            className="w-full flex items-center justify-center gap-2 bg-[#CAAC4C] hover:bg-yellow-600 text-gray-900 py-3 px-4 rounded-lg transition-colors disabled:opacity-50 font-medium touch-manipulation min-h-[44px]"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
@@ -283,7 +283,7 @@ export default function LoginModal({
             Don&apos;t have an account?{" "}
             <button
               onClick={onSwitchToSignup}
-              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+              className="text-[#CAAC4C] hover:text-yellow-400 font-medium transition-colors"
               disabled={loading}
             >
               Sign up

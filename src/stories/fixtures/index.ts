@@ -25,8 +25,6 @@ export function makeRanking(
 
 export function makeMovie(overrides: MovieOverride): Movie {
   const poster =
-    overrides.cached_poster_url ??
-    overrides.cached_thumb_url ??
     overrides.poster_url ??
     overrides.thumb_url ??
     "";
@@ -37,8 +35,6 @@ export function makeMovie(overrides: MovieOverride): Movie {
     rankings: [],
     poster_url: poster,
     thumb_url: poster,
-    cached_poster_url: overrides.cached_poster_url ?? poster,
-    cached_thumb_url: overrides.cached_thumb_url ?? poster,
     ...overrides,
   };
 }
@@ -103,7 +99,7 @@ export const fixtureMovies = {
       id: 101,
       title: "Oppenheimer",
       release_year: 2023,
-      cached_poster_url:
+      poster_url:
         "https://image.tmdb.org/t/p/w342/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
       imdb_rating: 8.3,
       tmdb_rating: 8.1,
@@ -115,7 +111,7 @@ export const fixtureMovies = {
     id: 102,
     title: "Dune: Part Two",
     release_year: 2024,
-    cached_poster_url:
+    poster_url:
       "https://image.tmdb.org/t/p/w342/8b8R8l88Qje9dn9OE8PY05Nxl1X.jpg",
     imdb_rating: 8.5,
     tmdb_rating: 8.3,
@@ -125,7 +121,7 @@ export const fixtureMovies = {
     id: 103,
     title: "Barbie",
     release_year: 2023,
-    cached_poster_url:
+    poster_url:
       "https://image.tmdb.org/t/p/w342/iuFNMS8vlbN1B7BFJyVGSFSAfwa.jpg",
     imdb_rating: 7.0,
     tmdb_rating: 7.2,
@@ -135,7 +131,7 @@ export const fixtureMovies = {
     id: 104,
     title: "Poor Things",
     release_year: 2023,
-    cached_poster_url:
+    poster_url:
       "https://image.tmdb.org/t/p/w342/kCGlIMHnOm8JPXq3rXM6c5wMxcT.jpg",
     imdb_rating: 7.8,
     tmdb_rating: 7.6,
@@ -145,9 +141,7 @@ export const fixtureMovies = {
     id: 105,
     title: "The Holdovers",
     release_year: 2023,
-    cached_poster_url:
-      "https://image.tmdb.org/t/p/w342/VHmqX4HrGsZxKL4bLhwBPMIyY1.jpg",
-    cached_thumb_url:
+    poster_url:
       "https://image.tmdb.org/t/p/w342/VHmqX4HrGsZxKL4bLhwBPMIyY1.jpg",
     imdb_rating: 7.9,
     tmdb_rating: 7.8,
@@ -165,7 +159,7 @@ export const fixtureMovies = {
     id: 107,
     title: "Killers of the Flower Moon",
     release_year: 2023,
-    cached_poster_url:
+    poster_url:
       "https://image.tmdb.org/t/p/w342/dB6Krk806zeqd0YoiGHOCFaOthz.jpg",
     imdb_rating: 7.6,
     tmdb_rating: 7.5,
@@ -182,7 +176,7 @@ export const fixtureMovies = {
     id: 201,
     title: "Everything Everywhere All at Once",
     release_year: 2022,
-    cached_poster_url:
+    poster_url:
       "https://image.tmdb.org/t/p/w342/w3LxiVYdWWRvEVdn5RYq6jIqkb1.jpg",
     imdb_rating: 7.8,
     genres: ["Science Fiction", "Comedy"],
@@ -192,7 +186,7 @@ export const fixtureMovies = {
       id: 202,
       title: "The Banshees of Inisherin",
       release_year: 2022,
-      cached_poster_url:
+      poster_url:
         "https://image.tmdb.org/t/p/w342/4yFG6cSPaCaPhyJ1vtGOiMV7hDr.jpg",
       imdb_rating: 7.7,
       tmdb_rating: 7.5,
@@ -211,7 +205,7 @@ export const fixtureMovies = {
     id: 204,
     title: "CODA",
     release_year: 2021,
-    cached_poster_url:
+    poster_url:
       "https://image.tmdb.org/t/p/w342/BzVjmm8l23rPsijLiNLUzuQtyd.jpg",
     imdb_rating: 7.5,
     genres: ["Drama"],
@@ -220,7 +214,7 @@ export const fixtureMovies = {
     id: 205,
     title: "Nomadland",
     release_year: 2020,
-    cached_poster_url:
+    poster_url:
       "https://image.tmdb.org/t/p/w342/66qhJD2c9Z7i9vfUkx4EPNZE4B3.jpg",
     imdb_rating: 7.3,
     genres: ["Drama"],
@@ -229,7 +223,7 @@ export const fixtureMovies = {
     id: 206,
     title: "Parasite",
     release_year: 2019,
-    cached_poster_url:
+    poster_url:
       "https://image.tmdb.org/t/p/w342/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
     imdb_rating: 8.5,
     genres: ["Thriller", "Drama"],
@@ -298,9 +292,9 @@ export const storyLists: StoryList[] = [
     is_public: true,
     updated_at: "2026-03-16T10:00:00Z",
     posterUrls: [
-      fixtureMovies.parasite.cached_poster_url ?? "",
-      fixtureMovies.dunePartTwo.cached_poster_url ?? "",
-      fixtureMovies.killersOfTheFlowerMoon.cached_poster_url ?? "",
+      fixtureMovies.parasite.poster_url ?? "",
+      fixtureMovies.dunePartTwo.poster_url ?? "",
+      fixtureMovies.killersOfTheFlowerMoon.poster_url ?? "",
     ],
   }),
   makeList({
@@ -311,8 +305,8 @@ export const storyLists: StoryList[] = [
     is_public: false,
     updated_at: "2026-03-10T12:30:00Z",
     posterUrls: [
-      fixtureMovies.parasite.cached_poster_url ?? "",
-      fixtureMovies.eeaao.cached_poster_url ?? "",
+      fixtureMovies.parasite.poster_url ?? "",
+      fixtureMovies.eeaao.poster_url ?? "",
     ],
   }),
   makeList({
@@ -323,9 +317,9 @@ export const storyLists: StoryList[] = [
     is_public: true,
     updated_at: "2026-03-18T21:15:00Z",
     posterUrls: [
-      fixtureMovies.holdovers.cached_poster_url ?? "",
-      fixtureMovies.barbie.cached_poster_url ?? "",
-      fixtureMovies.oppenheimer.cached_poster_url ?? "",
+      fixtureMovies.holdovers.poster_url ?? "",
+      fixtureMovies.barbie.poster_url ?? "",
+      fixtureMovies.oppenheimer.poster_url ?? "",
     ],
   }),
 ];
@@ -341,8 +335,8 @@ export const publicStoryLists: StoryList[] = [
     is_public: true,
     updated_at: "2026-03-17T09:00:00Z",
     posterUrls: [
-      fixtureMovies.parasite.cached_poster_url ?? "",
-      fixtureMovies.pastLives.cached_poster_url ?? "",
+      fixtureMovies.parasite.poster_url ?? "",
+      fixtureMovies.pastLives.poster_url ?? "",
     ],
   }),
 ];
@@ -356,8 +350,8 @@ export const privateStoryLists: StoryList[] = [
     is_public: false,
     updated_at: "2026-03-19T08:30:00Z",
     posterUrls: [
-      fixtureMovies.holdovers.cached_poster_url ?? "",
-      fixtureMovies.americanFiction.cached_poster_url ?? "",
+      fixtureMovies.holdovers.poster_url ?? "",
+      fixtureMovies.americanFiction.poster_url ?? "",
     ],
   }),
   makeList({
@@ -368,8 +362,8 @@ export const privateStoryLists: StoryList[] = [
     is_public: false,
     updated_at: "2026-03-14T13:00:00Z",
     posterUrls: [
-      fixtureMovies.poorThings.cached_poster_url ?? "",
-      fixtureMovies.killersOfTheFlowerMoon.cached_poster_url ?? "",
+      fixtureMovies.poorThings.poster_url ?? "",
+      fixtureMovies.killersOfTheFlowerMoon.poster_url ?? "",
     ],
   }),
 ];

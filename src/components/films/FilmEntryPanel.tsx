@@ -26,7 +26,6 @@ interface FilmEntryPanelProps {
   peerMovies: Array<{
     id: number;
     title: string;
-    cached_poster_url?: string | null;
     poster_url?: string | null;
   }>;
 }
@@ -93,7 +92,7 @@ export default function FilmEntryPanel({ film, year, peerMovies }: FilmEntryPane
               role="presentation"
             >
               {peerMovies.slice(0, 5).map((peer) => {
-                const posterSrc = normalizeImageUrl(peer.cached_poster_url ?? peer.poster_url ?? null);
+                const posterSrc = normalizeImageUrl(peer.poster_url ?? null);
                 return (
                   <div
                     key={peer.id}

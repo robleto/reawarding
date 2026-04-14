@@ -79,14 +79,14 @@ export function useUserLists(userId: string | null): {
           if (movieIds.length > 0) {
             const { data: movies } = await supabase
               .from("movies")
-              .select("id, cached_poster_url, poster_url")
+              .select("id, poster_url")
               .in("id", movieIds);
 
             if (movies) {
-              type PosterRow = { id: number; cached_poster_url?: string | null; poster_url?: string | null };
+              type PosterRow = { id: number; poster_url?: string | null };
               const posterMap = new Map(
                 (movies as PosterRow[])
-                  .map((m) => [m.id, m.cached_poster_url || m.poster_url || null] as [number, string | null])
+                  .map((m) => [m.id, m.poster_url || null] as [number, string | null])
                   .filter(([, url]) => Boolean(url))
               );
               posterUrls = movieIds

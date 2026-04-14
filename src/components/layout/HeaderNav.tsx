@@ -157,14 +157,16 @@ export default function HeaderNav() {
 								<UserMenu onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
 							</div>
 
-							<button
-								onClick={() => setShowAddMovieModal(true)}
-								className="md:hidden inline-flex items-center justify-center w-11 h-11 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-								aria-label="Add movie by TMDB ID"
-								title="Add movie by TMDB ID"
-							>
-								<Plus className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-							</button>
+							{user && (
+								<button
+									onClick={() => setShowAddMovieModal(true)}
+									className="md:hidden inline-flex items-center justify-center w-11 h-11 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+									aria-label="Add film"
+									title="Add film"
+								>
+									<Plus className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+								</button>
+							)}
 							{user && (
 								<button
 									className="md:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

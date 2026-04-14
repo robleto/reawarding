@@ -65,8 +65,8 @@ export interface MovieCardProps {
 /* ── Shared helpers ── */
 
 const resolveImage = (movie: Movie, prefer: "poster" | "thumb") => {
-	const poster = normalizeImageUrl(movie.cached_poster_url || movie.poster_url || movie.cached_thumb_url || movie.thumb_url);
-	const thumb = normalizeImageUrl(movie.cached_thumb_url || movie.thumb_url || movie.cached_poster_url || movie.poster_url);
+	const poster = normalizeImageUrl(movie.poster_url || movie.thumb_url);
+	const thumb = normalizeImageUrl(movie.thumb_url || movie.poster_url);
 	const src = prefer === "poster" ? (poster || thumb) : (thumb || poster);
 	if (!src || src.trim() === "" || src.includes("placeholder")) return null;
 	if (src.startsWith("http://") || src.startsWith("https://") || (src.startsWith("/") && src.length > 1)) return src;
@@ -218,7 +218,6 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 							sizes="(max-width: 640px) 160px, 210px"
 							placeholder="blur"
 							blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(210, 325))}`}
-							unoptimized
 						/>
 					) : (
 						<PosterFallback title={movie.title} />
@@ -434,7 +433,6 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 						sizes="80px"
 						placeholder="blur"
 						blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(80, 50))}`}
-						unoptimized
 					/>
 				) : (
 					<div className="flex items-center justify-center bg-gray-800 rounded-md" style={{ width: 80, height: 50 }}>
@@ -502,7 +500,6 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 								sizes="60px"
 								placeholder="blur"
 								blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(60, 45))}`}
-								unoptimized
 							/>
 						) : (
 							<div className="flex items-center justify-center bg-gray-800 rounded-md" style={{ width: 60, height: 45 }}>
@@ -592,7 +589,6 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 							sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
 							placeholder="blur"
 							blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(300, 450))}`}
-							unoptimized
 						/>
 					) : (
 						<PosterFallback title={movie.title} />

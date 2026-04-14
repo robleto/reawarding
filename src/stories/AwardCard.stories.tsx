@@ -47,7 +47,7 @@ const meta: Meta<typeof AwardCard> = {
           <AwardCard
             year={2022}
             winnerTitle="Everything Everywhere All at Once"
-            winnerPoster={fixtureMovies.eeaao.cached_poster_url}
+            winnerPoster={fixtureMovies.eeaao.poster_url}
             nomineeCount={6}
           />
         </div>
@@ -55,7 +55,7 @@ const meta: Meta<typeof AwardCard> = {
           <AwardCard
             year={2019}
             winnerTitle="Parasite"
-            winnerPoster={fixtureMovies.parasite.cached_poster_url}
+            winnerPoster={fixtureMovies.parasite.poster_url}
             nomineeCount={5}
           />
         </div>
@@ -65,7 +65,7 @@ const meta: Meta<typeof AwardCard> = {
   args: {
     year: 2023,
     winnerTitle: "Oppenheimer",
-    winnerPoster: fixtureMovies.oppenheimer.cached_poster_url,
+    winnerPoster: fixtureMovies.oppenheimer.poster_url,
     nomineeCount: 10,
     onClick: fn(),
   },
@@ -89,7 +89,7 @@ export const EarlyBallot: Story = {
   args: {
     year: 2023,
     winnerTitle: "The Holdovers",
-    winnerPoster: fixtureMovies.holdovers.cached_poster_url,
+    winnerPoster: fixtureMovies.holdovers.poster_url,
     nomineeCount: 5,
   },
 };

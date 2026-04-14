@@ -79,9 +79,7 @@ export default function ExpandableYearCard({
     academy && academy.title.toLowerCase() === leader.title.toLowerCase();
 
   const rawPoster =
-    leader.cached_poster_url ||
     leader.poster_url ||
-    leader.cached_thumb_url ||
     leader.thumb_url ||
     "";
   const normalizedPoster = normalizeImageUrl(rawPoster);
@@ -314,7 +312,6 @@ export default function ExpandableYearCard({
               fill
               className="object-cover"
               sizes="48px"
-              unoptimized
               onError={() => setPosterError(true)}
             />
           ) : (

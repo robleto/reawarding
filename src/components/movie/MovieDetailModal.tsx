@@ -11,6 +11,7 @@ import type { Movie } from "@/types/types";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { slugifyTitle } from "@/utils/slug";
+import { getRatingStyle } from "@/utils/getRatingStyle";
 
 interface MovieDetailModalProps {
   movie: Movie;
@@ -60,7 +61,7 @@ export default function MovieDetailModal({
     if (isOpen) {
       setSeenIt(initialSeenIt);
       setRanking(initialRanking);
-      const raw = (movie.cached_poster_url?.trim() || movie.poster_url || '').trim();
+      const raw = (movie.poster_url || '').trim();
       const normalized = normalizeImageUrl(raw);
       // Ensure we have a valid absolute URL or proper relative path
       const isValidUrl = normalized && 
@@ -99,31 +100,16 @@ export default function MovieDetailModal({
 
     setIsLoading(true);
     try {
-      // Upsert ranking
-      const { error } = await supabase.from('rankings').upsert({
+      // Upsert and return updated row in one round-trip
+      const { data: rankingData, error } = await supabase.from('rankings').upsert({
         user_id: user.id,
         movie_id: movie.id,
         ranking: newRanking,
         seen_it: newSeenIt,
-      }, { onConflict: 'user_id,movie_id' });
+      }, { onConflict: 'user_id,movie_id' }).select('ranking, seen_it').single();
 
-      if (error) {
+      if (error || !rankingData) {
         console.error('Error updating ranking:', error);
-        setRanking(initialRanking);
-        setSeenIt(initialSeenIt);
-        return;
-      }
-
-      // Refetch latest ranking from backend
-      const { data: rankingData, error: fetchError } = await supabase
-        .from('rankings')
-        .select('ranking, seen_it')
-        .eq('user_id', user.id)
-        .eq('movie_id', movie.id)
-        .single();
-
-      if (fetchError || !rankingData) {
-        console.error('Error fetching updated ranking:', fetchError);
         setRanking(initialRanking);
         setSeenIt(initialSeenIt);
         return;
@@ -173,11 +159,11 @@ export default function MovieDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-gray-900/80 border border-yellow-500/20 rounded-2xl shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto text-gray-200"
+        className="bg-gray-900/80 border border-yellow-500/20 rounded-t-2xl sm:rounded-2xl shadow-lg max-w-4xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto text-gray-200"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -186,7 +172,7 @@ export default function MovieDetailModal({
             <h2 className="text-2xl font-bold text-yellow-400">
               {movie.title}
             </h2>
-            <p className="text-gray-400 text-md">{movie.release_year}</p>
+            <p className="text-gray-400 text-sm">{movie.release_year}</p>
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -207,68 +193,92 @@ export default function MovieDetailModal({
         </div>
 
         {/* Content */}
-        <div className="p-4 sm:p-6">
-          <div className="flex flex-col gap-6 md:flex-row">
+        <div className="p-3 sm:p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:gap-6">
             {/* Left Column: Poster & Actions */}
-            <div className="w-full space-y-4 md:w-1/3">
-              <div className="aspect-[2/3] relative bg-gray-800 rounded-lg overflow-hidden shadow-lg">
-                {hasValidImage ? (
-                  <Image
-                    src={normalizeImageUrl((movie.cached_poster_url?.trim() || movie.poster_url || '').trim())}
-                    alt={movie.title}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                    onError={() => setHasValidImage(false)}
-                  />
-                ) : (
-                  <PosterFallback
-                    title={movie.title}
-                    className="rounded-lg"
-                  />
-                )}
-              </div>
-              
-              {/* Actions */}
-              <div className="p-4 space-y-4 border rounded-lg bg-gray-800/50 border-yellow-500/10">
-                {/* Seen It Toggle */}
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-gray-200">Status</span>
-                  <button
-                    onClick={handleSeenItToggle}
-                    disabled={isLoading}
-                    className={`
-                      flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors
-                      ${seenIt 
-                        ? 'bg-green-800/50 text-green-300 hover:bg-green-700/50' 
-                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
-                      }
-                      ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
-                    `}
-                  >
-                    {seenIt ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                    {seenIt ? "Seen" : "Not Seen"}
-                  </button>
-                </div>
+            <div className="md:w-1/3">
+              {/* Mobile: poster (2/3) + sidebar (1/3) side by side */}
+              {/* Desktop: poster full-width, actions panel below */}
+              <div className="flex flex-row gap-3 md:flex-col md:gap-4">
 
-                {/* Rating */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-gray-200">Your Rating</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowRatingModal(true)}
-                      disabled={isLoading}
-                      className={`font-bold px-3 py-1.5 min-h-[44px] rounded-lg border transition-colors disabled:opacity-50 ${
-                        ranking
-                          ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20"
-                          : "border-gray-600 bg-gray-800/60 text-gray-400 hover:text-gray-200 hover:border-gray-500"
-                      }`}
-                    >
-                      {ranking ? `⭐ ${ranking}` : "Rate"}
-                    </button>
+                {/* Poster — 2/3 width on mobile, full on desktop */}
+                <div className="w-2/3 flex-shrink-0 md:w-full">
+                  <div className="aspect-[2/3] relative bg-gray-800 rounded-lg overflow-hidden shadow-lg">
+                    {hasValidImage ? (
+                      <Image
+                        src={normalizeImageUrl((movie.poster_url || '').trim())}
+                        alt={movie.title}
+                        fill
+                        className="object-cover"
+                        onError={() => setHasValidImage(false)}
+                      />
+                    ) : (
+                      <PosterFallback
+                        title={movie.title}
+                        className="rounded-lg"
+                      />
+                    )}
                   </div>
                 </div>
+
+                {/* Actions panel — 1/3 sidebar on mobile, full-width below poster on desktop */}
+                <div className="flex-1 min-w-0">
+                  <div className="h-full md:h-auto p-3 md:p-4 border rounded-lg bg-gray-800/50 border-yellow-500/10 flex flex-col gap-3 md:gap-4">
+
+                    {/* Seen It Toggle */}
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-0">
+                      <span className="text-xs md:text-sm font-medium text-gray-400 md:text-gray-200">Status</span>
+                      <button
+                        onClick={handleSeenItToggle}
+                        disabled={isLoading}
+                        className={`
+                          flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-sm font-medium transition-colors self-start
+                          ${seenIt
+                            ? 'bg-green-800/50 text-green-300 hover:bg-green-700/50'
+                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                          }
+                          ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+                        `}
+                      >
+                        {seenIt ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                        {seenIt ? "Seen" : "Not Seen"}
+                      </button>
+                    </div>
+
+                    {/* Rating */}
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-0">
+                      <span className="text-xs md:text-sm font-medium text-gray-400 md:text-gray-200">Rating</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowRatingModal(true)}
+                        disabled={isLoading}
+                        className="font-bold text-base px-3 py-1.5 min-h-[44px] min-w-[44px] rounded-lg border border-gray-700 transition-colors disabled:opacity-50 self-start"
+                        style={ranking
+                          ? { backgroundColor: getRatingStyle(ranking).background, color: getRatingStyle(ranking).text, borderColor: 'transparent' }
+                          : { backgroundColor: 'rgba(55,65,81,0.5)', color: '#9ca3af' }
+                        }
+                      >
+                        {ranking ?? "Rate"}
+                      </button>
+                    </div>
+
+                    {/* Genres — in sidebar on mobile only */}
+                    {movie.genres && movie.genres.length > 0 && (
+                      <div className="md:hidden flex flex-wrap gap-1.5 pt-1">
+                        {movie.genres.map((genre: string, index: number) => (
+                          <span
+                            key={index}
+                            className="px-2 py-0.5 text-xs font-medium bg-yellow-900/50 text-yellow-300 rounded-full"
+                          >
+                            {genre}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                  </div>
+                </div>
+
               </div>
             </div>
 
@@ -339,9 +349,9 @@ export default function MovieDetailModal({
                 </div>
               )}
 
-              {/* Genres */}
+              {/* Genres — desktop only (mobile shows genres in the sidebar) */}
               {movie.genres && movie.genres.length > 0 && (
-                <div>
+                <div className="hidden md:block">
                   <h4 className="mb-2 font-semibold text-yellow-400">Genres</h4>
                   <div className="flex flex-wrap gap-2">
                     {movie.genres.map((genre: string, index: number) => (
@@ -399,7 +409,7 @@ export default function MovieDetailModal({
       <RatingModal
         isOpen={showRatingModal}
         movieTitle={movie.title}
-        posterUrl={normalizeImageUrl((movie.cached_poster_url?.trim() || movie.poster_url || '').trim())}
+        posterUrl={normalizeImageUrl((movie.poster_url || '').trim())}
         currentRating={ranking}
         movieYear={movie.release_year ?? undefined}
         onRate={(newRanking) => {

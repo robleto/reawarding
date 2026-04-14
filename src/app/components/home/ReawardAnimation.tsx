@@ -355,7 +355,6 @@ export function ReawardAnimation({
                     className="ra-poster-img"
                     priority
                     draggable={false}
-                    unoptimized
                     onError={() => markImgError(originalWinner.title)}
                   />
                 )}
@@ -383,7 +382,7 @@ export function ReawardAnimation({
           <div className="ra-divider" aria-hidden />
 
           {/* ── RIGHT: Contenders column ────────────────────────── */}
-          <aside className="ra-contenders-side" aria-label={`${year} Contenders`}>
+          <section className="ra-contenders-side" aria-label={`${year} Contenders`}>
             <div className="ra-side-head">
               <span className="ra-side-heading ra-side-heading--contenders">
                 <span>✉️</span> Contenders
@@ -413,7 +412,6 @@ export function ReawardAnimation({
                       className="ra-poster-img"
                       priority
                       draggable={false}
-                      unoptimized
                       onError={() => markImgError(newWinner.title)}
                     />
                   )}
@@ -456,7 +454,6 @@ export function ReawardAnimation({
                         sizes="(max-width:640px) 33vw, 140px"
                         className="ra-poster-img"
                         draggable={false}
-                        unoptimized
                         onError={() => markImgError(c.title)}
                       />
                     )}
@@ -466,7 +463,7 @@ export function ReawardAnimation({
                 </div>
               ))}
             </div>
-          </aside>
+          </section>
         </div>
         </div>
       </div>
@@ -515,7 +512,7 @@ function AwardsStage({
         </div>
       </div>
       <div className="ra-divider" />
-      <aside className="ra-contenders-side">
+      <section className="ra-contenders-side" aria-label="Contenders">
         <div className="ra-side-head">
           <span className="ra-side-heading ra-side-heading--contenders"><span>✉️</span> Contenders</span>
         </div>
@@ -530,7 +527,7 @@ function AwardsStage({
             </div>
           ))}
         </div>
-      </aside>
+      </section>
     </div>
     </div>
   );

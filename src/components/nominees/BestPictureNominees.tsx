@@ -81,7 +81,7 @@ function SortableMovieItem({ movie, index, onRemove, isSelected, isWinner = fals
       {/* Movie Poster */}
       <div className="flex-shrink-0">
         {(() => {
-          const thumbSrc = normalizeImageUrl(movie.cached_thumb_url?.trim() || movie.thumb_url);
+          const thumbSrc = normalizeImageUrl(movie.thumb_url);
           return thumbSrc ? (
             <Image
               src={thumbSrc}
@@ -89,7 +89,6 @@ function SortableMovieItem({ movie, index, onRemove, isSelected, isWinner = fals
               width={60}
               height={90}
               className="rounded shadow-sm"
-              unoptimized
             />
           ) : (
             <div className="rounded shadow-sm bg-gray-100" style={{ width: 60, height: 90 }} />
@@ -312,7 +311,7 @@ export default function BestPictureNominees({
               </div>
               <div className="mt-3 flex items-center gap-3 p-3 bg-white border border-yellow-200 rounded-lg">
                 {(() => {
-                  const winnerSrc = normalizeImageUrl(winner.cached_thumb_url?.trim() || winner.thumb_url);
+                  const winnerSrc = normalizeImageUrl(winner.thumb_url);
                   return winnerSrc ? (
                     <Image
                       src={winnerSrc}
@@ -320,7 +319,6 @@ export default function BestPictureNominees({
                       width={60}
                       height={90}
                       className="rounded shadow-sm"
-                      unoptimized
                     />
                   ) : (
                     <div className="rounded shadow-sm bg-gray-100" style={{ width: 60, height: 90 }} />
@@ -359,7 +357,7 @@ export default function BestPictureNominees({
                     className="flex items-center gap-3 p-3 bg-white border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all group"
                   >
                     {(() => {
-                      const src = normalizeImageUrl(movie.cached_thumb_url?.trim() || movie.thumb_url);
+                      const src = normalizeImageUrl(movie.thumb_url);
                       return src ? (
                         <Image
                           src={src}
@@ -367,7 +365,6 @@ export default function BestPictureNominees({
                           width={60}
                           height={90}
                           className="rounded shadow-sm"
-                          unoptimized
                         />
                       ) : (
                         <div className="rounded shadow-sm bg-gray-100" style={{ width: 60, height: 90 }} />
@@ -424,7 +421,7 @@ export default function BestPictureNominees({
                   {/* Movie Poster */}
                   <div className="flex-shrink-0">
                     {(() => {
-                      const src = normalizeImageUrl(movie.cached_thumb_url?.trim() || movie.thumb_url);
+                      const src = normalizeImageUrl(movie.thumb_url);
                       return src ? (
                         <Image
                           src={src}
@@ -432,7 +429,6 @@ export default function BestPictureNominees({
                           width={40}
                           height={60}
                           className="rounded shadow-sm"
-                          unoptimized
                         />
                       ) : (
                         <div className="rounded shadow-sm bg-gray-100" style={{ width: 40, height: 60 }} />

@@ -20,7 +20,7 @@ export default function Footer() {
 							<span className="text-sm font-bold tracking-widest text-gray-700 dark:text-white/80 uppercase" style={{ fontFamily: "var(--font-unbounded, 'Unbounded', sans-serif)" }}>
 								ReAwarding
 							</span>
-							<span className="text-xs text-gray-400 dark:text-gray-500">
+							<span className="text-xs text-gray-400 dark:text-gray-400">
 								Your canon. On record.
 							</span>
 						</div>
@@ -42,7 +42,7 @@ export default function Footer() {
 								Data Deletion
 							</Link>
 						</div>
-						<p className="text-xs text-gray-400 dark:text-gray-500">
+						<p className="text-xs text-gray-400 dark:text-gray-400">
 							&copy; {new Date().getFullYear()} ReAwarding · All rights reserved.
 						</p>
 					</div>

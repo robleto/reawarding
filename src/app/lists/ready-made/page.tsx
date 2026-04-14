@@ -211,7 +211,7 @@ async function getSuggestions() {
   for (const [genre, seen_count] of genreCandidates) {
     const { data: items } = await supabase
       .from('rankings')
-      .select('ranking, seen_it, movie:movies(id, title, poster_url, cached_poster_url, release_year, genres)')
+      .select('ranking, seen_it, movie:movies(id, title, poster_url, release_year, genres)')
       .eq('user_id', user.id)
       .eq('seen_it', true);
     let movies = ((((items as any[] | null) || [])
@@ -228,7 +228,7 @@ async function getSuggestions() {
           id: m.id as number,
           title: m.title as string,
           release_year: (m.release_year as number | null) ?? null,
-          poster_url: (m.cached_poster_url as string | null) ?? (m.poster_url as string | null),
+          poster_url: (m.poster_url as string | null),
           ranking: (r.ranking as number | null) ?? null,
           seen_it: !!r.seen_it,
         };
@@ -245,7 +245,7 @@ async function getSuggestions() {
   for (const [startYear, seen_count] of decadeCandidates) {
     const { data: items } = await supabase
       .from('rankings')
-      .select('ranking, seen_it, movie:movies(id, title, poster_url, cached_poster_url, release_year)')
+      .select('ranking, seen_it, movie:movies(id, title, poster_url, release_year)')
       .eq('user_id', user.id)
       .eq('seen_it', true);
     let movies = ((((items as any[] | null) || [])
@@ -263,7 +263,7 @@ async function getSuggestions() {
           id: m.id as number,
           title: m.title as string,
           release_year: (m.release_year as number | null) ?? null,
-          poster_url: (m.cached_poster_url as string | null) ?? (m.poster_url as string | null),
+          poster_url: (m.poster_url as string | null),
           ranking: (r.ranking as number | null) ?? null,
           seen_it: !!r.seen_it,
         };
@@ -303,7 +303,7 @@ async function getSuggestions() {
     // Fetch this user's movies where cast_list includes actor
     const { data: items } = await supabase
       .from('rankings')
-      .select('ranking, seen_it, movie:movies(id, title, poster_url, cached_poster_url, release_year, cast_list)')
+      .select('ranking, seen_it, movie:movies(id, title, poster_url, release_year, cast_list)')
       .eq('user_id', user.id)
       .eq('seen_it', true);
     const movies = ((((items as any[] | null) || [])
@@ -320,7 +320,7 @@ async function getSuggestions() {
           id: m.id as number,
           title: m.title as string,
           release_year: (m.release_year as number | null) ?? null,
-          poster_url: (m.cached_poster_url as string | null) ?? (m.poster_url as string | null),
+          poster_url: (m.poster_url as string | null),
           ranking: (r.ranking as number | null) ?? null,
           seen_it: !!r.seen_it,
         };
@@ -335,7 +335,7 @@ async function getSuggestions() {
     // Fetch this user's movies for the director with ranking/seen
     const { data: items } = await supabase
       .from('rankings')
-      .select('ranking, seen_it, movie:movies(id, title, poster_url, cached_poster_url, release_year, director)')
+      .select('ranking, seen_it, movie:movies(id, title, poster_url, release_year, director)')
       .eq('user_id', user.id)
       .eq('seen_it', true)
       .eq('movie.director', director)
@@ -350,7 +350,7 @@ async function getSuggestions() {
           id: m.id as number,
           title: m.title as string,
           release_year: (m.release_year as number) ?? null,
-          poster_url: (m.cached_poster_url as string | null) ?? (m.poster_url as string | null),
+          poster_url: (m.poster_url as string | null),
           ranking: (r.ranking as number | null) ?? null,
           seen_it: !!r.seen_it,
         };

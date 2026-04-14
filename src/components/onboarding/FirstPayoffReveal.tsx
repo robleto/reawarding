@@ -25,9 +25,7 @@ export default function FirstPayoffReveal({
   if (!leader) return null;
 
   const leaderPoster =
-    leader.cached_poster_url ||
     leader.poster_url ||
-    leader.cached_thumb_url ||
     leader.thumb_url ||
     "";
 
@@ -64,7 +62,6 @@ export default function FirstPayoffReveal({
                   fill
                   className="object-cover"
                   sizes="64px"
-                  unoptimized
                 />
               ) : (
                 <div className="flex h-full items-center justify-center">
@@ -96,9 +93,7 @@ export default function FirstPayoffReveal({
               <div className="flex gap-2">
                 {runnerUps.map((movie) => {
                   const poster =
-                    movie.cached_thumb_url ||
                     movie.thumb_url ||
-                    movie.cached_poster_url ||
                     movie.poster_url ||
                     "";
                   return (
@@ -111,7 +106,6 @@ export default function FirstPayoffReveal({
                             fill
                             className="object-cover"
                             sizes="28px"
-                            unoptimized
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center">

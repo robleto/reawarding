@@ -4,9 +4,6 @@ export type Movie = {
 	release_year: number;
 	poster_url: string;
 	thumb_url: string;
-	// Cached (mirrored) assets in Supabase Storage
-	cached_poster_url?: string | null;
-	cached_thumb_url?: string | null;
 	backdrop_url?: string | null;
 	created_at: string;
 	// Enriched fields

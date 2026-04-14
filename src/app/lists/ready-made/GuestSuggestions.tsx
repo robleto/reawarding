@@ -45,7 +45,7 @@ export default function GuestSuggestions() {
           id: m.id,
           title: m.title,
           release_year: m.release_year ?? null,
-          poster_url: ((m as any).cached_poster_url as string | null) ?? (m.poster_url as string | null),
+          poster_url: (m.poster_url as string | null),
           ranking: m.rankings?.[0]?.ranking ?? null,
           seen_it: !!m.rankings?.[0]?.seen_it,
         }))
