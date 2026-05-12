@@ -4,8 +4,8 @@ import { NetflixGlow } from '@/components/ui/NetflixGlow';
 import AppShell from '@/components/layout/AppShell';
 
 export const metadata = {
-  title: 'ReAwarding',
-  description: 'The ultimate community for ranking, noting and awarding the best movies... according to you.',
+  title: 'Reawarding',
+  description: 'Reawarding lets you rewrite film award history based on what you actually watched and how films aged over time.',
 };
 
 export default async function RootLayout({
@@ -42,7 +42,8 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://assets.fanart.tv" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300 font-sans">
+      {/* Dark-only canvas (per .impeccable.md). TODO: token — add charcoal-950 to tailwind.config.js so bg-gray-950 here can become bg-charcoal-950 and complete the token system. */}
+      <body className="min-h-screen flex flex-col bg-gray-950 text-gray-100 font-sans">
         <NetflixGlow />
         <Providers>
           <AppShell>

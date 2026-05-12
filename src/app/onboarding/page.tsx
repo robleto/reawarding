@@ -32,9 +32,9 @@ function StepDots({ current }: { current: number }) {
           key={i}
           className={`rounded-full transition-all duration-300 ${
             i === current
-              ? "w-6 h-1.5 bg-yellow-400"
+              ? "w-6 h-1.5 bg-gold-400"
               : i < current
-              ? "w-1.5 h-1.5 bg-yellow-400/40"
+              ? "w-1.5 h-1.5 bg-gold-400/40"
               : "w-1.5 h-1.5 bg-gray-600"
           }`}
         />
@@ -115,21 +115,6 @@ export default function OnboardingPage() {
     }
   }, [user, supabase, selectedEra, selectedGenres, firstFilm, router]);
 
-  const skipAll = useCallback(async () => {
-    if (!user) { router.push("/"); return; }
-    setSaving(true);
-    try {
-      await supabase
-        .from("profiles")
-        .update({ onboarding_complete: true, updated_at: new Date().toISOString() })
-        .eq("id", user.id);
-    } catch { /* non-blocking */ }
-    finally {
-      setSaving(false);
-      router.push("/");
-    }
-  }, [user, supabase, router]);
-
   const nextStep = useCallback(() => {
     if (step < TOTAL_STEPS - 1) {
       setStep((s) => s + 1);
@@ -142,16 +127,6 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-4 py-12">
-      {/* Skip — always visible */}
-      <button
-        type="button"
-        onClick={skipAll}
-        disabled={saving}
-        className="fixed top-6 right-6 text-xs text-gray-500 hover:text-gray-300 transition-colors"
-      >
-        Skip setup
-      </button>
-
       <div className="w-full max-w-lg">
         {/* Step dots */}
         <div className="mb-10">
@@ -162,7 +137,7 @@ export default function OnboardingPage() {
         {step === 0 && (
           <div key="step-era" className="animate-fade-in">
             <div className="mb-6 flex justify-center">
-              <Sparkles className="h-7 w-7 text-yellow-400/80" />
+              <Sparkles className="h-7 w-7 text-gold-400/80" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold font-unbounded text-white text-center leading-tight mb-3">
               What film era speaks to you?
@@ -176,28 +151,28 @@ export default function OnboardingPage() {
                   key={era}
                   type="button"
                   onClick={() => setSelectedEra((prev) => (prev === era ? null : era))}
-                  className={`rounded-lg border px-4 py-2 font-unbounded text-sm font-semibold transition-all ${
+                  className={`inline-flex items-center justify-center min-h-[44px] rounded-lg border px-4 py-2.5 font-unbounded text-sm font-semibold transition-all ${
                     selectedEra === era
-                      ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-300"
-                      : "border-gray-700/40 bg-gray-900/50 text-gray-400 hover:border-yellow-500/30 hover:text-gray-200"
+                      ? "border-gold-500/60 bg-gold-500/10 text-gold-300"
+                      : "border-gray-700/40 bg-charcoal-900/50 text-gray-400 hover:border-gold-500/30 hover:text-gray-200"
                   }`}
                 >
                   {era}
                 </button>
               ))}
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <button
                 type="button"
                 onClick={() => { setSelectedEra(null); nextStep(); }}
-                className="text-sm text-gray-600 hover:text-gray-400 transition-colors"
+                className="inline-flex items-center min-h-[44px] px-2 text-sm text-gray-600 hover:text-gray-400 transition-colors"
               >
-                Skip this
+                Skip this step
               </button>
               <button
                 type="button"
                 onClick={nextStep}
-                className="inline-flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-5 py-2.5 text-sm font-medium text-yellow-300 hover:bg-yellow-500/20 transition-all"
+                className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-lg border border-gold-500/30 bg-gold-500/10 px-5 py-3 text-sm font-medium text-gold-300 hover:bg-gold-500/20 transition-all"
               >
                 {selectedEra ? "Continue" : "Any era"}
                 <ArrowRight className="h-4 w-4" />
@@ -210,7 +185,7 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div key="step-film" className="animate-fade-in">
             <div className="mb-6 flex justify-center">
-              <Film className="h-7 w-7 text-yellow-400/80" />
+              <Film className="h-7 w-7 text-gold-400/80" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold font-unbounded text-white text-center leading-tight mb-3">
               Find a film you&apos;ve seen
@@ -227,8 +202,8 @@ export default function OnboardingPage() {
             </div>
 
             {firstFilm && (
-              <div className="mt-3 flex items-center gap-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 px-4 py-3">
-                <span className="text-yellow-400">✓</span>
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-gold-500/20 bg-gold-500/5 px-4 py-3">
+                <span className="text-gold-400">✓</span>
                 <span className="text-sm text-gray-200 font-medium">{firstFilm.title}</span>
                 <button
                   type="button"
@@ -240,20 +215,13 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            <div className="mt-8 flex items-center justify-between">
+            <div className="mt-8 flex items-center justify-end">
               <button
                 type="button"
-                onClick={() => { setFirstFilm(null); nextStep(); }}
-                className="text-sm text-gray-600 hover:text-gray-400 transition-colors"
+                onClick={() => { if (!firstFilm) setFirstFilm(null); nextStep(); }}
+                className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-lg border border-gold-500/30 bg-gold-500/10 px-5 py-3 text-sm font-medium text-gold-300 hover:bg-gold-500/20 transition-all"
               >
-                Skip this
-              </button>
-              <button
-                type="button"
-                onClick={nextStep}
-                className="inline-flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-5 py-2.5 text-sm font-medium text-yellow-300 hover:bg-yellow-500/20 transition-all"
-              >
-                {firstFilm ? "Continue" : "Skip"}
+                {firstFilm ? "Continue" : "Skip this step"}
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
@@ -264,7 +232,7 @@ export default function OnboardingPage() {
         {step === 2 && (
           <div key="step-genres" className="animate-fade-in">
             <div className="mb-6 flex justify-center">
-              <Sparkles className="h-7 w-7 text-yellow-400/80" />
+              <Sparkles className="h-7 w-7 text-gold-400/80" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold font-unbounded text-white text-center leading-tight mb-3">
               What kinds of films excite you?
@@ -279,10 +247,10 @@ export default function OnboardingPage() {
                   key={genre}
                   type="button"
                   onClick={() => toggleGenre(genre)}
-                  className={`rounded-full border px-4 py-2 text-sm font-medium transition-all ${
+                  className={`inline-flex items-center justify-center min-h-[44px] rounded-full border px-4 py-2.5 text-sm font-medium transition-all ${
                     selectedGenres.includes(genre)
-                      ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-300"
-                      : "border-gray-700/40 bg-gray-900/50 text-gray-400 hover:border-yellow-500/30 hover:text-gray-200"
+                      ? "border-gold-500/60 bg-gold-500/10 text-gold-300"
+                      : "border-gray-700/40 bg-charcoal-900/50 text-gray-400 hover:border-gold-500/30 hover:text-gray-200"
                   }`}
                 >
                   {genre}
@@ -290,11 +258,11 @@ export default function OnboardingPage() {
               ))}
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <button
                 type="button"
                 onClick={() => setStep((s) => s - 1)}
-                className="text-sm text-gray-600 hover:text-gray-400 transition-colors"
+                className="inline-flex items-center min-h-[44px] px-2 text-sm text-gray-600 hover:text-gray-400 transition-colors"
               >
                 Back
               </button>
@@ -302,16 +270,16 @@ export default function OnboardingPage() {
                 type="button"
                 onClick={() => void finishOnboarding()}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-5 py-2.5 text-sm font-medium text-yellow-300 hover:bg-yellow-500/20 transition-all disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-lg border border-gold-500/30 bg-gold-500/10 px-5 py-3 text-sm font-medium text-gold-300 hover:bg-gold-500/20 transition-all disabled:opacity-50"
               >
                 {saving ? (
                   <span className="flex items-center gap-2">
-                    <span className="h-4 w-4 rounded-full border-2 border-yellow-400/30 border-t-yellow-400 animate-spin" />
+                    <span className="h-4 w-4 rounded-full border-2 border-gold-400/30 border-t-gold-400 animate-spin" />
                     Saving…
                   </span>
                 ) : (
                   <>
-                    {selectedGenres.length > 0 ? "Start ReAwarding" : "Skip — Start ReAwarding"}
+                    Start ReAwarding
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}

@@ -61,6 +61,18 @@ Watch (seen_it = true) and Rate (1-10 score) are two separate user actions in th
 
 Film poster images are canonical art — they are always displayed at their full `aspect-[2/3]` ratio with `object-cover` only filling their container. Never use a fixed height that clips the poster on any viewport. On mobile, solve layout constraints by making the poster container narrower (e.g., side-by-side with actions), not by overriding the aspect ratio.
 
+### 12 — Onboarding Must Not Auto-Seed a Maximal Rating
+
+When a new user's first pick lands in a YearExplorer, the system may seed a rating to make the loop visible immediately — but the seed value must be **7** (the auto-nominate threshold), never 10 or any other maximal score.
+
+Why: a seeded 10 declares "perfect film, this won the year" before the user has done anything. It makes the first user action a contradiction — undoing a verdict they didn't render. A seeded 7 declares "this counts" and makes the first action a calibration — dialing in their actual feeling. This preserves the formation feel that Law 4 (visible formation) and Law 3 (no instant awards) require, even while the system is doing the work of populating the ballot frame.
+
+Equivalent rule for award framing: the formal "Best Picture Ballot" page title and "Will your ballot agree?" comparison prompt are deferred until the user has rated **3+ films for the year**. Below that threshold, the surface uses neutral framing ("Your 2021"). The ballot earns its title; it isn't asserted on action one.
+
+### 13 — Onboarding Jargon Is Forbidden
+
+Phrases like "Standard Ballot," "Full Ballot," "Auto-nominated," etc. assume the user already knows our taxonomy. In a new-user context, write the plain action: *"Rate 3 more 7+ to fill the 5 nominee slots."* Internal vocabulary is allowed once the user is in the Established state — never before.
+
 ---
 
 ## FINAL CHECK

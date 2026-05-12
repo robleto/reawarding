@@ -18,14 +18,14 @@ import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
 import { useCreateAward } from "@/hooks/useCreateAward";
 import { useUserAwards } from "@/hooks/useUserAwards";
 import { buildTasteProfile, getYearLeaders } from "@/utils/tasteInsights";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import ExpandableYearCard from "@/components/home/ExpandableYearCard";
-import BallotMilestoneOverlay from "@/components/home/BallotMilestoneOverlay";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import RecognitionFeed from "@/components/home/RecognitionFeed";
 import useOnboardingState from "@/hooks/useOnboardingState";
 import SessionCoach from "@/components/onboarding/SessionCoach";
 import LoggedInOnboardingExperience from "@/components/onboarding/LoggedInOnboardingExperience";
+import OnboardingPickFlow from "@/components/onboarding/OnboardingPickFlow";
 import { useRecognitionFeed } from "@/hooks/useRecognitionFeed";
 import { useSmartListAlerts, type SmartListAlert } from "@/hooks/useSmartListAlerts";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
@@ -89,6 +89,9 @@ export default function HomePage() {
   const [onboardingPickedMovieId, setOnboardingPickedMovieId] = useState<string | number | null>(null);
   const [onboardingPickedMovie, setOnboardingPickedMovie] = useState<Movie | null>(null);
   const [onboardingRatingTourStep, setOnboardingRatingTourStep] = useState<OnboardingTourStep>(0);
+  // New onboarding flow — modal-first Watch → Rate sequence for new users.
+  // Replaces the "drop them into YearExplorer with auto-seed + tour" approach.
+  const [onboardingPickFlowMovie, setOnboardingPickFlowMovie] = useState<Movie | null>(null);
   const [expandedCardYear, setExpandedCardYear] = useState<number | null>(null);
   const [selectedSearchMovie, setSelectedSearchMovie] = useState<Movie | null>(null);
   const [recentlyRatedMovie, setRecentlyRatedMovie] = useState<{
@@ -96,11 +99,8 @@ export default function HomePage() {
     year: number | null;
     rating: number | null;
   } | null>(null);
-  const [milestoneOverlay, setMilestoneOverlay] = useState<{
-    year: number;
-    milestone: 5 | 10;
-    winnerTitle: string;
-  } | null>(null);
+  // Milestone celebration is now canvas-persistent on the ballot card itself
+  // (see ExpandableYearCard). No modal state needed — the card transforms in place.
   const [sessionCoachDismissed, setSessionCoachDismissed] = useState(false);
   const [suggestedQuery, setSuggestedQuery] = useState<string | undefined>(undefined);
   const [dismissedAlertKeys, setDismissedAlertKeys] = useState<string[]>([]);
@@ -236,9 +236,11 @@ export default function HomePage() {
       .slice(0, 8);
   }, [movies, awards]);
 
+  // Milestone callback retained for future analytics wiring.
+  // The visual recognition moment lives on the ballot card itself (canvas-persistent).
   const handleBallotMilestone = useCallback(
-    (payload: { year: number; milestone: 5 | 10; winnerTitle: string }) => {
-      setMilestoneOverlay(payload);
+    (_payload: { year: number; milestone: 5 | 10; winnerTitle: string }) => {
+      // intentionally empty — card-level state owns the celebration
     },
     []
   );
@@ -287,23 +289,57 @@ export default function HomePage() {
     setSelectedSearchMovie(movie);
   }, []);
 
+  // A user is "genuinely new" if they're a guest OR an authenticated user with no
+  // ratings yet. Both paths get the same first-action arc: seed at 7, create the
+  // award, open the YearExplorer with the tour. Returning users get the detail modal.
+  const isNewUser = useMemo(
+    () => isGuest || !movies.some((m) => typeof m.rankings?.[0]?.ranking === "number"),
+    [isGuest, movies]
+  );
+
   const handleSelectMovie = useCallback(
     (movie: Movie) => {
       if (!movie.release_year) return;
       // Clear any chip-injected query so the same chip can be re-clicked later
       setSuggestedQuery(undefined);
-      if (isGuest) {
-        void updateMovieRanking(movie.id as unknown as number, {
-          seen_it: true,
-          ranking: 10,
-        });
-        handleCreateAwardFromExplorer(movie);
-        openYearExplorerForMovie(movie, 1);
+      if (isNewUser) {
+        // New first-action arc: open the Watch → Rate modal. No auto-seed, no
+        // tour, no YearExplorer takeover. The user performs both actions
+        // explicitly, learning the loop's two distinct steps.
+        setOnboardingPickFlowMovie(movie);
         return;
       }
       handleOpenMovieDetail(movie);
     },
-    [isGuest, updateMovieRanking, handleCreateAwardFromExplorer, openYearExplorerForMovie, handleOpenMovieDetail]
+    [isNewUser, handleOpenMovieDetail]
+  );
+
+  // Handlers for the two-step Watch → Rate onboarding modal. Each step writes
+  // independently so the user's data reflects the literal action they took.
+  const handleOnboardingWatch = useCallback(
+    (movieId: string | number) => {
+      void updateMovieRanking(movieId as unknown as number, { seen_it: true });
+    },
+    [updateMovieRanking]
+  );
+
+  const handleOnboardingRate = useCallback(
+    (movieId: string | number, rating: number) => {
+      void updateMovieRanking(movieId as unknown as number, { ranking: rating });
+      // Create the award record so the year exists in the user's data. The
+      // YearExplorer will be reachable later via a "year forming" surface; we
+      // don't auto-open it here.
+      const m = movies.find((entry) => String(entry.id) === String(movieId));
+      if (m) {
+        handleCreateAwardFromExplorer(m);
+        setRecentlyRatedMovie({
+          title: m.title,
+          year: m.release_year ?? null,
+          rating,
+        });
+      }
+    },
+    [updateMovieRanking, movies, handleCreateAwardFromExplorer]
   );
 
   const scrollToPremise = useCallback(() => {
@@ -411,6 +447,7 @@ export default function HomePage() {
   const tasteProfile = useMemo(() => buildTasteProfile(ratedMovies), [ratedMovies]);
   const yearLeaders = useMemo(() => getYearLeaders(ratedMovies), [ratedMovies]);
 
+
   // ── Recognition feed data ──
   // Only exclude movies the user has actually interacted with (has a ranking row).
   // `movies` is the full DB catalog — filtering ALL of it would hide everything.
@@ -460,20 +497,50 @@ export default function HomePage() {
   const completedBallotCount = yearLeaders.filter((yl) => yl.nomineeCount >= 10).length;
   const isEstablished =
     completedBallotCount >= 1 || yearLeaders.length >= 2 || ratedMovies.length >= 20;
+  // Mature: the user has earned the museum register on Home.
+  // Workbench collapses to a compact strip; rewards lead. Mature is strictly
+  // additive to established — we guard with isEstablished to prevent the
+  // edge case of a single-year power-rater (e.g. 50+ ratings, 1 year, 0
+  // canonical ballots) leapfrogging from building → mature and landing in an
+  // Awards-Gallery-led layout with an empty gallery.
+  const isMature =
+    isEstablished &&
+    (completedBallotCount >= 3 || yearLeaders.length >= 5 || ratedMovies.length >= 50);
 
-  // Three states govern homepage layout:
-  //   new        → 0 active years AND < 5 rated films
-  //   building   → 1+ active year, 0 completed ballots
+  // Four states govern homepage layout:
+  //   new         → 0 active years AND < 5 rated films
+  //   building    → 1+ active year, 0 completed ballots
   //   established → 1+ completed ballot OR 2+ years OR 20+ rated
-  const userState: "new" | "building" | "established" = !hasStartedBallots
+  //   mature      → 3+ completed ballots OR 5+ years OR 50+ rated  (museum-led)
+  const userState: "new" | "building" | "established" | "mature" = !hasStartedBallots
     ? "new"
+    : isMature
+    ? "mature"
     : isEstablished
     ? "established"
     : "building";
 
-  // ── User lists for established homepage (P2-e) ──
+  // Mature workshop drawer — folds the timeline + active ballot inline.
+  // Closed by default; opens when the user taps "Update awards".
+  // On open: scroll the drawer into view. On close: scroll the strip back
+  // into view so the viewport doesn't strand the user where the drawer was.
+  const [workshopOpen, setWorkshopOpen] = useState(false);
+  const workshopRef = useRef<HTMLDivElement>(null);
+  const stripRef = useRef<HTMLElement>(null);
+  const workshopOpenRef = useRef(false);
+  useEffect(() => {
+    const wasOpen = workshopOpenRef.current;
+    workshopOpenRef.current = workshopOpen;
+    if (workshopOpen && workshopRef.current) {
+      workshopRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (wasOpen && !workshopOpen && stripRef.current) {
+      stripRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [workshopOpen]);
+
+  // ── User lists for established + mature homepages ──
   const { lists: userLists, loading: listsLoading } = useUserLists(
-    isEstablished ? (userId ?? null) : null
+    isEstablished || isMature ? (userId ?? null) : null
   );
 
   // Most recent active ballot (closest to completion, but not yet complete)
@@ -556,7 +623,7 @@ export default function HomePage() {
     return (
       <div className="home-shell flex items-center justify-center min-h-[50vh]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 rounded-full border-yellow-400/30 border-t-yellow-400 animate-spin" />
+          <div className="w-8 h-8 border-2 rounded-full border-gold-400/30 border-t-gold-400 animate-spin" />
           <p className="text-sm text-gray-500">Loading…</p>
         </div>
       </div>
@@ -618,7 +685,7 @@ export default function HomePage() {
         /* ══════════════════════════════════════════════════════════
            LOGGED-IN USER: New, Building, or Established dashboard
            ═══════════════════════════════════════════════════════ */
-        <div className="pt-8 pb-16">
+        <div className="pt-6 pb-24">
 
     {/* ═══════════════════════════════════════════════════════
         NEW STATE — onboarding prepends the logged-in homepage
@@ -631,7 +698,7 @@ export default function HomePage() {
             movies={movies}
             awards={awards}
             suggestedQuery={suggestedQuery}
-            onSelectMovie={handleOpenMovieDetail}
+            onSelectMovie={handleSelectMovie}
             onSuggestedQuery={setSuggestedQuery}
             onOpenYear={(year) => setExplorerYear(year)}
             onShowHowItWorks={() => scrollToElementById("logged-in-onboarding-steps", reducedMotion)}
@@ -641,8 +708,8 @@ export default function HomePage() {
         ) : (
           <section className="mx-auto max-w-3xl">
             <MovieSearchPicker
-              onSelect={handleOpenMovieDetail}
-              placeholder="Search for a movie to rate…"
+              onSelect={handleSelectMovie}
+              placeholder="Search for a film you've watched"
               variant="hero"
               suggestedQuery={suggestedQuery}
             />
@@ -706,7 +773,7 @@ export default function HomePage() {
             <div className="mx-auto max-w-3xl">
               <MovieSearchPicker
                 onSelect={handleOpenMovieDetail}
-                placeholder="Search for a movie to rate…"
+                placeholder="Search for a film you've watched"
                 variant="hero"
                 suggestedQuery={suggestedQuery}
               />
@@ -721,7 +788,7 @@ export default function HomePage() {
                   key={year}
                   type="button"
                   onClick={() => setExplorerYear(year)}
-                  className="flex-shrink-0 rounded-md border border-gray-700/30 bg-gray-900/40 px-3 py-1.5 font-unbounded text-xs font-semibold text-gray-400 hover:border-yellow-500/30 hover:text-white transition-all"
+                  className="flex-shrink-0 rounded-md border border-gray-700/30 bg-charcoal-900/40 px-3 py-1.5 font-unbounded text-xs font-semibold text-gray-400 hover:border-gold-500/30 hover:text-white transition-all"
                 >
                   {year}
                 </button>
@@ -776,16 +843,16 @@ export default function HomePage() {
     {userState === "established" && (
       <>
         {/* ═══════════════════════════════════════════════════════
-            TIER 1 — Search hero
-            Motivational framing; search is the primary action
+            ZONE 1 — Workbench (search → timeline → ballot → gallery)
+            Tight inter-section spacing — these belong together rhythmically.
             ═══════════════════════════════════════════════════ */}
-        <section className="mb-10">
+        <section className="mb-6">
           {/* Lightweight greeting — low visual weight, does not compete with search */}
           <p className="mb-5 text-center text-2xl font-bold text-white font-unbounded tracking-tight">Welcome back.</p>
           <div className="max-w-3xl mx-auto">
             <MovieSearchPicker
               onSelect={handleOpenMovieDetail}
-              placeholder="Search for a movie to rate…"
+              placeholder="Search for a film you've watched"
               variant="hero"
               suggestedQuery={suggestedQuery}
             />
@@ -804,7 +871,7 @@ export default function HomePage() {
           const sortedLeaders = [...yearLeaders].sort((a, b) => b.year - a.year);
 
           return (
-            <section className="mb-10">
+            <section className="mb-8">
               {/* ── Year timeline rail ─────────────────────────────────────
                   Dot-and-line design. Each year is a circular node with the
                   year label + progress count below. Consecutive years share
@@ -836,7 +903,7 @@ export default function HomePage() {
                           <div className="w-8 h-8 flex items-center justify-center">
                             <div className={`rounded-full transition-all ${
                               isActive
-                                ? "w-3 h-3 bg-yellow-400"
+                                ? "w-3 h-3 bg-gold-400"
                                 : "w-2 h-2 bg-gray-600 group-hover:bg-gray-400"
                             }`} />
                           </div>
@@ -844,7 +911,7 @@ export default function HomePage() {
                           {/* Year label */}
                           <span className={`text-[10px] font-bold font-unbounded leading-tight mt-0.5 transition-colors ${
                             isActive
-                              ? "text-yellow-300"
+                              ? "text-gold-300"
                               : "text-gray-400 group-hover:text-gray-200"
                           }`}>
                             {yl.year}
@@ -852,7 +919,7 @@ export default function HomePage() {
 
                           {/* Progress */}
                           <span className={`text-[10px] tabular-nums leading-none ${
-                            isActive ? "text-yellow-500/60" : "text-gray-700"
+                            isActive ? "text-gold-500/60" : "text-gray-700"
                           }`}>
                             {yl.nomineeCount}/10
                           </span>
@@ -915,7 +982,7 @@ export default function HomePage() {
 
         {/* ─── Winners Gallery — gold AwardCard rail, just below ballot ─── */}
         {galleryYears.length > 0 && (
-          <section className="mb-10">
+          <section className="mb-12">
             <div className="flex items-center justify-between mb-4 px-1">
               <div>
                 <h2 className="text-xl font-bold text-white tracking-wide">Awards Gallery</h2>
@@ -924,7 +991,7 @@ export default function HomePage() {
               {user?.user_metadata?.username && (
                 <Link
                   href={`/${user.user_metadata.username}/awards`}
-                  className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-yellow-300 transition-colors"
+                  className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gold-300 transition-colors"
                 >
                   Full history <ArrowRight className="w-3 h-3" />
                 </Link>
@@ -948,7 +1015,7 @@ export default function HomePage() {
 
         {/* ─── Session coach (subtle, below primary action) ─── */}
         {!sessionCoachDismissed && (
-          <div className="mb-8">
+          <div className="mb-6">
             <SessionCoach
               movies={movies}
               bestYear={bestYearData.bestYear}
@@ -960,9 +1027,13 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* ═══════════════════════════════════════════════════════
+            ZONE 2 — Secondary surfaces (lists, suggestions)
+            Generous mt-16 break signals a content shift from the workbench.
+            ═══════════════════════════════════════════════════ */}
         {/* ─── 1. User Lists — primary, personalized ─── */}
         {(userLists.length > 0 || listsLoading) && (
-          <section className="mb-10">
+          <section className="mt-16 mb-8">
             <HorizontalListRow
               title="Your Lists"
               lists={userLists}
@@ -980,13 +1051,13 @@ export default function HomePage() {
             ReadyMadeCard poster fan that overhangs its top edge.
             ═══════════════════════════════════════════════════ */}
         {smartAlerts.filter((a) => !a.nearMiss).length > 0 && (
-          <section className="mb-10">
+          <section className="mb-12">
             <div className="flex items-center justify-between mb-5 px-1">
               <div>
                 <h2 className="text-xl font-bold text-white tracking-wide">Ready-Made Lists</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Pre-built from your ratings — save any of these in one tap.</p>
               </div>
-              <a href="/lists/ready-made" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors font-medium">
+              <a href="/lists/ready-made" className="text-sm text-gold-400 hover:text-gold-300 transition-colors font-medium">
                 See all →
               </a>
             </div>
@@ -1015,7 +1086,290 @@ export default function HomePage() {
                           type="button"
                           onClick={() => handleSaveSmartList(alert)}
                           disabled={isSaving}
-                          className="px-3 py-1.5 text-sm bg-yellow-500 text-black rounded hover:bg-yellow-400 disabled:opacity-50 font-medium"
+                          className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400 disabled:opacity-50 font-medium"
+                        >
+                          {isSaving ? "Saving…" : "Save"}
+                        </button>
+                      )
+                    }
+                    dismissForm={
+                      !isSaved && (
+                        <button
+                          type="button"
+                          onClick={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
+                          className="text-sm text-gray-400 hover:text-gray-300"
+                          title="Hide this suggestion"
+                        >
+                          Dismiss
+                        </button>
+                      )
+                    }
+                  />
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </>
+    )}
+
+    {/* ═══════════════════════════════════════════════════════
+        MATURE STATE — museum-led; workbench collapses to a pill.
+        The user has earned reward-forward framing. Continue / search
+        are present but quiet. Awards Gallery leads, then curatorial
+        surfaces (Lists, Ready-Made), then discovery, then Canon coda.
+        See PRODUCT_DESIGN_PRINCIPLES §5 (workbench scales with maturity).
+        ═══════════════════════════════════════════════════ */}
+    {userState === "mature" && (
+      <>
+        {/* ─── Compact workbench strip ───
+            Welcome back is the prominent headline. Search sits full-width
+            directly below — it remains the canonical entry into the loop.
+            "Update awards" is the quiet secondary affordance: the workshop
+            is one tap away, never dominating the surface. */}
+        <section ref={stripRef} className="mb-10 scroll-mt-4">
+          <div className="flex items-baseline justify-between gap-3 mb-5">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white font-unbounded tracking-tight">
+              Welcome back
+              {user?.user_metadata?.username ? `, ${user.user_metadata.username}` : ""}.
+            </h1>
+            {yearLeaders.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setWorkshopOpen((open) => !open)}
+                aria-expanded={workshopOpen}
+                aria-controls="mature-workshop"
+                className="inline-flex items-center gap-1.5 min-h-[44px] text-sm font-medium text-gold-300 hover:text-gold-200 transition-colors whitespace-nowrap"
+              >
+                {workshopOpen ? "Done" : "Update awards"}
+                {workshopOpen ? (
+                  <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
+                )}
+              </button>
+            )}
+          </div>
+          <div className="max-w-3xl">
+            <MovieSearchPicker
+              onSelect={handleOpenMovieDetail}
+              placeholder="Search for a film you've watched"
+              variant="hero"
+              suggestedQuery={suggestedQuery}
+            />
+          </div>
+        </section>
+
+        {/* ─── Workshop drawer ───
+            Inline expansion of the year timeline + active ballot card.
+            Identical structure to the established state's workshop zone, but
+            hidden behind the "Update awards" toggle so mature users see the
+            museum first and open the workshop only when they want to edit. */}
+        {workshopOpen && yearLeaders.length > 0 && (() => {
+          const activeYl =
+            yearLeaders.find((yl) => yl.year === expandedCardYear) ?? yearLeaders[0];
+          const sortedLeaders = [...yearLeaders].sort((a, b) => b.year - a.year);
+
+          return (
+            <section
+              ref={workshopRef}
+              id="mature-workshop"
+              className="mb-12 scroll-mt-4"
+              aria-label="Workshop — edit your ballots"
+            >
+              {/* Year timeline rail (same dot + heartbeat treatment) */}
+              <div className="relative mb-6">
+                <div
+                  className="flex items-start overflow-x-auto pb-3 snap-x snap-mandatory"
+                  style={{ scrollbarWidth: "none" }}
+                >
+                  {sortedLeaders.map((yl, idx) => {
+                    const isActive = yl.year === activeYl.year;
+                    const nextYl = sortedLeaders[idx + 1];
+                    const gapSize = nextYl ? yl.year - nextYl.year : 0;
+
+                    return (
+                      <div key={yl.year} className="flex-shrink-0 flex items-start snap-start">
+                        <button
+                          ref={isActive ? activeChipRef : undefined}
+                          type="button"
+                          onClick={() => setExpandedCardYear(yl.year)}
+                          className="flex flex-col items-center gap-1 min-w-[52px] px-1 group"
+                        >
+                          <div className="w-8 h-8 flex items-center justify-center">
+                            <div className={`rounded-full transition-all ${
+                              isActive
+                                ? "w-3 h-3 bg-gold-400"
+                                : "w-2 h-2 bg-gray-600 group-hover:bg-gray-400"
+                            }`} />
+                          </div>
+                          <span className={`text-[10px] font-bold font-unbounded leading-tight mt-0.5 transition-colors ${
+                            isActive
+                              ? "text-gold-300"
+                              : "text-gray-400 group-hover:text-gray-200"
+                          }`}>
+                            {yl.year}
+                          </span>
+                          <span className={`text-[10px] tabular-nums leading-none ${
+                            isActive ? "text-gold-500/60" : "text-gray-700"
+                          }`}>
+                            {yl.nomineeCount}/10
+                          </span>
+                        </button>
+
+                        {nextYl && (
+                          <div className="flex items-center mt-4">
+                            {gapSize === 1 ? (
+                              <div className="w-4 h-[2px] bg-gray-700 rounded-full" />
+                            ) : (
+                              <svg
+                                width="24"
+                                height="12"
+                                viewBox="0 0 24 12"
+                                fill="none"
+                                aria-hidden="true"
+                                className="text-gray-600"
+                              >
+                                <polyline
+                                  points="0,6 4,6 6,1 8,11 10,6 24,6"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Active year card (always expanded inside the drawer) */}
+              <ExpandableYearCard
+                key={activeYl.year}
+                year={activeYl.year}
+                leader={activeYl.leader}
+                nomineeCount={activeYl.nomineeCount}
+                neededForBallot={activeYl.neededForBallot}
+                allMovies={movies}
+                awards={awards}
+                currentUserId={userId}
+                isExpanded={true}
+                onToggle={() => {}}
+                onUpdateMovieRanking={handleUpdateMovieRanking}
+                onCreateAward={handleCreateAwardFromExplorer}
+                onOpenFullExplorer={(year) => setExplorerYear(year)}
+                onMilestoneReached={handleBallotMilestone}
+              />
+            </section>
+          );
+        })()}
+
+        {/* ─── Awards Gallery — the lead (your collection) ─── */}
+        {galleryYears.length > 0 && (
+          <section className="mb-12">
+            <div className="flex items-center justify-between mb-4 px-1">
+              <div>
+                <h2 className="text-xl font-bold text-white tracking-wide">Awards Gallery</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Best Picture winners by year</p>
+              </div>
+              {user?.user_metadata?.username && (
+                <Link
+                  href={`/${user.user_metadata.username}/awards`}
+                  className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gold-300 transition-colors"
+                >
+                  Full history <ArrowRight className="w-3 h-3" />
+                </Link>
+              )}
+            </div>
+            <div className="flex gap-3 pb-3 overflow-x-auto snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+              {galleryYears.map((entry) => (
+                <div key={entry.year} className="flex-shrink-0 w-[160px] sm:w-[180px] snap-start">
+                  <AwardCard
+                    year={entry.year}
+                    winnerTitle={entry.winner.title}
+                    winnerPoster={entry.winner.poster_url}
+                    nomineeCount={entry.nomineeCount}
+                    onClick={() => setExplorerYear(entry.year)}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ─── Your Lists — what you've curated ─── */}
+        {(userLists.length > 0 || listsLoading) && (
+          <section className="mb-12">
+            <HorizontalListRow
+              title="Your Lists"
+              lists={userLists}
+              seeAllHref="/lists/mine"
+              readOnly={false}
+              onAdd={() => { window.location.href = "/lists"; }}
+            />
+          </section>
+        )}
+
+        {/* ─── Recognition Feed — discovery elevated for mature users ───
+            Deep users have earned the system's highest-value offer (taste-
+            matched film suggestions). Promoted ahead of Ready-Made Lists so
+            it doesn't sit buried beneath curatorial surfaces. The shared
+            RecognitionFeed render below is suppressed for mature users
+            (`userState !== "mature"`) to avoid double-rendering. */}
+        {(feedLoading || feedRows.length > 0) && (
+          <section className="mb-12">
+            <RecognitionFeed
+              rows={feedRows}
+              loading={feedLoading}
+              onSelectMovie={handleOpenMovieDetail}
+              onUpdate={handleUpdateMovieRanking}
+              currentUserId={userId}
+            />
+          </section>
+        )}
+
+        {/* ─── Ready-Made Lists — auto-built from your taste ─── */}
+        {smartAlerts.filter((a) => !a.nearMiss).length > 0 && (
+          <section className="mb-12">
+            <div className="flex items-center justify-between mb-5 px-1">
+              <div>
+                <h2 className="text-xl font-bold text-white tracking-wide">Ready-Made Lists</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Pre-built from your ratings — save any of these in one tap.</p>
+              </div>
+              <a href="/lists/ready-made" className="text-sm text-gold-400 hover:text-gold-300 transition-colors font-medium">
+                See all →
+              </a>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 overflow-visible">
+              {smartAlerts.filter((a) => !a.nearMiss).map((alert) => {
+                const alertKey = `${alert.type}:${alert.label}`;
+                const posterUrls = getSmartListPosterUrls(alert.movieIds);
+                const typeLabel = alert.type.charAt(0).toUpperCase() + alert.type.slice(1);
+                const isSaving = savingAlertKey === alertKey;
+                const isSaved = savedAlertKeys.includes(alertKey);
+                const isDismissed = dismissedAlertKeys.includes(alertKey);
+                if (isDismissed) return null;
+                return (
+                  <ReadyMadeCard
+                    key={alertKey}
+                    title={alert.label}
+                    count={alert.count}
+                    subtitle={<span>Auto-generated from your seen films • {typeLabel}</span>}
+                    posterUrls={posterUrls}
+                    viewHref={`/lists/ready-made/${slugifyTitle(alert.label)}`}
+                    headerRight={
+                      isSaved ? (
+                        <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSaveSmartList(alert)}
+                          disabled={isSaving}
+                          className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400 disabled:opacity-50 font-medium"
                         >
                           {isSaving ? "Saving…" : "Save"}
                         </button>
@@ -1045,9 +1399,9 @@ export default function HomePage() {
   {/* ─── Up Next — first horizontal row ─── */}
   <WatchlistMovieRow userId={userId} username={user?.user_metadata?.username ?? null} />
 
-  {/* ─── Recognition feed ─── */}
-  {(feedLoading || feedRows.length > 0) && (
-    <section className="mb-10">
+  {/* ─── Recognition feed ─── (mature renders this earlier, inside its own branch) */}
+  {userState !== "mature" && (feedLoading || feedRows.length > 0) && (
+    <section className="mb-12">
       <RecognitionFeed
         rows={feedRows}
         loading={feedLoading}
@@ -1058,41 +1412,45 @@ export default function HomePage() {
     </section>
   )}
 
-  {/* ─── Your Canon — established only ─── */}
-  {userState === "established" && yearLeaders.length > 0 && (
-    <section className="mb-10">
-        <div className="rounded-2xl border border-gray-700/30 bg-gray-900/50 px-6 py-6">
+  {/* ═══════════════════════════════════════════════════════
+      ZONE 4 — Coda: Your Canon (established + mature)
+      Editorial summary of the user's canon — not a stats wall.
+      Reduced typography, neutralized gold, no panel chrome.
+      ═══════════════════════════════════════════════════ */}
+  {(userState === "established" || userState === "mature") && yearLeaders.length > 0 && (
+    <section className="mt-16">
+        <div className="px-1">
 
           {/* Section label */}
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 mb-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500 mb-4">
             Your Canon
           </p>
 
-          {/* Stats row — larger, more intentional */}
+          {/* Stats row — quiet, supportive, no longer competing */}
           <div className="flex items-start gap-4 sm:gap-8 mb-5">
             <div>
-              <p className="text-4xl font-bold text-white tabular-nums leading-none">
+              <p className="text-2xl font-semibold text-gray-200 tabular-nums leading-none">
                 {yearLeaders.length}
               </p>
               <p className="text-xs text-gray-500 mt-1.5">
                 {yearLeaders.length === 1 ? "Year" : "Years"}
               </p>
             </div>
-            <div className="border-l border-gray-700/50 pl-4 sm:pl-8">
-              <p className="text-4xl font-bold text-white tabular-nums leading-none">
+            <div className="border-l border-gray-700/40 pl-4 sm:pl-8">
+              <p className="text-2xl font-semibold text-gray-200 tabular-nums leading-none">
                 {tasteProfile.ratedCount}
               </p>
               <p className="text-xs text-gray-500 mt-1.5">Films rated</p>
             </div>
-            <div className="border-l border-gray-700/50 pl-4 sm:pl-8">
-              <p className="text-4xl font-bold text-yellow-400 tabular-nums leading-none">
+            <div className="border-l border-gray-700/40 pl-4 sm:pl-8">
+              <p className="text-2xl font-semibold text-gray-200 tabular-nums leading-none">
                 {yearLeaders.filter((yl) => yl.nomineeCount >= 10).length}
               </p>
               <p className="text-xs text-gray-500 mt-1.5">Ballots complete</p>
             </div>
           </div>
 
-          {/* Taste / genre identity */}
+          {/* Taste / genre identity — the editorial heart of this section */}
           {(tasteProfile.eraLabel || tasteProfile.topGenres.length > 0) && (
             <div className="border-t border-gray-700/30 pt-4">
               {tasteProfile.eraLabel && (
@@ -1143,7 +1501,7 @@ export default function HomePage() {
                         href={`/films?genre=${encodeURIComponent(entry.genre)}`}
                         className="flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg bg-gray-800/50 hover:bg-gray-800/80 border border-gray-700/40 hover:border-gray-600/60"
                       >
-                        <span className="text-xs font-medium text-yellow-300">{entry.label}</span>
+                        <span className="text-xs font-medium text-gold-300">{entry.label}</span>
                         {entry.movieTitle && (
                           <span className="text-xs text-gray-500 truncate max-w-[120px]">{entry.movieTitle}</span>
                         )}
@@ -1208,14 +1566,46 @@ export default function HomePage() {
         />
       )}
 
-      {milestoneOverlay && (
-        <BallotMilestoneOverlay
-          year={milestoneOverlay.year}
-          milestone={milestoneOverlay.milestone}
-          winnerTitle={milestoneOverlay.winnerTitle}
-          onClose={() => setMilestoneOverlay(null)}
-        />
-      )}
+      {/* Onboarding Watch → Rate → Form flow — first-pick experience for new users */}
+      <OnboardingPickFlow
+        isOpen={onboardingPickFlowMovie !== null}
+        movie={onboardingPickFlowMovie}
+        currentNomineeCountForYear={(() => {
+          // Count rated-7+ films for the picked movie's year, EXCLUDING the
+          // current movie so the forming panel can add it back correctly
+          // regardless of whether the parent's data has refreshed yet.
+          if (!onboardingPickFlowMovie?.release_year) return 0;
+          const year = onboardingPickFlowMovie.release_year;
+          return movies.filter((m) => {
+            if (m.id === onboardingPickFlowMovie.id) return false;
+            if (m.release_year !== year) return false;
+            const r = m.rankings?.[0]?.ranking;
+            return typeof r === "number" && r >= 7;
+          }).length;
+        })()}
+        onConfirmWatch={handleOnboardingWatch}
+        onRate={handleOnboardingRate}
+        onRateAnother={() => {
+          // Send the guest to the year-scoped onboarding continuation page.
+          // The page wraps a year-only film grid in persistent onboarding
+          // chrome (progress header + sticky signup CTA) so momentum holds.
+          const year = onboardingPickFlowMovie?.release_year;
+          setOnboardingPickFlowMovie(null);
+          if (year) {
+            window.location.href = `/onboarding/${year}`;
+          }
+        }}
+        onTryAnotherYear={() => {
+          // No year filter — let them pick any film, any year. /films is now
+          // guest-accessible (gate removed earlier this session).
+          setOnboardingPickFlowMovie(null);
+          window.location.href = "/films";
+        }}
+        onSignup={() => { window.location.href = "/login"; }}
+        onPickAnother={() => setOnboardingPickFlowMovie(null)}
+        onClose={() => setOnboardingPickFlowMovie(null)}
+      />
+
     </div>
   );
 }

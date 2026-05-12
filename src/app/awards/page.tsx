@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import Link from "next/link";
+import { ArrowRight, Trophy } from "lucide-react";
 import EditableYearSection from "@/components/award/EditableYearSection";
 import AwardsEmptyState from "@/components/award/AwardsEmptyState";
 import YearExplorer from "@/components/home/YearExplorer";
@@ -224,29 +226,13 @@ export default function AwardsPage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [explorerYear, explorerIsEditing, handleCloseExplorer]);
 
-  if (status === "unauthenticated" || isGuest) {
-    return (
-      <ScreenState
-        testId="screen-state-auth-required"
-        title="Sign in to view your awards"
-        message="Your awards are built from your ratings. Sign in to see them take shape."
-        primaryAction={{ label: "Sign In", href: "/login" }}
-        secondaryAction={{ label: "Back Home", href: "/" }}
-      />
-    );
-  }
-
-  // Guest gate — resolve immediately once auth is known; don't wait on data hooks.
-  // Falls through to AwardsEmptyState which has the correct guest CTA.
-  if (status !== "loading" && isGuest) {
-    return (
-      <AwardsEmptyState
-        onSelectMovie={(movie) => {
-          updateMovieRanking(movie.id, { seen_it: true, ranking: 10 });
-        }}
-      />
-    );
-  }
+  // Guests are first-class on /awards per the project's guest-mode mandate.
+  // The page falls through to the same data flow as authed users — guests
+  // with ratings see their forming/canonical awards; guests with no ratings
+  // see AwardsEmptyState (existing). A sticky save-your-awards banner is
+  // rendered below the gallery for guests so the signup nudge stays present
+  // without blocking the payoff. Removed the auth-required ScreenState gate
+  // 2026-05-12 — it was blocking the very thing the page is meant to show.
 
   if (loading || awardsLoading || status === "loading") {
     return (
@@ -281,9 +267,14 @@ export default function AwardsPage() {
     );
   }
 
+  // Canonical ballots count for the guest signup-banner messaging.
+  // A year "sets" once it has 5+ nominees; the sticky CTA copy escalates
+  // once the guest has at least one set ballot to lose.
+  const canonicalYearCount = formattedYears.filter((y) => y.nominees.length >= 5).length;
+
   return (
     <>
-      <div className="max-w-screen-xl mx-auto">
+      <div className={`max-w-screen-xl mx-auto ${isGuest ? "pb-32" : ""}`}>
         {formattedYears.map((yearData) => {
           const isVisible = visibleYears.has(yearData.year);
           return (
@@ -311,7 +302,87 @@ export default function AwardsPage() {
             </div>
           );
         })}
+
+        {/* End-of-list closer — content-anchored signup nudge. Sits after
+            the last year so the scroll has a natural ending instead of a
+            sudden stop into the sticky footer. Guests only. */}
+        {isGuest && (
+          <div className="mt-12 mx-auto max-w-2xl px-4 sm:px-6">
+            <div className="rounded-2xl border border-gold-500/30 bg-gradient-to-b from-gold-500/[0.08] to-charcoal-900/40 px-6 py-8 text-center">
+              <div className="flex justify-center mb-3">
+                <Trophy className="w-8 h-8 text-gold-300" aria-hidden="true" />
+              </div>
+              <h2 className="text-xl font-bold text-white font-unbounded tracking-tight">
+                You&apos;ve built {formattedYears.length} {formattedYears.length === 1 ? "year" : "years"} of awards.
+              </h2>
+              <p className="mt-3 text-sm text-gray-300 leading-relaxed max-w-md mx-auto">
+                These don&apos;t auto-save.{" "}
+                {canonicalYearCount > 0 ? (
+                  <>
+                    Your {canonicalYearCount === 1 ? "award is" : `${canonicalYearCount} awards are`} ready — sign up to keep {canonicalYearCount === 1 ? "it" : "them"} as your collection grows.
+                  </>
+                ) : (
+                  <>Sign up to keep them as your collection grows.</>
+                )}
+              </p>
+              <div className="mt-6 flex flex-col items-center gap-2">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-lg bg-gold-500 px-5 py-2.5 text-sm font-semibold text-black hover:bg-gold-400 transition-colors"
+                >
+                  Save my awards
+                  <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+                </Link>
+                <Link
+                  href="/"
+                  className="inline-flex items-center min-h-[44px] text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  Keep going as guest
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Guest sticky CTA — payoff is on the page, the nudge sits below it.
+          Copy escalates once the guest has at least one canonical ballot
+          to lose (5+ nominees in any year). */}
+      {isGuest && (
+        <div className="fixed bottom-0 inset-x-0 z-40 border-t border-gray-800 bg-charcoal-900/95 backdrop-blur-md">
+          <div className="max-w-screen-xl mx-auto px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between gap-3">
+            <div className="min-w-0 flex items-center gap-2">
+              {canonicalYearCount > 0 ? (
+                <>
+                  <Trophy className="w-4 h-4 text-gold-300 flex-shrink-0" aria-hidden="true" />
+                  <p className="text-sm font-semibold text-gold-200 truncate">
+                    {canonicalYearCount === 1
+                      ? "Your award is set. Save it before you leave."
+                      : `${canonicalYearCount} awards set. Save them before you leave.`}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-gray-300 truncate">
+                  These travel with your account. Sign up to keep them.
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link
+                href="/login"
+                className={`inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  canonicalYearCount > 0
+                    ? "bg-gold-500 text-black hover:bg-gold-400"
+                    : "border border-gold-500/40 bg-gold-500/10 text-gold-200 hover:bg-gold-500/15"
+                }`}
+              >
+                {canonicalYearCount > 0 ? "Save my awards" : "Sign up"}
+                <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* YearExplorer overlay — editing happens here */}
       {explorerYear !== null && (

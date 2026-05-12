@@ -134,3 +134,34 @@ Python scripts in `scripts/`:
 ---
 
 **Priority**: Guest mode support and proper client/server component separation are non-negotiable architectural decisions. Always validate these when modifying user-facing features.
+
+---
+
+## Design Context
+
+Mirrored from `.impeccable.md` (root). That file is the authoritative source — update it first, then sync this section.
+
+### Users
+
+Film-loving adults rewriting Oscar history based on what they actually watched and how films aged in their memory. Opinion-first, hindsight-aware. **Not** completionists, loggers, or stat-collectors. Primary use context is mobile, in stolen moments after watching something.
+
+### Brand Personality
+
+**Three words: Curious. Editorial. Personal.** Apple Music / Apple TV-tier polish is the quality bar (cinematic dark surfaces, large posters, generous space, restrained motion). The product should feel like it *honors* the user's taste — never grades it, never gamifies it.
+
+### Aesthetic Direction
+
+- **Dark only.** Gold (`#D4AF37`) + charcoal (`#2D2D2D`).
+- **Typography:** Unbounded (display / ceremony) + Inter (body / UI).
+- **Visual mood:** Cinematic museum after-hours. Posters are primary visual currency.
+- **Anti-references:** Letterboxd, IMDb, gamification (badges/XP/streaks), generic SaaS dashboards, AI-slop palettes (cyan-on-dark, gradient text, glass-with-glow).
+
+### Design Principles
+
+1. **Posters are the visual currency** — reduce competing chrome around them.
+2. **Gold is for recognition, not decoration** — winners and milestones only; never borders or focus rings.
+3. **Formation is visible, ceremony is reserved** — workbench shows building; museum shows artifacts. Never blur the two.
+4. **Editorial restraint over dashboard density** — Apple Music album page, not analytics tiles.
+5. **Mobile is canonical, not adapted** — ≥44px tap targets, thumb-zone primary actions, no hover-dependent affordances.
+6. **Single intent per surface** — Home = workbench, Awards = museum.
+7. **Trust user taste before system confidence** — thin ballots stay visibly provisional; the system suggests, the user owns.

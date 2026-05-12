@@ -49,6 +49,48 @@
   animation: nominee-glow 2000ms ease-out forwards;
 }
 
+/* Tour pulse ring — gentle, looping ring drawing attention to an onboarding
+   target (e.g. Unseen icon in OnboardingPickFlow step 1). Honors reduced motion. */
+@keyframes tour-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(234,179,8,0.55), 0 0 0 0 rgba(234,179,8,0.30); }
+  60%  { box-shadow: 0 0 0 6px rgba(234,179,8,0.00), 0 0 0 10px rgba(234,179,8,0.00); }
+  100% { box-shadow: 0 0 0 0 rgba(234,179,8,0.00), 0 0 0 0 rgba(234,179,8,0.00); }
+}
+.tour-pulse-ring {
+  animation: tour-pulse-ring 1800ms ease-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-pulse-ring {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(234,179,8,0.50);
+  }
+}
+
+/* Ballot milestone — one-shot celebration that settles into the persistent
+   Forming/Canonical visual state on the card. Honors prefers-reduced-motion. */
+@keyframes milestone-pulse {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.012); }
+  100% { transform: scale(1); }
+}
+@keyframes milestone-sweep {
+  0%   { transform: translateX(0); opacity: 0; }
+  18%  { opacity: 1; }
+  100% { transform: translateX(420%); opacity: 0; }
+}
+.animate-milestone-pulse {
+  animation: milestone-pulse 1200ms cubic-bezier(0.22, 1, 0.36, 1) 1;
+}
+.animate-milestone-sweep {
+  animation: milestone-sweep 1100ms cubic-bezier(0.22, 1, 0.36, 1) 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-milestone-pulse,
+  .animate-milestone-sweep {
+    animation: none;
+  }
+}
+
 /* Support components using the literal class 'dark:dark-glass' (Tailwind variant on custom class doesn't apply) */
 .dark .dark\:dark-glass {
   @apply rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer border;
@@ -590,7 +632,7 @@ body {
 
 .hiw-step__body {
   font-size: 0.9rem;
-  color: rgba(200, 196, 192, 0.55);
+  color: rgba(216, 212, 208, 0.78);
   line-height: 1.55;
 }
 
@@ -972,12 +1014,26 @@ body {
   transition:
     opacity 780ms var(--home-ease),
     transform 780ms var(--home-ease);
+  /* Safety fallback — if IntersectionObserver doesn't fire (iOS Safari edge
+     case where GSAP pinning interferes with thresholds), reveal content after
+     a 4s delay so it never gets stuck invisible. The .motion-reveal--visible
+     class still wins instantly when the observer fires. */
+  animation: motion-reveal-fallback 0ms ease-out 4000ms forwards;
 }
 
 .motion-reveal--visible {
   --motion-y: 0px;
   --motion-scale: 1;
   opacity: 1;
+  /* Once explicitly revealed, stop the fallback animation from interfering. */
+  animation: none;
+}
+
+@keyframes motion-reveal-fallback {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .motion-reveal-scale {

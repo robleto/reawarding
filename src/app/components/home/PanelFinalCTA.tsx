@@ -47,7 +47,7 @@ export default function PanelFinalCTA({
         >
           <MovieSearchPicker
             onSelect={onSelectMovie}
-            placeholder="Search for a movie…"
+            placeholder="Search for a film you've watched"
           />
           <p className="final-cta-microcopy">
             No account needed. Your call, your canon.

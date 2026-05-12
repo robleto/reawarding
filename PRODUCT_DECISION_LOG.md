@@ -4,6 +4,45 @@ Purpose: Record WHY major product direction decisions were made to prevent futur
 
 ---
 
+## May 2026 — Onboarding Seed Lowered from 10 to 7; Ballot Framing Deferred to 3+ Ratings
+
+### Decision
+
+The auto-seed rating applied to a new user's first picked film is **7**, not 10. The "Best Picture Ballot" page title and "Will your ballot agree?" comparison prompt are deferred until the user has rated **3+ films for the year**. Below that threshold the surface reads as the neutral "Your {year}".
+
+### Reason
+
+A new user picking their first film for a year was being dropped into a fully-formed outcome: their pick was rated 10, auto-nominated, crowned with a winner trophy, and presented under the title "Your 2021 Best Picture Ballot" — all on action one. The onboarding tour's step 1 then asked them to *adjust* the rating, making the first user action a contradiction: undoing a verdict they didn't render.
+
+This violated Law 3 (awards must form, never appear instantly) and Law 4 (visible formation) in spirit, even though the data pipeline technically respected emergence. The fully-formed-with-no-formation feel was the reported symptom.
+
+Seeding at 7 instead of 10 keeps the loop visible on action one (the value of the seed mechanism) while changing the message from "you've already decided" to "this counts — now calibrate." The first user action becomes productive instead of corrective.
+
+Deferring ballot framing until 3+ ratings lets the formal award language *earn* its appearance. After the seeded rating + two more explicit ratings, the page reframes — which is itself a "I did something, the page responded" formation moment.
+
+### What Changed
+
+- `YearExplorer.tsx` seeding effect — `ranking: 10` → `ranking: 7`
+- Tour step 1 copy — was "Your pick is rated 10. Tap to adjust" — now "Starting score: 7. 7 is the threshold; tap to dial in how you actually felt."
+- `YearExplorer` header title gated on `moviesWithRankings.length >= 3`
+- "Will your ballot agree?" comparison hook gated on the same threshold
+- `EditableYearSection.tsx` jargon line — "more films to reach a Standard Ballot" → "Rate N more 7+ to fill the 5 nominee slots"
+- `PRODUCT_GUARDRAILS.md` Guardrails 12 and 13 added
+
+### What Did NOT Change
+
+- Watch and Rate remain separate actions (Guardrail 10 holds)
+- The seed mechanism itself remains — the loop must be visible from action one
+- Awards still emerge from ratings (emergence not gating)
+- Three homepage states (new / building / established) unchanged
+- The 7+ auto-nominate threshold itself is unchanged
+
+### Reversal Conditions
+
+Re-evaluate the seed value if user research shows that 7 produces enough cognitive friction that users churn before the ballot reframes at 3 ratings. The seed mechanism itself should not be reversed without first solving the formation-feel problem some other way; reverting to no-seed kills the action-one visibility of the loop, which was the original problem the seed was introduced to solve.
+
+---
+
 ## March 2026 — Watch → Rate → ReAward Confirmed As Canonical Loop
 
 ### Decision

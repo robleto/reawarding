@@ -81,10 +81,10 @@ export default function HeaderNav() {
 				<div className="relative z-10 flex items-center justify-between max-w-screen-xl px-6 py-3 mx-auto gap-x-6">
 				{/* Logo & Title */}
 				<div className="flex items-center flex-shrink-0 gap-2">
-					<Link href="/" className="flex items-center">
+					<Link href="/" className="flex items-center min-h-[44px]" aria-label="Reawarding home">
 						<Logo size="sm" showText={false} />
 					</Link>
-					<span className="ml-2 px-2 py-0.5 text-[10px] font-bold tracking-wider text-yellow-900 dark:text-yellow-200 bg-yellow-400/90 dark:bg-yellow-500/30 border border-yellow-600/50 dark:border-yellow-400/40 rounded uppercase">
+					<span className="ml-2 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-gray-400 bg-charcoal-900/60 border border-gray-700/60 rounded uppercase">
 						Beta
 					</span>
 				</div>					{/* Navigation and Controls */}
@@ -169,7 +169,7 @@ export default function HeaderNav() {
 							)}
 							{user && (
 								<button
-									className="md:hidden p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+									className="md:hidden inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
 									aria-label="Open user menu"
 									onClick={() => { setMobileUserOpen(!mobileUserOpen); if (!mobileUserOpen) setMobileMenuOpen(false); }}
 								>
@@ -184,7 +184,7 @@ export default function HeaderNav() {
 							{/* Mobile Menu Button */}
 							<button
 								onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (!mobileMenuOpen) setMobileUserOpen(false); }}
-								className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ml-auto"
+								className="md:hidden inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ml-auto"
 								aria-label="Toggle mobile menu"
 							>
 								{mobileMenuOpen ? (
@@ -199,7 +199,7 @@ export default function HeaderNav() {
 
 				{/* Mobile Menu */}
 				{mobileMenuOpen && (
-					<div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-800/50 transition-colors duration-300">
+					<div className="md:hidden bg-white dark:bg-charcoal-900 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-800/50 transition-colors duration-300">
 						<nav className="px-6 py-4">
 							<ul className="space-y-3">
 								{navItems.map((item) => {
@@ -214,7 +214,7 @@ export default function HeaderNav() {
 												href={item.href}
 												className={`block py-2 px-3 rounded-md font-medium transition-colors ${
 													isActive
-														? "text-gold dark:text-gold bg-yellow-50 dark:bg-gold/10"
+														? "text-gold dark:text-gold bg-gold-50 dark:bg-gold/10"
 														: "text-gray-700 dark:text-gray-300 hover:text-gold dark:hover:text-gold hover:bg-gray-50 dark:hover:bg-gray-800"
 												}`}
 												onClick={() => setMobileMenuOpen(false)}
@@ -244,7 +244,7 @@ export default function HeaderNav() {
 
 				{/* Mobile User Panel */}
 				{mobileUserOpen && (
-					<div className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-800/50 transition-colors duration-300">
+					<div className="md:hidden bg-white dark:bg-charcoal-900 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-800/50 transition-colors duration-300">
 						<nav className="px-6 py-4">
 							<ul className="space-y-3">
 								<li>

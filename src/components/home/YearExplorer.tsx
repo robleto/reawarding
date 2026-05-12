@@ -14,7 +14,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import Image from "next/image";
-import { X, Trophy, Info, Star, Plus } from "lucide-react";
+import { X, Trophy, Info, Star, Plus, HelpCircle, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import ContextualTip from "@/components/onboarding/ContextualTip";
 // BallotMilestoneOverlay import removed — confetti/overlay disabled until UX is finalized
@@ -79,7 +79,8 @@ export default function YearExplorer({
   const [recentlyNominated, setRecentlyNominated] = useState<Set<string | number>>(new Set());
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   // 3-step rating tour shown to new users after their first pick.
-  // Step 1: explains the auto-seeded rating=10. Step 2: explains filling the ballot.
+  // Step 1: explains the auto-seeded rating=7 (the nomination threshold).
+  // Step 2: explains filling the ballot.
   // Step 3: auto-scrolls to acclaimed section (no callout, just scroll + tip).
   const [ratingTourStep, setRatingTourStep] = useState<0 | 1 | 2 | 3>(
     isOnboardingPick
@@ -204,15 +205,19 @@ export default function YearExplorer({
     [displayNominees, workshopNomineeIds]
   );
 
-  // Sync tour step from parent when isOnboardingPick or initialRatingTourStep changes.
-  // IMPORTANT: ratingTourStep intentionally excluded from deps — including it creates
-  // a feedback loop via onRatingTourStepChange → page.tsx state → prop back here.
-  // React bails on setRatingTourStep when the value matches existing state.
+  // Seed tour step once per onboarding session. After that, local state is the
+  // source of truth — re-syncing from the parent's prop would resurrect the tour
+  // after the user dismisses it (X → 0 → propagate up → prop returns as 0 →
+  // default branch resets to 1).
+  const tourSeededRef = useRef(false);
   useEffect(() => {
     if (!isOnboardingPick) {
       setRatingTourStep(0);
+      tourSeededRef.current = false;
       return;
     }
+    if (tourSeededRef.current) return;
+    tourSeededRef.current = true;
     setRatingTourStep(initialRatingTourStep > 0 ? initialRatingTourStep : 1);
   }, [isOnboardingPick, initialRatingTourStep]);
 
@@ -227,9 +232,12 @@ export default function YearExplorer({
 
     seededOnboardingRef.current = true;
 
+    // Seed at 7 — the auto-nominate threshold, not a maximal score. This makes the
+    // first action a calibration ("dial in how I actually felt") rather than an
+    // undoing of an unjustified 10. See PRODUCT_GUARDRAILS — onboarding seeding rule.
     void onUpdateMovieRanking(pickedMovie.id as unknown as number, {
       seen_it: true,
-      ranking: 10,
+      ranking: 7,
     });
 
     if (!activeNomineeIdSet.has(String(pickedMovie.id))) {
@@ -268,7 +276,7 @@ export default function YearExplorer({
       const { data, error } = await supabase
         .from("movies")
         .select(
-          "id, title, release_year, poster_url, thumb_url, vote_count, tmdb_rating"
+          "id, title, release_year, poster_url, thumb_url, vote_count, tmdb_rating, genres"
         )
         .eq("release_year", year)
         .order("vote_count", { ascending: false, nullsFirst: false })
@@ -335,21 +343,23 @@ export default function YearExplorer({
   );
 
   // ─── 3-tier candidate pool: Top contenders / Other / Deep cuts ─────────
-  const unseenCandidates = useMemo(
+  // Cards stay visible once marked Seen (so the user can see where their action
+  // went and click Rate on the same card). Films exit the pool only when they
+  // become a current nominee — i.e. once they've earned their place on the ballot.
+  const candidateFilms = useMemo(
     () =>
-      filteredYearMovies.filter((movie) => {
-        const seenIt = movie.rankings?.[0]?.seen_it === true;
-        return !seenIt && !activeNomineeIdSet.has(String(movie.id));
-      }),
+      filteredYearMovies.filter(
+        (movie) => !activeNomineeIdSet.has(String(movie.id))
+      ),
     [filteredYearMovies, activeNomineeIdSet]
   );
 
   const topContenders = useMemo(
     () =>
-      unseenCandidates
+      candidateFilms
         .filter((m) => bestRating(m) >= 7)
         .sort(familiaritySort),
-    [unseenCandidates, bestRating, familiaritySort]
+    [candidateFilms, bestRating, familiaritySort]
   );
 
   const topContenderIdSet = useMemo(
@@ -359,10 +369,10 @@ export default function YearExplorer({
 
   const otherFilms = useMemo(
     () =>
-      unseenCandidates
+      candidateFilms
         .filter((m) => bestRating(m) >= 5 && !topContenderIdSet.has(m.id))
         .sort(familiaritySort),
-    [unseenCandidates, bestRating, topContenderIdSet, familiaritySort]
+    [candidateFilms, bestRating, topContenderIdSet, familiaritySort]
   );
 
   const otherFilmsIdSet = useMemo(
@@ -372,10 +382,10 @@ export default function YearExplorer({
 
   const deepCuts = useMemo(
     () =>
-      unseenCandidates
+      candidateFilms
         .filter((m) => !topContenderIdSet.has(m.id) && !otherFilmsIdSet.has(m.id))
         .sort(familiaritySort),
-    [unseenCandidates, topContenderIdSet, otherFilmsIdSet, familiaritySort]
+    [candidateFilms, topContenderIdSet, otherFilmsIdSet, familiaritySort]
   );
 
   // lowRatedMovies removed — folded into contenderMovies (all user-ranked films).
@@ -547,7 +557,7 @@ export default function YearExplorer({
           <p className="text-xs uppercase tracking-wide text-gray-400 font-medium mb-3">
             {rowTitle}
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
             {movies.map((movie) => {
               const justNominated = recentlyNominated.has(movie.id);
               const ranking = movie.rankings?.[0]?.ranking ?? null;
@@ -627,17 +637,46 @@ export default function YearExplorer({
       return;
     }
 
+    const findAnchor = (): HTMLElement | null => {
+      // Step 1 → the rating badge on the picked-movie row (the "default, editable" target)
+      // Step 2 → the Add Nominee button (the "fill more slots" target)
+      // Step 3 → the contenders section below the ballot (the "rate more films" target)
+      if (ratingTourStep === 1) {
+        return ballotRef.current?.querySelector(
+          '[data-tour-grid="nominees"] [data-tour-target="rating-badge"]'
+        ) as HTMLElement | null;
+      }
+      if (ratingTourStep === 2) {
+        return ballotRef.current?.querySelector(
+          '[data-tour-grid="nominees"] [data-tour-empty-slot="true"]'
+        ) as HTMLElement | null;
+      }
+      if (ratingTourStep === 3) {
+        return document.querySelector(
+          '[data-tour-target="contenders"]'
+        ) as HTMLElement | null;
+      }
+      return null;
+    };
+
     const measure = () => {
-      const selector = ratingTourStep === 2
-        ? '[data-tour-grid="nominees"] [data-tour-empty-slot="true"]'
-        : '[data-tour-grid="nominees"] > div';
-      const anchor = ballotRef.current?.querySelector(selector) as HTMLElement | null;
+      const anchor = findAnchor();
       if (anchor) {
         setTourAnchorRect(anchor.getBoundingClientRect());
         return;
       }
       setTourAnchorRect(null);
     };
+
+    // Bring the anchor into view if it isn't already — step 3 in particular sits
+    // below the fold. For step 3 we use block:"start" so the section's
+    // scroll-margin-top (40vh) leaves room above for an upward-floating tooltip.
+    const anchorForScroll = findAnchor();
+    if (ratingTourStep === 3) {
+      anchorForScroll?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      anchorForScroll?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
 
     // Slight delay for step 1 only — card may not have rendered yet
     // (onboarding seeding effect fires asynchronously)
@@ -652,13 +691,18 @@ export default function YearExplorer({
   }, [ratingTourStep]);
 
   // ─── RENDER ────────────────────────────────────────────────────
+  // Earned framing: ballot title only appears once the user has rated 3+ films
+  // for this year. Until then, the page is neutrally "Your {year}" — the formal
+  // award language is held back until there's enough signal to justify it.
+  const ratedFilmsForYearCount = moviesWithRankings.length;
+  const showBallotFraming = ratedFilmsForYearCount >= 3;
   return (
     <div className="bg-gray-900/80 border border-gray-700/60 shadow-2xl rounded-2xl p-4 md:p-6 min-h-[70vh] animate-in fade-in slide-in-from-top-2 duration-300">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div>
           <h3 className="text-lg font-bold text-white font-unbounded">
-            Your {year} Best Picture Ballot
+            {showBallotFraming ? `Your ${year} Best Picture Ballot` : `Your ${year}`}
           </h3>
           <div className="relative mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
             <button
@@ -678,13 +722,23 @@ export default function YearExplorer({
             )}
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="p-2 rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-white transition-colors"
-          aria-label="Close year explorer"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setRatingTourStep(1)}
+            className="p-2 rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-white transition-colors"
+            aria-label={ratingTourStep > 0 ? "Restart walkthrough" : "Show walkthrough"}
+            title="Show walkthrough"
+          >
+            <HelpCircle className="w-5 h-5" />
+          </button>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-white transition-colors"
+            aria-label="Close year explorer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Instructional sub-header */}
@@ -694,15 +748,22 @@ export default function YearExplorer({
       {actualWinner && (
         <p className="text-xs text-gray-400 mb-4">
           The Academy chose{" "}
-          <span className="font-medium text-yellow-400">{actualWinner.title}</span>.{" "}
-          <span className="text-gray-500">Will your ballot agree?</span>
+          <span className="font-medium text-yellow-400">{actualWinner.title}</span>.
+          {showBallotFraming && (
+            <> <span className="text-gray-500">Will your ballot agree?</span></>
+          )}
         </p>
       )}
 
-      {/* Guest mode messaging */}
+      {/* Guest mode messaging — present but lower-weight than the action buttons.
+          A pill, not a banner. The auto-saved indicator inside EditableYearSection
+          is hidden for guests so this is the canonical signal that data is at risk. */}
       {isGuest && (
-        <div className="mb-4 px-3 py-2 rounded-lg border border-amber-500/20 bg-amber-500/5 text-amber-300/80 text-xs text-center">
-          Sign up to save and edit this ballot.
+        <div className="mb-4 flex items-center justify-end">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/[0.06] px-2.5 py-1 text-[11px] font-medium text-amber-300/90">
+            <Lock className="w-3 h-3" />
+            Sign up to save your ballot
+          </span>
         </div>
       )}
 
@@ -739,26 +800,37 @@ export default function YearExplorer({
             <div className="flex items-center gap-2 mb-2">
               <Trophy className={`w-3.5 h-3.5 ${liveNomineeCount >= 5 ? "text-yellow-400" : "text-yellow-400/70"}`} />
               <span className="text-xs font-medium text-gray-400">
-                {liveNomineeCount} of 5 nominees
+                {liveNomineeCount} of 10 nominees
               </span>
-              {liveNomineeCount >= 5 && (
+              {liveNomineeCount >= 10 ? (
                 <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">
-                  Ballot complete
+                  Ballot full
                 </span>
-              )}
+              ) : liveNomineeCount >= 5 ? (
+                <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">
+                  Minimum reached
+                </span>
+              ) : null}
             </div>
-            {/* Progress bar */}
+            {/* Progress bar — 10 segments with a subtle gap after the 5th to mark the minimum */}
             <div className="flex gap-1">
-              {Array.from({ length: 5 }).map((_, i) => (
+              {Array.from({ length: 10 }).map((_, i) => (
                 <div
                   key={i}
                   className={`h-1 flex-1 rounded-full transition-all duration-500 ${
                     i < liveNomineeCount
                       ? liveNomineeCount >= 5 ? "bg-emerald-400" : "bg-yellow-400"
                       : "bg-gray-700/60"
-                  }`}
+                  } ${i === 5 ? "ml-1.5" : ""}`}
                 />
               ))}
+            </div>
+            {/* Labels positioned to sit under the 5th and 10th segments, not the
+                far-left and far-right of the row. Each span takes 50% of the width
+                with right-aligned text. */}
+            <div className="mt-1 flex text-[10px] text-gray-500">
+              <span className="flex-1 text-right pr-1.5">5 minimum</span>
+              <span className="flex-1 text-right">10 maximum</span>
             </div>
             {/* Close race indicator */}
             {displayNominees.length >= 2 && (() => {
@@ -868,7 +940,7 @@ export default function YearExplorer({
             </div>
 
             {/* Tip: rate to nominate */}
-            {unseenCandidates.length > 0 && genreMatchLabel && (
+            {candidateFilms.length > 0 && genreMatchLabel && (
               <div className="mb-3 px-2 py-1.5 rounded-lg border border-blue-500/20 bg-blue-500/10 flex items-center gap-2 text-xs text-blue-300 animate-in fade-in duration-300">
                 <Star className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                 <span>
@@ -879,7 +951,10 @@ export default function YearExplorer({
 
             {/* ─── Movie sections: recognition first ─────────────── */}
             {renderMovieGrid("Movies you've ranked", contenderMovies, "contenders", contendersSectionRef)}
-            <div ref={candidatesSectionRef}>
+            {/* scroll-mt leaves space above for the step-3 tooltip when this
+                section is scrolled into view. Without it, scrollIntoView snaps
+                the section to the very top, pushing the tooltip off-screen. */}
+            <div ref={candidatesSectionRef} data-tour-target="contenders" className="scroll-mt-[40vh]">
               {renderMovieGrid(`Top nominees from ${year}`, topContenders, "top-contenders")}
             </div>
             {renderMovieGrid(
@@ -942,9 +1017,9 @@ export default function YearExplorer({
         tourAnchorRect !== null &&
         (ratingTourStep !== 1 || pickedMovieId == null || activeNomineeIdSet.has(String(pickedMovieId))) &&
         (() => {
-          const caretAbsX = ratingTourStep === 2
-            ? tourAnchorRect.left + (tourAnchorRect.width / 2)
-            : tourAnchorRect.left + 22;
+          // Center the caret on the anchor — anchors are now precise (rating badge,
+          // Add Nominee button, contenders section header) so left-offset is wrong.
+          const caretAbsX = tourAnchorRect.left + (tourAnchorRect.width / 2);
           const viewportWidth = window.innerWidth;
           const tooltipWidth = Math.min(338, viewportWidth - 24);
           const tooltipLeft = Math.min(
@@ -955,26 +1030,52 @@ export default function YearExplorer({
             Math.max(caretAbsX - tooltipLeft, 14),
             tooltipWidth - 14
           );
-          return (
-            <div
-              className="fixed z-[200] pointer-events-none animate-in fade-in duration-300"
-              style={{
+          // Step 3 places the tooltip ABOVE the contenders section (caret pointing
+          // down at it), so the user sees the explainer in the space they just
+          // scrolled from. Steps 1 and 2 anchor below their target as usual.
+          const placeAbove = ratingTourStep === 3;
+          const tooltipStyle = placeAbove
+            ? {
+                top: tourAnchorRect.top - 10,
+                left: tooltipLeft,
+                width: tooltipWidth,
+                transform: "translateY(-100%)",
+              }
+            : {
                 top: tourAnchorRect.bottom + 10,
                 left: tooltipLeft,
                 width: tooltipWidth,
-              }}
+              };
+          return (
+            <div
+              className="fixed z-[200] pointer-events-none animate-in fade-in duration-300"
+              style={tooltipStyle}
             >
-              {/* Upward-pointing caret */}
-              <svg
-                className="absolute -top-[10px]"
-                style={{ left: caretOffsetInTooltip - 10 }}
-                width="20"
-                height="10"
-                viewBox="0 0 20 10"
-                aria-hidden="true"
-              >
-                <path d="M0 10 L10 0 L20 10Z" fill="#14161b" stroke="#3f4654" strokeWidth="1.25" strokeLinejoin="round" />
-              </svg>
+              {placeAbove ? (
+                /* Downward-pointing caret at bottom of tooltip */
+                <svg
+                  className="absolute -bottom-[10px]"
+                  style={{ left: caretOffsetInTooltip - 10 }}
+                  width="20"
+                  height="10"
+                  viewBox="0 0 20 10"
+                  aria-hidden="true"
+                >
+                  <path d="M0 0 L10 10 L20 0Z" fill="#14161b" stroke="#3f4654" strokeWidth="1.25" strokeLinejoin="round" />
+                </svg>
+              ) : (
+                /* Upward-pointing caret at top of tooltip */
+                <svg
+                  className="absolute -top-[10px]"
+                  style={{ left: caretOffsetInTooltip - 10 }}
+                  width="20"
+                  height="10"
+                  viewBox="0 0 20 10"
+                  aria-hidden="true"
+                >
+                  <path d="M0 10 L10 0 L20 10Z" fill="#14161b" stroke="#3f4654" strokeWidth="1.25" strokeLinejoin="round" />
+                </svg>
+              )}
 
               {/* Tour card */}
               <div className="pointer-events-auto rounded-xl border border-[#3f4654] bg-[#14161b] shadow-2xl shadow-black/50 px-4 py-3.5">
@@ -996,33 +1097,30 @@ export default function YearExplorer({
                   {/* Step content */}
                   {ratingTourStep === 1 && (
                     <>
-                      <p className="text-[15px] font-semibold text-white mb-1.5">Your pick is rated 10</p>
+                      <p className="text-[15px] font-semibold text-white mb-1.5">This score is a starting point</p>
                       <p className="text-sm text-gray-300 leading-relaxed">
-                        Tap the rating badge on the card to adjust it (1–10).
+                        We seeded your pick at <span className="text-amber-300 font-medium">7</span> — the threshold where a film auto-nominates.
+                        Tap the badge to change it (1–10).
                       </p>
                     </>
                   )}
                   {ratingTourStep === 2 && (
                     <>
-                      <p className="text-[15px] font-semibold text-white mb-1.5">
-                        {nomineesNeededForValidBallot > 0
-                          ? `Add ${nomineesNeededForValidBallot} more nominee${nomineesNeededForValidBallot !== 1 ? "s" : ""} to complete your ballot`
-                          : "Your ballot is taking shape"}
-                      </p>
+                      <p className="text-[15px] font-semibold text-white mb-1.5">Add more nominees</p>
                       <p className="text-sm text-gray-300 leading-relaxed">
-                        The empty slots below are waiting. Scroll down and rate films — anything rated{" "}
-                        <span className="text-amber-300 font-medium">7 or higher</span> is auto-nominated.
+                        A ballot needs at least <span className="text-amber-300 font-medium">5 nominees</span>, up to 10.
+                        Tap here to find more films from this year.
                       </p>
                     </>
                   )}
                   {ratingTourStep === 3 && (
                     <>
-                      <p className="text-[15px] font-semibold text-white mb-1.5">Top nominees are waiting below</p>
+                      <p className="text-[15px] font-semibold text-white mb-1.5">Rate films from this year</p>
                       <p className="text-sm text-gray-300 leading-relaxed">
                         {genreMatchLabel
-                          ? `${genreMatchLabel.charAt(0).toUpperCase() + genreMatchLabel.slice(1)} films are listed first.`
-                          : "The most recognized films are listed below the ballot."}{" "}
-                        Tap <span className="text-amber-300 font-medium">Got it</span> then scroll down to find them.
+                          ? `${genreMatchLabel.charAt(0).toUpperCase() + genreMatchLabel.slice(1)} films are listed first. `
+                          : "The most recognized films appear first. "}
+                        Anything you rate <span className="text-amber-300 font-medium">7 or higher</span> auto-nominates onto your ballot.
                       </p>
                     </>
                   )}

@@ -644,17 +644,25 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 								className="h-9 px-2.5 rounded-lg border border-gray-600/40 bg-black/40 hover:bg-black/60 text-xs font-semibold gap-1"
 							/>
 
-							{/* Right: Rate */}
+							{/* Right: Rate
+							    When the film is seen-but-unrated, the badge takes on an
+							    invitational yellow tint to cue the next action. Once rated,
+							    it switches to the rating color block. Unseen/unrated stays
+							    neutral so we don't shout at films the user hasn't watched. */}
 							<button
 								type="button"
 								onClick={() => setShowRatingModal(true)}
 								className={`flex items-center gap-1 h-9 px-2.5 rounded-lg border font-semibold transition-colors active:scale-95 ${
 									rating
 										? "text-sm border-gray-700/60"
+										: seenIt
+										? "text-xs border-yellow-400/50 hover:border-yellow-300/70"
 										: "text-xs border-gray-600/40 hover:border-gray-500/60"
 								}`}
 								style={rating
 									? { backgroundColor: style.background, color: style.text }
+									: seenIt
+									? { backgroundColor: "rgba(234,179,8,0.08)", color: "#fde68a" }
 									: { backgroundColor: "rgba(30,30,34,0.75)", color: "#9ca3af" }
 								}
 							>

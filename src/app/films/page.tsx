@@ -37,12 +37,9 @@ function FilmsPageContent() {
 	const router = useRouter();
 	const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
 
-	useEffect(() => {
-		if (loading) return;
-		if (isGuest) {
-			router.replace("/");
-		}
-	}, [loading, isGuest, router]);
+	// Guests are first-class on /films per the project's guest-mode mandate.
+	// The previous redirect-to-home blocked the natural "rate another from
+	// {year}" path out of the onboarding loop. Removed 2026-05-12.
 	
 	// Films-specific view mode with grid as default for poster-based display
 	const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
@@ -91,14 +88,18 @@ function FilmsPageContent() {
 	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search" | "genre">("none");
 	const [filterValue, setFilterValue] = useState<string>("all");
 
-	// Apply preset from nav search (?movie=<id>, ?query=, or ?genre=)
+	// Apply preset from nav search (?movie=<id>, ?query=, ?genre=, or ?year=)
 	useEffect(() => {
 		const movieId = searchParams?.get("movie");
 		const q = searchParams?.get("query");
 		const genre = searchParams?.get("genre");
+		const year = searchParams?.get("year");
 		if (movieId) {
 			setFilterType("movie");
 			setFilterValue(String(movieId));
+		} else if (year) {
+			setFilterType("year");
+			setFilterValue(year);
 		} else if (genre) {
 			setFilterType("genre");
 			setFilterValue(genre);

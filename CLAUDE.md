@@ -67,16 +67,23 @@ Before building something new, check `docs/FEATURE-STATUS.md` — most features 
 
 ## Homepage states
 
-The homepage is adaptive across three user states:
+The homepage is adaptive across four user states. The workbench scales DOWN as the user matures — established users still see a workbench-led layout; mature users see a museum-led layout with a collapsed workbench strip.
 
 | State | Threshold | Primary content |
 |---|---|---|
 | New | 0 active years, < 5 rated | Search + recognition feed |
 | Building | 1+ active year, 0 completed ballots | Active year card + year-scoped feed |
-| Established | 1+ completed ballot OR 2+ years OR 20+ rated | Ballot grid + lists + taste |
+| Established | 1+ completed ballot OR 2+ years OR 20+ rated | Workbench-led: search + year timeline + active ballot + gallery + lists |
+| Mature | Established floor + (3+ completed ballots OR 5+ years OR 50+ rated) | Museum-led: compact strip (prominent "Welcome back, {name}." headline + "Update awards" gold text link toggling an inline workshop drawer + full-width hero search below) → Awards Gallery → Your Lists → Recognition Feed → Ready-Made → Watchlist → Canon |
 
-**Established detection (coded):** `completedBallots >= 1 || yearLeaders.length >= 2 || ratedMovies.length >= 20`
-Lives in `src/app/page.tsx` — keep in sync if thresholds change.
+**Detection (coded in `src/app/page.tsx`):**
+- `isEstablished = completedBallots >= 1 || yearLeaders.length >= 2 || ratedMovies.length >= 20`
+- `isMature = isEstablished && (completedBallots >= 3 || yearLeaders.length >= 5 || ratedMovies.length >= 50)` — mature is strictly additive to established, never a leapfrog
+- Mature wins over Established in the render cascade when both are true.
+
+**Mature workshop drawer:** The "Update awards" link toggles `workshopOpen` state and reveals the same year timeline rail + active `ExpandableYearCard` that the established state shows. It is NOT a modal. The drawer scrolls into view when opened and the link flips to "Done".
+
+Keep these thresholds in sync if changed.
 
 ---
 

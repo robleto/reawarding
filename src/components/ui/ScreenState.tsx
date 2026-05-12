@@ -29,10 +29,10 @@ export default function ScreenState({
   const toneClasses =
     tone === "error"
       ? "border-red-500/30 bg-red-500/10 text-red-100"
-      : "border-gray-700 bg-gray-900/70 text-gray-100";
+      : "border-gray-700 bg-charcoal-900/70 text-gray-100";
 
   return (
-    <div className="flex flex-1 items-center w-full">
+    <div className="flex flex-1 flex-col items-center w-full pt-[18vh] md:pt-[22vh]">
       <div
         data-testid={testId}
         className={`w-full max-w-2xl rounded-2xl border p-6 md:p-10 ${toneClasses}`}
@@ -44,7 +44,7 @@ export default function ScreenState({
             {primaryAction && (
               <Link
                 href={primaryAction.href}
-                className="rounded-md bg-yellow-500 px-4 py-2 text-sm font-medium text-black hover:bg-yellow-400"
+                className="inline-flex items-center justify-center min-h-[44px] rounded-md bg-gold-500 px-4 py-2 text-sm font-medium text-black hover:bg-gold-400"
               >
                 {primaryAction.label}
               </Link>
@@ -52,7 +52,7 @@ export default function ScreenState({
             {secondaryAction && (
               <Link
                 href={secondaryAction.href}
-                className="rounded-md border border-gray-600 px-4 py-2 text-sm font-medium text-gray-200 hover:bg-gray-800"
+                className="inline-flex items-center justify-center min-h-[44px] rounded-md border border-gray-600 px-4 py-2 text-sm font-medium text-gray-200 hover:bg-gray-800"
               >
                 {secondaryAction.label}
               </Link>

@@ -52,9 +52,11 @@ export default function ExpandableYearCard({
   const [recentlyNominated, setRecentlyNominated] = useState<Set<string | number>>(new Set());
   const [newNomineeTitle, setNewNomineeTitle] = useState<string | null>(null);
   const [cardPulsing, setCardPulsing] = useState(false);
+  const [milestoneCelebrating, setMilestoneCelebrating] = useState<5 | 10 | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const autoPromotedRef = useRef<Set<string | number>>(new Set());
   const nomineeConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const milestoneCelebrationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [posterError, setPosterError] = useState(false);
   const prevNomineeCountRef = useRef(0);
   const milestoneStateInitializedRef = useRef(false);
@@ -266,6 +268,15 @@ export default function ExpandableYearCard({
     );
     if (!crossedMilestone) return;
 
+    // Brief celebration that settles into the new persistent visual state.
+    // The persistent state (Forming/Canonical pill, halo, border) is data-derived
+    // and stays — this just reinforces the transition moment.
+    setMilestoneCelebrating(crossedMilestone as 5 | 10);
+    if (milestoneCelebrationTimerRef.current) clearTimeout(milestoneCelebrationTimerRef.current);
+    milestoneCelebrationTimerRef.current = setTimeout(() => {
+      setMilestoneCelebrating(null);
+    }, 1200);
+
     cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     window.setTimeout(() => {
       onMilestoneReached?.({
@@ -276,12 +287,19 @@ export default function ExpandableYearCard({
     }, 350);
   }, [liveNomineeCount, onMilestoneReached, winnerTitle, year]);
 
-  // Cleanup nomination confirm timer on unmount
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (nomineeConfirmTimerRef.current) clearTimeout(nomineeConfirmTimerRef.current);
+      if (milestoneCelebrationTimerRef.current) clearTimeout(milestoneCelebrationTimerRef.current);
     };
   }, []);
+
+  // ── Persistent ballot maturity state (data-derived, not local state) ─────
+  // Per PRODUCT_DESIGN_PRINCIPLES: "Milestones reshape the canvas — critical
+  // moments persist on the page, never hidden in modals or toasts."
+  const isCanonical = liveNomineeCount >= 10;
+  const isForming = liveNomineeCount >= 5 && liveNomineeCount < 10;
 
   const progressPct = Math.min(100, (liveNomineeCount / 10) * 100);
 
@@ -289,22 +307,45 @@ export default function ExpandableYearCard({
     <>
     <div
       ref={cardRef}
-      className={`rounded-xl border transition-all duration-300 ${
-        cardPulsing
-          ? "border-yellow-400 bg-yellow-900/15 ring-2 ring-yellow-400/60 shadow-xl shadow-yellow-400/20"
+      className={`relative rounded-xl border transition-all duration-300 ${
+        milestoneCelebrating === 10
+          ? "border-2 border-gold-300 bg-gold-900/15 ring-4 ring-gold-400/40 shadow-2xl shadow-gold-400/30 animate-milestone-pulse motion-reduce:animate-none"
+          : milestoneCelebrating === 5
+          ? "border-2 border-gold-400 bg-gold-900/10 ring-2 ring-gold-400/40 shadow-xl shadow-gold-400/20 animate-milestone-pulse motion-reduce:animate-none"
+          : cardPulsing
+          ? "border-gold-400 bg-gold-900/15 ring-2 ring-gold-400/60 shadow-xl shadow-gold-400/20"
+          : isCanonical
+          ? "border-2 border-gold-500/60 bg-gradient-to-b from-gold-900/30 to-charcoal-900/40 shadow-lg shadow-gold-500/10"
+          : isForming
+          ? "border border-gold-500/40 bg-charcoal-900/50"
           : isExpanded
-          ? "border-yellow-500/40 bg-gray-800/60 shadow-lg shadow-yellow-500/5"
-          : "border-gray-700/30 bg-gray-900/40 hover:border-yellow-500/30 hover:bg-gray-800/50"
+          ? "border-gold-500/40 bg-gray-800/60 shadow-lg shadow-gold-500/5"
+          : "border-gray-700/30 bg-charcoal-900/40 hover:border-gold-500/30 hover:bg-gray-800/50"
       }`}
     >
+      {/* Milestone celebration sweep — fires once on transition, then settles */}
+      {milestoneCelebrating !== null && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl motion-reduce:hidden"
+        >
+          <div className="absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-gold-300/20 to-transparent animate-milestone-sweep" />
+        </div>
+      )}
       {/* ── Compact card header (always visible) ── */}
       <button
         type="button"
         onClick={onToggle}
-        className="group flex w-full items-center gap-4 px-4 py-3 text-left transition-all focus:outline-none focus-visible:ring-1 focus-visible:ring-yellow-500/40"
+        className="group flex w-full items-center gap-4 px-4 py-3 text-left transition-all focus:outline-none focus-visible:ring-1 focus-visible:ring-gold-500/40"
       >
-        {/* Poster */}
-        <div className="relative h-[72px] w-12 flex-shrink-0 overflow-hidden rounded-md bg-gray-800 shadow-md">
+        {/* Poster — gold halo appears when ballot is canonical */}
+        <div
+          className={`relative h-[72px] w-12 flex-shrink-0 overflow-hidden rounded-md bg-gray-800 transition-shadow duration-500 ${
+            isCanonical
+              ? "shadow-[0_0_24px_rgba(212,175,55,0.45),_0_0_8px_rgba(212,175,55,0.35)]"
+              : "shadow-md"
+          }`}
+        >
           {hasPoster ? (
             <Image
               src={normalizedPoster}
@@ -323,16 +364,40 @@ export default function ExpandableYearCard({
 
         {/* Year + Your Winner */}
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="font-unbounded text-lg font-bold text-yellow-300">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={`font-unbounded text-lg font-bold ${
+                isCanonical ? "text-gold-200" : "text-gold-300"
+              }`}
+            >
               {year}
             </span>
+            {/* Maturity pill — visible whenever the threshold is met */}
+            {isCanonical && (
+              <span
+                role="status"
+                aria-label={`Canonical ballot: 10 nominees in place for ${year}`}
+                className="inline-flex items-center gap-1 rounded-full bg-gold-400/15 border border-gold-400/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-gold-200"
+              >
+                <Trophy className="w-2.5 h-2.5" aria-hidden="true" />
+                Canonical
+              </span>
+            )}
+            {isForming && (
+              <span
+                role="status"
+                aria-label={`Ballot forming: ${liveNomineeCount} of 10 nominees in place for ${year}`}
+                className="inline-flex items-center rounded-full bg-gold-500/10 border border-gold-500/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-gold-300"
+              >
+                Forming
+              </span>
+            )}
             {/* Mini progress bar */}
             <div className="flex items-center gap-1.5 flex-1 max-w-[120px]">
               <div className="h-1 flex-1 overflow-hidden rounded-full bg-gray-700/50">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
-                    liveNomineeCount >= 10 ? "bg-emerald-400" : "bg-yellow-400"
+                    liveNomineeCount >= 10 ? "bg-gold-400" : "bg-gold-500/70"
                   }`}
                   style={{ width: `${progressPct}%` }}
                 />
@@ -342,14 +407,14 @@ export default function ExpandableYearCard({
               </span>
             </div>
             {/* "Rate 7+" hint shown in header when ballot incomplete and not expanded */}
-            {!isExpanded && liveNomineeCount < 10 && (
+            {!isExpanded && liveNomineeCount < 10 && !isForming && (
               <span className="text-[10px] text-gray-600 whitespace-nowrap">
                 Rate 7+ to nominate
               </span>
             )}
           </div>
           <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3">
-            <p className="truncate text-base font-semibold text-white group-hover:text-yellow-100">
+            <p className="truncate text-base font-semibold text-white group-hover:text-gold-100">
               {leader.title}
             </p>
             {/* Status badge — click opens full YearExplorer for this year */}
@@ -358,7 +423,7 @@ export default function ExpandableYearCard({
               tabIndex={0}
               onClick={(e) => { e.stopPropagation(); onOpenFullExplorer(year); }}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); onOpenFullExplorer(year); } }}
-              className="text-xs tracking-wide text-yellow-400/60 flex-shrink-0 hover:text-yellow-300 transition-colors text-left cursor-pointer"
+              className="text-xs tracking-wide text-gold-400/60 flex-shrink-0 hover:text-gold-300 transition-colors text-left cursor-pointer"
             >
               {existingAward?.winnerId
                 ? "Winner (selected)"
@@ -387,7 +452,7 @@ export default function ExpandableYearCard({
             {agreedWithAcademy ? (
               <p className="text-[10px] text-emerald-500">Match</p>
             ) : (
-              <p className="text-[10px] text-yellow-500/60">Different</p>
+              <p className="text-[10px] text-gold-500/60">Different</p>
             )}
           </div>
         )}
@@ -408,10 +473,10 @@ export default function ExpandableYearCard({
 
           {/* ── Nominee confirmation banner ── */}
           {newNomineeTitle && (
-            <div className="mb-3 flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-yellow-400/15 border border-yellow-400/40 animate-in fade-in slide-in-from-top-1 duration-200">
-              <Trophy className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+            <div className="mb-3 flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-gold-400/15 border border-gold-400/40 animate-in fade-in slide-in-from-top-1 duration-200">
+              <Trophy className="w-4 h-4 text-gold-400 flex-shrink-0" />
               <p className="text-sm font-medium text-gray-200 leading-snug">
-                <span className="font-bold text-yellow-300">{newNomineeTitle}</span>
+                <span className="font-bold text-gold-300">{newNomineeTitle}</span>
                 {" "}just entered your <span className="font-bold text-white">{year}</span> ballot
               </p>
             </div>
@@ -426,18 +491,18 @@ export default function ExpandableYearCard({
                 your awards take shape as you go.
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
-                <Star className="inline w-3 h-3 text-yellow-400/70 mr-0.5 -mt-0.5" />
+                <Star className="inline w-3 h-3 text-gold-400/70 mr-0.5 -mt-0.5" />
                 Scores 7+ automatically become nominees.
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Trophy className="w-3.5 h-3.5 text-yellow-400/70" />
+              <Trophy className="w-3.5 h-3.5 text-gold-400/70" />
               <span className="text-xs font-medium text-gray-400">
                 {liveNomineeCount} of 10 nominees
               </span>
-              {liveNomineeCount >= 10 && (
-                <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">
-                  Complete
+              {isCanonical && (
+                <span className="text-[10px] font-semibold text-gold-200 uppercase tracking-wider">
+                  Canonical
                 </span>
               )}
             </div>
@@ -451,9 +516,9 @@ export default function ExpandableYearCard({
                   key={i}
                   className={`h-1 flex-1 rounded-full transition-all duration-500 ${
                     i < liveNomineeCount
-                      ? liveNomineeCount >= 10
-                        ? "bg-emerald-400"
-                        : "bg-yellow-400"
+                      ? isCanonical
+                        ? "bg-gold-300"
+                        : "bg-gold-500/70"
                       : "bg-gray-700/50"
                   }`}
                 />
@@ -470,11 +535,11 @@ export default function ExpandableYearCard({
                   return (
                     <div
                       key={movie.id}
-                      className={`relative flex-shrink-0 w-[160px] sm:w-[180px] snap-start rounded-lg transition-all duration-300${justNominated ? " ring-2 ring-yellow-400 shadow-lg shadow-yellow-400/30" : ""}`}
+                      className={`relative flex-shrink-0 w-[160px] sm:w-[180px] snap-start rounded-lg transition-all duration-300${justNominated ? " ring-2 ring-gold-400 shadow-lg shadow-gold-400/30" : ""}`}
                     >
                       {justNominated && (
                         <div className="absolute bottom-2 left-0 right-0 flex justify-center z-10 pointer-events-none animate-in fade-in duration-200">
-                          <span className="px-2.5 py-1 rounded-full bg-yellow-400 text-yellow-900 text-[10px] font-bold uppercase tracking-wide shadow-lg">
+                          <span className="px-2.5 py-1 rounded-full bg-gold-400 text-gold-900 text-[10px] font-bold uppercase tracking-wide shadow-lg">
                             New nominee
                           </span>
                         </div>
@@ -502,7 +567,7 @@ export default function ExpandableYearCard({
           <button
             type="button"
             onClick={() => onOpenFullExplorer(year)}
-            className="mt-2 py-3 text-xs font-medium text-yellow-400/80 hover:text-yellow-300 transition-colors"
+            className="mt-2 py-3 text-xs font-medium text-gold-400/80 hover:text-gold-300 transition-colors"
           >
             Open full {year} workspace →
           </button>

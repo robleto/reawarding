@@ -82,7 +82,7 @@ export default function HomeHero({
 				>
 						<MovieSearchPicker
 							onSelect={onSelectMovie}
-							placeholder="Search for a movie..."
+							placeholder="Search for a film you've watched"
 							className="home-search-picker"
 						/>
 						<p className="home-hero__microcopy">

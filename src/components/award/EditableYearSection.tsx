@@ -5,7 +5,7 @@ import { useSupabaseClient, useUser, useSessionContext } from '@supabase/auth-he
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, GripVertical, Star, Check, Trophy } from "lucide-react";
+import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, GripVertical, Star, Check, Trophy, Plus } from "lucide-react";
 import MovieCard from "./MovieCard";
 import WinnerCard from "./WinnerCard";
 import DraggableNomineeCard from "./DraggableNomineeCard";
@@ -386,6 +386,13 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     lastCacheUserRef.current = user.id;
   }, [user?.id, syncView, isWorkshop]);
 
+  // Tracks whether the guest else-branch below has already initialized the
+  // workshop. Without this, the effect re-fires whenever syncView or
+  // loadExistingNominations changes identity (which happens on every movies
+  // prop change), and unconditionally resets hasCustomNominations + calls
+  // syncView('default') — wiping any workshop nominees the user just added.
+  const hasInitializedGuestRef = useRef(false);
+
   // Load custom nominations on component mount
   useEffect(() => {
     // Don't do anything while session is loading
@@ -398,11 +405,19 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     }
 
     if (user) {
+      // When a user logs in (auth transition), allow the guest branch to
+      // re-initialize on a future logout.
+      hasInitializedGuestRef.current = false;
       if (!hasLoadedInitialRef.current) {
         hasLoadedInitialRef.current = true;
         loadExistingNominations();
       }
     } else {
+      // Initialize guest state once per guest session. Re-runs of this effect
+      // (triggered by syncView/loadExistingNominations identity changes) must
+      // not clobber the workshop's local state once it's been touched.
+      if (hasInitializedGuestRef.current) return;
+      hasInitializedGuestRef.current = true;
       hasLoadedInitialRef.current = false;
       setHasCustomNominations(false);
       setCustomNominees(null);
@@ -968,6 +983,35 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     onEditingChange?.(false);
   }, [isWorkshop, currentNominees, currentWinner, onEditingChange]);
 
+  // Mirror new auto-derived nominees from the parent's `movies` prop into the
+  // workshop. Without this, when a user rates another film 7+ while the
+  // YearExplorer is open, the parent's defaultNominees grows but the workshop's
+  // local `nominees` doesn't always pick it up (the YearExplorer auto-promote
+  // path can short-circuit because the film is already in the displayNominees
+  // fallback). The bug surface: the Add Nominee button shows a stale "Add up to
+  // N more films" count while the cup correctly shows the new total.
+  //
+  // Only mirrors NEW films (never re-adds removed ones) and only when the user
+  // hasn't started customizing the workshop. Once they touch it, their intent
+  // wins via the standard applyWorkshopState path.
+  useEffect(() => {
+    if (!isWorkshop) return;
+    if (workshopMutationInFlightRef.current) return;
+    if (hasCustomNominations) return;
+    setNominees((prev) => {
+      const prevIds = new Set(prev.map((m) => m.id));
+      const additions = movies.filter((m) => !prevIds.has(m.id));
+      if (additions.length === 0) return prev;
+      return [...prev, ...additions];
+    });
+    setCurrentNominees((prev) => {
+      const prevIds = new Set(prev.map((m) => m.id));
+      const additions = movies.filter((m) => !prevIds.has(m.id));
+      if (additions.length === 0) return prev;
+      return [...prev, ...additions];
+    });
+  }, [movies, isWorkshop, hasCustomNominations]);
+
   const applyWorkshopState = async (nextNominees: Movie[], nextWinner: Movie | null) => {
     // Mark mutation in-flight so the workshop sync effect doesn't re-sync
     workshopMutationInFlightRef.current = true;
@@ -1165,7 +1209,10 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         {isUsingCustomView ? 'Show default' : 'Show custom'}
                       </button>
                     )}
-                    {isWorkshop && (
+                    {/* Auto-saved indicator hidden for guests — for them nothing
+                        is persisted server-side, and the green checkmark undercuts
+                        the "Sign up to save" CTA shown elsewhere on the page. */}
+                    {isWorkshop && user && (
                       <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-500 dark:text-emerald-400">
                         {isSaving ? (
                           <>
@@ -1197,7 +1244,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     if (count > 0 && count < 5) {
                       return (
                         <p className="text-xs text-amber-400/60">
-                          {5 - count} more {5 - count === 1 ? "film" : "films"} to reach a Standard Ballot
+                          Rate {5 - count} more 7+ to fill the 5 nominee slots
                         </p>
                       );
                     }
@@ -1233,16 +1280,20 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                             onRankingChange={(value) => handleWorkshopRankingChange(movie.id, value)}
                           />
                         ))}
-                        {activeWorkshopNominees.length < 10 && (
-                          <button
-                            type="button"
-                            onClick={onRequestScrollToContenders}
-                            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-dashed border-gray-700/50 text-gray-500 hover:border-yellow-500/40 hover:text-yellow-400/80 transition-colors text-xs"
-                          >
-                            <Film className="w-3.5 h-3.5" />
-                            Add nominee ({activeWorkshopNominees.length}/10)
-                          </button>
-                        )}
+                        {activeWorkshopNominees.length < 10 && (() => {
+                          const remaining = 10 - activeWorkshopNominees.length;
+                          return (
+                            <button
+                              type="button"
+                              onClick={onRequestScrollToContenders}
+                              data-tour-empty-slot="true"
+                              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-yellow-500/30 bg-yellow-500/[0.04] text-yellow-300/80 hover:border-yellow-400/50 hover:bg-yellow-500/[0.08] hover:text-yellow-200 transition-colors text-sm font-medium"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Add up to {remaining} more {remaining === 1 ? "film" : "films"} for this year
+                            </button>
+                          );
+                        })()}
                       </div>
                     </SortableContext>
                   </DndContext>
@@ -1550,6 +1601,7 @@ function WorkshopNomineeRow({
         <button
           type="button"
           onClick={() => setShowRatingModal(true)}
+          data-tour-target="rating-badge"
           className="flex-shrink-0 text-sm font-bold px-2 py-2.5 min-h-[44px] rounded-md shadow-sm transition-transform active:scale-95"
           style={ranking > 0 ? { backgroundColor: ratingStyle.background, color: ratingStyle.text } : { backgroundColor: 'rgba(75,85,99,0.4)', color: '#9ca3af' }}
         >

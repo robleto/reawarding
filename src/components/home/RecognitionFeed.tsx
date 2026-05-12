@@ -64,22 +64,34 @@ export default function RecognitionFeed({
           <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
             {row.label}
           </p>
-          <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-            {row.films.map((film) => {
-              const r = film.rankings?.[0];
-              return (
-                <div key={film.id} className="flex-shrink-0 w-[160px] sm:w-[180px] snap-start">
-                  <MovieCard
-                    variant="large"
-                    movie={film}
-                    ranking={r?.ranking ?? null}
-                    seenIt={r?.seen_it ?? false}
-                    onUpdate={handleUpdate}
-                    onClick={() => onSelectMovie(film)}
-                  />
-                </div>
-              );
-            })}
+          {/* Right-edge fade telegraphs that the rail scrolls — important on
+              mobile where horizontal scroll affordance is otherwise invisible. */}
+          <div
+            className="relative -mr-4 sm:-mr-6"
+            style={{
+              maskImage:
+                "linear-gradient(to right, black calc(100% - 32px), transparent)",
+              WebkitMaskImage:
+                "linear-gradient(to right, black calc(100% - 32px), transparent)",
+            }}
+          >
+            <div className="flex gap-4 overflow-x-auto pb-4 pr-8 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+              {row.films.map((film) => {
+                const r = film.rankings?.[0];
+                return (
+                  <div key={film.id} className="flex-shrink-0 w-[160px] sm:w-[180px] snap-start">
+                    <MovieCard
+                      variant="large"
+                      movie={film}
+                      ranking={r?.ranking ?? null}
+                      seenIt={r?.seen_it ?? false}
+                      onUpdate={handleUpdate}
+                      onClick={() => onSelectMovie(film)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       ))}
