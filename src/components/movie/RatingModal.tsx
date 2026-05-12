@@ -141,7 +141,7 @@ export default function RatingModal({
       {/* Panel */}
       <div
         ref={panelRef}
-        className={`relative z-10 w-[340px] max-w-[92vw] max-h-[88vh] overflow-hidden rounded-2xl border border-gray-700/60 bg-gray-900 shadow-2xl ${
+        className={`relative z-10 w-[340px] max-w-[92vw] max-h-[88vh] overflow-hidden rounded-2xl border border-gray-700/60 bg-charcoal-900 shadow-2xl ${
           phase === "closing"
             ? "animate-out fade-out zoom-out-95 duration-200"
             : "animate-in fade-in zoom-in-95 duration-200"
@@ -152,19 +152,19 @@ export default function RatingModal({
           // Confirmation header — header switches first, before anything else
           <div
             className={`px-4 py-4 border-b border-gray-800 animate-in fade-in duration-100 ${
-              isNominee ? "bg-yellow-500/[0.07]" : ""
+              isNominee ? "bg-gold-500/[0.07]" : ""
             }`}
           >
             <div className="flex items-center gap-2 mb-1">
               {isNominee
-                ? <Star  className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                ? <Star  className="w-4 h-4 text-gold-400 flex-shrink-0" />
                 : <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
               }
-              <span className={`text-sm font-semibold ${isNominee ? "text-yellow-300" : "text-emerald-300"}`}>
+              <span className={`text-sm font-semibold ${isNominee ? "text-gold-300" : "text-emerald-300"}`}>
                 Done
               </span>
             </div>
-            <p className={`text-sm leading-snug ${isNominee ? "text-yellow-200/80" : "text-gray-300"}`}>
+            <p className={`text-sm leading-snug ${isNominee ? "text-gold-200/80" : "text-gray-300"}`}>
               {isNominee
                 ? `Rated ${selectedRating} — added to your ${confirmYear} nominees.`
                 : `Rated ${selectedRating}. Keep rating to build the field.`
@@ -240,9 +240,9 @@ export default function RatingModal({
                 disabled={isConfirming}
                 className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
                   isConfirming
-                    ? "cursor-default pointer-events-none ring-2 ring-yellow-400/70 shadow-md"
+                    ? "cursor-default pointer-events-none ring-2 ring-gold-400/70 shadow-md"
                     : isSelected
-                    ? "ring-2 ring-yellow-400/70 shadow-md hover:scale-[1.01] active:scale-[0.99]"
+                    ? "ring-2 ring-gold-400/70 shadow-md hover:scale-[1.01] active:scale-[0.99]"
                     : "ring-1 ring-gray-700/50 hover:ring-gray-600 hover:scale-[1.01] active:scale-[0.99]"
                 }`}
                 style={{ backgroundColor: style.background, color: style.text }}

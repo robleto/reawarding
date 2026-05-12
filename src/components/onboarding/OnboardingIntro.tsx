@@ -81,8 +81,8 @@ export default function OnboardingIntro({
           {/* Icon accent */}
           <div className="mb-6 flex justify-center">
             <div className="relative">
-              <Sparkles className="h-8 w-8 text-yellow-400/80" />
-              <div className="absolute inset-0 blur-lg bg-yellow-400/20 rounded-full" />
+              <Sparkles className="h-8 w-8 text-gold-400/80" />
+              <div className="absolute inset-0 blur-lg bg-gold-400/20 rounded-full" />
             </div>
           </div>
 
@@ -117,9 +117,9 @@ export default function OnboardingIntro({
                 key={i}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   i === currentSlide
-                    ? "w-6 bg-yellow-400"
+                    ? "w-6 bg-gold-400"
                     : i < currentSlide
-                      ? "w-1.5 bg-yellow-400/40"
+                      ? "w-1.5 bg-gold-400/40"
                       : "w-1.5 bg-gray-600"
                 }`}
               />
@@ -132,7 +132,7 @@ export default function OnboardingIntro({
             onClick={advance}
             className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition-all ${
               isLast
-                ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 hover:bg-yellow-500/30"
+                ? "bg-gold-500/20 text-gold-300 border border-gold-500/30 hover:bg-gold-500/30"
                 : "text-gray-300 hover:text-white"
             }`}
           >

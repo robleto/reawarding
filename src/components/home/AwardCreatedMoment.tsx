@@ -71,15 +71,15 @@ export default function AwardCreatedMoment({
     >
       {/* Trophy + Poster */}
       <div className="flex items-center justify-center gap-4 mb-4">
-        <Trophy className="w-10 h-10 text-yellow-400 animate-bounce" />
+        <Trophy className="w-10 h-10 text-gold-400 animate-bounce" />
         {moviePosterUrl && (
           <div className="relative">
             <img
               src={moviePosterUrl}
               alt={movieTitle}
-              className="w-20 h-28 object-cover rounded-lg shadow-lg border-2 border-yellow-400/50"
+              className="w-20 h-28 object-cover rounded-lg shadow-lg border-2 border-gold-400/50"
             />
-            <div className="absolute -bottom-2 -right-2 bg-yellow-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+            <div className="absolute -bottom-2 -right-2 bg-gold-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">
               {result.year}
             </div>
           </div>
@@ -100,7 +100,7 @@ export default function AwardCreatedMoment({
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
         <button
           onClick={onAddNominees}
-          className="px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30 rounded-lg text-sm font-medium transition-colors"
+          className="px-4 py-2 bg-gold-500/20 hover:bg-gold-500/30 text-gold-300 border border-gold-500/30 rounded-lg text-sm font-medium transition-colors"
         >
           Add nominees for {result.year}
         </button>

@@ -18,7 +18,7 @@ const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, see
       <div className="flex items-center justify-between mb-3 px-1">
         <h2 className="text-xl font-bold text-white tracking-wide">{title}</h2>
         {seeAllHref && (
-          <Link href={seeAllHref} className="text-[#CAAC4C] hover:text-yellow-400 text-sm font-medium transition-colors">
+          <Link href={seeAllHref} className="text-[#CAAC4C] hover:text-gold-400 text-sm font-medium transition-colors">
             See All
           </Link>
         )}
@@ -39,22 +39,22 @@ const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, see
               role="button"
               aria-label="Create New List"
             >
-              <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-gray-700/40 group-hover:bg-yellow-500/30 transition-all">
-                <svg className="w-10 h-10 text-[#CAAC4C] group-hover:text-yellow-300 transition-colors" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+              <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-gray-700/40 group-hover:bg-gold-500/30 transition-all">
+                <svg className="w-10 h-10 text-[#CAAC4C] group-hover:text-gold-300 transition-colors" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
               </div>
-              <span className="mt-2 text-base font-semibold text-white group-hover:text-yellow-300 transition-colors">Create New List</span>
+              <span className="mt-2 text-base font-semibold text-white group-hover:text-gold-300 transition-colors">Create New List</span>
             </div>
           )}
           {!readOnly && (
             <Link
               href="/lists/ready-made"
-              className="min-w-[280px] max-w-[280px] h-[320px] flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-yellow-500/40 light-glass dark:dark-glass rounded-xl shadow-md hover:shadow-lg transition-all p-6 group"
+              className="min-w-[280px] max-w-[280px] h-[320px] flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gold-500/40 light-glass dark:dark-glass rounded-xl shadow-md hover:shadow-lg transition-all p-6 group"
               aria-label="Ready‑Made Lists"
             >
-              <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-yellow-500/20 group-hover:bg-yellow-500/40 transition-all">
-                <List className="w-7 h-7 text-yellow-300" />
+              <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-gold-500/20 group-hover:bg-gold-500/40 transition-all">
+                <List className="w-7 h-7 text-gold-300" />
               </div>
-              <span className="mt-2 text-base font-semibold text-yellow-200 group-hover:text-yellow-300 transition-colors">Ready‑Made Lists</span>
+              <span className="mt-2 text-base font-semibold text-gold-200 group-hover:text-gold-300 transition-colors">Ready‑Made Lists</span>
               <span className="mt-1 text-xs text-gray-300">Auto‑generated from your ratings</span>
             </Link>
           )}

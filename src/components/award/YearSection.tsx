@@ -64,7 +64,7 @@ export default function YearSection({
 					<div className="w-full md:w-1/3 max-w-[300px] mx-auto">
 						<div className="inline-flex items-center justify-center gap-2 mb-2 md:mb-4">
 							<span className="text-xl">🏆</span>
-							<h3 className="text-xl md:text-2xl font-bold text-[#cb8601] dark:text-yellow-400 font-unbounded">
+							<h3 className="text-xl md:text-2xl font-bold text-[#cb8601] dark:text-gold-400 font-unbounded">
 								Winner
 							</h3>
 						</div>

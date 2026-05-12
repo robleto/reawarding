@@ -154,11 +154,11 @@ function StateRow({
   onClick?: () => void;
 }) {
   const dotColor =
-    accent === "gold"  ? "bg-yellow-400" :
+    accent === "gold"  ? "bg-gold-400" :
     accent === "green" ? "bg-emerald-400" :
                          "bg-gray-700";
   const valColor =
-    accent === "gold"  ? "text-yellow-200" :
+    accent === "gold"  ? "text-gold-200" :
     accent === "green" ? "text-emerald-300" :
                          "text-gray-500";
 
@@ -171,7 +171,7 @@ function StateRow({
         <button
           type="button"
           onClick={onClick}
-          className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-medium text-yellow-500/70 hover:text-yellow-300 transition-colors"
+          className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-medium text-gold-500/70 hover:text-gold-300 transition-colors"
         >
           {cta}
           <ArrowRight className="h-2.5 w-2.5" />
@@ -256,10 +256,10 @@ export default function LoggedInOnboardingExperience({
       <button
         type="button"
         onClick={() => setIsCollapsed(false)}
-        className="w-full mb-6 flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-left hover:border-yellow-500/25 hover:bg-white/[0.03] transition-colors group"
+        className="w-full mb-6 flex items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-left hover:border-gold-500/25 hover:bg-white/[0.03] transition-colors group"
       >
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-yellow-500/60" />
+          <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-gold-500/60" />
           <span className="text-xs font-medium text-gray-500 group-hover:text-gray-300 transition-colors">
             {copy.eyebrow || "First-time setup"}
           </span>
@@ -280,7 +280,7 @@ export default function LoggedInOnboardingExperience({
     <div className="mb-8">
       {/* Outer wrapper: shadow + border + radius — NO overflow-hidden so search glow isn't clipped */}
       <div
-        className={`rounded-2xl border ${onboarding.stage === "welcome" ? "border-white/[0.06]" : "border-yellow-500/25"}`}
+        className={`rounded-2xl border ${onboarding.stage === "welcome" ? "border-white/[0.06]" : "border-gold-500/25"}`}
         style={{
           background: "#0B0F14",
           boxShadow: onboarding.stage === "welcome"
@@ -307,7 +307,7 @@ export default function LoggedInOnboardingExperience({
             <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${
               onboarding.stage === "welcome"
                 ? "border border-white/[0.08] bg-transparent text-gray-600"
-                : "border border-yellow-500/30 bg-yellow-500/[0.10] text-yellow-400"
+                : "border border-gold-500/30 bg-gold-500/[0.10] text-gold-400"
             }`}>
               {onboarding.stage !== "welcome" && <Sparkles className="h-2.5 w-2.5" />}
               {copy.eyebrow || "First-time setup"}
@@ -344,7 +344,7 @@ export default function LoggedInOnboardingExperience({
                   key={film}
                   type="button"
                   onClick={() => onSuggestedQuery(film)}
-                  className="rounded-full border border-white/[0.08] bg-transparent px-3 py-1 text-xs text-gray-500 hover:border-yellow-500/35 hover:text-yellow-300 transition-colors"
+                  className="rounded-full border border-white/[0.08] bg-transparent px-3 py-1 text-xs text-gray-500 hover:border-gold-500/35 hover:text-gold-300 transition-colors"
                 >
                   {film}
                 </button>

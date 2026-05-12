@@ -17,8 +17,6 @@ import Image from "next/image";
 import { X, Trophy, Info, Star, Plus, HelpCircle, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import ContextualTip from "@/components/onboarding/ContextualTip";
-// BallotMilestoneOverlay import removed — confetti/overlay disabled until UX is finalized
-// import BallotMilestoneOverlay from "@/components/home/BallotMilestoneOverlay";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
 import type { Movie } from "@/types/types";
 import { getActualWinner } from "@/data/bestPictureWinners";
@@ -571,7 +569,7 @@ export default function YearExplorer({
                 <div key={`${rowKey}-${movie.id}`} className={`group relative rounded-lg${justNominated ? " nominee-glow" : ""}`}>
                   {justNominated && (
                     <div className="absolute bottom-2 left-0 right-0 flex justify-center z-10 pointer-events-none animate-in fade-in duration-200">
-                      <span className="px-2.5 py-1 rounded-full bg-yellow-400 text-yellow-900 text-[10px] font-bold uppercase tracking-wide shadow-lg">
+                      <span className="px-2.5 py-1 rounded-full bg-gold-400 text-gold-900 text-[10px] font-bold uppercase tracking-wide shadow-lg">
                         New nominee
                       </span>
                     </div>
@@ -591,7 +589,7 @@ export default function YearExplorer({
                             event.stopPropagation();
                             handlePromoteContender(movie);
                           }}
-                          className="inline-flex items-center justify-center rounded-md border border-yellow-500/30 bg-yellow-500/10 px-1.5 py-0.5 text-yellow-300 transition-colors hover:border-yellow-400/50 hover:bg-yellow-500/20 hover:text-yellow-200"
+                          className="inline-flex items-center justify-center rounded-md border border-gold-500/30 bg-gold-500/10 px-1.5 py-0.5 text-gold-300 transition-colors hover:border-gold-400/50 hover:bg-gold-500/20 hover:text-gold-200"
                           aria-label={`Nominate ${movie.title}`}
                           title="Nominate"
                         >
@@ -697,7 +695,7 @@ export default function YearExplorer({
   const ratedFilmsForYearCount = moviesWithRankings.length;
   const showBallotFraming = ratedFilmsForYearCount >= 3;
   return (
-    <div className="bg-gray-900/80 border border-gray-700/60 shadow-2xl rounded-2xl p-4 md:p-6 min-h-[70vh] animate-in fade-in slide-in-from-top-2 duration-300">
+    <div className="bg-charcoal-900/80 border border-gray-700/60 shadow-2xl rounded-2xl p-4 md:p-6 min-h-[70vh] animate-in fade-in slide-in-from-top-2 duration-300">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div>
@@ -716,7 +714,7 @@ export default function YearExplorer({
               Year help
             </button>
             {showYearHelp && (
-              <div className="absolute top-6 left-0 z-20 whitespace-nowrap rounded-md border border-gray-700 bg-gray-900/95 px-2 py-1 text-[11px] text-gray-200 shadow-lg">
+              <div className="absolute top-6 left-0 z-20 whitespace-nowrap rounded-md border border-gray-700 bg-charcoal-900/95 px-2 py-1 text-[11px] text-gray-200 shadow-lg">
                 For simplicity, award year = film release year.
               </div>
             )}
@@ -748,7 +746,7 @@ export default function YearExplorer({
       {actualWinner && (
         <p className="text-xs text-gray-400 mb-4">
           The Academy chose{" "}
-          <span className="font-medium text-yellow-400">{actualWinner.title}</span>.
+          <span className="font-medium text-gold-400">{actualWinner.title}</span>.
           {showBallotFraming && (
             <> <span className="text-gray-500">Will your ballot agree?</span></>
           )}
@@ -798,7 +796,7 @@ export default function YearExplorer({
           {/* ─── Race progress indicator ─────────────────────────── */}
           <div className="mt-3 mb-4 lg:mb-0">
             <div className="flex items-center gap-2 mb-2">
-              <Trophy className={`w-3.5 h-3.5 ${liveNomineeCount >= 5 ? "text-yellow-400" : "text-yellow-400/70"}`} />
+              <Trophy className={`w-3.5 h-3.5 ${liveNomineeCount >= 5 ? "text-gold-400" : "text-gold-400/70"}`} />
               <span className="text-xs font-medium text-gray-400">
                 {liveNomineeCount} of 10 nominees
               </span>
@@ -819,7 +817,7 @@ export default function YearExplorer({
                   key={i}
                   className={`h-1 flex-1 rounded-full transition-all duration-500 ${
                     i < liveNomineeCount
-                      ? liveNomineeCount >= 5 ? "bg-emerald-400" : "bg-yellow-400"
+                      ? liveNomineeCount >= 5 ? "bg-emerald-400" : "bg-gold-400"
                       : "bg-gray-700/60"
                   } ${i === 5 ? "ml-1.5" : ""}`}
                 />
@@ -881,7 +879,7 @@ export default function YearExplorer({
 
             {/* ─── Sticky nominee strip (mobile/tablet — ballot visible on lg+) ─── */}
             {showStickyNominees && displayNominees.length > 0 && (
-              <div className="sticky top-0 z-40 -mx-4 px-4 py-2 bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/40 lg:hidden">
+              <div className="sticky top-0 z-40 -mx-4 px-4 py-2 bg-charcoal-900/95 backdrop-blur-sm border-b border-gray-700/40 lg:hidden">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium shrink-0">
                     Nominees ({displayNomineeCount}/10)
@@ -894,7 +892,7 @@ export default function YearExplorer({
                       const hasPoster = stickyPoster && stickyPoster.startsWith("http");
                       return (
                         <div key={`sticky-${m.id}`} className="relative shrink-0">
-                          <div className={`w-8 h-12 rounded overflow-hidden border ${isWinner ? "border-yellow-500" : isPickedMovie ? "border-yellow-400/70 ring-1 ring-yellow-400/50" : "border-gray-600/60"}`}>
+                          <div className={`w-8 h-12 rounded overflow-hidden border ${isWinner ? "border-gold-500" : isPickedMovie ? "border-gold-400/70 ring-1 ring-gold-400/50" : "border-gray-600/60"}`}>
                             {hasPoster ? (
                               <Image
                                 src={stickyPoster}
@@ -910,7 +908,7 @@ export default function YearExplorer({
                             )}
                           </div>
                           {isWinner && (
-                            <Trophy className="absolute -top-1 -right-1 w-2.5 h-2.5 text-yellow-400" />
+                            <Trophy className="absolute -top-1 -right-1 w-2.5 h-2.5 text-gold-400" />
                           )}
                         </div>
                       );
@@ -934,7 +932,7 @@ export default function YearExplorer({
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder={`Filter ${year} movies...`}
-                  className="w-full rounded-lg border border-gray-700/50 bg-gray-900/60 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500/40"
+                  className="w-full rounded-lg border border-gray-700/50 bg-charcoal-900/60 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/40"
                 />
               </div>
             </div>
@@ -966,7 +964,7 @@ export default function YearExplorer({
               <button
                 type="button"
                 onClick={() => setShowAllOther(true)}
-                className="mb-4 text-xs font-medium text-yellow-400 hover:text-yellow-300 transition-colors"
+                className="mb-4 text-xs font-medium text-gold-400 hover:text-gold-300 transition-colors"
               >
                 Show {otherFilms.length - INITIAL_FILM_LIMIT} more notable films
               </button>
@@ -1006,8 +1004,6 @@ export default function YearExplorer({
           </div>
         )}
       </div>
-
-      {/* BallotMilestoneOverlay disabled — milestone overlay/confetti off until UX is finalized */}
 
       {/* ─── Onboarding tour overlay (portal, fixed to viewport) ───────────────
           Steps 1/3 anchor to the first nominee card. Step 2 anchors to the

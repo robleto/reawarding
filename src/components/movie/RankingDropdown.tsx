@@ -63,7 +63,7 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
         type="button"
         disabled={disabled}
         onClick={() => setShowDropdown(!showDropdown)}
-        className={`font-bold px-3 py-1 min-h-[44px] rounded-lg border border-gray-700 bg-gray-900/80 text-white ${ranking ? 'text-base min-w-[44px]' : 'text-xs min-w-[48px]'}`}
+        className={`font-bold px-3 py-1 min-h-[44px] rounded-lg border border-gray-700 bg-charcoal-900/80 text-white ${ranking ? 'text-base min-w-[44px]' : 'text-xs min-w-[48px]'}`}
         style={{ backgroundColor: style.background, color: style.text }}
       >
         {ranking ?? "Rate"}
@@ -114,7 +114,7 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
               className="absolute inset-0 bg-black/55"
               onClick={() => setShowDropdown(false)}
             />
-            <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-gray-700 bg-gray-900 px-4 pb-5 pt-3 shadow-2xl">
+            <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-gray-700 bg-charcoal-900 px-4 pb-5 pt-3 shadow-2xl">
               <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-gray-600" />
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-white">Set rating</h3>
@@ -139,7 +139,7 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
                         setShowDropdown(false);
                       }}
                       className={`w-full rounded-xl px-3 py-3 text-left transition-colors ${
-                        isSelected ? "ring-2 ring-yellow-400/70" : "ring-1 ring-gray-700"
+                        isSelected ? "ring-2 ring-gold-400/70" : "ring-1 ring-gray-700"
                       }`}
                       style={{ backgroundColor: optionStyle.background, color: optionStyle.text }}
                     >

@@ -66,7 +66,7 @@ export default function DraggableMovieCard({
         className={`relative ${isDragging ? "z-50" : ""}`}
       >
         {/* Position Number */}
-        <div className="absolute top-2 left-2 z-30 bg-gray-900/80 border border-gray-300/50 text-white text-lg font-unbounded font-bold px-3 py-2 rounded-md shadow-sm backdrop-blur-sm">
+        <div className="absolute top-2 left-2 z-30 bg-charcoal-900/80 border border-gray-300/50 text-white text-lg font-unbounded font-bold px-3 py-2 rounded-md shadow-sm backdrop-blur-sm">
           {position}
         </div>
 

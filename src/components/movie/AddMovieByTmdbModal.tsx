@@ -81,7 +81,7 @@ export default function AddMovieByTmdbModal({ isOpen, onClose, onImported }: Add
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60" onClick={handleClose}>
       <div
-        className="w-full max-w-lg rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl"
+        className="w-full max-w-lg rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-charcoal-900 shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">

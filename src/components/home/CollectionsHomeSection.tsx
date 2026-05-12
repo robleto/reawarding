@@ -80,7 +80,7 @@ export default function CollectionsHomeSection({
       <section className="mt-6">
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-64 bg-gray-900/60 border border-yellow-500/20 rounded-2xl animate-pulse" />
+            <div key={i} className="h-64 bg-charcoal-900/60 border border-gold-500/20 rounded-2xl animate-pulse" />
           ))}
         </div>
       </section>
@@ -130,7 +130,7 @@ export default function CollectionsHomeSection({
             <div className="mt-6 text-center">
               <button
                 onClick={() => setShowAllCollections(true)}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900/60 hover:bg-gray-900/80 text-white border border-yellow-500/20 hover:border-yellow-500/40 rounded-lg font-medium transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-charcoal-900/60 hover:bg-charcoal-900/80 text-white border border-gold-500/20 hover:border-gold-500/40 rounded-lg font-medium transition-all"
               >
                 View more collections
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

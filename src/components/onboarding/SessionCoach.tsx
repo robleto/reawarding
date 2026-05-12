@@ -99,7 +99,7 @@ export default function SessionCoach({
 
   return (
     <div className="mx-auto max-w-2xl mb-8">
-      <div className="relative rounded-xl border border-yellow-500/15 bg-gradient-to-r from-yellow-500/5 via-transparent to-transparent p-4 sm:p-5">
+      <div className="relative rounded-xl border border-gold-500/15 bg-gradient-to-r from-gold-500/5 via-transparent to-transparent p-4 sm:p-5">
         {/* Dismiss */}
         <button
           type="button"
@@ -111,8 +111,8 @@ export default function SessionCoach({
         </button>
 
         <div className="flex items-start gap-3 pr-6">
-          <div className="mt-0.5 flex-shrink-0 rounded-full bg-yellow-500/10 p-2">
-            <IconComponent className="h-4 w-4 text-yellow-400/80" />
+          <div className="mt-0.5 flex-shrink-0 rounded-full bg-gold-500/10 p-2">
+            <IconComponent className="h-4 w-4 text-gold-400/80" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm text-gray-300 leading-relaxed mb-3">
@@ -122,7 +122,7 @@ export default function SessionCoach({
               <button
                 type="button"
                 onClick={() => onOpenYear(coaching.year!)}
-                className="inline-flex items-center gap-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-4 py-2 text-sm font-medium text-yellow-300 hover:bg-yellow-500/20 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-gold-500/10 border border-gold-500/20 px-4 py-2 text-sm font-medium text-gold-300 hover:bg-gold-500/20 transition-colors"
               >
                 {coaching.cta}
                 <ArrowRight className="h-3.5 w-3.5" />

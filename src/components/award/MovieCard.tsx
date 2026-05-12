@@ -202,8 +202,8 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 			<div
 				className={`group relative text-left rounded-lg border transition-colors overflow-hidden w-full flex flex-col ${
 					isWinner
-						? "border-yellow-500/40 bg-yellow-500/5 hover:bg-yellow-500/10"
-						: "border-gray-700/30 bg-gray-900/30 hover:bg-gray-800/60"
+						? "border-gold-500/40 bg-gold-500/5 hover:bg-gold-500/10"
+						: "border-gray-700/30 bg-charcoal-900/30 hover:bg-gray-800/60"
 				} ${onClick || interactive ? "cursor-pointer" : ""}`}
 				onClick={handleClick}
 			>
@@ -231,7 +231,7 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 					{/* Winner badge — top-right */}
 					{isWinner && (
 						<span className="absolute top-2 right-2 flex items-center justify-center w-6 h-6 rounded-full bg-black/65 backdrop-blur-sm">
-							<Trophy className="w-3.5 h-3.5 text-yellow-400" />
+							<Trophy className="w-3.5 h-3.5 text-gold-400" />
 						</span>
 					)}
 
@@ -383,8 +383,8 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 				onClick={onClick}
 				className={`group flex items-center gap-3 px-3 py-2 text-left rounded-lg border transition-colors w-full ${
 					isWinner
-						? "border-yellow-500/40 bg-yellow-500/5 hover:bg-yellow-500/10"
-						: "border-gray-700/30 bg-gray-900/30 hover:bg-gray-800/60"
+						? "border-gold-500/40 bg-gold-500/5 hover:bg-gold-500/10"
+						: "border-gray-700/30 bg-charcoal-900/30 hover:bg-gray-800/60"
 				}`}
 			>
 				{rank != null && (
@@ -401,7 +401,7 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 				</div>
 				<p className="flex-1 text-sm font-medium text-white truncate">{movie.title}</p>
 				<span className="flex items-center gap-1.5 flex-shrink-0">
-					{isWinner && <Trophy className="w-3.5 h-3.5 text-yellow-400" />}
+					{isWinner && <Trophy className="w-3.5 h-3.5 text-gold-400" />}
 					<RatingBadge rating={rating} className="text-xs px-1.5 py-0.5" />
 				</span>
 			</button>
@@ -573,8 +573,8 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 			<div
 				className={`group relative text-left rounded-xl border transition-colors overflow-hidden w-full flex flex-col ${
 					isWinner
-						? "border-yellow-500/40 bg-yellow-500/5 hover:bg-yellow-500/10"
-						: "border-gray-700/50 bg-gray-900/40 hover:bg-gray-800/60"
+						? "border-gold-500/40 bg-gold-500/5 hover:bg-gold-500/10"
+						: "border-gray-700/50 bg-charcoal-900/40 hover:bg-gray-800/60"
 				} ${onClick || interactive ? "cursor-pointer" : ""}`}
 				onClick={handleClick}
 			>
@@ -604,7 +604,7 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 					{/* Winner badge — top-left (if no rank) */}
 					{isWinner && rank == null && (
 						<span className="absolute top-2 left-2 flex items-center justify-center w-7 h-7 rounded-md bg-black/70 backdrop-blur-sm">
-							<Trophy className="w-4 h-4 text-yellow-400" />
+							<Trophy className="w-4 h-4 text-gold-400" />
 						</span>
 					)}
 
@@ -656,7 +656,7 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 									rating
 										? "text-sm border-gray-700/60"
 										: seenIt
-										? "text-xs border-yellow-400/50 hover:border-yellow-300/70"
+										? "text-xs border-gold-400/50 hover:border-gold-300/70"
 										: "text-xs border-gray-600/40 hover:border-gray-500/60"
 								}`}
 								style={rating

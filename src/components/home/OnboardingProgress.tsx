@@ -30,7 +30,7 @@ export default function OnboardingProgressComponent({ progress, onboardingMessag
   return (
     <div className="mb-8">
       {/* Main Message Card */}
-      <div className="bg-gray-900/60 border border-yellow-500/20 backdrop-blur-sm rounded-2xl p-6 mb-6 shadow-md hover:shadow-lg transition-all duration-200">
+      <div className="bg-charcoal-900/60 border border-gold-500/20 backdrop-blur-sm rounded-2xl p-6 mb-6 shadow-md hover:shadow-lg transition-all duration-200">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-white mb-2">
@@ -41,7 +41,7 @@ export default function OnboardingProgressComponent({ progress, onboardingMessag
             </p>
             <Link
               href={onboardingMessage.ctaLink}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30 rounded-lg font-medium transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gold-500/20 hover:bg-gold-500/30 text-gold-300 border border-gold-500/30 rounded-lg font-medium transition-colors"
             >
               {onboardingMessage.cta}
               <ArrowRight className="w-4 h-4" />
@@ -71,7 +71,7 @@ export default function OnboardingProgressComponent({ progress, onboardingMessag
                     fill="transparent"
                     strokeDasharray={`${2 * Math.PI * 40}`}
                     strokeDashoffset={`${2 * Math.PI * 40 * (1 - percentToNextMilestone / 100)}`}
-                    className="text-yellow-400 transition-all duration-500"
+                    className="text-gold-400 transition-all duration-500"
                     strokeLinecap="round"
                   />
                 </svg>
@@ -99,11 +99,11 @@ export default function OnboardingProgressComponent({ progress, onboardingMessag
             <div
               key={milestone.id}
               className={`
-                bg-gray-900/60 border backdrop-blur-sm relative p-4 rounded-xl shadow-md transition-all
+                bg-charcoal-900/60 border backdrop-blur-sm relative p-4 rounded-xl shadow-md transition-all
                 ${milestone.isUnlocked
                   ? 'border-green-500/30 ring-2 ring-green-500/20'
                   : isNext
-                  ? 'border-yellow-500/30 ring-2 ring-yellow-500/30'
+                  ? 'border-gold-500/30 ring-2 ring-gold-500/30'
                   : 'border-gray-700/40 opacity-60'
                 }
               `}
@@ -115,7 +115,7 @@ export default function OnboardingProgressComponent({ progress, onboardingMessag
                     ${milestone.isUnlocked
                       ? 'bg-green-500/20'
                       : isNext
-                      ? 'bg-yellow-500/20'
+                      ? 'bg-gold-500/20'
                       : 'bg-gray-700/50'
                     }
                   `}
@@ -150,7 +150,7 @@ export default function OnboardingProgressComponent({ progress, onboardingMessag
                     <div
                       className={`h-full transition-all duration-500 ${
                         isNext
-                          ? 'bg-yellow-400'
+                          ? 'bg-gold-400'
                           : 'bg-gray-600'
                       }`}
                       style={{ width: `${Math.min(100, (milestone.current / milestone.threshold) * 100)}%` }}

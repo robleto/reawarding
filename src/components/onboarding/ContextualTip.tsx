@@ -110,12 +110,12 @@ export default function ContextualTip({
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-start gap-3 rounded-xl border border-yellow-500/15 bg-gray-900/80 backdrop-blur-sm px-4 py-3 shadow-lg">
+      <div className="flex items-start gap-3 rounded-xl border border-gold-500/15 bg-charcoal-900/80 backdrop-blur-sm px-4 py-3 shadow-lg">
         {/* Gold accent bar */}
-        <div className="mt-0.5 h-8 w-0.5 flex-shrink-0 rounded-full bg-yellow-400/60" />
+        <div className="mt-0.5 h-8 w-0.5 flex-shrink-0 rounded-full bg-gold-400/60" />
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-yellow-300/90 mb-0.5">
+          <p className="text-sm font-medium text-gold-300/90 mb-0.5">
             {tip.title}
           </p>
           <p className="text-xs text-gray-400 leading-relaxed">

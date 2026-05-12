@@ -140,7 +140,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
               className="flex items-center justify-center min-w-[44px] min-h-[44px] rounded-md transition-colors hover:bg-gray-800/60"
               title={isOnWatchlist ? "On your watchlist" : "Add to watchlist"}
             >
-              <Bookmark className={`w-4 h-4 ${isOnWatchlist ? "fill-yellow-400 text-yellow-400" : "text-gray-400"}`} />
+              <Bookmark className={`w-4 h-4 ${isOnWatchlist ? "fill-gold-400 text-gold-400" : "text-gray-400"}`} />
             </button>
           )}
           {/* Seen It Toggle OR Hot Take Indicator */}
@@ -241,7 +241,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
                   className="flex items-center justify-center min-w-[44px] min-h-[44px] rounded-md transition-colors hover:bg-gray-800/60"
                   title={isOnWatchlist ? "On your watchlist" : "Add to watchlist"}
                 >
-                  <Bookmark className={`w-4 h-4 ${isOnWatchlist ? "fill-yellow-400 text-yellow-400" : "text-gray-400"}`} />
+                  <Bookmark className={`w-4 h-4 ${isOnWatchlist ? "fill-gold-400 text-gold-400" : "text-gray-400"}`} />
                 </button>
               )}
               {/* Seen It Toggle */}

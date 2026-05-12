@@ -163,13 +163,13 @@ export default function MovieDetailModal({
       onClick={onClose}
     >
       <div
-        className="bg-gray-900/80 border border-yellow-500/20 rounded-t-2xl sm:rounded-2xl shadow-lg max-w-4xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto text-gray-200"
+        className="bg-charcoal-900/80 border border-gold-500/20 rounded-t-2xl sm:rounded-2xl shadow-lg max-w-4xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto text-gray-200"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-start justify-between p-4 border-b sm:p-6 border-yellow-500/20 bg-gray-900/80 backdrop-blur-sm">
+        <div className="sticky top-0 z-10 flex items-start justify-between p-4 border-b sm:p-6 border-gold-500/20 bg-charcoal-900/80 backdrop-blur-sm">
           <div>
-            <h2 className="text-2xl font-bold text-yellow-400">
+            <h2 className="text-2xl font-bold text-gold-400">
               {movie.title}
             </h2>
             <p className="text-gray-400 text-sm">{movie.release_year}</p>
@@ -223,7 +223,7 @@ export default function MovieDetailModal({
 
                 {/* Actions panel — 1/3 sidebar on mobile, full-width below poster on desktop */}
                 <div className="flex-1 min-w-0">
-                  <div className="h-full md:h-auto p-3 md:p-4 border rounded-lg bg-gray-800/50 border-yellow-500/10 flex flex-col gap-3 md:gap-4">
+                  <div className="h-full md:h-auto p-3 md:p-4 border rounded-lg bg-gray-800/50 border-gold-500/10 flex flex-col gap-3 md:gap-4">
 
                     {/* Seen It Toggle */}
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-0">
@@ -268,7 +268,7 @@ export default function MovieDetailModal({
                         {movie.genres.map((genre: string, index: number) => (
                           <span
                             key={index}
-                            className="px-2 py-0.5 text-xs font-medium bg-yellow-900/50 text-yellow-300 rounded-full"
+                            className="px-2 py-0.5 text-xs font-medium bg-gold-900/50 text-gold-300 rounded-full"
                           >
                             {genre}
                           </span>
@@ -287,7 +287,7 @@ export default function MovieDetailModal({
               {/* Overview */}
               {movie.overview && (
                 <div>
-                  <h4 className="mb-2 font-semibold text-yellow-400">Overview</h4>
+                  <h4 className="mb-2 font-semibold text-gold-400">Overview</h4>
                   <p className="text-sm leading-relaxed text-gray-300">
                     {movie.overview}
                   </p>
@@ -298,19 +298,19 @@ export default function MovieDetailModal({
               <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
                 {movie.runtime && (
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-yellow-500/80" />
+                    <Clock className="w-4 h-4 text-gold-500/80" />
                     <span className="text-gray-300">{movie.runtime} min</span>
                   </div>
                 )}
                 {movie.mpaa_rating && (
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-yellow-500/80" />
+                    <Users className="w-4 h-4 text-gold-500/80" />
                     <span className="text-gray-300">Rated {movie.mpaa_rating}</span>
                   </div>
                 )}
                 {movie.director && (
                   <div className="flex items-center col-span-2 gap-2 sm:col-span-1">
-                    <Clapperboard className="w-4 h-4 text-yellow-500/80" />
+                    <Clapperboard className="w-4 h-4 text-gold-500/80" />
                     <span className="text-gray-300 truncate" title={movie.director}>
                       {movie.director}
                     </span>
@@ -330,7 +330,7 @@ export default function MovieDetailModal({
                         href={`https://www.themoviedb.org/movie/${movie.tmdb_id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-yellow-300 hover:text-yellow-200"
+                        className="inline-flex items-center gap-1 text-gold-300 hover:text-gold-200"
                         title="Open on TMDB"
                       >
                         <ExternalLink className="w-4 h-4" />
@@ -338,7 +338,7 @@ export default function MovieDetailModal({
                       </a>
                       <button
                         onClick={handleCopyTmdb}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded border border-yellow-500/10 bg-gray-800/50 hover:bg-gray-700/50 text-xs text-gray-200"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gold-500/10 bg-gray-800/50 hover:bg-gray-700/50 text-xs text-gray-200"
                         title="Copy TMDB ID"
                       >
                         <Copy className="w-3 h-3" />
@@ -352,12 +352,12 @@ export default function MovieDetailModal({
               {/* Genres — desktop only (mobile shows genres in the sidebar) */}
               {movie.genres && movie.genres.length > 0 && (
                 <div className="hidden md:block">
-                  <h4 className="mb-2 font-semibold text-yellow-400">Genres</h4>
+                  <h4 className="mb-2 font-semibold text-gold-400">Genres</h4>
                   <div className="flex flex-wrap gap-2">
                     {movie.genres.map((genre: string, index: number) => (
                       <span
                         key={index}
-                        className="px-2.5 py-1 text-xs font-medium bg-yellow-900/50 text-yellow-300 rounded-full"
+                        className="px-2.5 py-1 text-xs font-medium bg-gold-900/50 text-gold-300 rounded-full"
                       >
                         {genre}
                       </span>
@@ -369,7 +369,7 @@ export default function MovieDetailModal({
               {/* Cast */}
               {movie.cast_list && movie.cast_list.length > 0 && (
                 <div>
-                  <h4 className="mb-2 font-semibold text-yellow-400">Cast</h4>
+                  <h4 className="mb-2 font-semibold text-gold-400">Cast</h4>
                   <p className="text-sm text-gray-300">
                     {movie.cast_list.slice(0, 10).join(", ")}
                   </p>
@@ -379,10 +379,10 @@ export default function MovieDetailModal({
               {/* Scores (Admin only) */}
               {isAdmin && (movie.imdb_rating || movie.metacritic_score) && (
                 <div>
-                  <h4 className="mb-2 font-semibold text-yellow-400">Scores</h4>
+                  <h4 className="mb-2 font-semibold text-gold-400">Scores</h4>
                   <div className="grid grid-cols-2 gap-4">
                     {movie.imdb_rating && (
-                      <div className="p-3 text-center border rounded-lg bg-gray-800/50 border-yellow-500/10">
+                      <div className="p-3 text-center border rounded-lg bg-gray-800/50 border-gold-500/10">
                         <div className="text-xl font-bold text-white">
                           {movie.imdb_rating.toFixed(1)}
                         </div>
@@ -390,7 +390,7 @@ export default function MovieDetailModal({
                       </div>
                     )}
                     {movie.metacritic_score && (
-                      <div className="p-3 text-center border rounded-lg bg-gray-800/50 border-yellow-500/10">
+                      <div className="p-3 text-center border rounded-lg bg-gray-800/50 border-gold-500/10">
                         <div className="text-xl font-bold text-white">
                           {movie.metacritic_score}
                         </div>

@@ -132,7 +132,7 @@ export default function OnboardingPickFlow({
       {/* Panel */}
       <div
         ref={panelRef}
-        className="relative w-full max-w-sm rounded-2xl border border-gray-700/60 bg-gray-900 shadow-2xl shadow-black/60 animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-sm rounded-2xl border border-gray-700/60 bg-charcoal-900 shadow-2xl shadow-black/60 animate-in fade-in zoom-in-95 duration-200"
       >
         {/* Close affordance */}
         <button
@@ -148,7 +148,7 @@ export default function OnboardingPickFlow({
         <div className="px-5 pt-5 pb-3 flex items-center gap-2">
           <span
             className={`text-[11px] font-semibold uppercase tracking-wider ${
-              step === "watch" ? "text-yellow-400" : "text-gray-500"
+              step === "watch" ? "text-gold-400" : "text-gray-500"
             }`}
           >
             1 · Watch
@@ -156,7 +156,7 @@ export default function OnboardingPickFlow({
           <div className="flex-1 h-px bg-gray-700/60" />
           <span
             className={`text-[11px] font-semibold uppercase tracking-wider ${
-              step === "rate" ? "text-yellow-400" : "text-gray-500"
+              step === "rate" ? "text-gold-400" : "text-gray-500"
             }`}
           >
             2 · Rate
@@ -164,7 +164,7 @@ export default function OnboardingPickFlow({
           <div className="flex-1 h-px bg-gray-700/60" />
           <span
             className={`text-[11px] font-semibold uppercase tracking-wider ${
-              step === "forming" ? "text-yellow-400" : "text-gray-500"
+              step === "forming" ? "text-gold-400" : "text-gray-500"
             }`}
           >
             3 · Form
@@ -273,7 +273,7 @@ function OnboardingMovieCard({
     <div className="mx-auto mb-4 w-full max-w-[220px]">
       <div className="overflow-hidden rounded-xl bg-gray-800 shadow-lg border border-gray-700/60">
         {/* Poster + action overlay */}
-        <div className="relative aspect-[2/3] bg-gray-900">
+        <div className="relative aspect-[2/3] bg-charcoal-900">
           {posterSrc ? (
             <Image
               src={posterSrc}
@@ -325,7 +325,7 @@ function OnboardingMovieCard({
                 <button
                   type="button"
                   onClick={onOpenRatePicker}
-                  className="flex items-center gap-1 h-9 px-2.5 rounded-lg border border-gray-600/40 text-xs font-semibold transition-colors hover:border-yellow-400/60 active:scale-95"
+                  className="flex items-center gap-1 h-9 px-2.5 rounded-lg border border-gray-600/40 text-xs font-semibold transition-colors hover:border-gold-400/60 active:scale-95"
                   style={{ backgroundColor: "rgba(30,30,34,0.75)", color: "#fde68a" }}
                   aria-label="Open rating picker"
                 >
@@ -393,7 +393,7 @@ function WatchGuidance({
           </>
         ) : (
           <>
-            Tap <span className="font-semibold text-gray-100">Unseen</span> on the card to mark <span className="text-yellow-300">{movieTitle}</span> as watched. That's how Reawarding learns this is part of your taste.
+            Tap <span className="font-semibold text-gray-100">Unseen</span> on the card to mark <span className="text-gold-300">{movieTitle}</span> as watched. That's how Reawarding learns this is part of your taste.
           </>
         )}
       </p>
@@ -432,15 +432,15 @@ function RatePicker({
         {selectedRating ? (
           <>
             <Check className="inline-block w-4 h-4 text-emerald-400 mr-1 -mt-0.5" />
-            You rated <span className="text-yellow-300">{movieTitle}</span> a {selectedRating}.
+            You rated <span className="text-gold-300">{movieTitle}</span> a {selectedRating}.
           </>
         ) : pickerOpen ? (
           <>
-            Pick a score for <span className="text-yellow-300">{movieTitle}</span>. Rating 7 or higher means &ldquo;this belongs on my ballot.&rdquo;
+            Pick a score for <span className="text-gold-300">{movieTitle}</span>. Rating 7 or higher means &ldquo;this belongs on my ballot.&rdquo;
           </>
         ) : (
           <>
-            Tap <span className="font-semibold text-gray-100">Rate</span> on the card to score <span className="text-yellow-300">{movieTitle}</span>. Rating 7 or higher means &ldquo;this belongs on my ballot.&rdquo;
+            Tap <span className="font-semibold text-gray-100">Rate</span> on the card to score <span className="text-gold-300">{movieTitle}</span>. Rating 7 or higher means &ldquo;this belongs on my ballot.&rdquo;
           </>
         )}
       </p>
@@ -460,7 +460,7 @@ function RatePicker({
                 disabled={selectedRating !== null}
                 className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-left transition-all ${
                   isSelected
-                    ? "ring-2 ring-yellow-400 scale-[1.02]"
+                    ? "ring-2 ring-gold-400 scale-[1.02]"
                     : selectedRating !== null
                     ? "opacity-30"
                     : "hover:scale-[1.01] active:scale-[0.99]"

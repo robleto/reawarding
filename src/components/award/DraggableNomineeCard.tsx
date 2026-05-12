@@ -65,7 +65,7 @@ export default function DraggableNomineeCard({
       style={style}
       className={`
         flex items-center gap-3 p-3 bg-white border rounded-lg shadow-sm
-        ${isWinner ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'}
+        ${isWinner ? 'border-gold-400 bg-gold-50' : 'border-gray-200'}
         hover:shadow-md transition-shadow w-full
       `}
     >
@@ -116,8 +116,8 @@ export default function DraggableNomineeCard({
               className={`
                 p-2 rounded transition-colors
                 ${isWinner
-                  ? 'text-yellow-600 bg-yellow-100 hover:bg-yellow-200'
-                  : 'text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'
+                  ? 'text-gold-600 bg-gold-100 hover:bg-gold-200'
+                  : 'text-gray-400 hover:text-gold-600 hover:bg-gold-50'
                 }
               `}
               title={isWinner ? 'Remove as winner' : 'Set as winner'}
@@ -143,7 +143,7 @@ export default function DraggableNomineeCard({
             {ranking}
           </span>
           {isWinner && (
-            <div className="flex items-center gap-1 text-yellow-600">
+            <div className="flex items-center gap-1 text-gold-600">
               <Crown className="w-3 h-3" />
               <span className="text-xs font-medium">Winner</span>
             </div>

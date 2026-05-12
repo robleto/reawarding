@@ -21,7 +21,7 @@ export default function PosterThumb({ id, title, imageUrl }: PosterThumbProps) {
 
   return (
     <Link href={href} className="group block">
-      <div className="w-full rounded-xl overflow-hidden bg-gray-900/70 border border-yellow-500/20 shadow-lg">
+      <div className="w-full rounded-xl overflow-hidden bg-charcoal-900/70 border border-gold-500/20 shadow-lg">
         {src ? (
           <Image
             src={src}

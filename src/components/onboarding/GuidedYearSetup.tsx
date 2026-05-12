@@ -32,9 +32,9 @@ export default function GuidedYearSetup({
       <div className="px-2 pt-6 sm:px-0">
         <section className="mx-auto max-w-xl text-center">
           <div className="mb-6">
-            <div className="inline-flex items-center gap-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 mb-4">
-              <Calendar className="h-3.5 w-3.5 text-yellow-400" />
-              <span className="text-xs font-medium text-yellow-300 uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 rounded-full bg-gold-500/10 border border-gold-500/20 px-3 py-1 mb-4">
+              <Calendar className="h-3.5 w-3.5 text-gold-400" />
+              <span className="text-xs font-medium text-gold-300 uppercase tracking-wider">
                 Step 1 of 3
               </span>
             </div>
@@ -53,7 +53,7 @@ export default function GuidedYearSetup({
                 key={year}
                 type="button"
                 onClick={() => onSelectYear(year)}
-                className="rounded-lg border border-gray-700/40 bg-gray-900/50 px-4 py-2.5 font-unbounded text-sm font-bold text-white hover:border-yellow-500/40 hover:bg-gray-800/60 transition-all"
+                className="rounded-lg border border-gray-700/40 bg-charcoal-900/50 px-4 py-2.5 font-unbounded text-sm font-bold text-white hover:border-gold-500/40 hover:bg-gray-800/60 transition-all"
               >
                 {year}
               </button>
@@ -82,14 +82,14 @@ export default function GuidedYearSetup({
     if (remaining > 0) {
       return (
         <div className="mx-auto max-w-2xl mb-6">
-          <div className="rounded-xl border border-yellow-500/15 bg-gradient-to-r from-yellow-500/5 via-transparent to-transparent p-4 sm:p-5">
+          <div className="rounded-xl border border-gold-500/15 bg-gradient-to-r from-gold-500/5 via-transparent to-transparent p-4 sm:p-5">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex-shrink-0 rounded-full bg-yellow-500/10 p-2">
-                <Star className="h-4 w-4 text-yellow-400/80" />
+              <div className="mt-0.5 flex-shrink-0 rounded-full bg-gold-500/10 p-2">
+                <Star className="h-4 w-4 text-gold-400/80" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-medium text-yellow-400/70 uppercase tracking-wider">
+                  <span className="text-xs font-medium text-gold-400/70 uppercase tracking-wider">
                     Step 2 of 3
                   </span>
                   <span className="text-xs text-gray-600">\u00B7</span>
@@ -109,7 +109,7 @@ export default function GuidedYearSetup({
                       key={i}
                       className={`h-1 rounded-full transition-all duration-300 ${
                         i < starterRatingsCount
-                          ? "w-8 bg-yellow-400"
+                          ? "w-8 bg-gold-400"
                           : "w-8 bg-gray-700"
                       }`}
                     />

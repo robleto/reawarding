@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, LineChart, Film, List } from "lucide-react";
+import { Home, Trophy, Film, User } from "lucide-react";
+
+// Bottom-nav destinations were intentionally narrowed to 4 (from the earlier
+// 5-tab Home/Awards/Rank/Films/Lists shape) per Greg's call on 2026-05-09:
+// Films replaces Lists because it's the entry point for adding more films
+// (the engine of the Watch → Rate → ReAward loop). Profile replaces Rank
+// because Rank is internal scaffolding. See the project memory.
 
 export default function MobileTabBar() {
   const pathname = usePathname() || "/";
@@ -10,31 +16,31 @@ export default function MobileTabBar() {
   const tabs = [
     { href: "/", label: "Home", icon: Home, match: (p: string) => p === "/" },
     { href: "/awards", label: "Awards", icon: Trophy, match: (p: string) => p.startsWith("/awards") },
-    { href: "/rankings", label: "Rank", icon: LineChart, match: (p: string) => p.startsWith("/rankings") },
     { href: "/films", label: "Films", icon: Film, match: (p: string) => p.startsWith("/films") },
-    { href: "/lists", label: "Lists", icon: List, match: (p: string) => p.startsWith("/lists") },
+    { href: "/profile", label: "Profile", icon: User, match: (p: string) => p.startsWith("/profile") },
   ];
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 dark:border-gray-800 bg-white/85 dark:bg-gray-900/85 backdrop-blur supports-[backdrop-filter]:backdrop-blur"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-gray-800 bg-charcoal-900/90 backdrop-blur supports-[backdrop-filter]:backdrop-blur"
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px))" }}
       aria-label="Primary"
     >
-      <ul className="grid grid-cols-5 py-2">
+      <ul className="grid grid-cols-4">
         {tabs.map(({ href, label, icon: Icon, match }) => {
           const active = match(pathname);
           return (
             <li key={href} className="flex justify-center">
               <Link
                 href={href}
-                className={`flex flex-col items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors ${
+                aria-current={active ? "page" : undefined}
+                className={`flex flex-col items-center justify-center gap-1 min-h-[56px] w-full px-2 py-2 text-xs transition-colors ${
                   active
-                    ? "text-gold"
-                    : "text-gray-600 dark:text-gray-300 hover:text-gold"
+                    ? "text-gold-300"
+                    : "text-gray-400 hover:text-gold-300"
                 }`}
               >
-                <Icon className={`h-5 w-5 ${active ? "" : "opacity-90"}`} />
+                <Icon className={`h-5 w-5 ${active ? "" : "opacity-90"}`} aria-hidden="true" />
                 <span className="leading-none">{label}</span>
               </Link>
             </li>

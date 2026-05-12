@@ -27,7 +27,7 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
     <div className="flex flex-col items-center gap-1.5">
     <button
       onClick={onClick}
-      className="group relative flex-shrink-0 w-[160px] sm:w-[180px] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500/50 rounded-xl"
+      className="group relative flex-shrink-0 w-[160px] sm:w-[180px] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 rounded-xl"
     >
       {/* Animated gold shimmer frame */}
       <div className="award-card-frame award-card-glow">
@@ -43,7 +43,7 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-gray-800 to-gray-900">
-                <Trophy className="w-10 h-10 text-yellow-500/30" />
+                <Trophy className="w-10 h-10 text-gold-500/30" />
               </div>
             )}
 
@@ -62,8 +62,8 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
 
             {/* Trophy badge — top-right */}
             <div className="absolute top-2.5 right-2.5">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400/30 to-yellow-600/20 backdrop-blur-sm border border-yellow-500/40 flex items-center justify-center group-hover:from-yellow-400/50 group-hover:to-yellow-600/40 transition-all duration-300 shadow-lg shadow-yellow-500/10">
-                <Trophy className="w-4 h-4 text-yellow-400 drop-shadow-[0_0_4px_rgba(234,179,8,0.5)]" />
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold-400/30 to-gold-600/20 backdrop-blur-sm border border-gold-500/40 flex items-center justify-center group-hover:from-gold-400/50 group-hover:to-gold-600/40 transition-all duration-300 shadow-lg shadow-gold-500/10">
+                <Trophy className="w-4 h-4 text-gold-400 drop-shadow-[0_0_4px_rgba(234,179,8,0.5)]" />
               </div>
             </div>
 
@@ -74,13 +74,13 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
               </p>
               <p className="text-[10px] mt-1 font-medium drop-shadow-md">
                 {isAcademyMatch ? (
-                  <span className="text-yellow-300">Agrees with the Academy</span>
+                  <span className="text-gold-300">Agrees with the Academy</span>
                 ) : actualWinner ? (
                   <span className="text-gray-300/90">
-                    Over <span className="text-yellow-400/80">{actualWinner.title}</span>
+                    Over <span className="text-gold-400/80">{actualWinner.title}</span>
                   </span>
                 ) : (
-                  <span className="text-yellow-400/70">Best Picture</span>
+                  <span className="text-gold-400/70">Best Picture</span>
                 )}
               </p>
               {nomineeCount > 1 && (
@@ -89,14 +89,14 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
                     {Array.from({ length: Math.min(nomineeCount, 5) }).map((_, i) => (
                       <div
                         key={i}
-                        className="w-2 h-2 rounded-full border border-yellow-600/50 shadow-sm"
+                        className="w-2 h-2 rounded-full border border-gold-600/50 shadow-sm"
                         style={{
                           background: `linear-gradient(135deg, rgba(234,179,8,${0.9 - i * 0.12}), rgba(161,98,7,${0.7 - i * 0.1}))`,
                         }}
                       />
                     ))}
                     {nomineeCount > 5 && (
-                      <span className="text-[8px] text-yellow-500/70 ml-1.5 font-medium">
+                      <span className="text-[8px] text-gold-500/70 ml-1.5 font-medium">
                         +{nomineeCount - 5}
                       </span>
                     )}
@@ -116,7 +116,7 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
       <button
         type="button"
         onClick={onShare}
-        className="inline-flex items-center gap-1 min-h-[44px] px-2 text-[11px] text-gray-600 hover:text-yellow-400 transition-colors"
+        className="inline-flex items-center gap-1 min-h-[44px] px-2 text-[11px] text-gray-600 hover:text-gold-400 transition-colors"
         aria-label={`Share ${year} ballot`}
       >
         <Share2 className="h-3 w-3" />

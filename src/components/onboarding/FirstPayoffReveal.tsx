@@ -38,12 +38,12 @@ export default function FirstPayoffReveal({
       />
 
       <div className="relative z-10 w-full max-w-lg mx-4">
-        <div className="rounded-2xl border border-yellow-500/20 bg-gray-950/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl">
+        <div className="rounded-2xl border border-gold-500/20 bg-gray-950/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl">
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 px-3 py-1 mb-4">
-              <Trophy className="h-3.5 w-3.5 text-yellow-400" />
-              <span className="text-xs font-medium text-yellow-300 uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 rounded-full bg-gold-500/10 border border-gold-500/20 px-3 py-1 mb-4">
+              <Trophy className="h-3.5 w-3.5 text-gold-400" />
+              <span className="text-xs font-medium text-gold-300 uppercase tracking-wider">
                 Your {year} Race
               </span>
             </div>
@@ -53,7 +53,7 @@ export default function FirstPayoffReveal({
           </div>
 
           {/* Leader */}
-          <div className="flex items-start gap-4 rounded-xl bg-gray-900/60 border border-gray-700/30 p-4 mb-4">
+          <div className="flex items-start gap-4 rounded-xl bg-charcoal-900/60 border border-gray-700/30 p-4 mb-4">
             <div className="relative h-24 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-800 shadow-lg">
               {leaderPoster ? (
                 <Image
@@ -70,7 +70,7 @@ export default function FirstPayoffReveal({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-yellow-400/80 uppercase tracking-wider mb-1">
+              <p className="text-xs font-medium text-gold-400/80 uppercase tracking-wider mb-1">
                 Current Best Picture Leader
               </p>
               <p className="text-lg font-semibold text-white truncate">
@@ -97,7 +97,7 @@ export default function FirstPayoffReveal({
                     movie.poster_url ||
                     "";
                   return (
-                    <div key={movie.id} className="flex items-center gap-2 flex-1 rounded-lg bg-gray-900/40 border border-gray-700/20 px-3 py-2">
+                    <div key={movie.id} className="flex items-center gap-2 flex-1 rounded-lg bg-charcoal-900/40 border border-gray-700/20 px-3 py-2">
                       <div className="relative h-10 w-7 flex-shrink-0 overflow-hidden rounded bg-gray-800">
                         {poster ? (
                           <Image
@@ -135,7 +135,7 @@ export default function FirstPayoffReveal({
             <button
               type="button"
               onClick={onAddMoreFilms}
-              className="flex items-center justify-center gap-2 rounded-xl bg-yellow-500/15 border border-yellow-500/25 px-5 py-3 text-sm font-medium text-yellow-300 hover:bg-yellow-500/25 transition-colors"
+              className="flex items-center justify-center gap-2 rounded-xl bg-gold-500/15 border border-gold-500/25 px-5 py-3 text-sm font-medium text-gold-300 hover:bg-gold-500/25 transition-colors"
             >
               <Plus className="h-4 w-4" />
               Add more films to {year}

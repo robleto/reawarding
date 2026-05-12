@@ -69,7 +69,7 @@ export default function StarterPicks({ onSelect }: Props) {
           onClick={() => onSelect(movie)}
           className="flex-shrink-0 w-[100px] sm:w-[120px] group relative snap-start"
         >
-          <div className="aspect-[2/3] rounded-lg overflow-hidden border-2 border-transparent group-hover:border-yellow-400 transition-colors shadow-md">
+          <div className="aspect-[2/3] rounded-lg overflow-hidden border-2 border-transparent group-hover:border-gold-400 transition-colors shadow-md">
             {movie.poster_url ? (
               <img
                 src={movie.poster_url}
