@@ -168,9 +168,14 @@ async function insertMovies(rows: ReturnType<typeof mapMovie>[]) {
   const chunkSize = 200;
   let inserted = 0;
 
+  // Upsert with ignoreDuplicates so cross-batch dups (revenue.desc almost
+  // always overlaps popularity.desc for top earners) don't trip the
+  // movies_tmdb_id_key unique constraint and fail the workflow.
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
-    const { error } = await supabase.from('movies').insert(chunk);
+    const { error } = await supabase
+      .from('movies')
+      .upsert(chunk, { onConflict: 'tmdb_id', ignoreDuplicates: true });
     if (error) throw error;
     inserted += chunk.length;
   }
