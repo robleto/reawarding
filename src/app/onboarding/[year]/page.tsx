@@ -101,7 +101,7 @@ export default function OnboardingYearPage() {
         <div className="max-w-4xl mx-auto">
           <Link
             href="/"
-            className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors mb-3"
+            className="inline-flex items-center gap-1 min-h-[44px] px-2 -ml-2 text-xs text-gray-500 hover:text-gray-300 transition-colors mb-1"
           >
             <ArrowLeft className="w-3 h-3" aria-hidden="true" />
             Back home

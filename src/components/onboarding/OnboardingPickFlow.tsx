@@ -313,7 +313,7 @@ function OnboardingMovieCard({
                 onJustSeen={onJustSeen}
                 showText={true}
                 size="sm"
-                className="h-9 px-2.5 rounded-lg border border-gray-600/40 bg-black/40 hover:bg-black/60 text-xs font-semibold gap-1"
+                className="min-h-[44px] px-2.5 rounded-lg border border-gray-600/40 bg-black/40 hover:bg-black/60 text-xs font-semibold gap-1"
               />
             </div>
 
@@ -325,7 +325,7 @@ function OnboardingMovieCard({
                 <button
                   type="button"
                   onClick={onOpenRatePicker}
-                  className="flex items-center gap-1 h-9 px-2.5 rounded-lg border border-gray-600/40 text-xs font-semibold transition-colors hover:border-gold-400/60 active:scale-95"
+                  className="flex items-center gap-1 min-h-[44px] px-2.5 rounded-lg border border-gray-600/40 text-xs font-semibold transition-colors hover:border-gold-400/60 active:scale-95"
                   style={{ backgroundColor: "rgba(30,30,34,0.75)", color: "#fde68a" }}
                   aria-label="Open rating picker"
                 >
@@ -402,7 +402,7 @@ function WatchGuidance({
         <button
           type="button"
           onClick={onPickAnother}
-          className="mt-4 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+          className="mt-4 inline-flex items-center min-h-[44px] px-2 text-xs text-gray-500 hover:text-gray-300 transition-colors"
         >
           Haven't seen it? Pick another →
         </button>
@@ -458,7 +458,7 @@ function RatePicker({
                 type="button"
                 onClick={() => onSelect(num)}
                 disabled={selectedRating !== null}
-                className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-left transition-all ${
+                className={`w-full flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-all ${
                   isSelected
                     ? "ring-2 ring-gold-400 scale-[1.02]"
                     : selectedRating !== null
