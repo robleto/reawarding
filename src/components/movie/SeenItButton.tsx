@@ -58,18 +58,18 @@ export default function SeenItButton({
   // Colours per state
   const colorClass =
     watchState === "seen"
-      ? "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+      ? "text-blue-400 hover:text-blue-300"
       : watchState === "watchlist"
       ? "text-amber-400 hover:text-amber-300"
-      : "text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300";
+      : "text-gray-400 hover:text-gray-300";
 
   const compactHoverClass =
     variant === "compact"
       ? watchState === "seen"
-        ? "hover:bg-blue-50 dark:hover:bg-blue-900/20"
+        ? "hover:bg-blue-900/20"
         : watchState === "watchlist"
-        ? "hover:bg-amber-50 dark:hover:bg-amber-900/20"
-        : "hover:bg-gray-50 dark:hover:bg-gray-800"
+        ? "hover:bg-amber-900/20"
+        : "hover:bg-gray-800"
       : "";
 
   const titles = {

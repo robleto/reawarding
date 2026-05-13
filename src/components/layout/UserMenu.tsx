@@ -88,14 +88,14 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
             type="button"
             onClick={handleLogin}
             data-testid="primary-cta-login"
-            className="w-full py-2 px-3 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300/60 dark:border-gray-600/60 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="w-full py-2 px-3 rounded-md text-sm font-medium text-gray-300 border border-gray-600/60 hover:bg-gray-800 transition-colors"
           >
             Log In
           </button>
           <button
             type="button"
             onClick={handleSignup}
-            className="w-full py-2 px-3 rounded-md text-sm font-medium text-gray-900 bg-[#CAAC4C] hover:bg-yellow-600 dark:bg-[#CAAC4C] dark:hover:bg-yellow-400 transition-colors shadow"
+            className="w-full py-2 px-3 rounded-md text-sm font-medium text-gray-900 bg-[#CAAC4C] bg-[#CAAC4C] hover:bg-yellow-400 transition-colors shadow"
           >
             Sign Up
           </button>
@@ -108,14 +108,14 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
         <Link
           href="/login"
           data-testid="primary-cta-login"
-          className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-white border border-gray-300/50 dark:border-gray-600/50 rounded-lg hover:border-gray-400/70 dark:hover:border-gray-400/60 hover:text-gray-900 dark:hover:text-gold transition-colors"
+          className="px-3 py-1.5 text-sm font-medium text-white border border-gray-600/50 rounded-lg hover:border-gray-400/60 hover:text-gold transition-colors"
         >
           Log In
         </Link>
         <button
           type="button"
           onClick={handleSignup}
-          className="px-4 py-2 text-sm font-medium text-gray-900 bg-[#CAAC4C] hover:bg-yellow-600 dark:bg-[#CAAC4C] dark:hover:bg-yellow-400 rounded-lg transition-colors shadow"
+          className="px-4 py-2 text-sm font-medium text-gray-900 bg-[#CAAC4C] bg-[#CAAC4C] hover:bg-yellow-400 rounded-lg transition-colors shadow"
         >
           Sign Up
         </button>
@@ -130,7 +130,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
     return (
       <button
         onClick={async () => { await signOutEverywhere(supabase); router.replace('/'); }}
-        className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+        className="text-sm text-gray-500 hover:text-gray-300"
       >
         Sign out
       </button>
@@ -158,9 +158,9 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
         <div className="flex items-center gap-3 px-3 py-2">
           <UserAvatar imageUrl={avatarUrl} name={displayName} username={profile?.username} size={28} />
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{displayName}</p>
+            <p className="text-sm font-medium text-white truncate">{displayName}</p>
             {profile?.username && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{profile.username}</p>
+              <p className="text-xs text-gray-400 truncate">@{profile.username}</p>
             )}
           </div>
         </div>
@@ -169,16 +169,16 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
             <Link
               key={href}
               href={href}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-800"
             >
               <Icon className="w-4 h-4" />
               {label}
             </Link>
           ))}
-          <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+          <div className="border-t border-gray-700 my-1" />
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-md text-sm font-medium text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-md text-sm font-medium text-left text-gray-300 hover:bg-gray-800"
           >
             <LogOut className="w-4 h-4" />
             Sign Out
@@ -193,7 +193,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
     <div className="relative inline-block text-left" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-700 transition-colors"
         aria-label="User menu"
         data-testid="user-menu-trigger"
       >
@@ -201,13 +201,13 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 w-52 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+        <div className="absolute right-0 z-50 w-52 mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-lg">
           <div className="py-1">
             {/* User identity header */}
-            <div className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-700">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{displayName}</p>
+            <div className="px-4 py-2.5 border-b border-gray-700">
+              <p className="text-sm font-medium text-white truncate">{displayName}</p>
               {profile?.username && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{profile.username}</p>
+                <p className="text-xs text-gray-400 truncate">@{profile.username}</p>
               )}
             </div>
 
@@ -216,7 +216,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
               <Link
                 key={href}
                 href={href}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
                 onClick={() => setOpen(false)}
               >
                 <Icon className="w-4 h-4" />
@@ -224,11 +224,11 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
               </Link>
             ))}
 
-            <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+            <div className="border-t border-gray-700 my-1" />
 
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-gray-700 transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Sign Out

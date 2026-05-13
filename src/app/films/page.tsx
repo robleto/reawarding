@@ -251,12 +251,12 @@ function FilmsPageContent() {
 				}}
 			/>
 			{filteredMovies.length === 0 && (filterType === "search" || filterType === "movie") ? (
-				<div className="mt-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-8 text-center">
-					<h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No films found</h3>
-					<p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+				<div className="mt-8 rounded-xl border border-gray-700 bg-gray-900 p-8 text-center">
+					<h3 className="text-xl font-semibold text-white mb-2">No films found</h3>
+					<p className="text-sm text-gray-300 mb-2">
 						We couldn&apos;t find a film matching your search.
 					</p>
-					<p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+					<p className="text-sm text-gray-300 mb-6">
 						Use the <span className="font-medium">+</span> next to your profile image to add a movie by TMDB ID.
 					</p>
 					<button
@@ -272,7 +272,7 @@ function FilmsPageContent() {
 					<div key={key} className="mb-10">
 						{groupBy !== "none" && (
 							<h2
-								className="mb-6 text-4xl font-unbounded font-regular text-gray-800 dark:text-gray-100 tracking-wider"
+								className="mb-6 text-4xl font-unbounded font-regular text-gray-100 tracking-wider"
 							>
 								{key}
 							</h2>

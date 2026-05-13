@@ -73,9 +73,9 @@ export default function HeaderNav() {
 
 	return (
 		<>
-			<header className={`fixed top-0 left-0 right-0 z-50 w-full border-b border-gray-400 dark:border-gray-700 transition-all duration-300 ${
+			<header className={`fixed top-0 left-0 right-0 z-50 w-full border-b border-gray-700 transition-all duration-300 ${
 				hasScrolled 
-					? 'light-background dark-background'
+					? 'dark-background'
 					: 'bg-transparent'
 			}`}> 
 				<div className="relative z-10 flex items-center justify-between max-w-screen-xl px-6 py-3 mx-auto gap-x-6">
@@ -91,10 +91,10 @@ export default function HeaderNav() {
 					<div className="flex flex-1 items-center justify-between min-w-0">
 						{/* Navigation */}
 						<nav className="hidden md:block min-w-0">
-							<div className="relative rounded-xl bg-white/10 dark:bg-black/20 backdrop-blur-md border border-gray-200/30 dark:border-gray-700/40 shadow-lg">
+							<div className="relative rounded-xl bg-black/20 backdrop-blur-md border border-gray-700/40 shadow-lg">
 								{/* Bubble background */}
 								<div 
-									className="absolute top-0 rounded-lg bg-white/30 dark:bg-white/15 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-md transition-all duration-500 ease-out"
+									className="absolute top-0 rounded-lg bg-white/15 backdrop-blur-xl border border-white/10 shadow-md transition-all duration-500 ease-out"
 									style={{
 										...getBubbleStyle(),
 										transitionTimingFunction: `linear(
@@ -122,9 +122,9 @@ export default function HeaderNav() {
 													href={item.href}
 													className={`block px-4 py-2 relative transition-colors duration-200 rounded-lg text-center ${
 														isActive
-															? "text-gold dark:text-gold"
-															: "text-black dark:text-gray-300"
-													} hover:text-gold dark:hover:text-gold`}
+															? "text-gold"
+															: "text-gray-300"
+													} hover:text-gold`}
 												>
 													<span className="inline-flex items-center gap-1.5">
 														<Icon className="w-3.5 h-3.5" />
@@ -143,7 +143,7 @@ export default function HeaderNav() {
 							{user && (
 								<button
 									onClick={() => setShowAddMovieModal(true)}
-									className="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+									className="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
 									aria-label="Add movie by TMDB ID"
 									title="Add movie by TMDB ID"
 								>
@@ -160,16 +160,16 @@ export default function HeaderNav() {
 							{user && (
 								<button
 									onClick={() => setShowAddMovieModal(true)}
-									className="md:hidden inline-flex items-center justify-center w-11 h-11 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+									className="md:hidden inline-flex items-center justify-center w-11 h-11 rounded-md text-gray-300 hover:bg-gray-800 transition-colors"
 									aria-label="Add film"
 									title="Add film"
 								>
-									<Plus className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+									<Plus className="w-5 h-5 text-gray-300" />
 								</button>
 							)}
 							{user && (
 								<button
-									className="md:hidden inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+									className="md:hidden inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-full hover:bg-gray-800 transition-colors"
 									aria-label="Open user menu"
 									onClick={() => { setMobileUserOpen(!mobileUserOpen); if (!mobileUserOpen) setMobileMenuOpen(false); }}
 								>
@@ -184,13 +184,13 @@ export default function HeaderNav() {
 							{/* Mobile Menu Button */}
 							<button
 								onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (!mobileMenuOpen) setMobileUserOpen(false); }}
-								className="md:hidden inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ml-auto"
+								className="md:hidden inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-3 rounded-md hover:bg-gray-800 transition-colors ml-auto"
 								aria-label="Toggle mobile menu"
 							>
 								{mobileMenuOpen ? (
-									<X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+									<X className="w-6 h-6 text-gray-300" />
 								) : (
-									<Menu className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+									<Menu className="w-6 h-6 text-gray-300" />
 								)}
 							</button>
 						</div>
@@ -199,7 +199,7 @@ export default function HeaderNav() {
 
 				{/* Mobile Menu */}
 				{mobileMenuOpen && (
-					<div className="md:hidden bg-white dark:bg-charcoal-900 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-800/50 transition-colors duration-300">
+					<div className="md:hidden bg-charcoal-900 border-t border-gray-700 shadow-gray-800/50 transition-colors duration-300">
 						<nav className="px-6 py-4">
 							<ul className="space-y-3">
 								{navItems.map((item) => {
@@ -214,8 +214,8 @@ export default function HeaderNav() {
 												href={item.href}
 												className={`block py-2 px-3 rounded-md font-medium transition-colors ${
 													isActive
-														? "text-gold dark:text-gold bg-gold-50 dark:bg-gold/10"
-														: "text-gray-700 dark:text-gray-300 hover:text-gold dark:hover:text-gold hover:bg-gray-50 dark:hover:bg-gray-800"
+														? "text-gold bg-gold/10"
+														: "text-gray-300 hover:text-gold hover:bg-gray-800"
 												}`}
 												onClick={() => setMobileMenuOpen(false)}
 											>
@@ -230,7 +230,7 @@ export default function HeaderNav() {
 
 							</ul>
 							{!user && (
-								<div className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-3">
+								<div className="mt-4 border-t border-gray-700 pt-3">
 									<UserMenu
 										variant="inline"
 										onLoginClick={handleLoginClick}
@@ -244,7 +244,7 @@ export default function HeaderNav() {
 
 				{/* Mobile User Panel */}
 				{mobileUserOpen && (
-					<div className="md:hidden bg-white dark:bg-charcoal-900 border-t border-gray-200 dark:border-gray-700 shadow-lg dark:shadow-gray-800/50 transition-colors duration-300">
+					<div className="md:hidden bg-charcoal-900 border-t border-gray-700 shadow-gray-800/50 transition-colors duration-300">
 						<nav className="px-6 py-4">
 							<ul className="space-y-3">
 								<li>

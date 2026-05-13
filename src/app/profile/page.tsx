@@ -199,7 +199,7 @@ export default function ProfilePage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
         </div>
       </div>
     );
@@ -212,21 +212,21 @@ export default function ProfilePage() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Profile</h1>
-        <p className="text-gray-600 dark:text-gray-300">
+        <h1 className="text-3xl font-bold text-white mb-2">Profile</h1>
+        <p className="text-gray-300">
           Manage your account information and preferences.
         </p>
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>
+        <div className="mb-6 p-4 bg-red-900/20 border border-red-800 rounded-lg">
+          <p className="text-red-400 text-sm">{error}</p>
         </div>
       )}
 
   {/* Profile Card */}
-  <div className="light-glass dark:dark-glass rounded-xl shadow-lg p-6 mb-6 border border-gray-300/40 dark:border-gray-600/50">
+  <div className="dark-glass rounded-xl shadow-lg p-6 mb-6 border border-gray-600/50">
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -236,7 +236,7 @@ export default function ProfilePage() {
                 username={profile?.username || user.email?.split("@")[0]}
                 size={80}
                 alt="Profile picture"
-                className="border-4 border-gray-200 dark:border-gray-600"
+                className="border-4 border-gray-600"
               />
               {editing && (
                 <button className="absolute -bottom-1 -right-1 p-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
@@ -245,13 +245,13 @@ export default function ProfilePage() {
               )}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-2xl font-bold text-white">
                 {displayName}
               </h2>
               {profile?.username && (
-                <p className="text-gray-500 dark:text-gray-400">@{profile.username}</p>
+                <p className="text-gray-400">@{profile.username}</p>
               )}
-              <div className="flex items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
                 <div className="flex items-center gap-1">
                   <Mail className="w-4 h-4" />
                   {user.email}
@@ -269,7 +269,7 @@ export default function ProfilePage() {
           {!editing ? (
             <button
               onClick={handleStartEditing}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-400 bg-blue-900/20 rounded-lg hover:bg-blue-900/30 transition-colors"
             >
               <Edit3 className="w-4 h-4" />
               Edit Profile
@@ -279,7 +279,7 @@ export default function ProfilePage() {
               <button
                 onClick={handleCancelEditing}
                 disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-400 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50"
               >
                 <X className="w-4 h-4" />
                 Cancel
@@ -297,18 +297,18 @@ export default function ProfilePage() {
         </div>
 
         {/* Bio Section */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">About</h3>
+        <div className="border-t border-gray-700 pt-6">
+          <h3 className="text-lg font-semibold text-white mb-4">About</h3>
           {editing ? (
             <textarea
               value={editForm.bio}
               onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
               placeholder="Tell us about yourself..."
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400"
             />
           ) : (
-            <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
+            <p className="text-gray-300 whitespace-pre-line">
               {profile?.bio || "No bio added yet."}
             </p>
           )}
@@ -317,65 +317,65 @@ export default function ProfilePage() {
 
       {/* Edit Form Fields */}
       {editing && (
-        <div className="light-glass dark:dark-glass rounded-xl shadow-lg p-6 border border-gray-300/40 dark:border-gray-600/50">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Edit Details</h3>
+        <div className="dark-glass rounded-xl shadow-lg p-6 border border-gray-600/50">
+          <h3 className="text-lg font-semibold text-white mb-6">Edit Details</h3>
           
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Username
               </label>
               <input
                 type="text"
                 value={editForm.username}
                 onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400"
                 placeholder="Enter your username"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 First Name
               </label>
               <input
                 type="text"
                 value={editForm.first_name}
                 onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400"
                 placeholder="Enter your first name"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Last Name
               </label>
               <input
                 type="text"
                 value={editForm.last_name}
                 onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400"
                 placeholder="Enter your last name"
               />
             </div>
             
             {/* Call Me / Preferred Name Builder */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+            <div className="border-t border-gray-700 pt-6">
+              <label className="block text-sm font-medium text-gray-300 mb-3">
                 Call Me (How you'll be greeted)
               </label>
               
               <div className="space-y-4">
                 {/* Title/Honorific */}
                 <div>
-                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                  <label className="block text-xs text-gray-400 mb-2">
                     Title (optional)
                   </label>
                   <select
                     value={nameBuilder.title}
                     onChange={(e) => setNameBuilder({ ...nameBuilder, title: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                    className="w-full px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white text-sm"
                   >
                     <option value="">None</option>
                     <option value="Mr.">Mr.</option>
@@ -403,7 +403,7 @@ export default function ProfilePage() {
                       })}
                       className="w-4 h-4 text-blue-600"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="text-sm text-gray-300">
                       Use First Name {editForm.first_name && `(${editForm.first_name})`}
                     </span>
                   </label>
@@ -416,7 +416,7 @@ export default function ProfilePage() {
                       disabled={!nameBuilder.useFirstName}
                       className="w-4 h-4 text-blue-600 disabled:opacity-50"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="text-sm text-gray-300">
                       Include Last Name {editForm.last_name && `(${editForm.last_name})`}
                     </span>
                   </label>
@@ -434,7 +434,7 @@ export default function ProfilePage() {
                       })}
                       className="w-4 h-4 text-blue-600"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="text-sm text-gray-300">
                       Use Username {editForm.username && `(@${editForm.username})`}
                     </span>
                   </label>
@@ -442,7 +442,7 @@ export default function ProfilePage() {
                 
                 {/* Custom Nickname */}
                 <div>
-                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">
+                  <label className="block text-xs text-gray-400 mb-2">
                     Or use a custom nickname
                   </label>
                   <input
@@ -456,14 +456,14 @@ export default function ProfilePage() {
                       useUsername: false
                     })}
                     placeholder="e.g., Greg, GregR, Coach, etc."
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm placeholder-gray-500 dark:placeholder-gray-400"
+                    className="w-full px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white text-sm placeholder-gray-400"
                   />
                 </div>
                 
                 {/* Preview */}
-                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Preview:</p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                <div className="mt-4 p-3 bg-blue-900/20 rounded-lg border border-blue-800">
+                  <p className="text-xs text-gray-400 mb-1">Preview:</p>
+                  <p className="text-lg font-semibold text-white">
                     "Good morning, {buildPreferredName() || "..."}!"
                   </p>
                 </div>
@@ -471,14 +471,14 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Avatar URL
               </label>
               <input
                 type="url"
                 value={editForm.avatar_url}
                 onChange={(e) => setEditForm({ ...editForm, avatar_url: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400"
                 placeholder="https://example.com/your-avatar.jpg"
               />
             </div>

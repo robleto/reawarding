@@ -379,10 +379,10 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
       </div>
 
       {!user ? (
-        <div className="p-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
+        <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
           <h2 className="mb-2 text-xl font-semibold">Ready‑Made Lists</h2>
             <p className="text-gray-300">Sign in to unlock director-based ready-made lists once you have enough ranked & seen films. We’ll start generating them automatically after you mark at least 10 movies by a director as seen.</p>
-            <Link href="/login" className="inline-block px-4 py-2 mt-4 text-black bg-yellow-500 rounded">Sign In</Link>
+            <Link href="/login" className="inline-block px-4 py-2 mt-4 text-black bg-gold-500 rounded">Sign In</Link>
         </div>
       ) : (
         <>
@@ -400,9 +400,9 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
             }}
           />
           {activeTab === 'all' && suggestions.length === 0 && actorSuggestions.length === 0 && genreSuggestions.length === 0 && decadeSuggestions.length === 0 && (
-            <div className="p-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
+            <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
               <p className="text-gray-300">No Ready‑Made lists yet. Watch and mark at least 10 movies by a director to unlock one.</p>
-              <Link href="/lists" className="inline-block mt-4 text-yellow-400 underline">Go to your lists</Link>
+              <Link href="/lists" className="inline-block mt-4 text-gold-400 underline">Go to your lists</Link>
             </div>
           )}
           {(activeTab === 'all' || activeTab === 'genres') && genreSuggestions.length > 0 && (
@@ -417,12 +417,12 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
             </div>
           )}
           {(activeTab === 'genres') && genreSuggestions.length === 0 && genreAlmost.length === 0 && (
-            <div className="p-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
+            <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
               <p className="text-gray-300">No Genre suggestions yet. Watch and mark more films to unlock genre lists.</p>
               <div className="mt-3 text-sm">
-                <Link href="/films" className="text-yellow-300 hover:underline">Browse films</Link>
+                <Link href="/films" className="text-gold-300 hover:underline">Browse films</Link>
                 <span className="mx-2 text-gray-500">•</span>
-                <Link href="/rankings" className="text-yellow-300 hover:underline">Go to your rankings</Link>
+                <Link href="/rankings" className="text-gold-300 hover:underline">Go to your rankings</Link>
               </div>
             </div>
           )}
@@ -438,20 +438,20 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
             </div>
           )}
           {(activeTab === 'decades') && decadeSuggestions.length === 0 && decadeAlmost.length === 0 && (
-            <div className="p-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
+            <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
               <p className="text-gray-300">No Decade suggestions yet. Watch and mark more films to unlock decade lists.</p>
               <div className="mt-3 text-sm">
-                <Link href="/films" className="text-yellow-300 hover:underline">Browse films</Link>
+                <Link href="/films" className="text-gold-300 hover:underline">Browse films</Link>
                 <span className="mx-2 text-gray-500">•</span>
-                <Link href="/rankings" className="text-yellow-300 hover:underline">Go to your rankings</Link>
+                <Link href="/rankings" className="text-gold-300 hover:underline">Go to your rankings</Link>
               </div>
             </div>
           )}
           {(activeTab === 'all' || activeTab === 'genres') && genreAlmost.length > 0 && (
-            <div className="p-5 mt-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
+            <div className="p-5 mt-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xl font-semibold">Almost Ready (Genres)</h2>
-                <span className="inline-flex items-center justify-center text-yellow-400 bg-gray-800 rounded-full w-7 h-7" title="Locked until 10 seen" aria-label="Locked until 10 seen">
+                <span className="inline-flex items-center justify-center text-gold-400 bg-gray-800 rounded-full w-7 h-7" title="Locked until 10 seen" aria-label="Locked until 10 seen">
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
                 </span>
               </div>
@@ -463,7 +463,7 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
                     <div className="flex items-center justify-between gap-3 mt-2">
                       <div className="flex-1 min-w-0">
                         <div className="h-2 bg-gray-700 rounded">
-                          <div className="h-2 bg-yellow-500 rounded" style={{ width: `${Math.min(100, (g.seen_count/10)*100)}%` }} />
+                          <div className="h-2 bg-gold-500 rounded" style={{ width: `${Math.min(100, (g.seen_count/10)*100)}%` }} />
                         </div>
                         <div className="mt-1 text-[11px] text-gray-400">{g.seen_count} of 10 seen • {Math.max(0, 10 - g.seen_count)} away</div>
                       </div>
@@ -477,10 +477,10 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
             </div>
           )}
           {(activeTab === 'all' || activeTab === 'decades') && decadeAlmost.length > 0 && (
-            <div className="p-5 mt-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
+            <div className="p-5 mt-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xl font-semibold">Almost Ready (Decades)</h2>
-                <span className="inline-flex items-center justify-center text-yellow-400 bg-gray-800 rounded-full w-7 h-7" title="Locked until 12 seen" aria-label="Locked until 12 seen">
+                <span className="inline-flex items-center justify-center text-gold-400 bg-gray-800 rounded-full w-7 h-7" title="Locked until 12 seen" aria-label="Locked until 12 seen">
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
                 </span>
               </div>
@@ -492,7 +492,7 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
                     <div className="flex items-center justify-between gap-3 mt-2">
                       <div className="flex-1 min-w-0">
                         <div className="h-2 bg-gray-700 rounded">
-                          <div className="h-2 bg-yellow-500 rounded" style={{ width: `${Math.min(100, (d.seen_count/12)*100)}%` }} />
+                          <div className="h-2 bg-gold-500 rounded" style={{ width: `${Math.min(100, (d.seen_count/12)*100)}%` }} />
                         </div>
                         <div className="mt-1 text-[11px] text-gray-400">{d.seen_count} of 12 seen • {Math.max(0, 12 - d.seen_count)} away</div>
                       </div>
@@ -514,12 +514,12 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
             </div>
           )}
           {(activeTab === 'directors') && suggestions.length === 0 && almost.length === 0 && (
-            <div className="p-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
+            <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
               <p className="text-gray-300">No Director suggestions yet. Watch and mark more films to unlock director lists.</p>
               <div className="mt-3 text-sm">
-                <Link href="/films" className="text-yellow-300 hover:underline">Browse films</Link>
+                <Link href="/films" className="text-gold-300 hover:underline">Browse films</Link>
                 <span className="mx-2 text-gray-500">•</span>
-                <Link href="/rankings" className="text-yellow-300 hover:underline">Go to your rankings</Link>
+                <Link href="/rankings" className="text-gold-300 hover:underline">Go to your rankings</Link>
               </div>
             </div>
           )}
@@ -534,21 +534,21 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
             </div>
           )}
           {(activeTab === 'actors') && actorSuggestions.length === 0 && actorAlmost.length === 0 && (
-            <div className="p-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
+            <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
               <p className="text-gray-300">No Actor suggestions yet. Watch and mark more films to unlock actor lists.</p>
               <div className="mt-3 text-sm">
-                <Link href="/films" className="text-yellow-300 hover:underline">Browse films</Link>
+                <Link href="/films" className="text-gold-300 hover:underline">Browse films</Link>
                 <span className="mx-2 text-gray-500">•</span>
-                <Link href="/rankings" className="text-yellow-300 hover:underline">Go to your rankings</Link>
+                <Link href="/rankings" className="text-gold-300 hover:underline">Go to your rankings</Link>
               </div>
             </div>
           )}
 
           {(activeTab === 'all' || activeTab === 'directors') && almost.length > 0 && (
-            <div className="p-5 mt-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
+            <div className="p-5 mt-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xl font-semibold">Almost Ready</h2>
-                <span className="inline-flex items-center justify-center text-yellow-400 bg-gray-800 rounded-full w-7 h-7" title="Locked until 10 seen" aria-label="Locked until 10 seen">
+                <span className="inline-flex items-center justify-center text-gold-400 bg-gray-800 rounded-full w-7 h-7" title="Locked until 10 seen" aria-label="Locked until 10 seen">
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
                   <span className="sr-only">Locked until 10 seen</span>
                 </span>
@@ -557,13 +557,13 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {almost.map((a) => (
                   <div key={a.director} className="p-3 rounded-md bg-gray-800/50">
-                    <Link href={`/lists/ready-made/${slugifyTitle(a.director)}`} className="font-medium leading-snug text-white hover:text-yellow-200">
+                    <Link href={`/lists/ready-made/${slugifyTitle(a.director)}`} className="font-medium leading-snug text-white hover:text-gold-200">
                       {a.director}
                     </Link>
                     <div className="flex items-center justify-between gap-3 mt-2">
                       <div className="flex-1 min-w-0">
                         <div className="h-2 bg-gray-700 rounded">
-                          <div className="h-2 bg-yellow-500 rounded" style={{ width: `${Math.min(100, (a.seen_count/10)*100)}%` }} />
+                          <div className="h-2 bg-gold-500 rounded" style={{ width: `${Math.min(100, (a.seen_count/10)*100)}%` }} />
                         </div>
                         <div className="mt-1 text-[11px] text-gray-400">{a.seen_count} of 10 seen • {Math.max(0, 10 - a.seen_count)} away</div>
                       </div>
@@ -571,7 +571,7 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
                         <span className="inline-flex items-center justify-center text-gray-300 bg-gray-700 rounded-full w-7 h-7" title="Locked until 10 seen" aria-label="Locked until 10 seen">
                           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
                         </span>
-                        <Link href={`/lists/ready-made/${slugifyTitle(a.director)}`} className="text-xs text-yellow-300 hover:underline whitespace-nowrap">View</Link>
+                        <Link href={`/lists/ready-made/${slugifyTitle(a.director)}`} className="text-xs text-gold-300 hover:underline whitespace-nowrap">View</Link>
                       </div>
                     </div>
                   </div>
@@ -580,10 +580,10 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
             </div>
           )}
           {(activeTab === 'all' || activeTab === 'actors') && actorAlmost.length > 0 && (
-            <div className="p-5 mt-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
+            <div className="p-5 mt-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xl font-semibold">Almost Ready (Actors)</h2>
-                <span className="inline-flex items-center justify-center text-yellow-400 bg-gray-800 rounded-full w-7 h-7" title="Locked until 10 seen" aria-label="Locked until 10 seen">
+                <span className="inline-flex items-center justify-center text-gold-400 bg-gray-800 rounded-full w-7 h-7" title="Locked until 10 seen" aria-label="Locked until 10 seen">
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
                   <span className="sr-only">Locked until 10 seen</span>
                 </span>
@@ -596,7 +596,7 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
                     <div className="flex items-center justify-between gap-3 mt-2">
                       <div className="flex-1 min-w-0">
                         <div className="h-2 bg-gray-700 rounded">
-                          <div className="h-2 bg-yellow-500 rounded" style={{ width: `${Math.min(100, (a.seen_count/10)*100)}%` }} />
+                          <div className="h-2 bg-gold-500 rounded" style={{ width: `${Math.min(100, (a.seen_count/10)*100)}%` }} />
                         </div>
                         <div className="mt-1 text-[11px] text-gray-400">{a.seen_count} of 10 seen • {Math.max(0, 10 - a.seen_count)} away</div>
                       </div>
@@ -983,7 +983,7 @@ function SuggestionCard({ suggestion }: { suggestion: DirectorSuggestion }) {
           <input type="hidden" name="director" value={suggestion.director} />
           <input type="hidden" name="count" value={suggestion.seen_count} />
           <input type="hidden" name="movie_ids" value={ids} />
-          <button className="px-3 py-1.5 text-sm bg-yellow-500 text-black rounded hover:bg-yellow-400" type="submit">Save</button>
+          <button className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400" type="submit">Save</button>
         </form>
       )}
       viewHref={href}
@@ -1014,7 +1014,7 @@ function ActorSuggestionCard({ suggestion }: { suggestion: ActorSuggestion }) {
           <input type="hidden" name="actor" value={suggestion.actor} />
           <input type="hidden" name="count" value={suggestion.seen_count} />
           <input type="hidden" name="movie_ids" value={ids} />
-          <button className="px-3 py-1.5 text-sm bg-yellow-500 text-black rounded hover:bg-yellow-400" type="submit">Save</button>
+          <button className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400" type="submit">Save</button>
         </form>
       )}
       viewHref={`/lists/ready-made/${slugifyTitle(suggestion.actor)}`}
@@ -1046,7 +1046,7 @@ function GenreSuggestionCard({ suggestion }: { suggestion: GenreSuggestion }) {
       subtitle={(
         <span>
           Auto-generated from your seen films • Genre
-          {totalSeen > 100 && (<span className="ml-2 text-[11px] text-yellow-300">(showing 9–10 only)</span>)}
+          {totalSeen > 100 && (<span className="ml-2 text-[11px] text-gold-300">(showing 9–10 only)</span>)}
         </span>
       )}
       headerRight={(
@@ -1055,7 +1055,7 @@ function GenreSuggestionCard({ suggestion }: { suggestion: GenreSuggestion }) {
           <input type="hidden" name="count" value={filteredCount} />
           <input type="hidden" name="total_seen" value={totalSeen} />
           <input type="hidden" name="movie_ids" value={ids} />
-          <button className="px-3 py-1.5 text-sm bg-yellow-500 text-black rounded hover:bg-yellow-400" type="submit">Save</button>
+          <button className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400" type="submit">Save</button>
         </form>
       )}
       viewHref={href}
@@ -1087,7 +1087,7 @@ function DecadeSuggestionCard({ suggestion }: { suggestion: DecadeSuggestion }) 
       subtitle={(
         <span>
           Auto-generated from your seen films • Decade
-          {totalSeen > 100 && (<span className="ml-2 text-[11px] text-yellow-300">(showing 9–10 only)</span>)}
+          {totalSeen > 100 && (<span className="ml-2 text-[11px] text-gold-300">(showing 9–10 only)</span>)}
         </span>
       )}
       headerRight={(
@@ -1097,7 +1097,7 @@ function DecadeSuggestionCard({ suggestion }: { suggestion: DecadeSuggestion }) 
           <input type="hidden" name="count" value={filteredCount} />
           <input type="hidden" name="total_seen" value={totalSeen} />
           <input type="hidden" name="movie_ids" value={ids} />
-          <button className="px-3 py-1.5 text-sm bg-yellow-500 text-black rounded hover:bg-yellow-400" type="submit">Save</button>
+          <button className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400" type="submit">Save</button>
         </form>
       )}
       viewHref={href}

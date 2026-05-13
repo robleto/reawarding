@@ -32,7 +32,7 @@ export default function SignupPrompt({ onSignupClick, onDismiss }: SignupPromptP
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:max-w-sm bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-700 dark:to-purple-700 text-white p-4 rounded-lg shadow-lg dark:shadow-gray-800 z-40 animate-in slide-in-from-bottom-2 duration-300">
+    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:max-w-sm bg-gradient-to-r from-blue-600 from-blue-700 to-purple-700 text-white p-4 rounded-lg shadow-gray-800 z-40 animate-in slide-in-from-bottom-2 duration-300">
       <button
         onClick={() => {
           setShow(false);
@@ -71,7 +71,7 @@ export default function SignupPrompt({ onSignupClick, onDismiss }: SignupPromptP
 
         <button
           onClick={onSignupClick}
-          className="w-full bg-white dark:bg-gray-100 text-blue-600 dark:text-blue-700 font-medium py-2 px-4 rounded-md hover:bg-gray-100 dark:hover:bg-gray-200 transition-colors"
+          className="w-full bg-gray-100 text-blue-700 font-medium py-2 px-4 rounded-md hover:bg-gray-200 transition-colors"
         >
           Sign up free in 30 seconds
         </button>

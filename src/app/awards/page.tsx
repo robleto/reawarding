@@ -238,8 +238,8 @@ export default function AwardsPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-4 border-b-2 border-blue-600 rounded-full animate-spin dark:border-blue-400" />
-          <p className="text-gray-600 dark:text-gray-300">Loading your awards...</p>
+          <div className="w-12 h-12 mx-auto mb-4 border-b-2 border-blue-600 rounded-full border-blue-400" />
+          <p className="text-gray-300">Loading your awards...</p>
         </div>
       </div>
     );

@@ -52,7 +52,7 @@ export default function StarterPicks({ onSelect }: Props) {
         {Array.from({ length: 7 }).map((_, i) => (
           <div
             key={i}
-            className="flex-shrink-0 w-[100px] sm:w-[120px] aspect-[2/3] rounded-lg bg-gray-200 dark:bg-gray-800 animate-pulse"
+            className="flex-shrink-0 w-[100px] sm:w-[120px] aspect-[2/3] rounded-lg bg-gray-800 animate-pulse"
           />
         ))}
       </div>
@@ -78,15 +78,15 @@ export default function StarterPicks({ onSelect }: Props) {
                 loading="lazy"
               />
             ) : (
-              <div className="w-full h-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
+              <div className="w-full h-full bg-gray-800 flex items-center justify-center">
                 <span className="text-xs text-gray-500 text-center px-1">{movie.title}</span>
               </div>
             )}
           </div>
-          <p className="mt-1.5 text-xs text-gray-600 dark:text-gray-400 text-center truncate">
+          <p className="mt-1.5 text-xs text-gray-400 text-center truncate">
             {movie.title}
           </p>
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center">
+          <p className="text-[10px] text-gray-500 text-center">
             {movie.release_year}
           </p>
         </button>

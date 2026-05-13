@@ -70,7 +70,7 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
       </button>
       {showDropdown && !disabled && !isMobile && (
         <div
-          className="absolute right-[-16px] z-50 w-16 mb-1 overflow-y-auto bg-white dark:bg-gray-800 rounded shadow-lg dark:shadow-gray-700 bottom-full max-h-60 flex flex-col items-center"
+          className="absolute right-[-16px] z-50 w-16 mb-1 overflow-y-auto bg-gray-800 rounded shadow-gray-700 bottom-full max-h-60 flex flex-col items-center"
           style={{ minWidth: '3.5rem' }}
         >
           {/* Clear ranking option */}
@@ -80,7 +80,7 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
               onChange(null);
               setShowDropdown(false);
             }}
-            className="mx-auto my-2 text-sm font-semibold text-center cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded w-8 h-8 flex items-center justify-center"
+            className="mx-auto my-2 text-sm font-semibold text-center cursor-pointer hover:bg-gray-700 text-gray-400 border border-gray-600 rounded w-8 h-8 flex items-center justify-center"
           >
             --
           </div>

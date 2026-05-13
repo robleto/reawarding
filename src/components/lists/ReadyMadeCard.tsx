@@ -25,7 +25,7 @@ export default function ReadyMadeCard({
   dismissForm,
 }: ReadyMadeCardProps) {
   return (
-    <div className="relative bg-gray-900/60 border border-yellow-500/20 rounded-lg h-[260px] flex flex-col overflow-visible mt-5">
+    <div className="relative bg-charcoal-900/60 border border-gold-500/20 rounded-lg h-[260px] flex flex-col overflow-visible mt-5">
       {posterUrls.length > 0 && (
         <div className="absolute -top-2 left-1/2 -translate-x-1/2 h-24 w-[180px] flex items-center justify-center pointer-events-none select-none z-20">
           {posterUrls.map((url: string, i: number) => (
@@ -56,7 +56,7 @@ export default function ReadyMadeCard({
           <div className="flex-1 min-w-0">
             <Link href={viewHref} className="block">
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold truncate transition-colors hover:text-yellow-200" title={title}>{title}</h3>
+                <h3 className="text-lg font-semibold truncate transition-colors hover:text-gold-200" title={title}>{title}</h3>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-800 text-xs text-gray-200" title="You've seen">
                   {count}{asterisk ? '∗' : ''}
                 </span>
@@ -70,7 +70,7 @@ export default function ReadyMadeCard({
         </div>
 
         <div className="flex items-center gap-3 mt-3">
-          <Link href={viewHref} className="text-sm text-yellow-300 hover:underline whitespace-nowrap">View</Link>
+          <Link href={viewHref} className="text-sm text-gold-300 hover:underline whitespace-nowrap">View</Link>
           {dismissForm}
         </div>
       </div>

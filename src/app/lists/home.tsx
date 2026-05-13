@@ -304,13 +304,13 @@ export default function ListsHomePage() {
       {user && myLists.length === 0 && publicLists.length === 0 && (
         <>
           <ListsEmptyState onCreateList={() => setShowCreateModal(true)} />
-          <div className="p-5 mt-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
+          <div className="p-5 mt-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-yellow-200">Ready-Made Lists</h3>
+                <h3 className="text-lg font-semibold text-gold-200">Ready-Made Lists</h3>
                 <p className="text-sm text-gray-300">Pre-built from your ratings — directors, decades, genres and more.</p>
               </div>
-              <a href="/lists/ready-made" className="px-3 py-2 text-black bg-yellow-500 rounded hover:bg-yellow-400">Explore</a>
+              <a href="/lists/ready-made" className="px-3 py-2 text-black bg-gold-500 rounded hover:bg-gold-400">Explore</a>
             </div>
           </div>
         </>
@@ -334,7 +334,7 @@ export default function ListsHomePage() {
               <h2 className="text-xl font-bold text-white tracking-wide">Ready-Made Lists</h2>
               <p className="text-xs text-gray-500 mt-0.5">Pre-built from your ratings — save any of these in one tap.</p>
             </div>
-            <a href="/lists/ready-made" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors font-medium">
+            <a href="/lists/ready-made" className="text-sm text-gold-400 hover:text-gold-300 transition-colors font-medium">
               See all →
             </a>
           </div>
@@ -362,7 +362,7 @@ export default function ListsHomePage() {
                         type="button"
                         onClick={() => handleSaveSmartList(alert)}
                         disabled={isSaving}
-                        className="px-3 py-1.5 text-sm bg-yellow-500 text-black rounded hover:bg-yellow-400 disabled:opacity-50 font-medium"
+                        className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400 disabled:opacity-50 font-medium"
                       >
                         {isSaving ? "Saving…" : "Save"}
                       </button>
@@ -399,17 +399,17 @@ export default function ListsHomePage() {
 
       {/* Create List Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70">
-          <div className="w-full max-w-md bg-white border border-gray-200 rounded-lg shadow-xl dark:bg-gray-900 dark:border-gray-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-black bg-opacity-70">
+          <div className="w-full max-w-md bg-white border border-gray-200 rounded-lg bg-charcoal-900 border-gray-700">
             <form onSubmit={handleCreateList}>
               {/* Header */}
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="p-6 border-b border-gray-700">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create New List</h2>
+                  <h2 className="text-xl font-semibold text-white">Create New List</h2>
                   <button
                     type="button"
                     onClick={resetCreateForm}
-                    className="text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                    className="text-gray-400 transition-colors text-gray-500 hover:text-gray-300"
                   >
                     <X className="w-6 h-6" />
                   </button>
@@ -419,7 +419,7 @@ export default function ListsHomePage() {
               {/* Form */}
               <div className="p-6 space-y-4">
                 <div>
-                  <label htmlFor="listName" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="listName" className="block mb-2 text-sm font-medium text-gray-300">
                     List Name *
                   </label>
                   <input
@@ -428,14 +428,14 @@ export default function ListsHomePage() {
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
                     placeholder="My Favorite Movies"
-                    className="w-full px-3 py-2 text-gray-900 placeholder-gray-500 bg-white border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 text-gray-900 placeholder-gray-500 bg-white border border-gray-300 border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                     required
                     autoFocus
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="listDescription" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="listDescription" className="block mb-2 text-sm font-medium text-gray-300">
                     Description
                   </label>
                   <textarea
@@ -444,7 +444,7 @@ export default function ListsHomePage() {
                     onChange={(e) => setCreateDescription(e.target.value)}
                     placeholder="A brief description of your list..."
                     rows={3}
-                    className="w-full px-3 py-2 text-gray-900 placeholder-gray-500 bg-white border border-gray-300 rounded-md resize-none dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-3 py-2 text-gray-900 placeholder-gray-500 bg-white border border-gray-300 rounded-md border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                   />
                 </div>
 
@@ -454,28 +454,28 @@ export default function ListsHomePage() {
                     id="isPublic"
                     checked={createIsPublic}
                     onChange={(e) => setCreateIsPublic(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-blue-400 dark:bg-gray-800"
+                    className="w-4 h-4 text-blue-600 bg-white border-gray-300 border-gray-600 focus:ring-blue-400 bg-gray-800"
                   />
-                  <label htmlFor="isPublic" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                  <label htmlFor="isPublic" className="ml-2 text-sm text-gray-300">
                     Make this list public (others can view it)
                   </label>
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t border-gray-200 rounded-b-lg dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <div className="p-6 border-t border-gray-200 border-gray-700 bg-gray-800/50">
                 <div className="flex justify-end gap-3">
                   <button
                     type="button"
                     onClick={resetCreateForm}
-                    className="px-4 py-2 text-gray-700 transition-colors border border-gray-300 rounded-md dark:text-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    className="px-4 py-2 text-gray-700 transition-colors border border-gray-300 text-gray-300 border-gray-600 hover:bg-gray-700"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={creating || !createName.trim()}
-                    className="px-4 py-2 text-white transition-colors bg-blue-600 rounded-md dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 text-white transition-colors bg-blue-600 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {creating ? "Creating..." : "Create List"}
                   </button>

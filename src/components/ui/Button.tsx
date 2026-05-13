@@ -21,15 +21,15 @@ const base =
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    "px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800",
+    "px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800",
   secondary:
-    "px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700",
+    "px-4 py-2 text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-700",
   danger:
     "p-1 bg-red-500 text-white rounded-full hover:bg-red-600",
   icon:
-    "p-1 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-full",
+    "p-1 text-gray-400 text-gray-500 hover:text-red-400 rounded-full",
   ghost:
-    "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300",
+    "text-gray-400 text-gray-500 hover:text-gray-300",
   default:
     "px-4 py-2 rounded-lg",
   cta:

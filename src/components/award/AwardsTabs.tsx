@@ -15,7 +15,7 @@ export function AwardsTabs({ value, onChange }: { value: AwardsTabKey; onChange:
 
   return (
     <div className="mb-6">
-      <div className="flex items-center gap-2 rounded-xl bg-white/5 dark:bg-black/30 border border-gold-500/20 p-1 w-fit">
+      <div className="flex items-center gap-2 rounded-xl bg-black/30 border border-gold-500/20 p-1 w-fit">
         {tabs.map((t) => {
           const active = value === t.key;
           return (

@@ -170,15 +170,15 @@ export default function SignupModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 my-8">
+      <div className="bg-gray-800 rounded-lg max-w-md w-full p-6 my-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-xl font-semibold text-white">
             {emailSent ? "Check your email" : "Create account"}
           </h2>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-white"
+            className="text-gray-400 text-gray-400 hover:text-white"
           >
             <X className="w-5 h-5" />
           </button>
@@ -186,18 +186,18 @@ export default function SignupModal({
 
         {emailSent ? (
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
-              <Mail className="h-6 w-6 text-[#CAAC4C] dark:text-yellow-400" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-900/30">
+              <Mail className="h-6 w-6 text-[#CAAC4C] text-yellow-400" />
             </div>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p className="text-gray-300">
               A confirmation link has been sent to <strong>{email}</strong>.
             </p>
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-3 text-sm text-gray-400">
               Click the link in the email to activate your account. Check spam if you don&apos;t see it.
             </p>
-            <div className="mt-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4 text-left">
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">While you wait:</p>
-              <ul className="space-y-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <div className="mt-6 rounded-lg border border-gray-700 bg-gray-800/50 p-4 text-left">
+              <p className="text-xs font-medium text-gray-300 mb-2">While you wait:</p>
+              <ul className="space-y-1.5 text-xs text-gray-400">
                 <li>You&apos;ll pick movies you love and rate them</li>
                 <li>Your highest-rated films become nominees for that year</li>
                 <li>Fill 10 nominees to crown your Best Picture winner</li>
@@ -216,7 +216,7 @@ export default function SignupModal({
               <button
                 onClick={() => handleOAuthSignup('github')}
                 disabled={loading}
-                className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50"
+                className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-gray-600 rounded-md hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50"
               >
                 <svg
                   className="w-5 h-5"
@@ -235,18 +235,18 @@ export default function SignupModal({
             </div>
 
             <div className="my-4 flex items-center">
-              <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
-              <span className="mx-4 text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex-grow border-t border-gray-600"></div>
+              <span className="mx-4 text-sm text-gray-400">
                 Or continue with email
               </span>
-              <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+              <div className="flex-grow border-t border-gray-600"></div>
             </div>
 
             <form onSubmit={handleEmailSignup} className="space-y-4">
               <div>
                 <label
                   htmlFor="signup-username"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  className="block text-sm font-medium text-gray-300 mb-1"
                 >
                   Username
                 </label>
@@ -259,14 +259,14 @@ export default function SignupModal({
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
-                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
+                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-700 border-gray-600 text-white placeholder-gray-300"
                   />
                 </div>
               </div>
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  className="block text-sm font-medium text-gray-300 mb-1"
                 >
                   Email
                 </label>
@@ -279,14 +279,14 @@ export default function SignupModal({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
+                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-700 border-gray-600 text-white placeholder-gray-300"
                   />
                 </div>
               </div>
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  className="block text-sm font-medium text-gray-300 mb-1"
                 >
                   Password
                 </label>
@@ -299,12 +299,12 @@ export default function SignupModal({
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
-                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
+                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-700 border-gray-600 text-white placeholder-gray-300"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-white"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white"
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -326,12 +326,12 @@ export default function SignupModal({
                         return bars.map((active, i) => (
                           <div 
                             key={i} 
-                            className={`h-1 flex-1 rounded ${active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} 
+                            className={`h-1 flex-1 rounded ${active ? 'bg-green-500' : 'bg-gray-600'}`} 
                           />
                         ));
                       })()}
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-400">
                       {getPasswordStrength(password).text}
                     </p>
                   </div>
@@ -340,7 +340,7 @@ export default function SignupModal({
               <div>
                 <label
                   htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  className="block text-sm font-medium text-gray-300 mb-1"
                 >
                   Confirm Password
                 </label>
@@ -352,14 +352,14 @@ export default function SignupModal({
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300"
+                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-700 border-gray-600 text-white placeholder-gray-300"
                   />
                   <button
                     type="button"
                     onClick={() =>
                       setShowConfirmPassword(!showConfirmPassword)
                     }
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-white"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white"
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -369,7 +369,7 @@ export default function SignupModal({
                   </button>
                 </div>
               </div>
-              <label className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <label className="flex items-start gap-2 text-sm text-gray-300">
                 <input
                   type="checkbox"
                   checked={emailOptIn}
@@ -380,7 +380,7 @@ export default function SignupModal({
               </label>
 
               {error && (
-                <div className="p-3 text-sm bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="p-3 text-sm bg-red-900/20 text-red-300 border border-red-800 rounded-lg">
                   {error}
                 </div>
               )}
@@ -395,7 +395,7 @@ export default function SignupModal({
             </form>
 
             {showLoginLink && (
-              <p className="mt-4 text-sm text-center text-gray-600 dark:text-gray-400">
+              <p className="mt-4 text-sm text-center text-gray-400">
                 Already have an account?{" "}
                 <button
                   onClick={onSwitchToLogin}

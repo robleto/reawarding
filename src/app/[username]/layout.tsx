@@ -167,7 +167,7 @@ function ProfileTabs({ username }: { username: string }) {
 
   return (
     <nav className="mt-4 mb-6 overflow-x-auto">
-      <div className="w-full flex items-center justify-start gap-1 rounded-xl bg-white/10 dark:bg-black/20 backdrop-blur-md border border-gray-200/30 dark:border-gray-700/40 shadow-lg p-1">
+      <div className="w-full flex items-center justify-start gap-1 rounded-xl bg-black/20 backdrop-blur-md border border-gray-700/40 shadow-lg p-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive =
@@ -181,7 +181,7 @@ function ProfileTabs({ username }: { username: string }) {
               href={tab.href}
               className={`px-4 sm:px-5 py-2 text-sm font-medium whitespace-nowrap rounded-lg transition-colors ${
                 isActive
-                  ? "text-gold bg-white/30 dark:bg-white/15 border border-white/20 dark:border-white/10"
+                  ? "text-gold bg-white/15 border border-white/10"
                   : "text-gray-300 hover:text-gold"
               }`}
             >

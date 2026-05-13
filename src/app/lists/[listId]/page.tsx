@@ -612,11 +612,11 @@ export default function ListDetailPage() {
     }
 
     return (
-      <div className="flex flex-col items-center justify-center h-48 text-gray-500 dark:text-gray-400">
+      <div className="flex flex-col items-center justify-center h-48 text-gray-400">
         <p className="text-lg">{error || "List not found"}</p>
         <button
           onClick={() => router.push("/lists")}
-          className="px-4 py-2 mt-4 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+          className="px-4 py-2 mt-4 text-blue-600 text-blue-400 hover:text-blue-300"
         >
           ← Back to Lists
         </button>
@@ -629,7 +629,7 @@ export default function ListDetailPage() {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-md shadow-xl">
+          <div className="bg-charcoal-900 border border-gray-700 rounded-lg w-full max-w-md shadow-xl">
             <div className="p-5 border-b border-gray-800">
               <h3 className="text-lg font-semibold text-white">Delete this list?</h3>
             </div>
@@ -746,7 +746,7 @@ export default function ListDetailPage() {
                 <MoreVertical className="w-4 h-4" />
               </button>
               {showMobileManage && (
-                <div className="absolute right-0 top-full mt-2 w-44 z-50 rounded-lg border border-gray-700/50 bg-gray-900 shadow-lg p-1">
+                <div className="absolute right-0 top-full mt-2 w-44 z-50 rounded-lg border border-gray-700/50 bg-charcoal-900 shadow-lg p-1">
                   <button
                     onClick={() => { setIsEditing((v) => !v); setShowMobileManage(false); }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-gray-800 text-gray-200"
@@ -941,10 +941,10 @@ export default function ListDetailPage() {
               />
             </svg>
           </div>
-          <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">
+          <h3 className="mb-2 text-lg font-medium text-white">
             No movies in this list
           </h3>
-          <p className="max-w-md mb-6 text-gray-500 dark:text-gray-400">
+          <p className="max-w-md mb-6 text-gray-400">
             This list is empty. {isOwner ? "Add some movies to get started!" : "Check back later for updates."}
           </p>
           {isOwner && (
@@ -979,7 +979,7 @@ export default function ListDetailPage() {
           {/* Reordering notice when filters are applied */}
           {(filterType !== "none" || sortBy !== "ranking") && isEditing && (
             <div className="p-3 mb-4 border rounded-lg bg-amber-500/10 border-amber-500/30">
-              <p className="text-sm text-amber-600 dark:text-amber-400">
+              <p className="text-sm text-amber-400">
                 <strong>Note:</strong> Drag & drop reordering is only available when viewing the complete list sorted by position. 
                 Clear filters and sort by "My Ranking" to reorder items.
                 {!isOwner && (
@@ -994,7 +994,7 @@ export default function ListDetailPage() {
           {/* Show info for non-owners when editing */}
           {isEditing && !isOwner && (filterType === "none" && sortBy === "ranking") && (
             <div className="p-3 mb-4 border rounded-lg bg-blue-500/10 border-blue-500/30">
-              <p className="text-sm text-blue-600 dark:text-blue-400">
+              <p className="text-sm text-blue-400">
                 <strong>Preview Mode:</strong> You can reorder items to see how they would look, but changes won't be saved permanently.
                 {userId ? " Only the list owner can save changes." : " Log in and create your own list to save changes."}
               </p>

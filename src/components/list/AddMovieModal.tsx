@@ -20,7 +20,7 @@ const ImageFallback = ({
   className?: string; 
 }) => (
   <div 
-    className={`flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 ${className}`}
+    className={`flex items-center justify-center bg-gray-700 text-gray-500 ${className}`}
     style={{ width, height }}
   >
     <div className="text-center">
@@ -183,11 +183,11 @@ export default function AddMovieModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={handleClose}>
-      <div className="bg-white dark:bg-charcoal-900 rounded-lg max-w-2xl w-full max-h-[80vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-charcoal-900 rounded-lg max-w-2xl w-full max-h-[80vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-700">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add Movies to List</h2>
+            <h2 className="text-xl font-semibold text-white">Add Movies to List</h2>
             <Button onClick={handleClose} variant="ghost">
               <X className="w-6 h-6" />
             </Button>
@@ -204,14 +204,14 @@ export default function AddMovieModal({
                 onChange={handleSearchChange}
                 onFocus={() => setShowSuggestions(!!searchTerm)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-800 text-gray-100 placeholder-gray-400"
                 autoFocus
               />
             </div>
             
             {/* Autocomplete Suggestions */}
             {showSuggestions && suggestions.length > 0 && (
-              <ul className="absolute z-30 left-0 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg mt-1 shadow-lg max-h-64 overflow-y-auto">
+              <ul className="absolute z-30 left-0 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 shadow-lg max-h-64 overflow-y-auto">
                 {suggestions.map((movie) => {
                   const isSelected = selectedMovies.some(m => m.id === movie.id);
                   const hasValidImage = movie.thumb_url && movie.thumb_url !== "";
@@ -219,10 +219,10 @@ export default function AddMovieModal({
                   return (
                     <li
                       key={movie.id}
-                      className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors ${
+                      className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-700 last:border-b-0 transition-colors ${
                         isSelected 
-                          ? "bg-blue-50 dark:bg-blue-900/20" 
-                          : "hover:bg-gray-50 dark:hover:bg-gray-700"
+                          ? "bg-blue-900/20" 
+                          : "hover:bg-gray-700"
                       }`}
                       onMouseDown={() => handleSuggestionClick(movie)}
                     >
@@ -232,7 +232,7 @@ export default function AddMovieModal({
                           <img
                             src={movie.thumb_url}
                             alt={movie.title}
-                            className="w-16 h-12 object-contain rounded shadow-sm bg-gray-100 dark:bg-gray-700"
+                            className="w-16 h-12 object-contain rounded shadow-sm bg-gray-700"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
                               const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -252,8 +252,8 @@ export default function AddMovieModal({
                       
                       {/* Movie Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm text-gray-900 dark:text-white truncate">{movie.title}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{movie.release_year}</div>
+                        <div className="font-medium text-sm text-white truncate">{movie.title}</div>
+                        <div className="text-xs text-gray-400">{movie.release_year}</div>
                       </div>
                       
                       {/* Selection Indicator */}
@@ -269,19 +269,19 @@ export default function AddMovieModal({
                     </li>
                   );
                 })}
-                <li className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                  Can't find your movie? <a href="/help/add-movie" className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300">Learn how to add it</a>
+                <li className="px-4 py-3 text-xs text-gray-400 border-t border-gray-700 bg-gray-800">
+                  Can't find your movie? <a href="/help/add-movie" className="text-blue-400 underline hover:text-blue-300">Learn how to add it</a>
                 </li>
               </ul>
             )}
             
             {/* No Results Message */}
             {showSuggestions && searchTerm.length >= 2 && suggestions.length === 0 && !loading && (
-              <div className="absolute z-30 left-0 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg mt-1 shadow-lg">
+              <div className="absolute z-30 left-0 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 shadow-lg">
                 <div className="px-4 py-6 text-center">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">No movies found for "{searchTerm}"</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-400">
-                    Can't find your movie? <a href="/help/add-movie" className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300">Learn how to add it</a>
+                  <p className="text-sm text-gray-400 mb-2">No movies found for "{searchTerm}"</p>
+                  <p className="text-xs text-gray-400">
+                    Can't find your movie? <a href="/help/add-movie" className="text-blue-400 underline hover:text-blue-300">Learn how to add it</a>
                   </p>
                 </div>
               </div>
@@ -293,16 +293,16 @@ export default function AddMovieModal({
         <div className="flex-1 overflow-y-auto">
           {selectedMovies.length === 0 ? (
             <div className="p-8 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600">
+              <div className="w-16 h-16 mx-auto mb-4 text-gray-600">
                 <Search className="w-full h-full" />
               </div>
-              <p className="text-gray-500 dark:text-gray-400">
+              <p className="text-gray-400">
                 Search and select movies to add to your list
               </p>
             </div>
           ) : (
             <div className="p-6">
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">
+              <h3 className="text-sm font-medium text-white mb-4">
                 Selected Movies ({selectedMovies.length})
               </h3>
               <div className="space-y-3">
@@ -312,7 +312,7 @@ export default function AddMovieModal({
                   return (
                     <div
                       key={movie.id}
-                      className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                      className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg"
                     >
                       {/* Movie Thumbnail */}
                       <div className="flex-shrink-0">
@@ -320,7 +320,7 @@ export default function AddMovieModal({
                           <img
                             src={movie.thumb_url}
                             alt={movie.title}
-                            className="w-16 h-12 object-contain rounded shadow-sm bg-gray-100 dark:bg-gray-700"
+                            className="w-16 h-12 object-contain rounded shadow-sm bg-gray-700"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
                               const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -340,8 +340,8 @@ export default function AddMovieModal({
                       
                       {/* Movie Info */}
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 dark:text-white truncate">{movie.title}</h4>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{movie.release_year}</p>
+                        <h4 className="font-medium text-white truncate">{movie.title}</h4>
+                        <p className="text-sm text-gray-400">{movie.release_year}</p>
                       </div>
                       
                       {/* Remove Button */}
@@ -362,9 +362,9 @@ export default function AddMovieModal({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+        <div className="p-6 border-t border-gray-700 bg-gray-800/50">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-400">
               {selectedMovies.length > 0 
                 ? `${selectedMovies.length} movie${selectedMovies.length !== 1 ? "s" : ""} selected`
                 : "No movies selected"

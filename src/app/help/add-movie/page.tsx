@@ -34,7 +34,7 @@ export default function AddMovieHelpPage() {
   };
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-10 text-gray-800 dark:text-gray-100">
+    <main className="max-w-2xl mx-auto px-4 py-10 text-gray-100">
       <h1 className="text-2xl font-bold mb-4">How to Add a Missing Movie</h1>
       <p className="mb-4">
         Reawarding uses <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">The Movie Database (TMDB)</a> for all film data, including cast, crew, posters, and release dates.

@@ -73,13 +73,13 @@ export default function ShareButton({
     return (
       <button
         onClick={handleShare}
-        className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${className}`}
+        className={`p-2 rounded-lg hover:bg-gray-700 transition-colors ${className}`}
         title="Share"
       >
         {copied ? (
           <Check className="w-5 h-5 text-green-500" />
         ) : (
-          <Share2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          <Share2 className="w-5 h-5 text-gray-400" />
         )}
       </button>
     );

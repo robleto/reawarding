@@ -57,7 +57,7 @@ export default function GuestSuggestions() {
 
   if (loading) {
     return (
-      <div className="bg-gray-900/60 border border-yellow-500/20 rounded-lg p-6">
+      <div className="bg-charcoal-900/60 border border-gold-500/20 rounded-lg p-6">
         <p className="text-gray-300">Loading suggestions…</p>
       </div>
     );
@@ -65,7 +65,7 @@ export default function GuestSuggestions() {
 
   if (suggestions.length === 0) {
     return (
-      <div className="bg-gray-900/60 border border-yellow-500/20 rounded-lg p-6">
+      <div className="bg-charcoal-900/60 border border-gold-500/20 rounded-lg p-6">
         <p className="text-gray-300">Mark at least 10 movies by a director as seen to unlock ready-made lists.</p>
       </div>
     );
@@ -78,18 +78,18 @@ export default function GuestSuggestions() {
           <h2 className="text-2xl font-unbounded font-semibold">Your Ready‑Made Lists (Guest)</h2>
           <p className="text-gray-400">Based on your guest rankings. Sign in to save.</p>
         </div>
-        <Link href="/login" className="px-3 py-2 bg-yellow-500 text-black rounded hover:bg-yellow-400">Sign in to Save</Link>
+        <Link href="/login" className="px-3 py-2 bg-gold-500 text-black rounded hover:bg-gold-400">Sign in to Save</Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {suggestions.map((s) => (
-          <div key={s.director} className="bg-gray-900/60 border border-yellow-500/20 rounded-lg p-5">
+          <div key={s.director} className="bg-charcoal-900/60 border border-gold-500/20 rounded-lg p-5">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold">{s.director}: {s.seen_count} You’ve Seen</h3>
                 <p className="text-sm text-gray-400">Auto-generated from your guest data</p>
               </div>
-              <Link href="/login" className="px-3 py-2 bg-yellow-500 text-black rounded hover:bg-yellow-400">Save</Link>
+              <Link href="/login" className="px-3 py-2 bg-gold-500 text-black rounded hover:bg-gold-400">Save</Link>
             </div>
             <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
               {s.movies.slice(0, 12).map((m) => (

@@ -1080,7 +1080,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
   const contentBlock = (
     <>
-    <div className={`award-editable-section flex flex-col w-full rounded-xl shadow-md light-glass dark:dark-glass p-5 md:p-8${compact ? '' : ' mb-24'}${isEditing ? ' pb-32 md:pb-0' : ''}`}>
+    <div className={`award-editable-section flex flex-col w-full rounded-xl shadow-md dark-glass p-5 md:p-8${compact ? '' : ' mb-24'}${isEditing ? ' pb-32 md:pb-0' : ''}`}>
 
           {/* Error Message */}
           {error && (
@@ -1213,7 +1213,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         is persisted server-side, and the green checkmark undercuts
                         the "Sign up to save" CTA shown elsewhere on the page. */}
                     {isWorkshop && user && (
-                      <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-500 dark:text-emerald-400">
+                      <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400">
                         {isSaving ? (
                           <>
                             <Loader2 className="w-3 h-3 animate-spin" />

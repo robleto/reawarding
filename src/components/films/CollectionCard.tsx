@@ -51,7 +51,7 @@ export default function CollectionCard({ collection, movieCount }: CollectionCar
 
   return (
     <Link href={`/films/collections/${collection.slug}`}>
-      <div className="light-glass dark:dark-glass group rounded-xl shadow-md h-[200px] flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg">
+      <div className="dark-glass group rounded-xl shadow-md h-[200px] flex flex-col overflow-hidden transition-all duration-200 hover:shadow-lg">
         <div className="p-5 flex-1 flex flex-col">
           {/* Icon and Title Row */}
           <div className="flex items-start gap-3 mb-3">

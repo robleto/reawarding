@@ -33,7 +33,7 @@ const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, see
           {/* Add New List card at the end, only if not readOnly */}
           {!readOnly && onAdd && (
             <div
-              className="min-w-[280px] max-w-[280px] h-[320px] flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gray-500/40 light-glass dark:dark-glass rounded-xl shadow-md cursor-pointer hover:shadow-lg transition-all p-6 group"
+              className="min-w-[280px] max-w-[280px] h-[320px] flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gray-700/50 bg-charcoal-900/40 hover:border-gray-600/70 hover:bg-charcoal-900/60 rounded-xl shadow-md cursor-pointer transition-all p-6 group"
               onClick={onAdd}
               tabIndex={0}
               role="button"
@@ -48,7 +48,7 @@ const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, see
           {!readOnly && (
             <Link
               href="/lists/ready-made"
-              className="min-w-[280px] max-w-[280px] h-[320px] flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gold-500/40 light-glass dark:dark-glass rounded-xl shadow-md hover:shadow-lg transition-all p-6 group"
+              className="min-w-[280px] max-w-[280px] h-[320px] flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gold-500/40 bg-charcoal-900/40 hover:border-gold-500/60 hover:bg-charcoal-900/60 rounded-xl shadow-md transition-all p-6 group"
               aria-label="Ready‑Made Lists"
             >
               <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-gold-500/20 group-hover:bg-gold-500/40 transition-all">

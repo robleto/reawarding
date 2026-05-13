@@ -184,27 +184,27 @@ export default function StatsSummary({
   return (
     <section className={`max-w-screen-xl mx-auto ${className}`}>
       {variant === "compact" ? (
-        <div className="light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 px-3 sm:px-4 py-2.5 sm:py-3">
+        <div className="dark-glass rounded-xl border border-gray-600/50 px-3 sm:px-4 py-2.5 sm:py-3">
           {loading ? (
-            <div className="text-xs text-gray-600 dark:text-gray-300">
+            <div className="text-xs text-gray-300">
               Loading your stats...
             </div>
           ) : (
             <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
-              <span className="hidden sm:inline text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold">
+              <span className="hidden sm:inline text-[11px] uppercase tracking-wide text-gray-400 font-semibold">
                 Your Stats
               </span>
               <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-4 md:gap-5 lg:gap-6 flex-1">
                 {items.map((item) => (
                   <div key={item.key} className="flex items-center gap-1.5 sm:gap-2">
-                    <div className="text-[#ba7a00] dark:text-yellow-500 bg-yellow-500/10 p-1 sm:p-1.5 rounded flex-shrink-0">
+                    <div className="text-[#ba7a00] text-yellow-500 bg-yellow-500/10 p-1 sm:p-1.5 rounded flex-shrink-0">
                       {item.icon}
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white leading-tight truncate">
+                      <span className="text-xs sm:text-sm font-semibold text-white leading-tight truncate">
                         {item.value}
                       </span>
-                      <span className="text-[9px] sm:text-[10px] text-gray-600 dark:text-gray-400 uppercase tracking-wide leading-tight truncate">
+                      <span className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wide leading-tight truncate">
                         {item.label}
                       </span>
                     </div>
@@ -214,23 +214,23 @@ export default function StatsSummary({
             </div>
           )}
           {error && (
-            <div className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</div>
+            <div className="mt-2 text-xs text-red-400">{error}</div>
           )}
         </div>
       ) : (
         <>
           {/* Scope toggle */}
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-base sm:text-sm font-semibold text-gray-800 dark:text-gray-200">Your Stats</h3>
-            <div className="inline-flex rounded-lg overflow-hidden border border-gray-300/60 dark:border-gray-600/60">
+            <h3 className="text-base sm:text-sm font-semibold text-gray-200">Your Stats</h3>
+            <div className="inline-flex rounded-lg overflow-hidden border border-gray-600/60">
               <button
-                className={`px-3 py-1 text-xs font-medium transition-colors ${scope === "all" ? "bg-blue-600 text-white" : "bg-transparent text-gray-700 dark:text-gray-300"}`}
+                className={`px-3 py-1 text-xs font-medium transition-colors ${scope === "all" ? "bg-blue-600 text-white" : "bg-transparent text-gray-300"}`}
                 onClick={() => setScope("all")}
               >
                 All-time
               </button>
               <button
-                className={`px-3 py-1 text-xs font-medium transition-colors ${scope === "year" ? "bg-blue-600 text-white" : "bg-transparent text-gray-700 dark:text-gray-300"}`}
+                className={`px-3 py-1 text-xs font-medium transition-colors ${scope === "year" ? "bg-blue-600 text-white" : "bg-transparent text-gray-300"}`}
                 onClick={() => setScope("year")}
               >
                 This Year
@@ -241,7 +241,7 @@ export default function StatsSummary({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {loading ? (
               <div className="col-span-1 sm:col-span-2 lg:col-span-4">
-                <div className="light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 p-3 sm:p-4">
+                <div className="dark-glass rounded-xl border border-gray-600/50 p-3 sm:p-4">
                   <Loader message="Loading your stats..." />
                 </div>
               </div>
@@ -256,19 +256,19 @@ export default function StatsSummary({
                 const Card = (
                   <div
                     key={item.key}
-                    className={`light-glass dark:dark-glass rounded-xl border border-gray-300/40 dark:border-gray-600/50 p-3 sm:p-4 flex items-center justify-between ${href ? "hover:shadow-md transition-shadow" : ""}`}
+                    className={`dark-glass rounded-xl border border-gray-600/50 p-3 sm:p-4 flex items-center justify-between ${href ? "hover:shadow-md transition-shadow" : ""}`}
                   >
                     <div>
-                      <div className="text-[11px] sm:text-xs uppercase tracking-wide text-gray-600 dark:text-gray-400">{item.label}</div>
-                      <div className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">{item.value}</div>
+                      <div className="text-[11px] sm:text-xs uppercase tracking-wide text-gray-400">{item.label}</div>
+                      <div className="mt-1 text-xl sm:text-2xl font-semibold text-white">{item.value}</div>
                       {item.hint && (
-                        <div className="mt-1 hidden sm:flex text-xs text-gray-500 dark:text-gray-400 items-center gap-1">
+                        <div className="mt-1 hidden sm:flex text-xs text-gray-400 items-center gap-1">
                           <UserPlus className="w-3.5 h-3.5" />
                           {item.hint}
                         </div>
                       )}
                     </div>
-                    <div className="shrink-0 text-[#ba7a00] dark:text-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/10 p-1.5 sm:p-2 rounded-lg">
+                    <div className="shrink-0 text-[#ba7a00] text-yellow-500 bg-yellow-500/10 p-1.5 sm:p-2 rounded-lg">
                       {item.icon}
                     </div>
                   </div>
@@ -286,7 +286,7 @@ export default function StatsSummary({
           </div>
 
           {error && (
-            <div className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</div>
+            <div className="mt-3 text-xs text-red-400">{error}</div>
           )}
         </>
       )}

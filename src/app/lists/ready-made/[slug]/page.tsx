@@ -367,18 +367,18 @@ export default async function ReadyMadeDetailPage({ params }: { params: Promise<
 
   if (!user) {
     return (
-      <div className="p-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
+      <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
         <h2 className="mb-2 text-xl font-semibold">Sign in to view this suggestion</h2>
-        <Link href="/login" className="inline-block px-4 py-2 mt-2 text-black bg-yellow-500 rounded">Sign In</Link>
+        <Link href="/login" className="inline-block px-4 py-2 mt-2 text-black bg-gold-500 rounded">Sign In</Link>
       </div>
     );
   }
 
   if (!category || !label) {
     return (
-      <div className="p-6 border rounded-lg bg-gray-900/60 border-yellow-500/20">
+      <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
         <p className="text-gray-300">We couldn't find that suggestion. It may require more seen films to unlock.</p>
-        <Link href="/lists/ready-made" className="inline-block mt-4 text-yellow-300 underline">Back to Ready‑Made</Link>
+        <Link href="/lists/ready-made" className="inline-block mt-4 text-gold-300 underline">Back to Ready‑Made</Link>
       </div>
     );
   }
@@ -399,7 +399,7 @@ export default async function ReadyMadeDetailPage({ params }: { params: Promise<
           </h1>
           <p className="mt-1 text-gray-400">
             Auto-generated from your seen films • {category === 'director' ? 'Director' : category === 'genre' ? 'Genre' : 'Decade'}
-            {isFiltered && <span className="ml-2 text-[11px] text-yellow-300">(showing 9–10 only • {count} of {totalCount})</span>}
+            {isFiltered && <span className="ml-2 text-[11px] text-gold-300">(showing 9–10 only • {count} of {totalCount})</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -410,7 +410,7 @@ export default async function ReadyMadeDetailPage({ params }: { params: Promise<
                 <input type="hidden" name="count" value={count} />
                 <input type="hidden" name="movie_ids" value={ids} />
                 <input type="hidden" name="publish" value="1" />
-                <button className="px-4 py-2 text-black bg-yellow-500 rounded hover:bg-yellow-400" type="submit">Publish List</button>
+                <button className="px-4 py-2 text-black bg-gold-500 rounded hover:bg-gold-400" type="submit">Publish List</button>
               </form>
             ) : category === 'genre' ? (
               <form action={saveGenreList}>
@@ -419,7 +419,7 @@ export default async function ReadyMadeDetailPage({ params }: { params: Promise<
                 <input type="hidden" name="total_seen" value={totalCount} />
                 <input type="hidden" name="movie_ids" value={ids} />
                 <input type="hidden" name="publish" value="1" />
-                <button className="px-4 py-2 text-black bg-yellow-500 rounded hover:bg-yellow-400" type="submit">Publish List</button>
+                <button className="px-4 py-2 text-black bg-gold-500 rounded hover:bg-gold-400" type="submit">Publish List</button>
               </form>
             ) : (
               <form action={saveDecadeList}>
@@ -429,7 +429,7 @@ export default async function ReadyMadeDetailPage({ params }: { params: Promise<
                 <input type="hidden" name="total_seen" value={totalCount} />
                 <input type="hidden" name="movie_ids" value={ids} />
                 <input type="hidden" name="publish" value="1" />
-                <button className="px-4 py-2 text-black bg-yellow-500 rounded hover:bg-yellow-400" type="submit">Publish List</button>
+                <button className="px-4 py-2 text-black bg-gold-500 rounded hover:bg-gold-400" type="submit">Publish List</button>
               </form>
             )
           ) : (
@@ -485,7 +485,7 @@ export default async function ReadyMadeDetailPage({ params }: { params: Promise<
       <ReadyMadeDetailClient movies={movies} />
 
       <div>
-        <Link href="/lists/ready-made" className="text-sm text-yellow-300 hover:underline">← Back to Ready‑Made</Link>
+        <Link href="/lists/ready-made" className="text-sm text-gold-300 hover:underline">← Back to Ready‑Made</Link>
       </div>
     </div>
   );

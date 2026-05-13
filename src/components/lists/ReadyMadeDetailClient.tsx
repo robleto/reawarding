@@ -52,10 +52,10 @@ export default function ReadyMadeDetailClient({ movies }: { movies: ReadyMadeMov
             key={m.id}
             type="button"
             onClick={() => openModal(m)}
-            className="p-2 text-left border rounded bg-gray-900/60 border-yellow-500/20 hover:border-yellow-500/40 focus:outline-none focus:ring-2 focus:ring-yellow-500/30"
+            className="p-2 text-left border rounded bg-charcoal-900/60 border-gold-500/20 hover:border-gold-500/40 focus:outline-none focus:ring-2 focus:ring-gold-500/30"
           >
             <div className="relative aspect-[2/3] rounded overflow-hidden border border-gray-800 bg-gray-800">
-              <div className="absolute z-10 px-3 py-2 text-lg font-bold text-white border rounded-md shadow-sm top-2 left-2 bg-gray-900/80 border-gray-300/50 font-unbounded backdrop-blur-sm">
+              <div className="absolute z-10 px-3 py-2 text-lg font-bold text-white border rounded-md shadow-sm top-2 left-2 bg-charcoal-900/80 border-gray-300/50 font-unbounded backdrop-blur-sm">
                 {idx + 1}
               </div>
               {m.poster_url ? (

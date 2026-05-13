@@ -121,7 +121,7 @@ export default function MovieSearchPicker({
 
   const iconClasses = isHero
     ? "w-5 h-5 flex-shrink-0 text-gold-500"
-    : "w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0";
+    : "w-5 h-5 text-gray-500 flex-shrink-0";
 
   const inputClasses = isHero
     ? "bg-transparent text-base text-gray-100 placeholder-gray-400 focus:outline-none w-full h-full self-stretch"
@@ -151,7 +151,7 @@ export default function MovieSearchPicker({
                 setSuggestions([]);
                 inputRef.current?.focus();
               }}
-              className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="p-2 rounded hover:bg-gray-800"
               aria-label="Clear search"
             >
               <X className="w-4 h-4 text-gray-500" />
@@ -161,11 +161,11 @@ export default function MovieSearchPicker({
       </form>
 
       {showSuggestions && (suggestions.length > 0 || (term && !isSearching)) && (
-        <ul className="movie-search-picker__menu absolute left-0 right-0 mt-2 bg-white dark:bg-charcoal-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-[60] max-h-80 overflow-y-auto">
+        <ul className="movie-search-picker__menu absolute left-0 right-0 mt-2 bg-charcoal-900 border border-gray-700 rounded-xl shadow-lg z-[60] max-h-80 overflow-y-auto">
           {suggestions.map((m) => (
             <li
               key={m.id}
-              className="px-3 py-2.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 border-b last:border-b-0 border-gray-100 dark:border-gray-800"
+              className="px-3 py-2.5 cursor-pointer hover:bg-gray-800 border-b last:border-b-0 border-gray-800"
               onPointerDown={() => handleSelect(m)}
             >
               <div className="flex items-center gap-3">
@@ -173,13 +173,13 @@ export default function MovieSearchPicker({
                   <img
                     src={(m.thumb_url || m.poster_url) as string}
                     alt={m.title}
-                    className="w-10 h-14 object-cover rounded border border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-800"
+                    className="w-10 h-14 object-cover rounded border border-gray-700 bg-gray-800"
                   />
                 ) : (
-                  <div className="w-10 h-14 rounded bg-gray-200 dark:bg-gray-800 border border-gray-200 dark:border-gray-700" />
+                  <div className="w-10 h-14 rounded bg-gray-800 border border-gray-700" />
                 )}
                 <div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <div className="text-sm font-medium text-gray-100">
                     {m.title}
                   </div>
                   <div className="text-xs text-gray-500">{m.release_year}</div>
@@ -192,9 +192,9 @@ export default function MovieSearchPicker({
               No movies found for &ldquo;{term}&rdquo;
             </li>
           )}
-          <li className="px-3 py-2 text-xs text-gray-500 bg-gray-50 dark:bg-gray-800 rounded-b-xl">
+          <li className="px-3 py-2 text-xs text-gray-500 bg-gray-800 rounded-b-xl">
             Can&apos;t find it?{" "}
-            <a href="/help/add-movie" className="text-blue-600 dark:text-blue-400 underline">
+            <a href="/help/add-movie" className="text-blue-400 underline">
               Add by TMDB ID
             </a>
           </li>

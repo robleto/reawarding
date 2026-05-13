@@ -28,14 +28,14 @@ export default function HomeEmptyState({ onMovieSelected }: HomeEmptyStateProps)
             />
             <h1
               data-testid="home-headline"
-              className="text-2xl font-unbounded uppercase text-gray-900 dark:text-white"
+              className="text-2xl font-unbounded uppercase text-white"
             >
               Pick a movie you love.
             </h1>
           </div>
 
           {/* Outcome preview subtext */}
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          <p className="text-sm text-gray-400 mb-6">
             Pick one movie and we&apos;ll make it your Best Picture for that year.
           </p>
 
@@ -50,11 +50,11 @@ export default function HomeEmptyState({ onMovieSelected }: HomeEmptyStateProps)
 
           {/* Divider */}
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700" />
-            <span className="text-xs text-gray-400 dark:text-gray-400 uppercase tracking-wider">
+            <div className="flex-1 h-px bg-gray-700" />
+            <span className="text-xs text-gray-400 uppercase tracking-wider">
               Great starting points
             </span>
-            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700" />
+            <div className="flex-1 h-px bg-gray-700" />
           </div>
 
           {/* Starter picks carousel */}

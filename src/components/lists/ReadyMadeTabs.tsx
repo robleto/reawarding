@@ -38,7 +38,7 @@ export default function ReadyMadeTabs(props: {
       replace
       className={`px-4 py-3 text-sm font-medium transition-colors relative ${
         current === tab
-          ? `${highlight ?? "text-yellow-400 border-yellow-400"} text-yellow-400 border-b-2`
+          ? `${highlight ?? "text-gold-400 border-gold-400"} text-gold-400 border-b-2`
           : "text-gray-400 hover:text-gray-300"
       }`}
     >

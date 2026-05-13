@@ -93,8 +93,10 @@ const ListCard = ({ list, readOnly }: ListCardProps) => {
           </div>
         )}
 
-        {/* Glass card body */}
-        <div className="light-glass dark:dark-glass group rounded-xl shadow-md flex flex-col overflow-hidden min-h-[260px]">
+        {/* Glass card body — dark-only. Was light-glass/dark-glass dual-mode;
+            simplified to a single canonical surface that matches the homepage
+            card treatment (charcoal at low opacity, gray-700 border). */}
+        <div className="group rounded-xl shadow-md flex flex-col overflow-hidden min-h-[260px] bg-charcoal-900/60 border border-gray-700/40 hover:border-gray-600/60 transition-colors">
           <div className={`p-6 ${hasPoster ? "pt-12" : "pt-6"} flex-1 flex flex-col min-h-0`}>
             {/* Header */}
             <div className="flex items-start justify-between mb-3">

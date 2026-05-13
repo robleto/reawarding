@@ -81,14 +81,14 @@ export default function AddMovieByTmdbModal({ isOpen, onClose, onImported }: Add
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60" onClick={handleClose}>
       <div
-        className="w-full max-w-lg rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-charcoal-900 shadow-xl"
+        className="w-full max-w-lg rounded-xl border border-gray-700 bg-charcoal-900 shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add Movie by TMDB ID</h2>
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <h2 className="text-lg font-semibold text-white">Add Movie by TMDB ID</h2>
           <button
             onClick={handleClose}
-            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-2 rounded-md hover:bg-gray-800"
             aria-label="Close add movie modal"
           >
             <X className="w-5 h-5 text-gray-500" />
@@ -96,7 +96,7 @@ export default function AddMovieByTmdbModal({ isOpen, onClose, onImported }: Add
         </div>
 
         <div className="p-4 space-y-3">
-          <p className="text-sm text-gray-600 dark:text-gray-300">
+          <p className="text-sm text-gray-300">
             Paste a TMDB movie ID (for example: <code>550</code>) or full TMDB movie URL.
           </p>
 
@@ -105,7 +105,7 @@ export default function AddMovieByTmdbModal({ isOpen, onClose, onImported }: Add
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder="TMDB ID or URL"
-            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-600 bg-gray-800 text-gray-100"
           />
 
           {message && (
@@ -121,10 +121,10 @@ export default function AddMovieByTmdbModal({ isOpen, onClose, onImported }: Add
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-700">
           <button
             onClick={handleClose}
-            className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
+            className="px-3 py-2 text-sm rounded-lg border border-gray-600 text-gray-300"
           >
             Cancel
           </button>

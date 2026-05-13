@@ -210,11 +210,11 @@ export default function MovieFilters({
             />
           </div>
           {showSuggestions && suggestions.length > 0 && (
-            <ul className="absolute z-50 left-0 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg mt-1 shadow-lg max-h-56 overflow-y-auto">
+            <ul className="absolute z-50 left-0 w-full bg-gray-900 border border-gray-700 rounded-lg mt-1 shadow-lg max-h-56 overflow-y-auto">
               {suggestions.map((movie) => (
                 <li
                   key={movie.id}
-                  className="px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                  className="px-4 py-3 cursor-pointer hover:bg-gray-800 border-b border-gray-700 last:border-b-0"
                   onMouseDown={() => handleSuggestionClick(movie)}
                 >
                   <div className="flex items-center gap-3">
@@ -222,7 +222,7 @@ export default function MovieFilters({
                       <img
                         src={movie.poster_url}
                         alt={movie.title}
-                        className="w-12 h-16 object-cover rounded shadow-sm border border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-800 flex-shrink-0"
+                        className="w-12 h-16 object-cover rounded shadow-sm border border-gray-700 bg-gray-800 flex-shrink-0"
                         loading="lazy"
                       />
                     )}
@@ -234,7 +234,7 @@ export default function MovieFilters({
                 </li>
               ))}
               {!localSearchMode && (
-                <li className="px-4 py-3 text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <li className="px-4 py-3 text-xs text-gray-500 border-t border-gray-700 bg-gray-800">
                   Can't find your movie? <a href="/help/add-movie" className="text-blue-600 underline hover:text-blue-800">Learn how to add it</a>
                 </li>
               )}
