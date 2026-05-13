@@ -1,6 +1,11 @@
 name: Ingest Discover + Enrich
 
 on:
+  # Daily discovery + enrichment. 08:30 UTC keeps it well off the enrich-movies
+  # crons (which run at :17 every 6h) so the two pipelines don't compete for
+  # TMDB rate limits. Manual workflow_dispatch still available below.
+  schedule:
+    - cron: '30 8 * * *'
   workflow_dispatch:
     inputs:
       pages:
@@ -60,7 +65,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt supabase
+          pip install -r scripts/requirements.txt supabase
 
       - name: Discover movies via TMDB
         run: |
