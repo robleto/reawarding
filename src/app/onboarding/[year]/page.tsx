@@ -221,8 +221,7 @@ export default function OnboardingYearPage() {
         onRate={handleRate}
         onRateAnother={() => setPickedMovie(null)}
         onTryAnotherYear={() => {
-          setPickedMovie(null);
-          router.push("/films");
+          router.push("/onboarding");
         }}
         onSignup={() => router.push("/login")}
         onPickAnother={() => setPickedMovie(null)}

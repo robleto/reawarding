@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { Check, X, ArrowLeft, Bookmark, Star, Trophy, ArrowRight } from "lucide-react";
+import { Check, X, ArrowLeft, Bookmark, Star, Trophy, ArrowRight, Loader2 } from "lucide-react";
 import type { Movie } from "@/types/types";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import { normalizeImageUrl } from "@/utils/imageUrl";
@@ -68,6 +68,10 @@ export default function OnboardingPickFlow({
   // The 1-10 picker only appears once the user taps the Rate badge on the card.
   // Until then, step 2 just shows the pulsing badge and an inviting prompt.
   const [ratingPickerOpen, setRatingPickerOpen] = useState(false);
+  // When a forming-step CTA triggers full-page navigation, hold the modal open
+  // with a loading view until the new page replaces it — otherwise the user
+  // sees a flash of the underlying home page during the navigation gap.
+  const [navigatingLabel, setNavigatingLabel] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -76,6 +80,7 @@ export default function OnboardingPickFlow({
       setWatchConfirmed(false);
       setSelectedRating(null);
       setRatingPickerOpen(false);
+      setNavigatingLabel(null);
     }
   }, [isOpen, movie?.id]);
 
@@ -208,20 +213,27 @@ export default function OnboardingPickFlow({
                 setRatingPickerOpen(false);
               }}
             />
+          ) : navigatingLabel ? (
+            <NavigatingPanel label={navigatingLabel} />
           ) : (
             <FormingPanel
               movie={movie}
               rating={selectedRating ?? 0}
               currentNomineeCountForYear={currentNomineeCountForYear}
               onRateAnother={() => {
+                setNavigatingLabel(
+                  movie.release_year
+                    ? `Loading ${movie.release_year} films…`
+                    : "Loading films…"
+                );
                 onRateAnother();
-                onClose();
               }}
               onTryAnotherYear={() => {
+                setNavigatingLabel("Loading films…");
                 onTryAnotherYear();
-                onClose();
               }}
               onSignup={() => {
+                setNavigatingLabel("Taking you to sign up…");
                 onSignup();
               }}
               onClose={onClose}
@@ -489,6 +501,22 @@ function RatePicker({
         <ArrowLeft className="w-3 h-3" />
         Back
       </button>
+    </div>
+  );
+}
+
+// ── Navigating overlay — held while a forming-step CTA loads the next page.
+// Keeps the modal in place so the user never sees a flash of the underlying
+// home screen during the navigation gap.
+
+function NavigatingPanel({ label }: { label: string }) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center py-10 text-center"
+      aria-live="polite"
+    >
+      <Loader2 className="h-7 w-7 text-gold-400 animate-spin" aria-hidden="true" />
+      <p className="mt-4 text-sm text-gray-300">{label}</p>
     </div>
   );
 }

@@ -8,7 +8,6 @@ import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieFilters from "@/components/filters/MovieFilters";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
-import FilmsEmptyState from "@/components/films/FilmsEmptyState";
 import AddMovieByTmdbModal from "@/components/movie/AddMovieByTmdbModal";
 import type { Movie } from "@/types/types";
 
@@ -199,10 +198,6 @@ function FilmsPageContent() {
 		return <Loader message="Loading films..." />;
 	}
 
-	if (isGuest) {
-		return null;
-	}
-
 	return (
 		<div className="max-w-screen-xl">
 			{/* Unified Banner System for Guests */}
@@ -211,14 +206,6 @@ function FilmsPageContent() {
 					onSignupClick={handleSignupClick} 
 					onLoginClick={handleLoginClick} 
 					excludeBannerTypes={['welcome']}
-				/>
-			)}
-
-			{/* Films Empty State for Anonymous Users - Shows at top before films */}
-			{isGuest && (
-				<FilmsEmptyState
-					isGuest={isGuest}
-					onSignupClick={handleSignupClick}
 				/>
 			)}
 
