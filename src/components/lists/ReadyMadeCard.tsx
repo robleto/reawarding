@@ -8,6 +8,7 @@ export type ReadyMadeCardProps = {
   count: number;
   asterisk?: boolean;
   subtitle: ReactNode;
+  meta?: ReactNode; // optional third-line disclaimer (e.g. rating-chip filter badge)
   posterUrls: string[];
   headerRight?: ReactNode; // typically the Save form/button
   viewHref: string;
@@ -19,6 +20,7 @@ export default function ReadyMadeCard({
   count,
   asterisk,
   subtitle,
+  meta,
   posterUrls,
   headerRight,
   viewHref,
@@ -52,26 +54,27 @@ export default function ReadyMadeCard({
       )}
 
       <div className="flex flex-col flex-1 p-6 pt-20 pb-6">
-        <div className="flex items-start justify-between gap-3 mt-8 mb-2">
-          <div className="flex-1 min-w-0">
-            <Link href={viewHref} className="block">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-semibold truncate transition-colors hover:text-gold-200" title={title}>{title}</h3>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-800 text-xs text-gray-200" title="You've seen">
-                  {count}{asterisk ? '∗' : ''}
-                </span>
-              </div>
-            </Link>
-            <div className="mt-1 text-sm text-gray-400">{subtitle}</div>
+        <div className="mt-8 mb-2 min-w-0">
+          <Link href={viewHref} className="block">
+            <h3 className="text-lg font-semibold truncate transition-colors hover:text-gold-200" title={title}>{title}</h3>
+          </Link>
+          <div className="mt-1 flex items-center flex-wrap gap-2 text-sm text-gray-400">
+            <span>{subtitle}</span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-800 text-xs text-gray-200" title="You've seen">
+              {count}{asterisk ? '∗' : ''}
+            </span>
           </div>
-          {headerRight ? (
-            <div className="shrink-0">{headerRight}</div>
-          ) : null}
+          {meta && (
+            <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-gray-400">{meta}</div>
+          )}
         </div>
 
-        <div className="flex items-center gap-3 mt-3">
+        <div className="flex items-center gap-3 mt-auto pt-3">
           <Link href={viewHref} className="text-sm text-gold-300 hover:underline whitespace-nowrap">View</Link>
           {dismissForm}
+          {headerRight ? (
+            <div className="ml-auto shrink-0">{headerRight}</div>
+          ) : null}
         </div>
       </div>
     </div>

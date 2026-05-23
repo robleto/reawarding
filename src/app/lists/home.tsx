@@ -8,7 +8,8 @@ import ScreenState from "@/components/ui/ScreenState";
 import HorizontalListRow from "@/components/list/HorizontalListRow";
 import ListsEmptyState from "@/components/lists/ListsEmptyState";
 import AuthModalManager from "@/components/auth/AuthModalManager";
-import { X } from "lucide-react";
+import Link from "next/link";
+import { List, X } from "lucide-react";
 import { useAuthState } from "@/hooks/useAuthState";
 import { useSmartListAlerts } from "@/hooks/useSmartListAlerts";
 import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
@@ -326,7 +327,18 @@ export default function ListsHomePage() {
         />
       )}
 
-      {/* Ready-Made Lists — auto-generated from watch history */}
+      {/* Public Lists Row */}
+      {publicLists.length > 0 && (
+        <HorizontalListRow
+          title="Public Lists"
+          lists={publicLists.slice(0, 8)}
+          seeAllHref={publicLists.length > 3 ? "/lists/public" : undefined}
+          readOnly
+        />
+      )}
+
+      {/* Ready-Made Lists — horizontal scroll rail, mirrors the home page.
+          Terminates in the gold dashed "Browse all" CTA. */}
       {smartAlerts.filter((a) => !a.nearMiss && !dismissedAlertKeys.includes(`${a.type}:${a.label}`)).length > 0 && (
         <section className="mb-10">
           <div className="flex items-center justify-between mb-5 px-1">
@@ -338,7 +350,7 @@ export default function ListsHomePage() {
               See all →
             </a>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 overflow-visible">
+          <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
             {smartAlerts.filter((a) => !a.nearMiss).slice(0, 6).map((alert) => {
               const alertKey = `${alert.type}:${alert.label}`;
               if (dismissedAlertKeys.includes(alertKey)) return null;
@@ -347,54 +359,57 @@ export default function ListsHomePage() {
               const isSaving = savingAlertKey === alertKey;
               const isSaved = savedAlertKeys.includes(alertKey);
               return (
-                <ReadyMadeCard
-                  key={alertKey}
-                  title={alert.label}
-                  count={alert.count}
-                  subtitle={<span>Auto-generated from your seen films • {typeLabel}</span>}
-                  posterUrls={posterUrls}
-                  viewHref={`/lists/ready-made/${slugifyTitle(alert.label)}`}
-                  headerRight={
-                    isSaved ? (
-                      <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleSaveSmartList(alert)}
-                        disabled={isSaving}
-                        className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400 disabled:opacity-50 font-medium"
-                      >
-                        {isSaving ? "Saving…" : "Save"}
-                      </button>
-                    )
-                  }
-                  dismissForm={
-                    !isSaved && (
-                      <button
-                        type="button"
-                        onClick={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
-                        className="text-sm text-gray-400 hover:text-gray-300"
-                        title="Hide this suggestion"
-                      >
-                        Dismiss
-                      </button>
-                    )
-                  }
-                />
+                <div key={alertKey} className="min-w-[300px] max-w-[300px] flex-shrink-0 snap-start overflow-visible">
+                  <ReadyMadeCard
+                    title={alert.label}
+                    count={alert.count}
+                    subtitle={<span>{typeLabel}</span>}
+                    posterUrls={posterUrls}
+                    viewHref={`/lists/ready-made/${slugifyTitle(alert.label)}`}
+                    headerRight={
+                      isSaved ? (
+                        <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSaveSmartList(alert)}
+                          disabled={isSaving}
+                          className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400 disabled:opacity-50 font-medium"
+                        >
+                          {isSaving ? "Saving…" : "Save"}
+                        </button>
+                      )
+                    }
+                    dismissForm={
+                      !isSaved && (
+                        <button
+                          type="button"
+                          onClick={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
+                          className="text-sm text-gray-400 hover:text-gray-300"
+                          title="Hide this suggestion"
+                        >
+                          Dismiss
+                        </button>
+                      )
+                    }
+                  />
+                </div>
               );
             })}
+            {/* Terminator — mirrors the home page rail */}
+            <Link
+              href="/lists/ready-made"
+              className="min-w-[300px] max-w-[300px] h-[260px] mt-5 flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gold-500/40 bg-charcoal-900/40 hover:border-gold-500/60 hover:bg-charcoal-900/60 rounded-lg shadow-md transition-all p-6 group"
+              aria-label="Browse all ready-made lists"
+            >
+              <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-gold-500/20 group-hover:bg-gold-500/40 transition-all">
+                <List className="w-7 h-7 text-gold-300" />
+              </div>
+              <span className="mt-2 text-base font-semibold text-gold-200 group-hover:text-gold-300 transition-colors">Browse all</span>
+              <span className="mt-1 text-xs text-gray-300">More from your ratings</span>
+            </Link>
           </div>
         </section>
-      )}
-
-      {/* Public Lists Row */}
-      {publicLists.length > 0 && (
-        <HorizontalListRow
-          title="Public Lists"
-          lists={publicLists.slice(0, 8)}
-          seeAllHref={publicLists.length > 3 ? "/lists/public" : undefined}
-          readOnly
-        />
       )}
 
       {/* Create List Modal */}

@@ -520,21 +520,19 @@ export default function HomePage() {
     ? "established"
     : "building";
 
-  // Mature workshop drawer — folds the timeline + active ballot inline.
-  // Closed by default; opens when the user taps "Update awards".
-  // On open: scroll the drawer into view. On close: scroll the strip back
-  // into view so the viewport doesn't strand the user where the drawer was.
+  // Awards Gallery edit mode — the gallery rail flips in place to expose the
+  // year timeline + active ballot card. Same surface, two states: rewards
+  // (golden register) ↔ workshop (editable). On toggle: scroll the gallery
+  // section's top into view so the header + toggle stay anchored through
+  // the body swap.
   const [workshopOpen, setWorkshopOpen] = useState(false);
-  const workshopRef = useRef<HTMLDivElement>(null);
-  const stripRef = useRef<HTMLElement>(null);
+  const galleryRef = useRef<HTMLElement>(null);
   const workshopOpenRef = useRef(false);
   useEffect(() => {
     const wasOpen = workshopOpenRef.current;
     workshopOpenRef.current = workshopOpen;
-    if (workshopOpen && workshopRef.current) {
-      workshopRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else if (wasOpen && !workshopOpen && stripRef.current) {
-      stripRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (wasOpen !== workshopOpen && galleryRef.current) {
+      galleryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [workshopOpen]);
 
@@ -1045,10 +1043,11 @@ export default function HomePage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════
-            2. Ready-Made Lists (horizontal scroll rail)
+            2. Ready-Made Lists — horizontal scroll rail
             Auto-generated from ratings. Sorted: directors → actors
-            → decades → genres. pt-8 gives headroom for the
-            ReadyMadeCard poster fan that overhangs its top edge.
+            → decades → genres. Terminates in a gold dashed CTA that
+            opens the full Ready-Made library (moved here from
+            HorizontalListRow's "Your Lists" rail).
             ═══════════════════════════════════════════════════ */}
         {smartAlerts.filter((a) => !a.nearMiss).length > 0 && (
           <section className="mb-12">
@@ -1061,7 +1060,7 @@ export default function HomePage() {
                 See all →
               </a>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 overflow-visible">
+            <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
               {smartAlerts.filter((a) => !a.nearMiss).map((alert) => {
                 const alertKey = `${alert.type}:${alert.label}`;
                 const posterUrls = getSmartListPosterUrls(alert.movieIds);
@@ -1071,42 +1070,55 @@ export default function HomePage() {
                 const isDismissed = dismissedAlertKeys.includes(alertKey);
                 if (isDismissed) return null;
                 return (
-                  <ReadyMadeCard
-                    key={alertKey}
-                    title={alert.label}
-                    count={alert.count}
-                    subtitle={<span>Auto-generated from your seen films • {typeLabel}</span>}
-                    posterUrls={posterUrls}
-                    viewHref={`/lists/ready-made/${slugifyTitle(alert.label)}`}
-                    headerRight={
-                      isSaved ? (
-                        <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleSaveSmartList(alert)}
-                          disabled={isSaving}
-                          className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400 disabled:opacity-50 font-medium"
-                        >
-                          {isSaving ? "Saving…" : "Save"}
-                        </button>
-                      )
-                    }
-                    dismissForm={
-                      !isSaved && (
-                        <button
-                          type="button"
-                          onClick={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
-                          className="text-sm text-gray-400 hover:text-gray-300"
-                          title="Hide this suggestion"
-                        >
-                          Dismiss
-                        </button>
-                      )
-                    }
-                  />
+                  <div key={alertKey} className="min-w-[300px] max-w-[300px] flex-shrink-0 snap-start overflow-visible">
+                    <ReadyMadeCard
+                      title={alert.label}
+                      count={alert.count}
+                      subtitle={<span>{typeLabel}</span>}
+                      posterUrls={posterUrls}
+                      viewHref={`/lists/ready-made/${slugifyTitle(alert.label)}`}
+                      headerRight={
+                        isSaved ? (
+                          <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleSaveSmartList(alert)}
+                            disabled={isSaving}
+                            className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400 disabled:opacity-50 font-medium"
+                          >
+                            {isSaving ? "Saving…" : "Save"}
+                          </button>
+                        )
+                      }
+                      dismissForm={
+                        !isSaved && (
+                          <button
+                            type="button"
+                            onClick={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
+                            className="text-sm text-gray-400 hover:text-gray-300"
+                            title="Hide this suggestion"
+                          >
+                            Dismiss
+                          </button>
+                        )
+                      }
+                    />
+                  </div>
                 );
               })}
+              {/* Terminator — relocated from HorizontalListRow's "Your Lists" rail */}
+              <Link
+                href="/lists/ready-made"
+                className="min-w-[300px] max-w-[300px] h-[260px] mt-5 flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gold-500/40 bg-charcoal-900/40 hover:border-gold-500/60 hover:bg-charcoal-900/60 rounded-lg shadow-md transition-all p-6 group"
+                aria-label="Browse all ready-made lists"
+              >
+                <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-gold-500/20 group-hover:bg-gold-500/40 transition-all">
+                  <List className="w-7 h-7 text-gold-300" />
+                </div>
+                <span className="mt-2 text-base font-semibold text-gold-200 group-hover:text-gold-300 transition-colors">Browse all</span>
+                <span className="mt-1 text-xs text-gray-300">More from your ratings</span>
+              </Link>
             </div>
           </section>
         )}
@@ -1125,31 +1137,13 @@ export default function HomePage() {
         {/* ─── Compact workbench strip ───
             Welcome back is the prominent headline. Search sits full-width
             directly below — it remains the canonical entry into the loop.
-            "Update awards" is the quiet secondary affordance: the workshop
-            is one tap away, never dominating the surface. */}
-        <section ref={stripRef} className="mb-10 scroll-mt-4">
-          <div className="flex items-baseline justify-between gap-3 mb-5">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white font-unbounded tracking-tight">
-              Welcome back
-              {user?.user_metadata?.username ? `, ${user.user_metadata.username}` : ""}.
-            </h1>
-            {yearLeaders.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setWorkshopOpen((open) => !open)}
-                aria-expanded={workshopOpen}
-                aria-controls="mature-workshop"
-                className="inline-flex items-center gap-1.5 min-h-[44px] text-sm font-medium text-gold-300 hover:text-gold-200 transition-colors whitespace-nowrap"
-              >
-                {workshopOpen ? "Done" : "Update awards"}
-                {workshopOpen ? (
-                  <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
-                )}
-              </button>
-            )}
-          </div>
+            "Update awards" lives next to the Awards Gallery below so the
+            workshop is reachable from the rewards register, not the entry. */}
+        <section className="mb-10 scroll-mt-4">
+          <h1 className="mb-5 text-2xl sm:text-3xl font-bold text-white font-unbounded tracking-tight">
+            Welcome back
+            {user?.user_metadata?.username ? `, ${user.user_metadata.username}` : ""}.
+          </h1>
           <div className="max-w-3xl">
             <MovieSearchPicker
               onSelect={handleOpenMovieDetail}
@@ -1160,144 +1154,166 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ─── Workshop drawer ───
-            Inline expansion of the year timeline + active ballot card.
-            Identical structure to the established state's workshop zone, but
-            hidden behind the "Update awards" toggle so mature users see the
-            museum first and open the workshop only when they want to edit. */}
-        {workshopOpen && yearLeaders.length > 0 && (() => {
-          const activeYl =
-            yearLeaders.find((yl) => yl.year === expandedCardYear) ?? yearLeaders[0];
-          const sortedLeaders = [...yearLeaders].sort((a, b) => b.year - a.year);
-
-          return (
-            <section
-              ref={workshopRef}
-              id="mature-workshop"
-              className="mb-12 scroll-mt-4"
-              aria-label="Workshop — edit your ballots"
-            >
-              {/* Year timeline rail (same dot + heartbeat treatment) */}
-              <div className="relative mb-6">
-                <div
-                  className="flex items-start overflow-x-auto pb-3 snap-x snap-mandatory"
-                  style={{ scrollbarWidth: "none" }}
-                >
-                  {sortedLeaders.map((yl, idx) => {
-                    const isActive = yl.year === activeYl.year;
-                    const nextYl = sortedLeaders[idx + 1];
-                    const gapSize = nextYl ? yl.year - nextYl.year : 0;
-
-                    return (
-                      <div key={yl.year} className="flex-shrink-0 flex items-start snap-start">
-                        <button
-                          ref={isActive ? activeChipRef : undefined}
-                          type="button"
-                          onClick={() => setExpandedCardYear(yl.year)}
-                          className="flex flex-col items-center gap-1 min-w-[52px] px-1 group"
-                        >
-                          <div className="w-8 h-8 flex items-center justify-center">
-                            <div className={`rounded-full transition-all ${
-                              isActive
-                                ? "w-3 h-3 bg-gold-400"
-                                : "w-2 h-2 bg-gray-600 group-hover:bg-gray-400"
-                            }`} />
-                          </div>
-                          <span className={`text-[10px] font-bold font-unbounded leading-tight mt-0.5 transition-colors ${
-                            isActive
-                              ? "text-gold-300"
-                              : "text-gray-400 group-hover:text-gray-200"
-                          }`}>
-                            {yl.year}
-                          </span>
-                          <span className={`text-[10px] tabular-nums leading-none ${
-                            isActive ? "text-gold-500/60" : "text-gray-700"
-                          }`}>
-                            {yl.nomineeCount}/10
-                          </span>
-                        </button>
-
-                        {nextYl && (
-                          <div className="flex items-center mt-4">
-                            {gapSize === 1 ? (
-                              <div className="w-4 h-[2px] bg-gray-700 rounded-full" />
-                            ) : (
-                              <svg
-                                width="24"
-                                height="12"
-                                viewBox="0 0 24 12"
-                                fill="none"
-                                aria-hidden="true"
-                                className="text-gray-600"
-                              >
-                                <polyline
-                                  points="0,6 4,6 6,1 8,11 10,6 24,6"
-                                  stroke="currentColor"
-                                  strokeWidth="1.5"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Active year card (always expanded inside the drawer) */}
-              <ExpandableYearCard
-                key={activeYl.year}
-                year={activeYl.year}
-                leader={activeYl.leader}
-                nomineeCount={activeYl.nomineeCount}
-                neededForBallot={activeYl.neededForBallot}
-                allMovies={movies}
-                awards={awards}
-                currentUserId={userId}
-                isExpanded={true}
-                onToggle={() => {}}
-                onUpdateMovieRanking={handleUpdateMovieRanking}
-                onCreateAward={handleCreateAwardFromExplorer}
-                onOpenFullExplorer={(year) => setExplorerYear(year)}
-                onMilestoneReached={handleBallotMilestone}
-              />
-            </section>
-          );
-        })()}
-
-        {/* ─── Awards Gallery — the lead (your collection) ─── */}
+        {/* ─── Awards Gallery — the lead (your collection) ───
+            Two states share one surface. Default: golden AwardCard rail
+            (rewards register). Edit: timeline rail + active ballot card
+            (workshop). The header + flanking actions stay put; only the
+            body swaps. "Update awards" flips the body to edit mode, "See
+            all" deep-links to the user's full awards register. */}
         {galleryYears.length > 0 && (
-          <section className="mb-12">
-            <div className="flex items-center justify-between mb-4 px-1">
+          <section ref={galleryRef} className="mb-12 scroll-mt-4">
+            <div className="flex items-center justify-between gap-3 mb-4 px-1">
               <div>
                 <h2 className="text-xl font-bold text-white tracking-wide">Awards Gallery</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Best Picture winners by year</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {workshopOpen
+                    ? "Adjust your ratings — winners reshape automatically."
+                    : "Best Picture winners by year"}
+                </p>
               </div>
-              {user?.user_metadata?.username && (
-                <Link
-                  href={`/${user.user_metadata.username}/awards`}
-                  className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gold-300 transition-colors"
-                >
-                  Full history <ArrowRight className="w-3 h-3" />
-                </Link>
-              )}
+              <div className="flex items-center gap-4 sm:gap-5">
+                {yearLeaders.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setWorkshopOpen((open) => !open)}
+                    aria-expanded={workshopOpen}
+                    aria-controls="mature-workshop"
+                    className="inline-flex items-center gap-1.5 min-h-[44px] text-sm font-medium text-gold-300 hover:text-gold-200 transition-colors whitespace-nowrap"
+                  >
+                    {workshopOpen ? "Done" : "Update awards"}
+                    {workshopOpen ? (
+                      <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
+                    )}
+                  </button>
+                )}
+                {user?.user_metadata?.username && (
+                  <Link
+                    href={`/${user.user_metadata.username}/awards`}
+                    className="inline-flex items-center gap-1 min-h-[44px] text-sm text-gray-400 hover:text-gold-300 transition-colors whitespace-nowrap"
+                  >
+                    See all <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+              </div>
             </div>
-            <div className="flex gap-3 pb-3 overflow-x-auto snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-              {galleryYears.map((entry) => (
-                <div key={entry.year} className="flex-shrink-0 w-[160px] sm:w-[180px] snap-start">
-                  <AwardCard
-                    year={entry.year}
-                    winnerTitle={entry.winner.title}
-                    winnerPoster={entry.winner.poster_url}
-                    nomineeCount={entry.nomineeCount}
-                    onClick={() => setExplorerYear(entry.year)}
-                  />
-                </div>
-              ))}
-            </div>
+
+            {workshopOpen && yearLeaders.length > 0 ? (
+              /* Edit mode — timeline rail + active ballot card replace the
+                 golden rail in place. Same dot + heartbeat treatment as the
+                 established state's workbench. */
+              (() => {
+                const activeYl =
+                  yearLeaders.find((yl) => yl.year === expandedCardYear) ?? yearLeaders[0];
+                const sortedLeaders = [...yearLeaders].sort((a, b) => b.year - a.year);
+
+                return (
+                  <div id="mature-workshop" aria-label="Workshop — edit your ballots">
+                    <div className="relative mb-6">
+                      <div
+                        className="flex items-start overflow-x-auto pb-3 snap-x snap-mandatory"
+                        style={{ scrollbarWidth: "none" }}
+                      >
+                        {sortedLeaders.map((yl, idx) => {
+                          const isActive = yl.year === activeYl.year;
+                          const nextYl = sortedLeaders[idx + 1];
+                          const gapSize = nextYl ? yl.year - nextYl.year : 0;
+
+                          return (
+                            <div key={yl.year} className="flex-shrink-0 flex items-start snap-start">
+                              <button
+                                ref={isActive ? activeChipRef : undefined}
+                                type="button"
+                                onClick={() => setExpandedCardYear(yl.year)}
+                                className="flex flex-col items-center gap-1 min-w-[52px] px-1 group"
+                              >
+                                <div className="w-8 h-8 flex items-center justify-center">
+                                  <div className={`rounded-full transition-all ${
+                                    isActive
+                                      ? "w-3 h-3 bg-gold-400"
+                                      : "w-2 h-2 bg-gray-600 group-hover:bg-gray-400"
+                                  }`} />
+                                </div>
+                                <span className={`text-[10px] font-bold font-unbounded leading-tight mt-0.5 transition-colors ${
+                                  isActive
+                                    ? "text-gold-300"
+                                    : "text-gray-400 group-hover:text-gray-200"
+                                }`}>
+                                  {yl.year}
+                                </span>
+                                <span className={`text-[10px] tabular-nums leading-none ${
+                                  isActive ? "text-gold-500/60" : "text-gray-700"
+                                }`}>
+                                  {yl.nomineeCount}/10
+                                </span>
+                              </button>
+
+                              {nextYl && (
+                                <div className="flex items-center mt-4">
+                                  {gapSize === 1 ? (
+                                    <div className="w-4 h-[2px] bg-gray-700 rounded-full" />
+                                  ) : (
+                                    <svg
+                                      width="24"
+                                      height="12"
+                                      viewBox="0 0 24 12"
+                                      fill="none"
+                                      aria-hidden="true"
+                                      className="text-gray-600"
+                                    >
+                                      <polyline
+                                        points="0,6 4,6 6,1 8,11 10,6 24,6"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <ExpandableYearCard
+                      key={activeYl.year}
+                      year={activeYl.year}
+                      leader={activeYl.leader}
+                      nomineeCount={activeYl.nomineeCount}
+                      neededForBallot={activeYl.neededForBallot}
+                      allMovies={movies}
+                      awards={awards}
+                      currentUserId={userId}
+                      isExpanded={true}
+                      onToggle={() => {}}
+                      onUpdateMovieRanking={handleUpdateMovieRanking}
+                      onCreateAward={handleCreateAwardFromExplorer}
+                      onOpenFullExplorer={(year) => setExplorerYear(year)}
+                      onMilestoneReached={handleBallotMilestone}
+                    />
+                  </div>
+                );
+              })()
+            ) : (
+              /* Rewards register — the golden AwardCard rail */
+              <div className="flex gap-3 pb-3 overflow-x-auto snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+                {galleryYears.map((entry) => (
+                  <div key={entry.year} className="flex-shrink-0 w-[160px] sm:w-[180px] snap-start">
+                    <AwardCard
+                      year={entry.year}
+                      winnerTitle={entry.winner.title}
+                      winnerPoster={entry.winner.poster_url}
+                      nomineeCount={entry.nomineeCount}
+                      onClick={() => setExplorerYear(entry.year)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
@@ -1332,7 +1348,9 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* ─── Ready-Made Lists — auto-built from your taste ─── */}
+        {/* ─── Ready-Made Lists — auto-built from your taste ───
+            Horizontal scroll. Terminates in a gold dashed CTA that opens
+            the full Ready-Made library (moved here from HorizontalListRow). */}
         {smartAlerts.filter((a) => !a.nearMiss).length > 0 && (
           <section className="mb-12">
             <div className="flex items-center justify-between mb-5 px-1">
@@ -1344,7 +1362,7 @@ export default function HomePage() {
                 See all →
               </a>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 overflow-visible">
+            <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
               {smartAlerts.filter((a) => !a.nearMiss).map((alert) => {
                 const alertKey = `${alert.type}:${alert.label}`;
                 const posterUrls = getSmartListPosterUrls(alert.movieIds);
@@ -1354,42 +1372,55 @@ export default function HomePage() {
                 const isDismissed = dismissedAlertKeys.includes(alertKey);
                 if (isDismissed) return null;
                 return (
-                  <ReadyMadeCard
-                    key={alertKey}
-                    title={alert.label}
-                    count={alert.count}
-                    subtitle={<span>Auto-generated from your seen films • {typeLabel}</span>}
-                    posterUrls={posterUrls}
-                    viewHref={`/lists/ready-made/${slugifyTitle(alert.label)}`}
-                    headerRight={
-                      isSaved ? (
-                        <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleSaveSmartList(alert)}
-                          disabled={isSaving}
-                          className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400 disabled:opacity-50 font-medium"
-                        >
-                          {isSaving ? "Saving…" : "Save"}
-                        </button>
-                      )
-                    }
-                    dismissForm={
-                      !isSaved && (
-                        <button
-                          type="button"
-                          onClick={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
-                          className="text-sm text-gray-400 hover:text-gray-300"
-                          title="Hide this suggestion"
-                        >
-                          Dismiss
-                        </button>
-                      )
-                    }
-                  />
+                  <div key={alertKey} className="min-w-[300px] max-w-[300px] flex-shrink-0 snap-start overflow-visible">
+                    <ReadyMadeCard
+                      title={alert.label}
+                      count={alert.count}
+                      subtitle={<span>{typeLabel}</span>}
+                      posterUrls={posterUrls}
+                      viewHref={`/lists/ready-made/${slugifyTitle(alert.label)}`}
+                      headerRight={
+                        isSaved ? (
+                          <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleSaveSmartList(alert)}
+                            disabled={isSaving}
+                            className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400 disabled:opacity-50 font-medium"
+                          >
+                            {isSaving ? "Saving…" : "Save"}
+                          </button>
+                        )
+                      }
+                      dismissForm={
+                        !isSaved && (
+                          <button
+                            type="button"
+                            onClick={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
+                            className="text-sm text-gray-400 hover:text-gray-300"
+                            title="Hide this suggestion"
+                          >
+                            Dismiss
+                          </button>
+                        )
+                      }
+                    />
+                  </div>
                 );
               })}
+              {/* Terminator — relocated from HorizontalListRow's "Your Lists" rail */}
+              <Link
+                href="/lists/ready-made"
+                className="min-w-[300px] max-w-[300px] h-[260px] mt-5 flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gold-500/40 bg-charcoal-900/40 hover:border-gold-500/60 hover:bg-charcoal-900/60 rounded-lg shadow-md transition-all p-6 group"
+                aria-label="Browse all ready-made lists"
+              >
+                <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-gold-500/20 group-hover:bg-gold-500/40 transition-all">
+                  <List className="w-7 h-7 text-gold-300" />
+                </div>
+                <span className="mt-2 text-base font-semibold text-gold-200 group-hover:text-gold-300 transition-colors">Browse all</span>
+                <span className="mt-1 text-xs text-gray-300">More from your ratings</span>
+              </Link>
             </div>
           </section>
         )}
@@ -1589,16 +1620,18 @@ export default function HomePage() {
           // Send the guest to the year-scoped onboarding continuation page.
           // The page wraps a year-only film grid in persistent onboarding
           // chrome (progress header + sticky signup CTA) so momentum holds.
+          // Don't clear the modal state here — OnboardingPickFlow holds a
+          // loading view in place until the new page replaces the tree, so
+          // the user never sees the underlying home page during navigation.
           const year = onboardingPickFlowMovie?.release_year;
-          setOnboardingPickFlowMovie(null);
           if (year) {
             window.location.href = `/onboarding/${year}`;
           }
         }}
         onTryAnotherYear={() => {
           // No year filter — let them pick any film, any year. /films is now
-          // guest-accessible (gate removed earlier this session).
-          setOnboardingPickFlowMovie(null);
+          // guest-accessible (gate removed earlier this session). Modal stays
+          // open with a loading view until /films loads.
           window.location.href = "/films";
         }}
         onSignup={() => { window.location.href = "/login"; }}

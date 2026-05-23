@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { slugifyTitle } from '@/utils/slug';
 import { normalizeImageUrl } from '@/utils/imageUrl';
 import ReadyMadeDetailClient from '@/components/lists/ReadyMadeDetailClient';
+import RatingChip from '@/components/ui/RatingChip';
 
 type MovieItem = {
   id: number;
@@ -398,9 +399,16 @@ export default async function ReadyMadeDetailPage({ params }: { params: Promise<
             </span>
           </h1>
           <p className="mt-1 text-gray-400">
-            Auto-generated from your seen films • {category === 'director' ? 'Director' : category === 'genre' ? 'Genre' : 'Decade'}
-            {isFiltered && <span className="ml-2 text-[11px] text-gold-300">(showing 9–10 only • {count} of {totalCount})</span>}
+            <span>{category === 'director' ? 'Director' : category === 'genre' ? 'Genre' : 'Decade'}</span>
+            {isFiltered && <span className="ml-2 text-[11px]">· {count} of {totalCount}</span>}
           </p>
+          {isFiltered && (
+            <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-gray-400">
+              <RatingChip rating={9} />
+              <RatingChip rating={10} />
+              <span>only</span>
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {count >= threshold ? (

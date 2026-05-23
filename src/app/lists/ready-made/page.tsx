@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { slugifyTitle } from '@/utils/slug';
 import ReadyMadeTabs from '@/components/lists/ReadyMadeTabs';
 import ReadyMadeCard from '@/components/lists/ReadyMadeCard';
+import RatingChip from '@/components/ui/RatingChip';
 
 type DirectorSuggestion = {
   director: string;
@@ -977,7 +978,7 @@ function SuggestionCard({ suggestion }: { suggestion: DirectorSuggestion }) {
       title={suggestion.director}
       count={suggestion.seen_count}
       posterUrls={posterUrls}
-      subtitle={<span>Auto-generated from your seen films • Director</span>}
+      subtitle={<span>Director</span>}
       headerRight={(
         <form action={saveList}>
           <input type="hidden" name="director" value={suggestion.director} />
@@ -1008,7 +1009,7 @@ function ActorSuggestionCard({ suggestion }: { suggestion: ActorSuggestion }) {
       title={suggestion.actor}
       count={suggestion.seen_count}
       posterUrls={posterUrls}
-      subtitle={<span>Auto-generated from your seen films • Actor</span>}
+      subtitle={<span>Actor</span>}
       headerRight={(
         <form action={saveActorList}>
           <input type="hidden" name="actor" value={suggestion.actor} />
@@ -1043,11 +1044,13 @@ function GenreSuggestionCard({ suggestion }: { suggestion: GenreSuggestion }) {
       count={filteredCount}
       asterisk={totalSeen > 100}
       posterUrls={posterUrls}
-      subtitle={(
-        <span>
-          Auto-generated from your seen films • Genre
-          {totalSeen > 100 && (<span className="ml-2 text-[11px] text-gold-300">(showing 9–10 only)</span>)}
-        </span>
+      subtitle={<span>Genre</span>}
+      meta={totalSeen > 100 && (
+        <>
+          <RatingChip rating={9} />
+          <RatingChip rating={10} />
+          <span>only</span>
+        </>
       )}
       headerRight={(
         <form action={saveGenreList} className="shrink-0">
@@ -1084,11 +1087,13 @@ function DecadeSuggestionCard({ suggestion }: { suggestion: DecadeSuggestion }) 
       count={filteredCount}
       asterisk={totalSeen > 100}
       posterUrls={posterUrls}
-      subtitle={(
-        <span>
-          Auto-generated from your seen films • Decade
-          {totalSeen > 100 && (<span className="ml-2 text-[11px] text-gold-300">(showing 9–10 only)</span>)}
-        </span>
+      subtitle={<span>Decade</span>}
+      meta={totalSeen > 100 && (
+        <>
+          <RatingChip rating={9} />
+          <RatingChip rating={10} />
+          <span>only</span>
+        </>
       )}
       headerRight={(
         <form action={saveDecadeList} className="shrink-0">
