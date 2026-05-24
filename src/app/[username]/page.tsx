@@ -19,7 +19,7 @@ import {
   Pencil,
   Check,
 } from "lucide-react";
-import { usePublicProfile } from "@/hooks/usePublicProfile";
+import { usePublicProfile, type PublicAward } from "@/hooks/usePublicProfile";
 import { useUser } from "@/hooks/useUser";
 import { useEnsureProfile } from "@/hooks/useEnsureProfile";
 import { normalizeImageUrl } from "@/utils/imageUrl";
@@ -544,7 +544,15 @@ function SignaturePicks({
 
 // ─── Awards Gallery Preview ─────────────────────────────
 // Shows completed awards (where a winner exists), using AwardCard.
-function AwardsGallery({ movies, username }: { movies: Movie[]; username: string }) {
+function AwardsGallery({
+  movies,
+  awards,
+  username,
+}: {
+  movies: Movie[];
+  awards: PublicAward[];
+  username: string;
+}) {
   const router = useRouter();
 
   const awardYears = useMemo(() => {
@@ -565,13 +573,20 @@ function AwardsGallery({ movies, username }: { movies: Movie[]; username: string
         const nominees = sorted
           .filter((m) => (m.rankings![0]?.ranking ?? 0) >= 7)
           .slice(0, 10);
-        const winner = nominees.length > 0 ? nominees[0] : sorted[0];
+        // Respect the profile owner's saved winner if one exists; otherwise
+        // default to the highest-rated nominee. Compare ids as strings —
+        // Movie.id is a UUID at runtime even though the type says number.
+        const savedAward = awards.find((a) => Number(a.year) === Number(yearStr));
+        const savedWinner = savedAward?.winner_id
+          ? sorted.find((m) => String(m.id) === String(savedAward.winner_id))
+          : null;
+        const winner = savedWinner ?? (nominees.length > 0 ? nominees[0] : sorted[0]);
         return { year: Number(yearStr), winner, nominees };
       })
       .filter((d) => d.winner)
       .sort((a, b) => b.year - a.year)
       .slice(0, 8);
-  }, [movies]);
+  }, [movies, awards]);
 
   if (awardYears.length === 0) {
     return null;
@@ -719,7 +734,7 @@ function SignatureTasteStats({ movies }: { movies: Movie[] }) {
 export default function ProfileOverviewPage() {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
-  const { movies, profile, loading } = usePublicProfile(username);
+  const { movies, profile, awards, loading } = usePublicProfile(username);
   const { user } = useUser();
   const { profile: ownerProfile } = useEnsureProfile(user ?? null);
 
@@ -764,7 +779,7 @@ export default function ProfileOverviewPage() {
         ownerUserId={ownerUserId}
         persistedPickIds={Array.isArray(profile?.signature_picks) ? profile?.signature_picks : null}
       />
-      <AwardsGallery movies={movies} username={username} />
+      <AwardsGallery movies={movies} awards={awards} username={username} />
       <SignatureTasteStats movies={movies} />
     </div>
   );
