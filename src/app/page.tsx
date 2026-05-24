@@ -94,11 +94,6 @@ export default function HomePage() {
   const [onboardingPickFlowMovie, setOnboardingPickFlowMovie] = useState<Movie | null>(null);
   const [expandedCardYear, setExpandedCardYear] = useState<number | null>(null);
   const [selectedSearchMovie, setSelectedSearchMovie] = useState<Movie | null>(null);
-  const [recentlyRatedMovie, setRecentlyRatedMovie] = useState<{
-    title: string;
-    year: number | null;
-    rating: number | null;
-  } | null>(null);
   // Milestone celebration is now canvas-persistent on the ballot card itself
   // (see ExpandableYearCard). No modal state needed — the card transforms in place.
   const [sessionCoachDismissed, setSessionCoachDismissed] = useState(false);
@@ -108,12 +103,6 @@ export default function HomePage() {
   const [savedAlertKeys, setSavedAlertKeys] = useState<string[]>([]);
   const activeChipRef = useRef<HTMLButtonElement>(null);
   const supabase = useSupabaseClient();
-
-  useEffect(() => {
-    if (!recentlyRatedMovie) return;
-    const timer = window.setTimeout(() => setRecentlyRatedMovie(null), 9000);
-    return () => window.clearTimeout(timer);
-  }, [recentlyRatedMovie]);
 
   // ── Smart list save handler ──────────────────────────────────────────────
   const handleSaveSmartList = async (alert: SmartListAlert) => {
@@ -279,18 +268,8 @@ export default function HomePage() {
   const handleUpdateMovieRanking = useCallback(
     (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => {
       void updateMovieRanking(movieId, updates);
-      if (updates.ranking && updates.ranking >= 1) {
-        const movie = movies.find((entry) => entry.id === movieId);
-        if (movie) {
-          setRecentlyRatedMovie({
-            title: movie.title,
-            year: movie.release_year ?? null,
-            rating: updates.ranking,
-          });
-        }
-      }
     },
-    [movies, updateMovieRanking]
+    [updateMovieRanking]
   );
 
   // For returning users: search picks open movie detail modal, not the YearExplorer
@@ -342,11 +321,6 @@ export default function HomePage() {
       const m = movies.find((entry) => String(entry.id) === String(movieId));
       if (m) {
         handleCreateAwardFromExplorer(m);
-        setRecentlyRatedMovie({
-          title: m.title,
-          year: m.release_year ?? null,
-          rating,
-        });
       }
     },
     [updateMovieRanking, movies, handleCreateAwardFromExplorer]
@@ -757,10 +731,8 @@ export default function HomePage() {
             suggestedQuery={suggestedQuery}
             onSelectMovie={handleSelectMovie}
             onSuggestedQuery={setSuggestedQuery}
-            onOpenYear={(year) => setExplorerYear(year)}
             onShowHowItWorks={() => scrollToElementById("logged-in-onboarding-steps", reducedMotion)}
             onDismiss={dismissOnboarding}
-            recentlyRated={recentlyRatedMovie}
           />
         ) : (
           <section className="mx-auto max-w-3xl">
@@ -788,10 +760,8 @@ export default function HomePage() {
             suggestedQuery={suggestedQuery}
             onSelectMovie={handleOpenMovieDetail}
             onSuggestedQuery={setSuggestedQuery}
-            onOpenYear={(year) => setExplorerYear(year)}
             onShowHowItWorks={() => scrollToElementById("logged-in-onboarding-steps", reducedMotion)}
             onDismiss={dismissOnboarding}
-            recentlyRated={recentlyRatedMovie}
           />
         ) : null}
 

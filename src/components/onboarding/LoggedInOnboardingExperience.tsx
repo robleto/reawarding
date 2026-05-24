@@ -1,16 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  ArrowRight,
-  ChevronDown,
-  ChevronUp,
-  Clapperboard,
-  Film,
-  Sparkles,
-  Star,
-  Trophy,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
 import type { Movie } from "@/types/types";
 import type { UserAward } from "@/hooks/useUserAwards";
@@ -21,22 +12,14 @@ import {
 
 const STORAGE_KEY = "reawarding-guide-collapsed";
 
-interface RecentRating {
-  title: string;
-  year: number | null;
-  rating: number | null;
-}
-
 interface LoggedInOnboardingExperienceProps {
   movies: Movie[];
   awards: UserAward[];
   suggestedQuery?: string;
   onSelectMovie: (movie: Movie) => void;
   onSuggestedQuery: (query: string) => void;
-  onOpenYear: (year: number) => void;
   onShowHowItWorks: () => void;
   onDismiss: () => void;
-  recentlyRated: RecentRating | null;
 }
 
 interface StageCopy {
@@ -87,100 +70,6 @@ const STAGE_COPY: Record<LoggedInOnboardingStage, StageCopy> = {
   },
 };
 
-// ─── Step pipeline ────────────────────────────────────────────────────────────
-
-const STEPS = [
-  { icon: Clapperboard, label: "Rate a film",      detail: "Start with something you know well." },
-  { icon: Film,         label: "It joins its year", detail: "Placed automatically. No setup needed." },
-  { icon: Sparkles,     label: "Nominees form",     detail: "Strong ratings rise toward nominees." },
-  { icon: Trophy,       label: "A winner emerges",  detail: "Your top-rated film leads the year." },
-  { icon: Star,         label: "You refine it",     detail: "Adjust or overrule whenever you want." },
-];
-
-function StepPipeline({ activeStep }: { activeStep: number }) {
-  return (
-    <div className="flex items-stretch divide-x divide-white/[0.04]">
-      {STEPS.map((step, i) => {
-        const isComplete = i < activeStep;
-        const Icon = step.icon;
-        return (
-          <div
-            key={step.label}
-            className={[
-              "flex flex-col gap-1 px-2.5 py-2 flex-1 min-w-0",
-              i === 0 ? "rounded-l-xl" : "",
-              i === STEPS.length - 1 ? "rounded-r-xl" : "",
-              isComplete ? "bg-emerald-500/[0.03]" : "",
-            ].join(" ")}
-          >
-            <div className="flex items-center gap-1">
-              <span
-                className={[
-                  "flex-shrink-0 flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold leading-none",
-                  isComplete ? "bg-emerald-500/10 text-emerald-500/60 border border-emerald-500/20" : "bg-white/[0.03] text-gray-700 border border-white/[0.07]",
-                ].join(" ")}
-              >
-                {isComplete ? "✓" : i + 1}
-              </span>
-              <Icon
-                className={`h-3 w-3 flex-shrink-0 ${isComplete ? "text-emerald-500/50" : "text-gray-700"}`}
-              />
-            </div>
-            <p className={`text-xs font-medium leading-tight ${
-              isComplete ? "text-emerald-500/60" : "text-gray-600"
-            }`}>
-              {step.label}
-            </p>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── State indicator row (replaces 4 full cards) ──────────────────────────────
-
-function StateRow({
-  label,
-  value,
-  accent,
-  cta,
-  onClick,
-}: {
-  label: string;
-  value: string;
-  accent?: "gold" | "green" | "dim";
-  cta?: string;
-  onClick?: () => void;
-}) {
-  const dotColor =
-    accent === "gold"  ? "bg-gold-400" :
-    accent === "green" ? "bg-emerald-400" :
-                         "bg-gray-700";
-  const valColor =
-    accent === "gold"  ? "text-gold-200" :
-    accent === "green" ? "text-emerald-300" :
-                         "text-gray-500";
-
-  return (
-    <div className="flex items-center gap-2.5 py-2.5 border-b border-white/[0.05] last:border-0">
-      <span className={`flex-shrink-0 w-1.5 h-1.5 rounded-full ${dotColor}`} />
-      <span className="text-xs text-gray-500 w-24 flex-shrink-0">{label}</span>
-      <span className={`text-xs font-medium flex-1 min-w-0 truncate ${valColor}`}>{value}</span>
-      {cta && onClick ? (
-        <button
-          type="button"
-          onClick={onClick}
-          className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-medium text-gold-500/70 hover:text-gold-300 transition-colors"
-        >
-          {cta}
-          <ArrowRight className="h-2.5 w-2.5" />
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function LoggedInOnboardingExperience({
@@ -189,10 +78,8 @@ export default function LoggedInOnboardingExperience({
   suggestedQuery,
   onSelectMovie,
   onSuggestedQuery,
-  onOpenYear,
   onShowHowItWorks,
   onDismiss,
-  recentlyRated,
 }: LoggedInOnboardingExperienceProps) {
   const onboarding = useLoggedInOnboarding(movies, awards, false);
   const copy = STAGE_COPY[onboarding.stage];
@@ -207,48 +94,6 @@ export default function LoggedInOnboardingExperience({
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEY, isCollapsed ? "1" : "0");
   }, [isCollapsed]);
-
-  const activeStep = useMemo(() => {
-    switch (onboarding.stage) {
-      case "welcome":           return 0;
-      case "first-rating":      return 1;
-      case "year-taking-shape": return 2;
-      case "winner-emerging":   return 3;
-      case "timeline-building": return 4;
-      default:                  return 4;
-    }
-  }, [onboarding.stage]);
-
-  const momentMessage = useMemo(() => {
-    if (recentlyRated?.title && recentlyRated.year) {
-      return `${recentlyRated.title} now belongs to ${recentlyRated.year}. Keep feeding that year and the race gets sharper.`;
-    }
-    if (onboarding.stage === "first-rating" && onboarding.strongestYear) {
-      return `Your early signal is landing in ${onboarding.strongestYear}. Stay with that year for the clearest next payoff.`;
-    }
-    if (onboarding.stage === "year-taking-shape" && onboarding.strongestYear) {
-      return `${onboarding.strongestYear} has started to cohere. Strong ratings rise fastest, but every score helps define the field.`;
-    }
-    if (onboarding.stage === "winner-emerging" && onboarding.strongestYear && onboarding.strongestYearWinnerTitle) {
-      return `${onboarding.strongestYearWinnerTitle} is your current ${onboarding.strongestYear} leader based on the ratings so far.`;
-    }
-    if (onboarding.stage === "timeline-building" && onboarding.yearsStarted > 1) {
-      return `${onboarding.yearsStarted} years are now in motion. This is where ReAwarding starts to feel like your own history.`;
-    }
-    return null;
-  }, [onboarding, recentlyRated]);
-
-  // ── State row data — compact single-line values ───────────────────────────
-  const yearValue = onboarding.strongestYear
-    ? `${onboarding.strongestYear} · ${onboarding.strongestYearCount} film${onboarding.strongestYearCount === 1 ? "" : "s"} rated`
-    : "—";
-  const nomineeValue = onboarding.strongestYearNomineeCount > 0
-    ? `${onboarding.strongestYearNomineeCount} nominee${onboarding.strongestYearNomineeCount === 1 ? "" : "s"} rising`
-    : "—";
-  const winnerValue = onboarding.strongestYearWinnerTitle ?? "—";
-  const historyValue = onboarding.yearsStarted > 1
-    ? `${onboarding.yearsStarted} years underway`
-    : "—";
 
   // ── Collapsed strip ───────────────────────────────────────────────────────
   if (isCollapsed) {
@@ -355,14 +200,6 @@ export default function LoggedInOnboardingExperience({
               </div>
             )}
           </div>
-
-          {/* The previous "momentMessage" emerald alert and the secondary zone
-              (StepPipeline + StateRow grid) were intentionally removed for
-              post-welcome stages — they competed with the active ballot card
-              below for the user's attention. Welcome stage doesn't show them
-              either (it's pre-engagement). The activeStep useMemo and the
-              State row helpers above are kept for potential future surfaces
-              but don't render. */}
 
           {/* ── Footer: hide + dismiss controls live here, not at the top ── */}
           <div className="mt-5 flex items-center justify-between gap-4">
