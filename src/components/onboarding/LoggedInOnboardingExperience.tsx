@@ -337,71 +337,32 @@ export default function LoggedInOnboardingExperience({
             />
             {/* Hint: one sentence, small, immediately below input */}
             <p className="mt-2.5 text-xs text-gray-500">{copy.searchHint}</p>
-            {/* Chips: example shortcuts, clearly tertiary */}
-            <div className="mt-3 flex flex-wrap gap-2">
-              {EXAMPLE_FILMS.map((film) => (
-                <button
-                  key={film}
-                  type="button"
-                  onClick={() => onSuggestedQuery(film)}
-                  className="rounded-full border border-white/[0.08] bg-transparent px-3 py-1 text-xs text-gray-500 hover:border-gold-500/35 hover:text-gold-300 transition-colors"
-                >
-                  {film}
-                </button>
-              ))}
-            </div>
+            {/* Chips: example shortcuts, ONLY at welcome — once the user has
+                rated anything, the ballot card below is their workshop and
+                chips would just compete with it. */}
+            {onboarding.stage === "welcome" && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {EXAMPLE_FILMS.map((film) => (
+                  <button
+                    key={film}
+                    type="button"
+                    onClick={() => onSuggestedQuery(film)}
+                    className="rounded-full border border-white/[0.08] bg-transparent px-3 py-1 text-xs text-gray-500 hover:border-gold-500/35 hover:text-gold-300 transition-colors"
+                  >
+                    {film}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* ── Moment message — emotional anchor, stronger than secondary zone ── */}
-          {momentMessage ? (
-            <div className="mt-5 flex items-start gap-3 rounded-xl border border-emerald-500/35 bg-emerald-500/[0.10] px-4 py-3.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Sparkles className="flex-shrink-0 mt-0.5 h-4 w-4 text-emerald-400" />
-              <p className="text-sm font-medium leading-relaxed text-emerald-200">{momentMessage}</p>
-            </div>
-          ) : null}
-
-          {/* ── Secondary zone: only visible post-welcome, fades in as system becomes visible ── */}
-          {onboarding.stage !== "welcome" && (
-            <>
-              <div className="mt-8 border-t border-white/[0.06] animate-in fade-in duration-500" />
-
-              <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_200px] animate-in fade-in duration-700">
-
-                {/* Step pipeline — no section label */}
-                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-                  <StepPipeline activeStep={activeStep} />
-                </div>
-
-                {/* State rows — no section label */}
-                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-1">
-                  <StateRow
-                    label="Current year"
-                    value={yearValue}
-                    accent={onboarding.strongestYear ? "gold" : "dim"}
-                    cta={onboarding.strongestYear ? "Open" : undefined}
-                    onClick={onboarding.strongestYear ? () => onOpenYear(onboarding.strongestYear!) : undefined}
-                  />
-                  <StateRow
-                    label="Nominees"
-                    value={nomineeValue}
-                    accent={onboarding.strongestYearNomineeCount > 0 ? "green" : "dim"}
-                  />
-                  <StateRow
-                    label="Current winner"
-                    value={winnerValue}
-                    accent={onboarding.strongestYearWinnerTitle ? "gold" : "dim"}
-                    cta={onboarding.strongestYear && onboarding.strongestYearWinnerTitle ? "Refine" : undefined}
-                    onClick={onboarding.strongestYear ? () => onOpenYear(onboarding.strongestYear!) : undefined}
-                  />
-                  <StateRow
-                    label="History"
-                    value={historyValue}
-                    accent={onboarding.yearsStarted > 1 ? "green" : "dim"}
-                  />
-                </div>
-              </div>
-            </>
-          )}
+          {/* The previous "momentMessage" emerald alert and the secondary zone
+              (StepPipeline + StateRow grid) were intentionally removed for
+              post-welcome stages — they competed with the active ballot card
+              below for the user's attention. Welcome stage doesn't show them
+              either (it's pre-engagement). The activeStep useMemo and the
+              State row helpers above are kept for potential future surfaces
+              but don't render. */}
 
           {/* ── Footer: hide + dismiss controls live here, not at the top ── */}
           <div className="mt-5 flex items-center justify-between gap-4">
