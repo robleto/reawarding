@@ -18,7 +18,7 @@ import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
 import { useCreateAward } from "@/hooks/useCreateAward";
 import { useUserAwards } from "@/hooks/useUserAwards";
 import { buildTasteProfile, getYearLeaders } from "@/utils/tasteInsights";
-import { ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronUp, X } from "lucide-react";
 import ExpandableYearCard from "@/components/home/ExpandableYearCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import RecognitionFeed from "@/components/home/RecognitionFeed";
@@ -542,6 +542,32 @@ export default function HomePage() {
     }
   }, [workshopOpen]);
 
+  // ── First-set-ballot moment ─────────────────────────────────────────────────
+  // PRODUCT_DESIGN_PRINCIPLES.md "Crossing into Established is a marked moment":
+  // the first time a user sets a ballot, the established home renders a single
+  // persistent on-canvas line. Fires when setBallotCount === 1 (the moment of
+  // first set) and the user hasn't dismissed it. Once dismissed, never again.
+  // localStorage persistence — per-device is fine for a one-time UI moment.
+  const FIRST_AWARD_SEEN_KEY = "reawarding-first-award-seen";
+  const firstSetBallotYear = useMemo(() => {
+    if (setBallotCount !== 1) return null;
+    const setYear = yearLeaders.find((yl) => yl.nomineeCount >= 5);
+    return setYear?.year ?? null;
+  }, [setBallotCount, yearLeaders]);
+  const [firstAwardDismissed, setFirstAwardDismissed] = useState(true);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setFirstAwardDismissed(localStorage.getItem(FIRST_AWARD_SEEN_KEY) === "true");
+    }
+  }, []);
+  const showFirstAwardMoment = firstSetBallotYear !== null && !firstAwardDismissed;
+  const dismissFirstAwardMoment = useCallback(() => {
+    setFirstAwardDismissed(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(FIRST_AWARD_SEEN_KEY, "true");
+    }
+  }, []);
+
   // ── User lists for established + mature homepages ──
   const { lists: userLists, loading: listsLoading } = useUserLists(
     isEstablished || isMature ? (userId ?? null) : null
@@ -846,6 +872,31 @@ export default function HomePage() {
         ═══════════════════════════════════════════════════ */}
     {userState === "established" && (
       <>
+        {/* ─── First-award moment ───────────────────────────────────────────
+            One-time inline acknowledgement of the Building → Established
+            crossing. Fires on setBallotCount === 1, dismissible, never
+            returns once dismissed. Persistent on-canvas, not a toast.
+            See PRODUCT_DESIGN_PRINCIPLES.md ("Crossing into Established
+            is a marked moment"). */}
+        {showFirstAwardMoment && (
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-gold-500/40 bg-gold-500/5 px-4 py-3">
+            <p className="flex-1 text-sm leading-snug text-gray-200">
+              <span className="font-semibold text-gold-300">
+                {firstSetBallotYear} is set.
+              </span>{" "}
+              Your first award.
+            </p>
+            <button
+              type="button"
+              onClick={dismissFirstAwardMoment}
+              aria-label="Dismiss"
+              className="-mr-1 p-1 rounded-lg text-gray-500 hover:text-gray-200 hover:bg-gold-500/10 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* ═══════════════════════════════════════════════════════
             ZONE 1 — Workbench (search → timeline → ballot → gallery)
             Tight inter-section spacing — these belong together rhythmically.
