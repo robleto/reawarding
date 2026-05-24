@@ -65,14 +65,16 @@ export default function AwardsPage() {
         // (before EditableYearSection's own API call completes).
         const savedAward = awards.find((a) => a.year === Number(year));
 
+        // Movie ids are UUID strings at runtime; Number(uuid) → NaN, which
+        // silently breaks saved-winner/nominee lookups. Compare as strings.
         const savedNominees = savedAward?.nomineeIds?.length
           ? (savedAward.nomineeIds
-              .map((id) => sorted.find((m) => m.id === Number(id)))
+              .map((id) => sorted.find((m) => String(m.id) === String(id)))
               .filter((m): m is Movie => Boolean(m)))
           : null;
 
         const savedWinner = savedAward?.winnerId
-          ? (sorted.find((m) => m.id === Number(savedAward.winnerId)) ?? null)
+          ? (sorted.find((m) => String(m.id) === String(savedAward.winnerId)) ?? null)
           : null;
 
         return {

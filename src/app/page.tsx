@@ -230,9 +230,13 @@ export default function HomePage() {
         );
         const nominees = sorted.filter((m) => (m.rankings![0]?.ranking ?? 0) >= 7).slice(0, 10);
         if (nominees.length < GALLERY_MIN_NOMINEES) return null;
+        // Movie ids are UUID strings at runtime even though the type says
+        // number. Compare as strings — Number(uuid) is NaN and the lookup
+        // silently fell back to the highest-rated nominee, ignoring the
+        // user's explicitly saved winner.
         const savedAward = awards.find((a) => a.year === Number(yearStr));
         const savedWinner = savedAward?.winnerId
-          ? sorted.find((m) => m.id === Number(savedAward.winnerId))
+          ? sorted.find((m) => String(m.id) === String(savedAward.winnerId))
           : null;
         const winner = savedWinner ?? nominees[0];
         return { year: Number(yearStr), winner, nomineeCount: nominees.length };
