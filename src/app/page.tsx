@@ -769,10 +769,19 @@ export default function HomePage() {
         ) : null}
 
         {/* ─── Hero: active ballot ─── */}
-        {mostRecentBallot && (
+        {mostRecentBallot && (() => {
+          // Two leads for Building (PRODUCT_DESIGN_PRINCIPLES.md "Building has
+          // two leads"). Near-set (4/5 nominees) is the highest-urgency moment
+          // in the app — copy says it. Forming reads as patient.
+          const nearSet = mostRecentBallot.nomineeCount === 4;
+          return (
           <section className="mb-8">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Keep going on {mostRecentBallot.year}
+            <p className={`mb-3 text-xs font-semibold uppercase tracking-wider ${
+              nearSet ? "text-gold-300" : "text-gray-500"
+            }`}>
+              {nearSet
+                ? `One more film completes your ${mostRecentBallot.year} ballot`
+                : `Keep going on ${mostRecentBallot.year}`}
             </p>
             <ExpandableYearCard
               key={mostRecentBallot.year}
@@ -795,7 +804,8 @@ export default function HomePage() {
               onMilestoneReached={handleBallotMilestone}
             />
           </section>
-        )}
+          );
+        })()}
 
         {/* ─── Search: add another film ─── */}
         {!onboardingFlow.shouldShow && (
@@ -1237,7 +1247,7 @@ export default function HomePage() {
                     aria-controls="mature-workshop"
                     className="inline-flex items-center gap-1.5 min-h-[44px] text-sm font-medium text-gold-300 hover:text-gold-200 transition-colors whitespace-nowrap"
                   >
-                    {workshopOpen ? "Done" : "Update awards"}
+                    {workshopOpen ? "Close workshop" : "Open workshop"}
                     {workshopOpen ? (
                       <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" />
                     ) : (
@@ -1505,7 +1515,7 @@ export default function HomePage() {
       Editorial summary of the user's canon — not a stats wall.
       Reduced typography, neutralized gold, no panel chrome.
       ═══════════════════════════════════════════════════ */}
-  {(userState === "established" || userState === "mature") && yearLeaders.length > 0 && (
+  {(userState === "established" || userState === "mature") && setBallotCount >= 1 && (
     <section className="mt-16">
         <div className="px-1">
 
