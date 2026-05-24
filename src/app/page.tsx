@@ -572,6 +572,29 @@ export default function HomePage() {
     }
   }, []);
 
+  // ── Established "Now try another year" suggestions ──────────────────────
+  // The Established lead's job (PRODUCT_DESIGN_PRINCIPLES.md): "You have a
+  // {year} ballot. What's next?" — propose specific years rather than leave
+  // the user staring at an empty search bar. Priority:
+  //  1. Years the user has touched but not set (1–4 nominees) — finishing
+  //     what they started, closest-to-set first.
+  //  2. Fall back to canonical SUGGESTED_YEARS they haven't touched yet.
+  const nextYearSuggestions = useMemo(() => {
+    const touchedYears = new Set(yearLeaders.map((yl) => yl.year));
+    const formingYears = yearLeaders
+      .filter((yl) => yl.nomineeCount > 0 && yl.nomineeCount < 5)
+      .sort((a, b) => (5 - a.nomineeCount) - (5 - b.nomineeCount))
+      .map((yl) => yl.year);
+    const freshYears = SUGGESTED_YEARS.filter((y) => !touchedYears.has(y));
+    const combined = [...formingYears, ...freshYears];
+    // Dedupe + cap at 3
+    return Array.from(new Set(combined)).slice(0, 3);
+  }, [yearLeaders]);
+  const hasFormingTouched = useMemo(
+    () => yearLeaders.some((yl) => yl.nomineeCount > 0 && yl.nomineeCount < 5),
+    [yearLeaders]
+  );
+
   // ── User lists for established + mature homepages ──
   const { lists: userLists, loading: listsLoading } = useUserLists(
     isEstablished || isMature ? (userId ?? null) : null
@@ -917,7 +940,28 @@ export default function HomePage() {
             ═══════════════════════════════════════════════════ */}
         <section className="mb-6">
           {/* Lightweight greeting — low visual weight, does not compete with search */}
-          <p className="mb-5 text-center text-2xl font-bold text-white font-unbounded tracking-tight">Welcome back.</p>
+          <p className="mb-3 text-center text-2xl font-bold text-white font-unbounded tracking-tight">Welcome back.</p>
+          {/* "Now try another year" — Established's directional lead. Suggests
+              specific years to pursue so the user has a concrete next action
+              rather than an empty search bar. Mature users have the workshop
+              drawer for this — skip here. */}
+          {nextYearSuggestions.length > 0 && (
+            <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
+              <span className="text-xs uppercase tracking-wider text-gray-500">
+                {hasFormingTouched ? "Finish what you started" : "Try another year"}
+              </span>
+              {nextYearSuggestions.map((year) => (
+                <a
+                  key={year}
+                  href={`/onboarding/${year}`}
+                  className="inline-flex items-center gap-1 rounded-md border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
+                >
+                  {year}
+                  <ArrowRight className="w-3 h-3" aria-hidden="true" />
+                </a>
+              ))}
+            </div>
+          )}
           <div className="max-w-3xl mx-auto">
             <MovieSearchPicker
               onSelect={handleOpenMovieDetail}
