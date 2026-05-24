@@ -205,7 +205,13 @@ export default function HomePage() {
     return awards.find((award) => award.year === explorerYear) ?? null;
   }, [awards, explorerYear]);
 
-  // Gallery years — the 8 most recent years the user has a winner for (newest first)
+  // Gallery years — the 8 most recent years the user has a real ballot for.
+  // "Galleries earn their place" (see PRODUCT_DESIGN_PRINCIPLES.md): a year is
+  // gallery-eligible only when it has 3+ nominees. Below that bar a year would
+  // surface its highest-rated *low* film as a "winner" — false copy. Years
+  // below the bar are dropped from this list entirely; the gallery section
+  // does not render if the list is empty.
+  const GALLERY_MIN_NOMINEES = 3;
   const galleryYears = useMemo(() => {
     const withRankings = movies.filter(
       (m) => m.rankings?.length > 0 && m.rankings[0].ranking !== null
@@ -223,12 +229,12 @@ export default function HomePage() {
           (a, b) => (b.rankings![0]?.ranking ?? 0) - (a.rankings![0]?.ranking ?? 0)
         );
         const nominees = sorted.filter((m) => (m.rankings![0]?.ranking ?? 0) >= 7).slice(0, 10);
+        if (nominees.length < GALLERY_MIN_NOMINEES) return null;
         const savedAward = awards.find((a) => a.year === Number(yearStr));
         const savedWinner = savedAward?.winnerId
           ? sorted.find((m) => m.id === Number(savedAward.winnerId))
           : null;
-        const winner = savedWinner ?? (nominees.length > 0 ? nominees[0] : sorted[0]);
-        if (!winner) return null;
+        const winner = savedWinner ?? nominees[0];
         return { year: Number(yearStr), winner, nomineeCount: nominees.length };
       })
       .filter((d): d is NonNullable<typeof d> => d !== null)
@@ -492,26 +498,26 @@ export default function HomePage() {
       .filter(Boolean) as string[],
   [movies]);
 
-  // ── User state detection (P4: adaptive homepage) ──
+  // ── User state detection ──
+  // Source of truth: PRODUCT_DESIGN_PRINCIPLES.md "State thresholds measure
+  // depth, not breadth". A "year touched" (1 rating) is not the same as a
+  // "year invested in" (3+ ratings). A "set ballot" is a year with 5+
+  // nominees (films rated 7+), not 10 — 10 is the cap, not the milestone.
   const hasStartedBallots = awards.length > 0 || yearLeaders.length > 0;
-  const completedBallotCount = yearLeaders.filter((yl) => yl.nomineeCount >= 10).length;
+  const depthYears = yearLeaders.filter((yl) => {
+    const inYear = ratedMovies.filter((m) => m.release_year === yl.year).length;
+    return inYear >= 3;
+  });
+  const setBallotCount = yearLeaders.filter((yl) => yl.nomineeCount >= 5).length;
   const isEstablished =
-    completedBallotCount >= 1 || yearLeaders.length >= 2 || ratedMovies.length >= 20;
-  // Mature: the user has earned the museum register on Home.
-  // Workbench collapses to a compact strip; rewards lead. Mature is strictly
-  // additive to established — we guard with isEstablished to prevent the
-  // edge case of a single-year power-rater (e.g. 50+ ratings, 1 year, 0
-  // canonical ballots) leapfrogging from building → mature and landing in an
-  // Awards-Gallery-led layout with an empty gallery.
+    setBallotCount >= 1 || depthYears.length >= 2 || ratedMovies.length >= 20;
+  // Mature is strictly additive to established — a single-year power-rater
+  // (50 ratings, 1 year, 0 set ballots) can pass the ratedMovies arm but
+  // shouldn't leapfrog Building → Mature into a museum register.
   const isMature =
     isEstablished &&
-    (completedBallotCount >= 3 || yearLeaders.length >= 5 || ratedMovies.length >= 50);
+    (setBallotCount >= 3 || depthYears.length >= 5 || ratedMovies.length >= 50);
 
-  // Four states govern homepage layout:
-  //   new         → 0 active years AND < 5 rated films
-  //   building    → 1+ active year, 0 completed ballots
-  //   established → 1+ completed ballot OR 2+ years OR 20+ rated
-  //   mature      → 3+ completed ballots OR 5+ years OR 50+ rated  (museum-led)
   const userState: "new" | "building" | "established" | "mature" = !hasStartedBallots
     ? "new"
     : isMature
@@ -1475,9 +1481,9 @@ export default function HomePage() {
             </div>
             <div className="border-l border-gray-700/40 pl-4 sm:pl-8">
               <p className="text-2xl font-semibold text-gray-200 tabular-nums leading-none">
-                {yearLeaders.filter((yl) => yl.nomineeCount >= 10).length}
+                {setBallotCount}
               </p>
-              <p className="text-xs text-gray-500 mt-1.5">Ballots complete</p>
+              <p className="text-xs text-gray-500 mt-1.5">Ballots set</p>
             </div>
           </div>
 
