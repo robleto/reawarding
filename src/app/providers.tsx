@@ -10,7 +10,6 @@ import { setupGlobalErrorHandlers } from '@/utils/errorLogger';
 import { useAuthMigration } from '@/utils/authMigration';
 import { useAuthState } from '@/hooks/useAuthState';
 import useOnboardingState from '@/hooks/useOnboardingState';
-import useGuestRankingStore from '@/hooks/useGuestRankingStore';
 import { WatchlistProvider } from '@/contexts/WatchlistContext';
 
 interface ProvidersProps {
@@ -46,19 +45,16 @@ function AuthMigrationBridge() {
 }
 
 function PersistenceBoundaryBridge() {
-  const { status, user } = useAuthState();
+  const { user } = useAuthState();
   const bindActor = useOnboardingState((state) => state.bindActor);
-  const clearGuestData = useGuestRankingStore((state) => state.clearAllData);
 
   useEffect(() => {
     bindActor(user?.id ?? 'guest');
   }, [bindActor, user?.id]);
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      clearGuestData();
-    }
-  }, [clearGuestData, status]);
+  // Guest-data clearing intentionally lives in useAuthMigration's success path
+  // (useGuestRankingStore.ts → migrateToSupabase). A second clear here would
+  // race the async migration and wipe rankings before they're persisted.
 
   return null;
 }

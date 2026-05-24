@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Film, Trophy, Star } from "lucide-react";
 import { getActualWinner } from "@/data/bestPictureWinners";
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import { isCanonicalCandidate } from "@/utils/canonicalFilm";
 import MovieCard from "@/components/award/MovieCard";
 import type { Movie } from "@/types/types";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
@@ -145,7 +146,9 @@ export default function ExpandableYearCard({
       return;
     }
     if (frozenRailIdsRef.current !== null) return; // already snapshotted
-    const yearMovies = allMovies.filter((m) => m.release_year === year);
+    const yearMovies = allMovies.filter(
+      (m) => m.release_year === year && isCanonicalCandidate(m)
+    );
     const unseen = yearMovies.filter((m) => {
       const seenIt = m.rankings?.[0]?.seen_it === true;
       return !seenIt && !activeNomineeIdSet.has(String(m.id));
@@ -170,7 +173,9 @@ export default function ExpandableYearCard({
         .filter((m) => !activeNomineeIdSet.has(String(m.id)) || recentlyNominated.has(m.id));
     }
     // Pre-open fallback (clamshell not yet expanded)
-    const yearMovies = allMovies.filter((m) => m.release_year === year);
+    const yearMovies = allMovies.filter(
+      (m) => m.release_year === year && isCanonicalCandidate(m)
+    );
     const unseen = yearMovies.filter((m) => {
       const seenIt = m.rankings?.[0]?.seen_it === true;
       return !seenIt && !activeNomineeIdSet.has(String(m.id));

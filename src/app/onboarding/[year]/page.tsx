@@ -10,6 +10,7 @@ import { useCreateAward } from "@/hooks/useCreateAward";
 import OnboardingPickFlow from "@/components/onboarding/OnboardingPickFlow";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import { getRatingStyle } from "@/utils/getRatingStyle";
+import { isCanonicalCandidate } from "@/utils/canonicalFilm";
 import type { Movie } from "@/types/types";
 
 // Onboarding continuation page — keeps a guest in the loop after their first
@@ -33,11 +34,13 @@ export default function OnboardingYearPage() {
 
   // ── Films for this year, sorted by rating quality so the strongest
   //    contenders surface first. Already-rated films stay in the grid so the
-  //    user can re-tap to adjust.
+  //    user can re-tap to adjust. Obscure long-tail films (low vote count) are
+  //    excluded unless the user has already engaged with them.
   const yearFilms = useMemo(() => {
     if (!Number.isFinite(year)) return [];
     return movies
       .filter((m) => m.release_year === year)
+      .filter(isCanonicalCandidate)
       .slice()
       .sort((a, b) => {
         const aR = parseFloat(String(a.tmdb_rating ?? 0)) || 0;
