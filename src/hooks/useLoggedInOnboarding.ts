@@ -99,6 +99,12 @@ export function useLoggedInOnboarding(
       stage = "timeline-building";
     }
 
+    // The teaching experience yields once the user is one rating away from
+    // setting their first ballot (4 nominees). At that point the near-set
+    // ballot card becomes the page hero and the chrome would just bury it
+    // — see PRODUCT_DESIGN_PRINCIPLES.md "Building has two leads".
+    const isNearSet = strongestYearNomineeCount >= 4;
+
     return {
       stage,
       totalRated,
@@ -108,7 +114,7 @@ export function useLoggedInOnboarding(
       strongestYearNomineeCount,
       strongestYearWinnerTitle,
       strongestYearNeeded,
-      shouldShow: !dismissed && stage !== "complete",
+      shouldShow: !dismissed && stage !== "complete" && !isNearSet,
     };
   }, [awards, dismissed, movies]);
 }
