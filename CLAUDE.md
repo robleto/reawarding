@@ -69,19 +69,20 @@ Before building something new, check `docs/FEATURE-STATUS.md` — most features 
 
 The homepage is adaptive across four user states. The workbench scales DOWN as the user matures — established users still see a workbench-led layout; mature users see a museum-led layout with a collapsed workbench strip.
 
-| State | Threshold | Primary content |
+| State | Threshold (summary) | Primary content |
 |---|---|---|
-| New | 0 active years, < 5 rated | Search + recognition feed |
-| Building | 1+ active year, 0 completed ballots | Active year card + year-scoped feed |
-| Established | 1+ completed ballot OR 2+ years OR 20+ rated | Workbench-led: search + year timeline + active ballot + gallery + lists |
-| Mature | Established floor + (3+ completed ballots OR 5+ years OR 50+ rated) | Museum-led: compact strip (prominent "Welcome back, {name}." headline + "Update awards" gold text link toggling an inline workshop drawer + full-width hero search below) → Awards Gallery → Your Lists → Recognition Feed → Ready-Made → Watchlist → Canon |
+| New | 0 years touched AND < 5 rated | Search + recognition feed |
+| Building | 1+ year touched, 0 set ballots | Active year card + year-scoped feed |
+| Established | 1+ set ballot OR 2+ depth years OR 20+ rated | Workbench-led: search + year timeline + active ballot + (gallery, gated) + lists |
+| Mature | Established + (3+ set ballots OR 5+ depth years OR 50+ rated) | Museum-led: compact strip + Awards Gallery + lists + recognition feed |
 
-**Detection (coded in `src/app/page.tsx`):**
-- `isEstablished = completedBallots >= 1 || yearLeaders.length >= 2 || ratedMovies.length >= 20`
-- `isMature = isEstablished && (completedBallots >= 3 || yearLeaders.length >= 5 || ratedMovies.length >= 50)` — mature is strictly additive to established, never a leapfrog
-- Mature wins over Established in the render cascade when both are true.
+Definitions, gating rules, the transition moment, and the editorial leads per state are canonical in `PRODUCT_DESIGN_PRINCIPLES.md` — read it before changing state logic. Detection code lives in `src/app/page.tsx`.
 
-**Mature workshop drawer:** The "Update awards" link toggles `workshopOpen` state and reveals the same year timeline rail + active `ExpandableYearCard` that the established state shows. It is NOT a modal. The drawer scrolls into view when opened and the link flips to "Done".
+A few things that bite often enough to call out here:
+- **Depth year** = year with 3+ ratings. Years with 1–2 ratings are "touched," not "invested in," and do not advance state.
+- **Set ballot** = year with ≥5 nominees + explicit winner. ("Completed" was the previous term — set, not complete, because the ballot can still grow to 10.)
+- Mature is strictly additive to Established. A user can't leapfrog Building → Mature.
+- The Awards Gallery is gated on ≥3 nominees in some year. Below that bar it's *absent*, not locked.
 
 Keep these thresholds in sync if changed.
 
