@@ -76,6 +76,15 @@ const SUGGESTED_YEARS = [0, -1, -2, -4, -7, -12, -19, -27].map(
   (offset) => ACTIVE_OSCAR_YEAR + offset,
 );
 
+// Gate the Awards Gallery on this many nominees per year — see
+// PRODUCT_DESIGN_PRINCIPLES.md "Galleries earn their place".
+const GALLERY_MIN_NOMINEES = 3;
+
+// First-award localStorage key prefix. Composed with userId at use so two users
+// on the same device don't share the dismissal — flagged by qa-critic as a
+// silent multi-user collision risk.
+const FIRST_AWARD_SEEN_KEY_PREFIX = "reawarding-first-award-seen";
+
 export default function HomePage() {
   const reducedMotion = usePrefersReducedMotion();
   const { status: authStatus, isAuthenticated, user } = useAuthState();
@@ -195,12 +204,7 @@ export default function HomePage() {
   }, [awards, explorerYear]);
 
   // Gallery years — the 8 most recent years the user has a real ballot for.
-  // "Galleries earn their place" (see PRODUCT_DESIGN_PRINCIPLES.md): a year is
-  // gallery-eligible only when it has 3+ nominees. Below that bar a year would
-  // surface its highest-rated *low* film as a "winner" — false copy. Years
-  // below the bar are dropped from this list entirely; the gallery section
-  // does not render if the list is empty.
-  const GALLERY_MIN_NOMINEES = 3;
+  // Gate is GALLERY_MIN_NOMINEES at module scope (see top of file).
   const galleryYears = useMemo(() => {
     const withRankings = movies.filter(
       (m) => m.rankings?.length > 0 && m.rankings[0].ranking !== null
@@ -523,28 +527,40 @@ export default function HomePage() {
   // ── First-set-ballot moment ─────────────────────────────────────────────────
   // PRODUCT_DESIGN_PRINCIPLES.md "Crossing into Established is a marked moment":
   // the first time a user sets a ballot, the established home renders a single
-  // persistent on-canvas line. Fires when setBallotCount === 1 (the moment of
-  // first set) and the user hasn't dismissed it. Once dismissed, never again.
-  // localStorage persistence — per-device is fine for a one-time UI moment.
-  const FIRST_AWARD_SEEN_KEY = "reawarding-first-award-seen";
+  // persistent on-canvas line. Once dismissed, never again. localStorage flag
+  // is userId-scoped so two users on the same device don't share dismissal.
+  //
+  // Predicate is "this is the first render where setBallotCount >= 1", NOT
+  // "setBallotCount === 1". A user who imports a batch of ratings that result
+  // in 3 set ballots at once would have missed the moment under the old check.
+  // Per product-loop-auditor: the moment is calibrated to the *crossing*,
+  // not the magic number.
+  const firstAwardSeenKey = userId
+    ? `${FIRST_AWARD_SEEN_KEY_PREFIX}:${userId}`
+    : null;
   const firstSetBallotYear = useMemo(() => {
-    if (setBallotCount !== 1) return null;
-    const setYear = yearLeaders.find((yl) => yl.nomineeCount >= 5);
-    return setYear?.year ?? null;
-  }, [setBallotCount, yearLeaders]);
+    // Pick the most recent set year for display. In the organic single-set
+    // case this is the only set year; in the batch case it's a sensible
+    // representative for the copy variant that names a year.
+    const setYears = yearLeaders
+      .filter((yl) => yl.nomineeCount >= 5)
+      .map((yl) => yl.year);
+    if (setYears.length === 0) return null;
+    return Math.max(...setYears);
+  }, [yearLeaders]);
   const [firstAwardDismissed, setFirstAwardDismissed] = useState(true);
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setFirstAwardDismissed(localStorage.getItem(FIRST_AWARD_SEEN_KEY) === "true");
-    }
-  }, []);
-  const showFirstAwardMoment = firstSetBallotYear !== null && !firstAwardDismissed;
+    if (typeof window === "undefined" || !firstAwardSeenKey) return;
+    setFirstAwardDismissed(localStorage.getItem(firstAwardSeenKey) === "true");
+  }, [firstAwardSeenKey]);
+  const showFirstAwardMoment =
+    setBallotCount >= 1 && firstSetBallotYear !== null && !firstAwardDismissed;
   const dismissFirstAwardMoment = useCallback(() => {
     setFirstAwardDismissed(true);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(FIRST_AWARD_SEEN_KEY, "true");
+    if (typeof window !== "undefined" && firstAwardSeenKey) {
+      localStorage.setItem(firstAwardSeenKey, "true");
     }
-  }, []);
+  }, [firstAwardSeenKey]);
 
   // ── Established "Now try another year" suggestions ──────────────────────
   // The Established lead's job (PRODUCT_DESIGN_PRINCIPLES.md): "You have a
@@ -768,9 +784,11 @@ export default function HomePage() {
         {/* ─── Hero: active ballot ─── */}
         {mostRecentBallot && (() => {
           // Two leads for Building (PRODUCT_DESIGN_PRINCIPLES.md "Building has
-          // two leads"). Near-set (4/5 nominees) is the highest-urgency moment
-          // in the app — copy says it. Forming reads as patient.
-          const nearSet = mostRecentBallot.nomineeCount === 4;
+          // two leads"). Near-set (4+ nominees) is the highest-urgency moment
+          // in the app — copy says it. Forming reads as patient. `>= 4` (not
+          // `=== 4`) protects against a race where nomineeCount briefly reads
+          // 5+ while userState is still Building — flagged by qa-critic.
+          const nearSet = mostRecentBallot.nomineeCount >= 4;
           return (
           <section className="mb-8">
             <p className={`mb-3 text-xs font-semibold uppercase tracking-wider ${
@@ -881,17 +899,27 @@ export default function HomePage() {
       <>
         {/* ─── First-award moment ───────────────────────────────────────────
             One-time inline acknowledgement of the Building → Established
-            crossing. Fires on setBallotCount === 1, dismissible, never
-            returns once dismissed. Persistent on-canvas, not a toast.
+            crossing. Fires on the first render where setBallotCount >= 1
+            (covers both the organic single-set case and the batch-import
+            case where multiple ballots arrive at once). Dismissible,
+            never returns once dismissed. Persistent on-canvas, not a toast.
             See PRODUCT_DESIGN_PRINCIPLES.md ("Crossing into Established
             is a marked moment"). */}
         {showFirstAwardMoment && (
           <div className="mb-6 flex items-center gap-3 rounded-xl border border-gold-500/40 bg-gold-500/5 px-4 py-3">
             <p className="flex-1 text-sm leading-snug text-gray-200">
-              <span className="font-semibold text-gold-300">
-                {firstSetBallotYear} is set.
-              </span>{" "}
-              Your first award.
+              {setBallotCount === 1 ? (
+                <>
+                  <span className="font-semibold text-gold-300">
+                    {firstSetBallotYear} is set.
+                  </span>{" "}
+                  Your first award.
+                </>
+              ) : (
+                <span className="font-semibold text-gold-300">
+                  Your first awards are set.
+                </span>
+              )}
             </p>
             <button
               type="button"
