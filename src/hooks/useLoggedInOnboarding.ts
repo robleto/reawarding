@@ -84,7 +84,13 @@ export function useLoggedInOnboarding(
       strongestYearWinnerTitle = savedWinner?.title ?? sortedByRating[0]?.title ?? null;
     }
 
-    const strongestYearNeeded = strongestYear ? Math.max(0, 5 - strongestYearCount) : 5;
+    // "How many more nominees (≥7) to set the ballot." Previously used the
+    // total ratings count, which counted sub-7 films too — misleading any
+    // surface that consumed this metric to suggest a user was closer to
+    // setting their ballot than they actually were.
+    const strongestYearNeeded = strongestYear
+      ? Math.max(0, 5 - strongestYearNomineeCount)
+      : 5;
 
     let stage: LoggedInOnboardingStage = "complete";
     if (totalRated === 0) {

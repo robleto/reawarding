@@ -4,17 +4,16 @@ import { useEffect, useState } from "react";
 import { ArrowRight, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
 import type { Movie } from "@/types/types";
-import type { UserAward } from "@/hooks/useUserAwards";
-import {
-  useLoggedInOnboarding,
-  type LoggedInOnboardingStage,
-} from "@/hooks/useLoggedInOnboarding";
+import type { LoggedInOnboardingStage } from "@/hooks/useLoggedInOnboarding";
 
 const STORAGE_KEY = "reawarding-guide-collapsed";
 
 interface LoggedInOnboardingExperienceProps {
-  movies: Movie[];
-  awards: UserAward[];
+  // Note: `movies` and `awards` are no longer used by this component
+  // directly — keeping them in the interface would couple consumers to a
+  // contract we don't honor. The parent owns the onboarding metrics now
+  // and passes the derived `stage` directly.
+  stage: LoggedInOnboardingStage;
   suggestedQuery?: string;
   onSelectMovie: (movie: Movie) => void;
   onSuggestedQuery: (query: string) => void;
@@ -73,16 +72,14 @@ const STAGE_COPY: Record<LoggedInOnboardingStage, StageCopy> = {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function LoggedInOnboardingExperience({
-  movies,
-  awards,
+  stage,
   suggestedQuery,
   onSelectMovie,
   onSuggestedQuery,
   onShowHowItWorks,
   onDismiss,
 }: LoggedInOnboardingExperienceProps) {
-  const onboarding = useLoggedInOnboarding(movies, awards, false);
-  const copy = STAGE_COPY[onboarding.stage];
+  const copy = STAGE_COPY[stage];
 
   // Collapse state — localStorage so it survives navigation but isn't permanent
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
@@ -125,16 +122,16 @@ export default function LoggedInOnboardingExperience({
     <div className="mb-8">
       {/* Outer wrapper: shadow + border + radius — NO overflow-hidden so search glow isn't clipped */}
       <div
-        className={`rounded-2xl border ${onboarding.stage === "welcome" ? "border-white/[0.06]" : "border-gold-500/25"}`}
+        className={`rounded-2xl border ${stage === "welcome" ? "border-white/[0.06]" : "border-gold-500/25"}`}
         style={{
           background: "#0B0F14",
-          boxShadow: onboarding.stage === "welcome"
+          boxShadow: stage === "welcome"
             ? "0 4px 16px rgba(0,0,0,0.40)"
             : "0 10px 40px rgba(0,0,0,0.60), 0 0 0 1px rgba(255,255,255,0.06)",
         }}
       >
         {/* Gold top-edge accent — hidden at welcome to reduce chrome */}
-        {onboarding.stage !== "welcome" && (
+        {stage !== "welcome" && (
           <div className="rounded-t-2xl overflow-hidden" aria-hidden>
             <div
               style={{
@@ -145,16 +142,16 @@ export default function LoggedInOnboardingExperience({
           </div>
         )}
 
-        <div className={onboarding.stage === "welcome" ? "p-5 sm:p-6" : "p-6 sm:p-8"}>
+        <div className={stage === "welcome" ? "p-5 sm:p-6" : "p-6 sm:p-8"}>
 
           {/* ── Row 1: Badge only — no chrome competing with the headline ── */}
           <div className="mb-3">
             <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${
-              onboarding.stage === "welcome"
+              stage === "welcome"
                 ? "border border-white/[0.08] bg-transparent text-gray-600"
                 : "border border-gold-500/30 bg-gold-500/[0.10] text-gold-400"
             }`}>
-              {onboarding.stage !== "welcome" && <Sparkles className="h-2.5 w-2.5" />}
+              {stage !== "welcome" && <Sparkles className="h-2.5 w-2.5" />}
               {copy.eyebrow || "First-time setup"}
             </span>
           </div>
@@ -165,7 +162,7 @@ export default function LoggedInOnboardingExperience({
             {copy.headline || "Start with one film you know."}
           </h2>
           {/* Body: only shown post-welcome — at welcome the search IS the next step */}
-          {onboarding.stage !== "welcome" && copy.body && (
+          {stage !== "welcome" && copy.body && (
             <p className="mt-3 text-sm leading-relaxed text-gray-300 max-w-xl">
               {copy.body}
             </p>
@@ -173,7 +170,7 @@ export default function LoggedInOnboardingExperience({
 
           {/* ── Row 3: Search — primary action, card-level space ────────── */}
           {/* No inner container. The search field IS the card's focal point. */}
-          <div className={onboarding.stage === "welcome" ? "mt-6" : "mt-7"}>
+          <div className={stage === "welcome" ? "mt-6" : "mt-7"}>
             <MovieSearchPicker
               onSelect={onSelectMovie}
               placeholder="Search for a movie to rate…"
@@ -185,7 +182,7 @@ export default function LoggedInOnboardingExperience({
             {/* Chips: example shortcuts, ONLY at welcome — once the user has
                 rated anything, the ballot card below is their workshop and
                 chips would just compete with it. */}
-            {onboarding.stage === "welcome" && (
+            {stage === "welcome" && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {EXAMPLE_FILMS.map((film) => (
                   <button

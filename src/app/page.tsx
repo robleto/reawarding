@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import HomeHero from "@/app/components/home/HomeHero";
@@ -86,6 +87,7 @@ const GALLERY_MIN_NOMINEES = 3;
 const FIRST_AWARD_SEEN_KEY_PREFIX = "reawarding-first-award-seen";
 
 export default function HomePage() {
+  const router = useRouter();
   const reducedMotion = usePrefersReducedMotion();
   const { status: authStatus, isAuthenticated, user } = useAuthState();
   const { movies, userId, updateMovieRanking, isGuest, loading, authChecked, error: moviesError } = useMovieDataWithGuest();
@@ -742,8 +744,7 @@ export default function HomePage() {
       <div className="pb-10">
         {onboardingFlow.shouldShow ? (
           <LoggedInOnboardingExperience
-            movies={movies}
-            awards={awards}
+            stage={onboardingFlow.stage}
             suggestedQuery={suggestedQuery}
             onSelectMovie={handleSelectMovie}
             onSuggestedQuery={setSuggestedQuery}
@@ -771,8 +772,7 @@ export default function HomePage() {
       <>
         {onboardingFlow.shouldShow ? (
           <LoggedInOnboardingExperience
-            movies={movies}
-            awards={awards}
+            stage={onboardingFlow.stage}
             suggestedQuery={suggestedQuery}
             onSelectMovie={handleOpenMovieDetail}
             onSuggestedQuery={setSuggestedQuery}
@@ -943,23 +943,47 @@ export default function HomePage() {
               specific years to pursue so the user has a concrete next action
               rather than an empty search bar. Mature users have the workshop
               drawer for this — skip here. */}
-          {nextYearSuggestions.length > 0 && (
-            <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
-              <span className="text-xs uppercase tracking-wider text-gray-500">
-                {hasFormingTouched ? "Finish what you started" : "Try another year"}
-              </span>
-              {nextYearSuggestions.map((year) => (
-                <a
-                  key={year}
-                  href={`/onboarding/${year}`}
-                  className="inline-flex items-center gap-1 rounded-md border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
-                >
-                  {year}
-                  <ArrowRight className="w-3 h-3" aria-hidden="true" />
-                </a>
-              ))}
-            </div>
-          )}
+          {nextYearSuggestions.length > 0 && (() => {
+            // Routing per-suggestion: years the user has already touched
+            // open the in-app YearExplorer (no navigation, no
+            // "starting-from-zero" feel). Fresh years use the full
+            // onboarding poster grid via SPA navigation.
+            const touchedYearSet = new Set(yearLeaders.map((yl) => yl.year));
+            return (
+              <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
+                <span className="text-xs uppercase tracking-wider text-gray-500">
+                  {hasFormingTouched ? "Finish what you started" : "Try another year"}
+                </span>
+                {nextYearSuggestions.map((year) => {
+                  const isTouched = touchedYearSet.has(year);
+                  const chipClass = "inline-flex items-center gap-1 rounded-md border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors";
+                  if (isTouched) {
+                    return (
+                      <button
+                        key={year}
+                        type="button"
+                        onClick={() => setExplorerYear(year)}
+                        className={chipClass}
+                      >
+                        {year}
+                        <ArrowRight className="w-3 h-3" aria-hidden="true" />
+                      </button>
+                    );
+                  }
+                  return (
+                    <Link
+                      key={year}
+                      href={`/onboarding/${year}`}
+                      className={chipClass}
+                    >
+                      {year}
+                      <ArrowRight className="w-3 h-3" aria-hidden="true" />
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          })()}
           <div className="max-w-3xl mx-auto">
             <MovieSearchPicker
               onSelect={handleOpenMovieDetail}
@@ -996,7 +1020,6 @@ export default function HomePage() {
                 >
                   {sortedLeaders.map((yl, idx) => {
                     const isActive    = yl.year === activeYl.year;
-                    const isComplete  = yl.nomineeCount >= 10;
                     const nextYl      = sortedLeaders[idx + 1];
                     const gapSize     = nextYl ? yl.year - nextYl.year : 0;
 
@@ -1169,9 +1192,9 @@ export default function HomePage() {
                 <h2 className="text-xl font-bold text-white tracking-wide">Ready-Made Lists</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Pre-built from your ratings — save any of these in one tap.</p>
               </div>
-              <a href="/lists/ready-made" className="text-sm text-gold-400 hover:text-gold-300 transition-colors font-medium">
+              <Link href="/lists/ready-made" className="text-sm text-gold-400 hover:text-gold-300 transition-colors font-medium">
                 See all →
-              </a>
+              </Link>
             </div>
             <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
               {smartAlerts.filter((a) => !a.nearMiss).map((alert) => {
@@ -1250,7 +1273,7 @@ export default function HomePage() {
         {/* ─── Compact workbench strip ───
             Welcome back is the prominent headline. Search sits full-width
             directly below — it remains the canonical entry into the loop.
-            "Update awards" lives next to the Awards Gallery below so the
+            "Open workshop" lives next to the Awards Gallery below so the
             workshop is reachable from the rewards register, not the entry. */}
         <section className="mb-10 scroll-mt-4">
           <h1 className="mb-5 text-2xl sm:text-3xl font-bold text-white font-unbounded tracking-tight">
@@ -1271,7 +1294,7 @@ export default function HomePage() {
             Two states share one surface. Default: golden AwardCard rail
             (rewards register). Edit: timeline rail + active ballot card
             (workshop). The header + flanking actions stay put; only the
-            body swaps. "Update awards" flips the body to edit mode, "See
+            body swaps. "Open workshop" flips the body to edit mode, "See
             all" deep-links to the user's full awards register. */}
         {galleryYears.length > 0 && (
           <section ref={galleryRef} className="mb-12 scroll-mt-4">
@@ -1471,9 +1494,9 @@ export default function HomePage() {
                 <h2 className="text-xl font-bold text-white tracking-wide">Ready-Made Lists</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Pre-built from your ratings — save any of these in one tap.</p>
               </div>
-              <a href="/lists/ready-made" className="text-sm text-gold-400 hover:text-gold-300 transition-colors font-medium">
+              <Link href="/lists/ready-made" className="text-sm text-gold-400 hover:text-gold-300 transition-colors font-medium">
                 See all →
-              </a>
+              </Link>
             </div>
             <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
               {smartAlerts.filter((a) => !a.nearMiss).map((alert) => {
