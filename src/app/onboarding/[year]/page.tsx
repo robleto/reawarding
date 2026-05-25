@@ -62,12 +62,20 @@ export default function OnboardingYearPage() {
 
   // For the modal: count excluding the picked movie so the FormingPanel can
   // add back the new rating correctly regardless of refresh timing.
+  // CRITICAL: look up the *live* movie state from the movies array — the
+  // pickedMovie reference is a snapshot from click time. After updateMovieRanking
+  // fires, the movies array gets a new object for that id, but the stored
+  // pickedMovie still points at the old one with no rating. That stale
+  // snapshot was producing a double-count ("3 of 5" instead of "2 of 5")
+  // because FormingPanel still added +1 for the new rating even though the
+  // live nomineeCount already included it.
   const nomineeCountForModal = useMemo(() => {
     if (!pickedMovie) return nomineeCount;
-    const r = pickedMovie.rankings?.[0]?.ranking;
-    const wasNominee = typeof r === "number" && r >= 7;
-    return Math.max(0, nomineeCount - (wasNominee ? 1 : 0));
-  }, [nomineeCount, pickedMovie]);
+    const liveMovie = movies.find((m) => m.id === pickedMovie.id);
+    const r = liveMovie?.rankings?.[0]?.ranking;
+    const isNominee = typeof r === "number" && r >= 7;
+    return Math.max(0, nomineeCount - (isNominee ? 1 : 0));
+  }, [movies, nomineeCount, pickedMovie]);
 
   const isSet = nomineeCount >= BALLOT_THRESHOLD;
   const stillNeeded = Math.max(0, BALLOT_THRESHOLD - nomineeCount);

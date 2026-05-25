@@ -75,14 +75,35 @@ export default function OnboardingPickFlow({
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+    // Initialize from the movie's current rankings so re-opening an
+    // already-rated film doesn't visually wipe the rating. Reported by Greg:
+    // tapping a previously-rated tile showed the modal as if the film were
+    // untouched ("lost its rating and is back to blank") even though the
+    // ranking was still persisted in the DB.
+    const r = movie?.rankings?.[0];
+    const hasRating = typeof r?.ranking === "number";
+    const isSeen = r?.seen_it === true;
+    if (hasRating) {
+      // Already rated — show the forming view with the existing rating.
+      setStep("forming");
+      setWatchConfirmed(true);
+      setSelectedRating(r.ranking ?? null);
+      setRatingPickerOpen(false);
+    } else if (isSeen) {
+      // Seen but not yet rated — skip Watch, land on Rate.
+      setStep("rate");
+      setWatchConfirmed(true);
+      setSelectedRating(null);
+      setRatingPickerOpen(false);
+    } else {
       setStep("watch");
       setWatchConfirmed(false);
       setSelectedRating(null);
       setRatingPickerOpen(false);
-      setNavigatingLabel(null);
     }
-  }, [isOpen, movie?.id]);
+    setNavigatingLabel(null);
+  }, [isOpen, movie?.id, movie?.rankings]);
 
   useEffect(() => {
     if (!isOpen) return;
