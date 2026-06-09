@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Film, Trophy, Star } from "lucide-react";
 import { getActualWinner } from "@/data/bestPictureWinners";
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import { isCanonicalCandidate } from "@/utils/canonicalFilm";
 import MovieCard from "@/components/award/MovieCard";
 import type { Movie } from "@/types/types";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
@@ -145,7 +146,9 @@ export default function ExpandableYearCard({
       return;
     }
     if (frozenRailIdsRef.current !== null) return; // already snapshotted
-    const yearMovies = allMovies.filter((m) => m.release_year === year);
+    const yearMovies = allMovies.filter(
+      (m) => m.release_year === year && isCanonicalCandidate(m)
+    );
     const unseen = yearMovies.filter((m) => {
       const seenIt = m.rankings?.[0]?.seen_it === true;
       return !seenIt && !activeNomineeIdSet.has(String(m.id));
@@ -170,7 +173,9 @@ export default function ExpandableYearCard({
         .filter((m) => !activeNomineeIdSet.has(String(m.id)) || recentlyNominated.has(m.id));
     }
     // Pre-open fallback (clamshell not yet expanded)
-    const yearMovies = allMovies.filter((m) => m.release_year === year);
+    const yearMovies = allMovies.filter(
+      (m) => m.release_year === year && isCanonicalCandidate(m)
+    );
     const unseen = yearMovies.filter((m) => {
       const seenIt = m.rankings?.[0]?.seen_it === true;
       return !seenIt && !activeNomineeIdSet.has(String(m.id));
@@ -178,19 +183,27 @@ export default function ExpandableYearCard({
     return [...unseen].sort((a, b) => bestRating(b) - bestRating(a)).slice(0, RAIL_LIMIT);
   }, [frozenRailIds, allMovies, year, activeNomineeIdSet, bestRating, recentlyNominated]);
 
-  // Contender movies (rated 7+ but not yet nominated)
+  // Contender movies (rated 7+ but not yet nominated), sorted highest-rated
+  // first. Auto-promote below calls onCreateAward in order; useCreateAward's
+  // "first call sets the winner" semantic combined with this sort means the
+  // highest-rated 7+ film becomes the default winner when no saved award
+  // exists, rather than whichever contender happened to come first from the
+  // DB (which was producing arbitrary winners like Cabaret over Godfather).
+  // The user can still override via the workshop — Law 5 holds.
   const contenderMovies = useMemo(() => {
     const yearMovies = allMovies.filter((m) => m.release_year === year);
-    return yearMovies.filter((m) => {
-      const seenIt = m.rankings?.[0]?.seen_it === true;
-      const ranking = m.rankings?.[0]?.ranking;
-      return (
-        seenIt &&
-        typeof ranking === "number" &&
-        ranking >= 7 &&
-        !activeNomineeIdSet.has(String(m.id))
-      );
-    });
+    return yearMovies
+      .filter((m) => {
+        const seenIt = m.rankings?.[0]?.seen_it === true;
+        const ranking = m.rankings?.[0]?.ranking;
+        return (
+          seenIt &&
+          typeof ranking === "number" &&
+          ranking >= 7 &&
+          !activeNomineeIdSet.has(String(m.id))
+        );
+      })
+      .sort((a, b) => (b.rankings?.[0]?.ranking ?? 0) - (a.rankings?.[0]?.ranking ?? 0));
   }, [allMovies, year, activeNomineeIdSet]);
 
   // Auto-promote: when a movie is rated 7+, auto-nominate it
@@ -415,7 +428,7 @@ export default function ExpandableYearCard({
           </div>
           <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3">
             <p className="truncate text-base font-semibold text-white group-hover:text-gold-100">
-              {leader.title}
+              {winnerTitle}
             </p>
             {/* Status badge — click opens full YearExplorer for this year */}
             <span

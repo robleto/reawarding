@@ -4,6 +4,44 @@ Purpose: Record WHY major product direction decisions were made to prevent futur
 
 ---
 
+## May 2026 — State Thresholds Made Depth-Aware; Gallery Gated; Transition Moment Added
+
+### Decision
+
+The four-state adaptive homepage now measures **depth, not breadth**. A "year touched" (≥1 rating in a year) no longer advances the user — a **depth year** is a year with 3+ ratings. The Established threshold becomes: 1+ set ballot, OR 2+ depth years, OR 20+ total ratings. Same logic at the Mature ceiling. The "completed ballot" term is replaced by **set ballot** (5+ nominees + an explicit winner) — the previous "10 nominees" definition is the cap, not the milestone.
+
+The Awards Gallery is gated on at least one year having 3+ nominees. Below that bar the gallery is absent, not locked. The Building → Established crossing now renders a single persistent on-canvas line ("{Year} is set. Your first award.") at the top of the established home — fires once per user, dismissible, non-modal.
+
+### Reason
+
+A real returning user with 4 years touched, 6 total ratings, and 0 set ballots was landing in the Established state via the old `yearLeaders.length >= 2` arm of the threshold. The page rendered a 4-card Awards Gallery (with films that weren't even nominees, surfaced by a `galleryYears` fallback that took the highest-rated film when no nominees existed), a "Your Canon" stats wall reading "0 Ballots Complete," and a taste-chip rail derived from 6 ratings. The user saw a museum they had not built — false copy at every register.
+
+The root cause was that `yearLeaders.length` is a breadth signal. Two ratings across two years was enough to promote a user to a register that assumed real investment. The fix is to count depth: years with 3+ ratings reflect actual engagement, not a curious tap.
+
+The gallery gate is the same diagnosis at the section level. A ballot with 1 nominee is not a museum-ready award; calling it one is the kind of "ballots appearing fully-formed" feel that Law 3 forbids. We don't gate the *concept* of an award (emergence still holds — awards form from ratings the moment a single film is rated 7+), we gate when the gallery surfaces on Home. Thin ballots remain visible in the workshop where their formation context is intact.
+
+The transition moment closes a UX hole. The single most important beat in the app — the user's first set ballot — was previously unmarked: the state just flipped on next render and a workbench became a gallery. Acknowledging it inline (not in a modal, not in a toast) gives the moment the canvas weight it deserves, per the "Milestones reshape the canvas" principle.
+
+### What Changed
+
+- `PRODUCT_DESIGN_PRINCIPLES.md` — five new principles: depth-not-breadth thresholds, gallery gate, the two-leads-of-Building, the marked transition moment, the screenshot-user test
+- `CLAUDE.md` threshold table — rewritten with depth years + set ballots + gallery gate + transition note
+- `src/app/page.tsx` (pending in subsequent commits on this branch): threshold formula replacement, gallery-gate guard, transition-moment rendering, cut list for users at the floor
+
+### What Did NOT Change
+
+- Awards still form from ratings the moment a film is rated 7+ — emergence holds
+- Watch and Rate remain separate (Guardrail 10 holds)
+- Mature is still strictly additive to Established
+- The 7+ nominee threshold itself is unchanged
+- The Mature workshop drawer pattern is unchanged (label refresh aside)
+
+### Reversal Conditions
+
+Loosen the depth-year bar back toward "year touched" only if research shows users are stalling in Building because they don't realize their light engagement isn't advancing them. The fix in that case is probably copy ("Rate 1 more 1972 to make it count") rather than threshold rollback. Re-introducing yearLeaders.length as the Established signal should be considered a regression.
+
+---
+
 ## May 2026 — Onboarding Seed Lowered from 10 to 7; Ballot Framing Deferred to 3+ Ratings
 
 ### Decision

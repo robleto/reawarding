@@ -84,7 +84,13 @@ export function useLoggedInOnboarding(
       strongestYearWinnerTitle = savedWinner?.title ?? sortedByRating[0]?.title ?? null;
     }
 
-    const strongestYearNeeded = strongestYear ? Math.max(0, 5 - strongestYearCount) : 5;
+    // "How many more nominees (≥7) to set the ballot." Previously used the
+    // total ratings count, which counted sub-7 films too — misleading any
+    // surface that consumed this metric to suggest a user was closer to
+    // setting their ballot than they actually were.
+    const strongestYearNeeded = strongestYear
+      ? Math.max(0, 5 - strongestYearNomineeCount)
+      : 5;
 
     let stage: LoggedInOnboardingStage = "complete";
     if (totalRated === 0) {
@@ -99,6 +105,12 @@ export function useLoggedInOnboarding(
       stage = "timeline-building";
     }
 
+    // The teaching experience yields once the user is one rating away from
+    // setting their first ballot (4 nominees). At that point the near-set
+    // ballot card becomes the page hero and the chrome would just bury it
+    // — see PRODUCT_DESIGN_PRINCIPLES.md "Building has two leads".
+    const isNearSet = strongestYearNomineeCount >= 4;
+
     return {
       stage,
       totalRated,
@@ -108,7 +120,7 @@ export function useLoggedInOnboarding(
       strongestYearNomineeCount,
       strongestYearWinnerTitle,
       strongestYearNeeded,
-      shouldShow: !dismissed && stage !== "complete",
+      shouldShow: !dismissed && stage !== "complete" && !isNearSet,
     };
   }, [awards, dismissed, movies]);
 }

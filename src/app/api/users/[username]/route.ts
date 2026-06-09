@@ -95,10 +95,17 @@ export async function GET(
       films: seenMovies.length,
     };
 
+    // Surface best-picture awards so the public AwardsGallery can respect the
+    // user's actual saved winner instead of guessing "highest-rated nominee".
+    const bestPictureAwards = (awards || []).filter(
+      (a: any) => normalizeCategory(a.category) === "best-picture"
+    );
+
     return NextResponse.json({
       profile,
       movies: allMovies,
       stats,
+      awards: bestPictureAwards,
     }, {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",

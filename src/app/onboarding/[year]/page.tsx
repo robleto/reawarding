@@ -10,6 +10,7 @@ import { useCreateAward } from "@/hooks/useCreateAward";
 import OnboardingPickFlow from "@/components/onboarding/OnboardingPickFlow";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import { getRatingStyle } from "@/utils/getRatingStyle";
+import { isCanonicalCandidate } from "@/utils/canonicalFilm";
 import type { Movie } from "@/types/types";
 
 // Onboarding continuation page — keeps a guest in the loop after their first
@@ -33,11 +34,13 @@ export default function OnboardingYearPage() {
 
   // ── Films for this year, sorted by rating quality so the strongest
   //    contenders surface first. Already-rated films stay in the grid so the
-  //    user can re-tap to adjust.
+  //    user can re-tap to adjust. Obscure long-tail films (low vote count) are
+  //    excluded unless the user has already engaged with them.
   const yearFilms = useMemo(() => {
     if (!Number.isFinite(year)) return [];
     return movies
       .filter((m) => m.release_year === year)
+      .filter(isCanonicalCandidate)
       .slice()
       .sort((a, b) => {
         const aR = parseFloat(String(a.tmdb_rating ?? 0)) || 0;
@@ -59,12 +62,20 @@ export default function OnboardingYearPage() {
 
   // For the modal: count excluding the picked movie so the FormingPanel can
   // add back the new rating correctly regardless of refresh timing.
+  // CRITICAL: look up the *live* movie state from the movies array — the
+  // pickedMovie reference is a snapshot from click time. After updateMovieRanking
+  // fires, the movies array gets a new object for that id, but the stored
+  // pickedMovie still points at the old one with no rating. That stale
+  // snapshot was producing a double-count ("3 of 5" instead of "2 of 5")
+  // because FormingPanel still added +1 for the new rating even though the
+  // live nomineeCount already included it.
   const nomineeCountForModal = useMemo(() => {
     if (!pickedMovie) return nomineeCount;
-    const r = pickedMovie.rankings?.[0]?.ranking;
-    const wasNominee = typeof r === "number" && r >= 7;
-    return Math.max(0, nomineeCount - (wasNominee ? 1 : 0));
-  }, [nomineeCount, pickedMovie]);
+    const liveMovie = movies.find((m) => m.id === pickedMovie.id);
+    const r = liveMovie?.rankings?.[0]?.ranking;
+    const isNominee = typeof r === "number" && r >= 7;
+    return Math.max(0, nomineeCount - (isNominee ? 1 : 0));
+  }, [movies, nomineeCount, pickedMovie]);
 
   const isSet = nomineeCount >= BALLOT_THRESHOLD;
   const stillNeeded = Math.max(0, BALLOT_THRESHOLD - nomineeCount);

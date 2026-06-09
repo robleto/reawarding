@@ -23,10 +23,18 @@ interface ProfileStats {
   films: number;
 }
 
+export interface PublicAward {
+  year: number;
+  winner_id: string | number | null;
+  nominee_ids: (string | number)[];
+  category: string;
+}
+
 interface UsePublicProfileResult {
   profile: PublicProfile | null;
   movies: Movie[];
   stats: ProfileStats;
+  awards: PublicAward[];
   loading: boolean;
   error: string | null;
   notFound: boolean;
@@ -36,6 +44,7 @@ export function usePublicProfile(username: string): UsePublicProfileResult {
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [stats, setStats] = useState<ProfileStats>({ rated: 0, seen: 0, awards: 0, films: 0 });
+  const [awards, setAwards] = useState<PublicAward[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -82,6 +91,7 @@ export function usePublicProfile(username: string): UsePublicProfileResult {
           setProfile(data.profile);
           setMovies(data.movies || []);
           setStats(data.stats || { rated: 0, seen: 0, awards: 0, films: 0 });
+          setAwards(data.awards || []);
         }
       } catch (err) {
         if (mounted) {
@@ -98,5 +108,5 @@ export function usePublicProfile(username: string): UsePublicProfileResult {
     };
   }, [username]);
 
-  return { profile, movies, stats, loading, error, notFound };
+  return { profile, movies, stats, awards, loading, error, notFound };
 }

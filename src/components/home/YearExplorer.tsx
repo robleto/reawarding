@@ -21,6 +21,7 @@ import { useGlobalToast } from "@/hooks/useGlobalToast";
 import type { Movie } from "@/types/types";
 import { getActualWinner } from "@/data/bestPictureWinners";
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import { isCanonicalCandidate } from "@/utils/canonicalFilm";
 import EditableYearSection from "@/components/award/EditableYearSection";
 import type { EditableYearSectionHandle } from "@/components/award/EditableYearSection";
 import MovieCard from "@/components/award/MovieCard";
@@ -254,7 +255,9 @@ export default function YearExplorer({
     async function fetchYearMovies() {
       setLoading(true);
 
-      const fromMemory = allMovies.filter((m) => m.release_year === year);
+      const fromMemory = allMovies.filter(
+        (m) => m.release_year === year && isCanonicalCandidate(m)
+      );
 
       if (fromMemory.length > 0) {
         const sorted = [...fromMemory].sort((a, b) => {
@@ -281,7 +284,7 @@ export default function YearExplorer({
         .limit(200);
 
       if (!error && data) {
-        setYearMovies(data as Movie[]);
+        setYearMovies((data as Movie[]).filter(isCanonicalCandidate));
       }
       setLoading(false);
     }
