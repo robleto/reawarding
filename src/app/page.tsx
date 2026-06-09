@@ -21,6 +21,7 @@ import { useUserAwards } from "@/hooks/useUserAwards";
 import { buildTasteProfile, getYearLeaders } from "@/utils/tasteInsights";
 import { ArrowRight, ChevronDown, ChevronUp, X } from "lucide-react";
 import ExpandableYearCard from "@/components/home/ExpandableYearCard";
+import MuseumYearTimeline from "@/components/home/MuseumYearTimeline";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import RecognitionFeed from "@/components/home/RecognitionFeed";
 import useOnboardingState from "@/hooks/useOnboardingState";
@@ -112,7 +113,6 @@ export default function HomePage() {
   const [dismissedAlertKeys, setDismissedAlertKeys] = useState<string[]>([]);
   const [savingAlertKey, setSavingAlertKey] = useState<string | null>(null);
   const [savedAlertKeys, setSavedAlertKeys] = useState<string[]>([]);
-  const activeChipRef = useRef<HTMLButtonElement>(null);
   const supabase = useSupabaseClient();
 
   // ── Smart list save handler ──────────────────────────────────────────────
@@ -615,13 +615,6 @@ export default function HomePage() {
     }
   }, [mostRecentBallot]);
 
-  // When the active chip changes, scroll it into view in the horizontal chip rail.
-  useEffect(() => {
-    if (activeChipRef.current) {
-      activeChipRef.current.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-    }
-  }, [expandedCardYear]);
-
   // Sync guest panel visibility with auth state.
   // On guest→logged-in transition, kill GSAP ScrollTriggers before unmounting
   // to avoid the removeChild DOM error (GSAP pins reparent nodes).
@@ -1002,96 +995,13 @@ export default function HomePage() {
           const activeYl =
             yearLeaders.find((yl) => yl.year === expandedCardYear) ?? yearLeaders[0];
 
-          // Newest → oldest: 2026 … 1927
-          const sortedLeaders = [...yearLeaders].sort((a, b) => b.year - a.year);
-
           return (
             <section className="mb-8">
-              {/* ── Year timeline rail ─────────────────────────────────────
-                  Dot-and-line design. Each year is a circular node with the
-                  year label + progress count below. Consecutive years share
-                  a solid connector; a gap-break visual marks skipped years.
-                  Sorted newest → oldest; active dot auto-scrolls into view.
-                  ─────────────────────────────────────────────────────── */}
-              <div className="relative mb-6">
-                <div
-                  className="flex items-start overflow-x-auto pb-3 snap-x snap-mandatory"
-                  style={{ scrollbarWidth: "none" }}
-                >
-                  {sortedLeaders.map((yl, idx) => {
-                    const isActive    = yl.year === activeYl.year;
-                    const nextYl      = sortedLeaders[idx + 1];
-                    const gapSize     = nextYl ? yl.year - nextYl.year : 0;
-
-                    return (
-                      <div key={yl.year} className="flex-shrink-0 flex items-start snap-start">
-
-                        {/* ── Year node (dot + label + count) ── */}
-                        <button
-                          ref={isActive ? activeChipRef : undefined}
-                          type="button"
-                          onClick={() => setExpandedCardYear(yl.year)}
-                          className="flex flex-col items-center gap-1 min-w-[52px] px-1 group"
-                        >
-                          {/* Dot — plain filled circle, no ring */}
-                          <div className="w-8 h-8 flex items-center justify-center">
-                            <div className={`rounded-full transition-all ${
-                              isActive
-                                ? "w-3 h-3 bg-gold-400"
-                                : "w-2 h-2 bg-gray-600 group-hover:bg-gray-400"
-                            }`} />
-                          </div>
-
-                          {/* Year label */}
-                          <span className={`text-[10px] font-bold font-unbounded leading-tight mt-0.5 transition-colors ${
-                            isActive
-                              ? "text-gold-300"
-                              : "text-gray-400 group-hover:text-gray-200"
-                          }`}>
-                            {yl.year}
-                          </span>
-
-                          {/* Progress */}
-                          <span className={`text-[10px] tabular-nums leading-none ${
-                            isActive ? "text-gold-500/60" : "text-gray-700"
-                          }`}>
-                            {yl.nomineeCount}/10
-                          </span>
-                        </button>
-
-                        {/* ── Connector to next year ── */}
-                        {nextYl && (
-                          // mt-4 = 16px = vertical center of 32px dot
-                          <div className="flex items-center mt-4">
-                            {gapSize === 1 ? (
-                              /* Consecutive years: solid line */
-                              <div className="w-4 h-[2px] bg-gray-700 rounded-full" />
-                            ) : (
-                              /* Gap years: heartbeat/pulse waveform */
-                              <svg
-                                width="24"
-                                height="12"
-                                viewBox="0 0 24 12"
-                                fill="none"
-                                aria-hidden="true"
-                                className="text-gray-600"
-                              >
-                                <polyline
-                                  points="0,6 4,6 6,1 8,11 10,6 24,6"
-                                  stroke="currentColor"
-                                  strokeWidth="1.5"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <MuseumYearTimeline
+                years={yearLeaders}
+                activeYear={activeYl.year}
+                onSelectYear={setExpandedCardYear}
+              />
 
               {/* ── Active year card (always expanded) ── */}
               <ExpandableYearCard
@@ -1342,78 +1252,14 @@ export default function HomePage() {
               (() => {
                 const activeYl =
                   yearLeaders.find((yl) => yl.year === expandedCardYear) ?? yearLeaders[0];
-                const sortedLeaders = [...yearLeaders].sort((a, b) => b.year - a.year);
 
                 return (
                   <div id="mature-workshop" aria-label="Workshop — edit your ballots">
-                    <div className="relative mb-6">
-                      <div
-                        className="flex items-start overflow-x-auto pb-3 snap-x snap-mandatory"
-                        style={{ scrollbarWidth: "none" }}
-                      >
-                        {sortedLeaders.map((yl, idx) => {
-                          const isActive = yl.year === activeYl.year;
-                          const nextYl = sortedLeaders[idx + 1];
-                          const gapSize = nextYl ? yl.year - nextYl.year : 0;
-
-                          return (
-                            <div key={yl.year} className="flex-shrink-0 flex items-start snap-start">
-                              <button
-                                ref={isActive ? activeChipRef : undefined}
-                                type="button"
-                                onClick={() => setExpandedCardYear(yl.year)}
-                                className="flex flex-col items-center gap-1 min-w-[52px] px-1 group"
-                              >
-                                <div className="w-8 h-8 flex items-center justify-center">
-                                  <div className={`rounded-full transition-all ${
-                                    isActive
-                                      ? "w-3 h-3 bg-gold-400"
-                                      : "w-2 h-2 bg-gray-600 group-hover:bg-gray-400"
-                                  }`} />
-                                </div>
-                                <span className={`text-[10px] font-bold font-unbounded leading-tight mt-0.5 transition-colors ${
-                                  isActive
-                                    ? "text-gold-300"
-                                    : "text-gray-400 group-hover:text-gray-200"
-                                }`}>
-                                  {yl.year}
-                                </span>
-                                <span className={`text-[10px] tabular-nums leading-none ${
-                                  isActive ? "text-gold-500/60" : "text-gray-700"
-                                }`}>
-                                  {yl.nomineeCount}/10
-                                </span>
-                              </button>
-
-                              {nextYl && (
-                                <div className="flex items-center mt-4">
-                                  {gapSize === 1 ? (
-                                    <div className="w-4 h-[2px] bg-gray-700 rounded-full" />
-                                  ) : (
-                                    <svg
-                                      width="24"
-                                      height="12"
-                                      viewBox="0 0 24 12"
-                                      fill="none"
-                                      aria-hidden="true"
-                                      className="text-gray-600"
-                                    >
-                                      <polyline
-                                        points="0,6 4,6 6,1 8,11 10,6 24,6"
-                                        stroke="currentColor"
-                                        strokeWidth="1.5"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                    </svg>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    <MuseumYearTimeline
+                      years={yearLeaders}
+                      activeYear={activeYl.year}
+                      onSelectYear={setExpandedCardYear}
+                    />
 
                     <ExpandableYearCard
                       key={activeYl.year}
