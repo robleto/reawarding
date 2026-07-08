@@ -15,6 +15,8 @@ export default defineConfig({
   testDir: './tests',
   // Run every spec file in ./tests/
   testMatch: ['**/*.spec.ts'],
+  // Dev-server cold compiles can push page loads past the 30s default.
+  timeout: 60_000,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

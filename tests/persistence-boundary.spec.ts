@@ -3,10 +3,22 @@ import { expect, test } from '@playwright/test';
 const needsCreds = !process.env.TEST_USER_EMAIL || !process.env.TEST_USER_PASSWORD;
 
 test.describe('Guest/auth persistence boundary', () => {
-  test('login resets guest-scoped onboarding and clears duplicate guest caches', async ({ page }) => {
+  test('login resets guest-scoped onboarding and clears duplicate guest caches', async ({ page, request }) => {
     test.skip(needsCreds, 'Set TEST_USER_EMAIL + TEST_USER_PASSWORD to run persistence boundary tests');
 
-    await page.addInitScript(() => {
+    // Seed with a real movie id. The live schema uses UUID ids for movies —
+    // a hardcoded numeric id fails the rankings upsert during login migration
+    // (invalid uuid cast), which fail-closes the guest-cache cleanup this test
+    // is asserting.
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const moviesRes = await request.get(`${supabaseUrl}/rest/v1/movies?select=id&limit=1`, {
+      headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+    });
+    const [movie] = (await moviesRes.json()) as Array<{ id: string }>;
+    const movieId = movie.id;
+
+    await page.addInitScript((seedMovieId) => {
       if (window.sessionStorage.getItem('__persistence_boundary_seeded__') === 'true') {
         return;
       }
@@ -17,14 +29,14 @@ test.describe('Guest/auth persistence boundary', () => {
         JSON.stringify({
           state: {
             rankings: {
-              550: { movieId: 550, ranking: 9, seenIt: true, timestamp: Date.now() },
+              [seedMovieId]: { movieId: seedMovieId, ranking: 9, seenIt: true, timestamp: Date.now() },
             },
             awards: {
               1999: {
                 year: 1999,
                 category: 'best-picture',
-                winnerId: 550,
-                nomineeIds: [550],
+                winnerId: seedMovieId,
+                nomineeIds: [seedMovieId],
                 source: 'manual',
                 revisionNumber: 1,
                 timestamp: Date.now(),
@@ -39,7 +51,7 @@ test.describe('Guest/auth persistence boundary', () => {
       window.localStorage.setItem(
         'reawarding_guest_data',
         JSON.stringify({
-          rankings: [{ movieId: 550, ranking: 9, seenIt: true, timestamp: Date.now() }],
+          rankings: [{ movieId: seedMovieId, ranking: 9, seenIt: true, timestamp: Date.now() }],
           hasInteracted: true,
           firstInteractionTime: Date.now(),
           totalInteractions: 1,
@@ -50,8 +62,8 @@ test.describe('Guest/auth persistence boundary', () => {
         JSON.stringify({
           1999: {
             year: 1999,
-            winnerId: 550,
-            nomineeIds: [550],
+            winnerId: seedMovieId,
+            nomineeIds: [seedMovieId],
             source: 'manual',
             timestamp: Date.now(),
           },
@@ -75,7 +87,7 @@ test.describe('Guest/auth persistence boundary', () => {
           version: 0,
         })
       );
-    });
+    }, movieId);
 
     await page.goto('/login');
     await page.fill('#email', process.env.TEST_USER_EMAIL!);
