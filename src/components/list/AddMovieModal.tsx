@@ -86,7 +86,7 @@ export default function AddMovieModal({
           ...movie,
           rankings: [],
           thumb_url: movie.thumb_url || "",
-        })) as Movie[];
+        })) as unknown as Movie[];
         setSuggestions(moviesWithEmptyRankings);
       }
       setLoading(false);
@@ -115,7 +115,7 @@ export default function AddMovieModal({
     setShowSuggestions(false);
   };
 
-  const handleRemoveSelected = (movieId: number) => {
+  const handleRemoveSelected = (movieId: string) => {
     setSelectedMovies(prev => prev.filter(m => m.id !== movieId));
   };
 

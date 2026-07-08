@@ -73,7 +73,7 @@ export function useUserLists(userId: string | null): {
             .order("ranking", { ascending: true })
             .limit(5);
 
-          const movieIds = (items ?? []).map((item: { movie_id: number }) => item.movie_id);
+          const movieIds = (items ?? []).map((item: { movie_id: string }) => item.movie_id);
           let posterUrls: string[] = [];
 
           if (movieIds.length > 0) {
@@ -83,14 +83,14 @@ export function useUserLists(userId: string | null): {
               .in("id", movieIds);
 
             if (movies) {
-              type PosterRow = { id: number; poster_url?: string | null };
+              type PosterRow = { id: string; poster_url?: string | null };
               const posterMap = new Map(
                 (movies as PosterRow[])
-                  .map((m) => [m.id, m.poster_url || null] as [number, string | null])
+                  .map((m) => [m.id, m.poster_url || null] as [string, string | null])
                   .filter(([, url]) => Boolean(url))
               );
               posterUrls = movieIds
-                .map((id: number) => posterMap.get(id))
+                .map((id: string) => posterMap.get(id))
                 .filter((p): p is string => Boolean(p));
             }
           }

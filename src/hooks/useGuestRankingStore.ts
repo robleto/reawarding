@@ -5,7 +5,7 @@ import type { Database } from '@/types/supabase';
 import { clearAllGuestData, updateGuestRanking } from '@/utils/guestMode';
 
 interface GuestRanking {
-  movieId: number;
+  movieId: string;
   ranking: number | null;
   seenIt: boolean;
   timestamp: number;
@@ -17,30 +17,30 @@ interface GuestRanking {
 export interface GuestAward {
   year: number;
   category: 'best-picture';
-  winnerId: number;
-  nomineeIds: number[];
+  winnerId: string;
+  nomineeIds: string[];
   source: 'seed_pick' | 'ranking_calc' | 'manual';
   revisionNumber: number;
   timestamp: number;
 }
 
 interface GuestRankingStore {
-  rankings: Record<number, GuestRanking>;
+  rankings: Record<string, GuestRanking>;
   awards: Record<number, GuestAward>;
   hasInteracted: boolean;
 
   // Ranking actions
-  setRanking: (movieId: number, ranking: number | null) => void;
-  setSeenIt: (movieId: number, seenIt: boolean) => void;
-  updateRanking: (movieId: number, updates: { ranking?: number | null; seenIt?: boolean }) => void;
-  getRanking: (movieId: number) => GuestRanking | null;
+  setRanking: (movieId: string, ranking: number | null) => void;
+  setSeenIt: (movieId: string, seenIt: boolean) => void;
+  updateRanking: (movieId: string, updates: { ranking?: number | null; seenIt?: boolean }) => void;
+  getRanking: (movieId: string) => GuestRanking | null;
   clearAllData: () => void;
   getAllRankings: () => GuestRanking[];
   getInteractionCount: () => number;
   hasGuestInteracted: () => boolean;
 
   // Award actions
-  setAward: (year: number, winnerId: number, nomineeIds: number[], source: GuestAward['source']) => void;
+  setAward: (year: number, winnerId: string, nomineeIds: string[], source: GuestAward['source']) => void;
   getAward: (year: number) => GuestAward | null;
   getAllAwards: () => GuestAward[];
   getAwardCount: () => number;
@@ -72,7 +72,7 @@ const useGuestRankingStore = create<GuestRankingStore>()(
       awards: {},
       hasInteracted: false,
       
-      setRanking: (movieId: number, ranking: number | null) => {
+      setRanking: (movieId: string, ranking: number | null) => {
         set((state) => {
           const existing = state.rankings[movieId] || { movieId, ranking: null, seenIt: false, timestamp: Date.now() };
           const updated = {
@@ -94,7 +94,7 @@ const useGuestRankingStore = create<GuestRankingStore>()(
         });
       },
       
-      setSeenIt: (movieId: number, seenIt: boolean) => {
+      setSeenIt: (movieId: string, seenIt: boolean) => {
         set((state) => {
           const existing = state.rankings[movieId] || { movieId, ranking: null, seenIt: false, timestamp: Date.now() };
           const updated = {
@@ -116,7 +116,7 @@ const useGuestRankingStore = create<GuestRankingStore>()(
         });
       },
       
-      updateRanking: (movieId: number, updates: { ranking?: number | null; seenIt?: boolean }) => {
+      updateRanking: (movieId: string, updates: { ranking?: number | null; seenIt?: boolean }) => {
         set((state) => {
           const existing = state.rankings[movieId] || { movieId, ranking: null, seenIt: false, timestamp: Date.now() };
           const updated = {
@@ -138,7 +138,7 @@ const useGuestRankingStore = create<GuestRankingStore>()(
         });
       },
       
-      getRanking: (movieId: number) => {
+      getRanking: (movieId: string) => {
         const state = get();
         return state.rankings[movieId] || null;
       },
@@ -171,7 +171,7 @@ const useGuestRankingStore = create<GuestRankingStore>()(
       },
 
       // Award actions
-      setAward: (year: number, winnerId: number, nomineeIds: number[], source: GuestAward['source']) => {
+      setAward: (year: number, winnerId: string, nomineeIds: string[], source: GuestAward['source']) => {
         set((state) => {
           const existing = state.awards[year];
           const revisionNumber = existing ? existing.revisionNumber + 1 : 1;

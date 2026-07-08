@@ -6,7 +6,7 @@ export async function updateRanking({
   seen_it,
   ranking,
 }: {
-  movie_id: number | string;
+  movie_id: string;
   seen_it: boolean;
   ranking: number;
 }) {
@@ -24,7 +24,7 @@ export async function updateRanking({
 
   const payload = {
     user_id: user.id,
-    movie_id: Number(movie_id),
+    movie_id,
     seen_it: seen_it,
     ranking: ranking,
   };

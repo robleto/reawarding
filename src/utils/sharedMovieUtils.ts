@@ -445,8 +445,8 @@ export function useMovieDataWithGuest() {
 						if (rankingsResult.data && rankingsResult.data.length > 0) {
 							const enrichedIds = new Set(enriched.map((m) => m.id));
 							const missingIds = rankingsResult.data
-								.map((r: any) => r.movie_id as number)
-								.filter((id: number) => !enrichedIds.has(id));
+								.map((r: any) => r.movie_id as string)
+								.filter((id: string) => !enrichedIds.has(id));
 							if (missingIds.length > 0) {
 								const { data: extraMovies } = await supabase
 									.from("movies")
@@ -486,7 +486,7 @@ export function useMovieDataWithGuest() {
 	}, [authChecked, userId, supabase, isGuest]);
 
 	const updateMovieRanking = async (
-		movieId: number,
+		movieId: string,
 		updates: { seen_it?: boolean; ranking?: number | null }
 	) => {
 		if (isGuest) {

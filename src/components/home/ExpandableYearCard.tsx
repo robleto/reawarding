@@ -22,7 +22,7 @@ interface Props {
   isExpanded: boolean;
   onToggle: () => void;
   onUpdateMovieRanking: (
-    movieId: number,
+    movieId: string,
     updates: { seen_it?: boolean; ranking?: number | null }
   ) => void;
   onCreateAward: (movie: Movie) => void;
@@ -69,8 +69,8 @@ export default function ExpandableYearCard({
   // SeenIt / Rate buttons always reflect current state.
   // Nominations DO remove films — that transition is intentional.
   // Snapshot is cleared on close so the next open starts fresh.
-  const frozenRailIdsRef = useRef<number[] | null>(null);
-  const [frozenRailIds, setFrozenRailIds] = useState<number[] | null>(null);
+  const frozenRailIdsRef = useRef<string[] | null>(null);
+  const [frozenRailIds, setFrozenRailIds] = useState<string[] | null>(null);
 
   // Reset poster error when leader changes
   useEffect(() => {
@@ -240,7 +240,7 @@ export default function ExpandableYearCard({
 
   // Rating-first handler: auto-mark as seen when rating
   const handleRatingFirst = useCallback(
-    (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => {
+    (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => {
       if (updates.ranking != null && updates.ranking > 0) {
         onUpdateMovieRanking(movieId, { ...updates, seen_it: true });
       } else {

@@ -9,7 +9,7 @@ interface Props {
   rows: FeedRow[];
   loading: boolean;
   onSelectMovie: (movie: Movie) => void;
-  onUpdate?: (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+  onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
   currentUserId?: string | null;
 }
 

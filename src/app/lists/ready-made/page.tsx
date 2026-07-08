@@ -13,7 +13,7 @@ type DirectorSuggestion = {
   director: string;
   seen_count: number;
   movies: Array<{
-    id: number;
+    id: string;
     title: string;
     release_year: number | null;
     poster_url: string | null;
@@ -25,7 +25,7 @@ type ActorSuggestion = {
   actor: string;
   seen_count: number;
   movies: Array<{
-    id: number;
+    id: string;
     title: string;
     release_year: number | null;
     poster_url: string | null;
@@ -37,7 +37,7 @@ type GenreSuggestion = {
   genre: string;
   seen_count: number;
   movies: Array<{
-    id: number;
+    id: string;
     title: string;
     release_year: number | null;
     poster_url: string | null;
@@ -50,7 +50,7 @@ type DecadeSuggestion = {
   startYear: number; // decade start for fallback queries
   seen_count: number;
   movies: Array<{
-    id: number;
+    id: string;
     title: string;
     release_year: number | null;
     poster_url: string | null;
@@ -226,7 +226,7 @@ async function getSuggestions() {
         const m = Array.isArray(mv) ? mv?.[0] : mv;
         if (!m) return null;
         return {
-          id: m.id as number,
+          id: m.id as string,
           title: m.title as string,
           release_year: (m.release_year as number | null) ?? null,
           poster_url: (m.poster_url as string | null),
@@ -261,7 +261,7 @@ async function getSuggestions() {
         const m = Array.isArray(mv) ? mv?.[0] : mv;
         if (!m) return null;
         return {
-          id: m.id as number,
+          id: m.id as string,
           title: m.title as string,
           release_year: (m.release_year as number | null) ?? null,
           poster_url: (m.poster_url as string | null),
@@ -318,7 +318,7 @@ async function getSuggestions() {
         const m = Array.isArray(mv) ? mv?.[0] : mv;
         if (!m) return null;
         return {
-          id: m.id as number,
+          id: m.id as string,
           title: m.title as string,
           release_year: (m.release_year as number | null) ?? null,
           poster_url: (m.poster_url as string | null),
@@ -348,7 +348,7 @@ async function getSuggestions() {
         const m = Array.isArray(mv) ? mv?.[0] : mv;
         if (!m) return null;
         return {
-          id: m.id as number,
+          id: m.id as string,
           title: m.title as string,
           release_year: (m.release_year as number) ?? null,
           poster_url: (m.poster_url as string | null),
@@ -635,8 +635,8 @@ async function saveList(formData: FormData) {
   const count = Number(formData.get('count') || 0);
   let ids = String(formData.get('movie_ids') || '')
     .split(',')
-    .map((s) => Number(s))
-    .filter((n) => Number.isFinite(n));
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   const supabase = await createSupabaseServerClient();
   const {
@@ -653,7 +653,7 @@ async function saveList(formData: FormData) {
       .from('movies')
       .select('id')
       .eq('director', director);
-    const movieIds = (movieRows || []).map((m) => m.id as number);
+    const movieIds = (movieRows || []).map((m) => m.id as string);
     if (movieIds.length) {
       // 2) Intersect with user's seen rankings and sort by user's ranking desc
       const { data: rankRows } = await supabase
@@ -666,7 +666,7 @@ async function saveList(formData: FormData) {
         new Set(
           (rankRows || [])
             .sort((a, b) => ((b.ranking ?? 0) - (a.ranking ?? 0)))
-            .map((r) => r.movie_id as number)
+            .map((r) => r.movie_id as string)
         )
       );
     }
@@ -792,15 +792,15 @@ async function saveActorList(formData: FormData) {
   const count = Number(formData.get('count') || 0);
   let ids = String(formData.get('movie_ids') || '')
     .split(',')
-    .map((s) => Number(s))
-    .filter((n) => Number.isFinite(n));
+    .map((s) => s.trim())
+    .filter(Boolean);
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   // Fallback derive actor movie IDs
   if (ids.length === 0 && actor) {
     const { data: movieRows } = await supabase.from('movies').select('id, cast_list');
-    const candidateIds = (movieRows || []).filter((m: any) => Array.isArray(m.cast_list) && m.cast_list.includes(actor)).map((m: any) => m.id as number);
+    const candidateIds = (movieRows || []).filter((m: any) => Array.isArray(m.cast_list) && m.cast_list.includes(actor)).map((m: any) => m.id as string);
     if (candidateIds.length) {
       const { data: rankRows } = await supabase
         .from('rankings')
@@ -808,7 +808,7 @@ async function saveActorList(formData: FormData) {
         .eq('user_id', user.id)
         .eq('seen_it', true)
         .in('movie_id', candidateIds);
-      ids = Array.from(new Set((rankRows || []).sort((a, b) => ((b.ranking ?? 0) - (a.ranking ?? 0))).map((r) => r.movie_id as number)));
+      ids = Array.from(new Set((rankRows || []).sort((a, b) => ((b.ranking ?? 0) - (a.ranking ?? 0))).map((r) => r.movie_id as string)));
     }
   }
   const name = formatActorListName(actor, count);
@@ -850,14 +850,14 @@ async function saveGenreList(formData: FormData) {
   const totalSeen = Number(formData.get('total_seen') || 0);
   let ids = String(formData.get('movie_ids') || '')
     .split(',')
-    .map((s) => Number(s))
-    .filter((n) => Number.isFinite(n));
+    .map((s) => s.trim())
+    .filter(Boolean);
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   if (ids.length === 0 && genre) {
     const { data: movieRows } = await supabase.from('movies').select('id, genres');
-    const candidateIds = (movieRows || []).filter((m: any) => Array.isArray(m.genres) && m.genres.includes(genre)).map((m: any) => m.id as number);
+    const candidateIds = (movieRows || []).filter((m: any) => Array.isArray(m.genres) && m.genres.includes(genre)).map((m: any) => m.id as string);
     if (candidateIds.length) {
       const { data: rankRows } = await supabase
         .from('rankings')
@@ -867,7 +867,7 @@ async function saveGenreList(formData: FormData) {
         .in('movie_id', candidateIds);
       const rows = (rankRows || []);
       const filtered = totalSeen > 100 ? rows.filter((r) => (r.ranking ?? 0) >= 9) : rows;
-      ids = Array.from(new Set(filtered.sort((a, b) => ((b.ranking ?? 0) - (a.ranking ?? 0))).map((r) => r.movie_id as number)));
+      ids = Array.from(new Set(filtered.sort((a, b) => ((b.ranking ?? 0) - (a.ranking ?? 0))).map((r) => r.movie_id as string)));
     }
   }
   const name = formatGenreListName(genre, count);
@@ -910,8 +910,8 @@ async function saveDecadeList(formData: FormData) {
   const totalSeen = Number(formData.get('total_seen') || 0);
   let ids = String(formData.get('movie_ids') || '')
     .split(',')
-    .map((s) => Number(s))
-    .filter((n) => Number.isFinite(n));
+    .map((s) => s.trim())
+    .filter(Boolean);
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -921,7 +921,7 @@ async function saveDecadeList(formData: FormData) {
       .select('id, release_year');
     const candidateIds = (movieRows || [])
       .filter((m: any) => typeof m.release_year === 'number' && m.release_year >= startYear && m.release_year < startYear + 10)
-      .map((m: any) => m.id as number);
+      .map((m: any) => m.id as string);
     if (candidateIds.length) {
       const { data: rankRows } = await supabase
         .from('rankings')
@@ -931,7 +931,7 @@ async function saveDecadeList(formData: FormData) {
         .in('movie_id', candidateIds);
       const rows = (rankRows || []);
       const filtered = totalSeen > 100 ? rows.filter((r) => (r.ranking ?? 0) >= 9) : rows;
-      ids = Array.from(new Set(filtered.sort((a, b) => ((b.ranking ?? 0) - (a.ranking ?? 0))).map((r) => r.movie_id as number)));
+      ids = Array.from(new Set(filtered.sort((a, b) => ((b.ranking ?? 0) - (a.ranking ?? 0))).map((r) => r.movie_id as string)));
     }
   }
   const name = formatDecadeListName(decade, count);

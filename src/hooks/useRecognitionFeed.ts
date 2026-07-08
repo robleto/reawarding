@@ -40,7 +40,7 @@ const CURATED_WINNER_TITLES = Object.values(BEST_PICTURE_WINNERS)
  * userMovieIds is read via ref so a new rating doesn't re-fire the fetch.
  */
 export function useRecognitionFeed(
-  userMovieIds: Set<number>,
+  userMovieIds: Set<string>,
   topGenre: string | null,
   topGenreExemplar: string | null
 ): { rows: FeedRow[]; loading: boolean } {

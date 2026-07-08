@@ -190,7 +190,7 @@ function FilmsPageContent() {
 		setIsModalOpen(false);
 	};
 
-	const handleModalUpdate = (movieId: number, newRanking: number | null, newSeenIt: boolean) => {
+	const handleModalUpdate = (movieId: string, newRanking: number | null, newSeenIt: boolean) => {
 		updateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
 	};
 

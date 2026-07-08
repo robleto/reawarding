@@ -53,7 +53,7 @@ export default function ProfileSetupPage() {
       .single();
     
     if (profile) {
-      setProfile(profile);
+      setProfile(profile as Profile);
       setUsername(profile.username);
       setFullName(profile.full_name || '');
       setBio(profile.bio || '');

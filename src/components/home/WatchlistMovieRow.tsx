@@ -58,7 +58,7 @@ export default function WatchlistMovieRow({ userId, username }: WatchlistMovieRo
 
   // Update seen_it / ranking and reflect the change locally
   const handleUpdateMovie = useCallback(async (
-    movieId: number,
+    movieId: string,
     updates: { seen_it?: boolean; ranking?: number | null }
   ) => {
     if (!userId) return;

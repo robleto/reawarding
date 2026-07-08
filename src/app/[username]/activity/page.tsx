@@ -10,7 +10,7 @@ const PAGE_SIZE = 20;
 
 type ActivityItem = {
   id: string;
-  movie_id: number;
+  movie_id: string;
   seen_it: boolean;
   ranking: number | null;
   updated_at: string;

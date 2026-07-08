@@ -54,7 +54,7 @@ export default async function MovieDetailPage({ params }: any) {
   const altTitles = typeof movie.alternative_titles === "string" ? JSON.parse(movie.alternative_titles) : movie.alternative_titles;
 
   type SimilarMovie = {
-    id: number;
+    id: string;
     title: string;
     thumb_url?: string | null;
     poster_url?: string | null;
@@ -84,7 +84,7 @@ export default async function MovieDetailPage({ params }: any) {
 
   // Peer movies for FilmEntryPanel — top acclaimed films from the same year (logged-out only)
   // Non-blocking: failures silently produce an empty array so the page still renders.
-  type PeerMovie = { id: number; title: string; poster_url?: string | null };
+  type PeerMovie = { id: string; title: string; poster_url?: string | null };
   let peerMovies: PeerMovie[] = [];
   if (isGuest && movie.release_year) {
     try {
@@ -722,7 +722,7 @@ export default async function MovieDetailPage({ params }: any) {
         </div>
         {/* Admin IMDb editor (behind env flag) */}
         {(process.env.NEXT_PUBLIC_ENABLE_IMDB_ADMIN === 'true' || process.env.ENABLE_IMDB_ADMIN === 'true') && (
-          <ImdbIdEditor movieId={Number(movie.id)} initialImdbId={movie.imdb_id} />
+          <ImdbIdEditor movieId={movie.id} initialImdbId={movie.imdb_id} />
         )}
       </div>
     </div>

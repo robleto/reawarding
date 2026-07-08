@@ -10,7 +10,7 @@
  */
 
 interface InferredRanking {
-  movieId: number;
+  movieId: string;
   ranking: number;
 }
 
@@ -23,9 +23,9 @@ interface InferredRanking {
  * @param existingRankings - Map of movieId → current ranking (or null/undefined if unranked)
  */
 export function inferRankingsFromAward(
-  winnerId: number,
-  nomineeIds: number[],
-  existingRankings: Record<number, number | null | undefined>
+  winnerId: string,
+  nomineeIds: string[],
+  existingRankings: Record<string, number | null | undefined>
 ): InferredRanking[] {
   const inferred: InferredRanking[] = [];
 
@@ -48,8 +48,8 @@ export function inferRankingsFromAward(
 }
 
 function hasExistingRanking(
-  movieId: number,
-  existingRankings: Record<number, number | null | undefined>
+  movieId: string,
+  existingRankings: Record<string, number | null | undefined>
 ): boolean {
   const current = existingRankings[movieId];
   return current !== null && current !== undefined && current > 0;

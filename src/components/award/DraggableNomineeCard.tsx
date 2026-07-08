@@ -12,7 +12,7 @@ interface DraggableNomineeCardProps {
   movie: Movie;
   isWinner: boolean;
   onSetWinner: (movie: Movie) => void;
-  onRemove: (movieId: number) => void;
+  onRemove: (movieId: string) => void;
 }
 
 // Fallback component for missing images

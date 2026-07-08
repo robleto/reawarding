@@ -18,9 +18,9 @@ type Props = {
   isLast?: boolean;
   index?: number;
   showHotTake?: boolean;
-  onUpdate: (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+  onUpdate: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
   onClick?: () => void;
-  onWatchlist?: (movieId: number) => void;
+  onWatchlist?: (movieId: string) => void;
   isOnWatchlist?: boolean;
 };
 

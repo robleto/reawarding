@@ -1,5 +1,6 @@
 export type Movie = {
-	id: number;
+	// UUID in the live schema (movies.id) — TMDB's numeric id lives in tmdb_id
+	id: string;
 	title: string;
 	release_year: number;
 	poster_url: string;

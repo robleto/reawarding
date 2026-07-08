@@ -160,7 +160,7 @@ export default function ListsHomePage() {
           .eq("user_id", userId)
           .eq("seen_it", true);
 
-        const seenIds = (rankingRows || []).map((r: { movie_id: number }) => r.movie_id);
+        const seenIds = (rankingRows || []).map((r: { movie_id: string }) => r.movie_id);
         if (seenIds.length > 0) {
           const { data: movieRows } = await supabase
             .from("movies")
@@ -172,7 +172,7 @@ export default function ListsHomePage() {
               ...m,
               rankings: [{
                 seen_it: true,
-                ranking: rankingRows?.find((r: { movie_id: number }) => r.movie_id === m.id)?.ranking ?? null,
+                ranking: rankingRows?.find((r: { movie_id: string }) => r.movie_id === m.id)?.ranking ?? null,
               }],
             })) as Movie[];
             setSeenMovies(mapped);
@@ -246,7 +246,7 @@ export default function ListsHomePage() {
   const [savedAlertKeys, setSavedAlertKeys] = useState<string[]>([]);
   const [dismissedAlertKeys, setDismissedAlertKeys] = useState<string[]>([]);
 
-  const handleSaveSmartList = async (alert: { type: string; label: string; movieIds: number[] }) => {
+  const handleSaveSmartList = async (alert: { type: string; label: string; movieIds: string[] }) => {
     if (!userId) return;
     const key = `${alert.type}:${alert.label}`;
     setSavingAlertKey(key);
@@ -262,7 +262,7 @@ export default function ListsHomePage() {
         .select("id")
         .single();
       if (error || !list) throw error ?? new Error("No list returned");
-      const items = alert.movieIds.map((id: number, idx: number) => ({ list_id: list.id, movie_id: id, ranking: idx + 1 }));
+      const items = alert.movieIds.map((id: string, idx: number) => ({ list_id: list.id, movie_id: id, ranking: idx + 1 }));
       await supabase.from("movie_list_items").insert(items);
       setSavedAlertKeys((prev) => [...prev, key]);
     } catch (e) {
@@ -273,7 +273,7 @@ export default function ListsHomePage() {
   };
 
   // Build poster URL arrays for each smart list alert
-  const getPosterUrlsForAlert = useMemo(() => (movieIds: number[]) =>
+  const getPosterUrlsForAlert = useMemo(() => (movieIds: string[]) =>
     movieIds
       .slice(0, 5)
       .map((id) => seenMovies.find((m) => m.id === id))

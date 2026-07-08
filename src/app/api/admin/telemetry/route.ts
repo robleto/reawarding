@@ -9,7 +9,9 @@ export async function GET() {
   }
 
   const [errorsResult, feedbackResult] = await Promise.all([
+    // @ts-expect-error error_logs table missing from live schema
     supabaseAdmin.from('error_logs').select('*').order('created_at', { ascending: false }).limit(50),
+    // @ts-expect-error feedback table missing from live schema
     supabaseAdmin.from('feedback').select('*').order('created_at', { ascending: false }).limit(50),
   ]);
 

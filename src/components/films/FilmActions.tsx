@@ -8,7 +8,7 @@ import RankingDropdown from "@/components/movie/RankingDropdown";
 import useGuestRankingStore from "@/hooks/useGuestRankingStore";
 
 type Props = {
-  movieId: number;
+  movieId: string;
 };
 
 export default function FilmActions({ movieId }: Props) {
@@ -42,7 +42,7 @@ export default function FilmActions({ movieId }: Props) {
 
       if (!error && data) {
         setRanking(data.ranking);
-        setSeenIt(data.seen_it);
+        setSeenIt(data.seen_it ?? false);
       }
       setLoading(false);
     };

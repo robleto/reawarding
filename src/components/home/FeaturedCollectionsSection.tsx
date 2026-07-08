@@ -8,7 +8,7 @@ import type { Movie } from "@/types/types";
 interface FeaturedCollectionsSectionProps {
   movies: Movie[];
   userId: string | null;
-  updateMovieRanking: (movieId: number, data: { ranking?: number | null; seen_it?: boolean }) => void;
+  updateMovieRanking: (movieId: string, data: { ranking?: number | null; seen_it?: boolean }) => void;
   setSelectedMovie: (movie: Movie) => void;
 }
 
@@ -48,7 +48,7 @@ export default function FeaturedCollectionsSection({
         return;
       }
 
-      setFeaturedCollections(data || []);
+      setFeaturedCollections((data || []) as FilmCollection[]);
       setLoading(false);
     }
 

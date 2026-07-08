@@ -30,7 +30,7 @@ export default function YearSection({
 
 	// Convert local movie format to global Movie type for child components
 	const convertToGlobalMovie = (localMovie: LocalMovie): Movie => ({
-		id: parseInt(localMovie.id),
+		id: localMovie.id,
 		title: localMovie.title,
 		release_year: parseInt(year),
 		poster_url: localMovie.poster_url,

@@ -11,8 +11,8 @@ import { getContextMessage } from "@/data/bestPictureWinners";
 export interface AwardResult {
   success: boolean;
   year: number;
-  winnerId: number;
-  nomineeIds: number[];
+  winnerId: string;
+  nomineeIds: string[];
   contextMessage: string;
   agreedWithAcademy: boolean;
   source: "seed_pick" | "ranking_calc" | "manual";
@@ -20,8 +20,8 @@ export interface AwardResult {
 }
 
 interface ExistingAwardRecord {
-  nomineeIds: number[];
-  winnerId: number | null;
+  nomineeIds: string[];
+  winnerId: string | null;
   revisionNumber: number;
 }
 
@@ -58,11 +58,11 @@ export function useCreateAward() {
   const buildSignature = useCallback(
     (
       year: number,
-      winnerId: number,
-      nomineeIds: number[],
+      winnerId: string,
+      nomineeIds: string[],
       source: AwardResult["source"]
     ) => {
-      const normalizedNominees = [...new Set(nomineeIds)].sort((a, b) => a - b).join(",");
+      const normalizedNominees = [...new Set(nomineeIds)].sort().join(",");
       return `${year}|${winnerId}|${normalizedNominees}|${source}`;
     },
     []
@@ -87,8 +87,8 @@ export function useCreateAward() {
   }, [actorKey]);
 
   const getExistingRankings = useCallback(
-    (movieIds: number[]): Record<number, number | null | undefined> => {
-      const result: Record<number, number | null | undefined> = {};
+    (movieIds: string[]): Record<string, number | null | undefined> => {
+      const result: Record<string, number | null | undefined> = {};
       for (const id of movieIds) {
         if (!isGuest) continue;
         const guestRanking = guestStore.getRanking(id);
@@ -101,9 +101,9 @@ export function useCreateAward() {
 
   const applyInferredRankings = useCallback(
     async (
-      winnerId: number,
-      nomineeIds: number[],
-      existingRankings: Record<number, number | null | undefined>
+      winnerId: string,
+      nomineeIds: string[],
+      existingRankings: Record<string, number | null | undefined>
     ) => {
       try {
         const inferred = inferRankingsFromAward(winnerId, nomineeIds, existingRankings);
@@ -182,8 +182,8 @@ export function useCreateAward() {
   const persistAward = useCallback(
     async (
       year: number,
-      nomineeIds: number[],
-      winnerId: number,
+      nomineeIds: string[],
+      winnerId: string,
       _source: AwardResult["source"],
       _revisionNumber: number
     ): Promise<boolean> => {
@@ -224,7 +224,7 @@ export function useCreateAward() {
   const createAwardInner = useCallback(
     async (
       movie: Pick<Movie, "id" | "title" | "release_year">,
-      existingRankingsMap?: Record<number, number | null | undefined>
+      existingRankingsMap?: Record<string, number | null | undefined>
     ): Promise<AwardResult> => {
       const source: AwardResult["source"] = "seed_pick";
       const year = movie.release_year;
@@ -329,7 +329,7 @@ export function useCreateAward() {
   const createAward = useCallback(
     (
       movie: Pick<Movie, "id" | "title" | "release_year">,
-      existingRankingsMap?: Record<number, number | null | undefined>
+      existingRankingsMap?: Record<string, number | null | undefined>
     ): Promise<AwardResult> => {
       const year = movie.release_year;
       const pending = yearLocksRef.current.get(year);
@@ -355,7 +355,7 @@ export function useCreateAward() {
       year: number,
       nominees: Pick<Movie, "id" | "title">[],
       winner: Pick<Movie, "id" | "title">,
-      _existingRankingsMap?: Record<number, number | null | undefined>
+      _existingRankingsMap?: Record<string, number | null | undefined>
     ): Promise<AwardResult> => {
       const source: AwardResult["source"] = "ranking_calc";
       const winnerId = winner.id;
@@ -449,7 +449,7 @@ export function useCreateAward() {
       year: number,
       nominees: Pick<Movie, "id" | "title">[],
       winner: Pick<Movie, "id" | "title">,
-      existingRankingsMap?: Record<number, number | null | undefined>
+      existingRankingsMap?: Record<string, number | null | undefined>
     ): Promise<AwardResult> => {
       const pending = yearLocksRef.current.get(year);
       const execute = async (): Promise<AwardResult> => {

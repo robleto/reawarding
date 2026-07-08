@@ -17,9 +17,9 @@ function isAuthorizedAdmin(userId?: string | null, email?: string | null): boole
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const movieId = Number(body?.movieId);
+    const movieId = body?.movieId ? String(body.movieId) : null;
     const imdb_id: string | null = body?.imdb_id ? String(body.imdb_id) : null;
-    if (!movieId || Number.isNaN(movieId)) {
+    if (!movieId) {
       return NextResponse.json({ error: 'Invalid movieId' }, { status: 400 });
     }
     if (imdb_id && !/^tt\d{3,}$/.test(imdb_id)) {

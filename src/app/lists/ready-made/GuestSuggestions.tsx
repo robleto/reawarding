@@ -9,7 +9,7 @@ type GuestSuggestion = {
   director: string;
   seen_count: number;
   movies: Array<{
-    id: number;
+    id: string;
     title: string;
     release_year: number | null;
     poster_url: string | null;

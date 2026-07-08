@@ -14,7 +14,7 @@ type Props = {
     movie: Movie;
     score: number | null;
     seen_it: boolean;
-    ranking: number;
+    ranking: number | null;
   };
   currentUserId: string;
   viewMode: "grid" | "list";
@@ -51,7 +51,7 @@ export default function DraggableMovieCard({
   const userSeenIt = item.seen_it ?? false;
   const userScore = item.score ?? null;
 
-  const handleUpdate = (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => {
+  const handleUpdate = (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => {
     onUpdate({
       seen_it: updates.seen_it,
       score: updates.ranking,

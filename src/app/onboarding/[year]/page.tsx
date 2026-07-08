@@ -83,10 +83,10 @@ export default function OnboardingYearPage() {
   // ── Mutation handlers — same wiring as homepage onboarding so the data
   //    flows through useMovieDataWithGuest + createAward consistently.
   const handleWatch = (movieId: string | number) => {
-    void updateMovieRanking(movieId as unknown as number, { seen_it: true });
+    void updateMovieRanking(String(movieId), { seen_it: true });
   };
   const handleRate = (movieId: string | number, rating: number) => {
-    void updateMovieRanking(movieId as unknown as number, { ranking: rating });
+    void updateMovieRanking(String(movieId), { ranking: rating });
     const m = movies.find((entry) => String(entry.id) === String(movieId));
     if (m) {
       void createAward({

@@ -38,8 +38,8 @@ interface Props {
   movie: Movie | null;
   /** Count of nominees (rated 7+) for this movie's year BEFORE this rating. */
   currentNomineeCountForYear: number;
-  onConfirmWatch: (movieId: number | string) => void;
-  onRate: (movieId: number | string, rating: number) => void;
+  onConfirmWatch: (movieId: string | string) => void;
+  onRate: (movieId: string | string, rating: number) => void;
   /** Close + take the user to a year-filtered films page for more ratings. */
   onRateAnother: () => void;
   /** Close + take the user to the unfiltered films page (pick any year). */

@@ -66,7 +66,7 @@ export default function ProfilePage() {
       }
 
       if (data) {
-        setProfile(data);
+        setProfile(data as Profile);
         setEditForm({
           username: data.username || "",
           first_name: data.first_name || "",
@@ -181,7 +181,7 @@ export default function ProfilePage() {
 
       if (error) throw error;
 
-      setProfile(data);
+      setProfile(data as Profile);
       setEditing(false);
     } catch (err) {
       console.error("Error saving profile:", err);

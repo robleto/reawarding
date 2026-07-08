@@ -20,11 +20,11 @@ import { normalizeImageUrl } from "@/utils/imageUrl";
 import { useMotionReveal } from "@/hooks/useMotionReveal";
 
 interface FilmEntryPanelProps {
-  film: { id: number; title: string };
+  film: { id: string; title: string };
   year: number;
   /** Top acclaimed films from the same year (excluding this film) — shown as decorative previews */
   peerMovies: Array<{
-    id: number;
+    id: string;
     title: string;
     poster_url?: string | null;
   }>;

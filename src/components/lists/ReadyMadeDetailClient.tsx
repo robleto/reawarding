@@ -7,7 +7,7 @@ import type { Movie } from "@/types/types";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 
 export type ReadyMadeMovie = {
-  id: number;
+  id: string;
   title: string;
   release_year: number | null;
   poster_url: string | null;
@@ -40,7 +40,7 @@ export default function ReadyMadeDetailClient({ movies }: { movies: ReadyMadeMov
     setOpen(true);
   };
 
-  const handleUpdate = (_movieId: number, _newRanking: number | null, _newSeenIt: boolean) => {
+  const handleUpdate = (_movieId: string, _newRanking: number | null, _newSeenIt: boolean) => {
     // No-op; MovieDetailModal already persists via Supabase. In future, refresh server data.
   };
 

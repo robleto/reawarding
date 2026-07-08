@@ -2,7 +2,7 @@
 import type { Movie } from "@/types/types";
 
 export interface GuestRanking {
-  movieId: number;
+  movieId: string;
   ranking: number | null;
   seenIt: boolean;
   timestamp: number;
@@ -50,7 +50,7 @@ export function saveGuestData(data: GuestData): void {
 }
 
 export function updateGuestRanking(
-  movieId: number,
+  movieId: string,
   updates: { ranking?: number | null; seenIt?: boolean }
 ): void {
   const data = getGuestData();
@@ -89,7 +89,7 @@ export function updateGuestRanking(
   saveGuestData(data);
 }
 
-export function getGuestRankingForMovie(movieId: number): GuestRanking | null {
+export function getGuestRankingForMovie(movieId: string): GuestRanking | null {
   const data = getGuestData();
   return data.rankings.find(r => r.movieId === movieId) || null;
 }
@@ -157,8 +157,8 @@ export function applyGuestDataToMovies(movies: Movie[]): Movie[] {
 
 export interface GuestAwardData {
   year: number;
-  winnerId: number;
-  nomineeIds: number[];
+  winnerId: string;
+  nomineeIds: string[];
   source: 'seed_pick' | 'ranking_calc' | 'manual';
   timestamp: number;
 }
@@ -186,8 +186,8 @@ function saveGuestAwards(awards: Record<string, GuestAwardData>): void {
 
 export function updateGuestAward(
   year: number,
-  winnerId: number,
-  nomineeIds: number[],
+  winnerId: string,
+  nomineeIds: string[],
   source: GuestAwardData['source'] = 'seed_pick'
 ): void {
   const awards = getGuestAwards();

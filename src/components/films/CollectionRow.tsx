@@ -21,7 +21,7 @@ interface CollectionRowProps {
   };
   movies: Movie[];
   userId: string | null;
-  onUpdateMovie: (movieId: number, data: { ranking?: number | null; seen_it?: boolean }) => void;
+  onUpdateMovie: (movieId: string, data: { ranking?: number | null; seen_it?: boolean }) => void;
   onMovieClick: (movie: Movie) => void;
 }
 

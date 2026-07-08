@@ -7,7 +7,7 @@ import { ensureUserWatchlist } from "@/utils/watchlist";
 
 export function useWatchlist(userId: string | null) {
   const supabase = useSupabaseClient<Database>();
-  const [watchlistMovieIds, setWatchlistMovieIds] = useState<Set<number>>(new Set());
+  const [watchlistMovieIds, setWatchlistMovieIds] = useState<Set<string>>(new Set());
   const [watchlistListId, setWatchlistListId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const listIdRef = useRef<string | null>(null);
@@ -32,7 +32,7 @@ export function useWatchlist(userId: string | null) {
           .select("movie_id")
           .eq("list_id", listId);
         if (!cancelled && data) {
-          setWatchlistMovieIds(new Set(data.map((row) => row.movie_id as number)));
+          setWatchlistMovieIds(new Set(data.map((row) => row.movie_id as string)));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -42,7 +42,7 @@ export function useWatchlist(userId: string | null) {
     return () => { cancelled = true; };
   }, [userId, supabase]);
 
-  const toggle = useCallback(async (movieId: number) => {
+  const toggle = useCallback(async (movieId: string) => {
     if (!userId || !listIdRef.current) return;
     const listId = listIdRef.current;
     const isOnWatchlist = watchlistMovieIds.has(movieId);
@@ -59,7 +59,7 @@ export function useWatchlist(userId: string | null) {
   }, [userId, supabase, watchlistMovieIds]);
 
   // Call this when a film is marked as watched — removes it from the watchlist automatically
-  const removeIfWatched = useCallback(async (movieId: number) => {
+  const removeIfWatched = useCallback(async (movieId: string) => {
     if (!listIdRef.current || !watchlistMovieIds.has(movieId)) return;
     const listId = listIdRef.current;
     setWatchlistMovieIds((prev) => { const next = new Set(prev); next.delete(movieId); return next; });

@@ -51,7 +51,7 @@ export default async function EditCollectionPage({
   return (
     <div className="min-h-screen bg-gradient-to-br from-charcoal-900 via-charcoal-800 to-charcoal-900">
       <div className="max-w-4xl mx-auto px-6 py-12">
-        <CollectionForm mode="edit" collection={collection} />
+        <CollectionForm mode="edit" collection={collection as Parameters<typeof CollectionForm>[0]["collection"]} />
       </div>
     </div>
   );

@@ -39,7 +39,7 @@ export interface MovieCardProps {
 	/* ── Interactive features (all optional) ── */
 
 	/** When provided, enables interactive controls (SeenIt, Rating) */
-	onUpdate?: (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
 	/** Explicit ranking value — overrides movie.rankings[0].ranking */
 	ranking?: number | null;
 	/** Seen-it state */
@@ -57,7 +57,7 @@ export interface MovieCardProps {
 	/** Subtle visual treatment for seen-but-unrated items */
 	incomplete?: boolean;
 	/** Grid: called when the user taps the watchlist bookmark. Only shown when unseen + not winner. */
-	onWatchlist?: (movieId: number) => void;
+	onWatchlist?: (movieId: string) => void;
 	/** Grid: whether the film is already on the watchlist (fills the bookmark icon) */
 	isOnWatchlist?: boolean;
 }
@@ -176,12 +176,12 @@ interface GridCardProps {
 	onClick?: () => void;
 	// interactive
 	interactive: boolean;
-	onUpdate?: (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
 	seenIt?: boolean;
 	ratingLabel?: string | null;
 	ratingOnly?: boolean;
 	footerAction?: React.ReactNode;
-	onWatchlist?: (movieId: number) => void;
+	onWatchlist?: (movieId: string) => void;
 	isOnWatchlist?: boolean;
 }
 
@@ -348,7 +348,7 @@ interface CompactCardProps {
 	showYear?: boolean;
 	// interactive
 	interactive: boolean;
-	onUpdate?: (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
 	seenIt?: boolean;
 	ratingLabel?: string | null;
 	showHotTake?: boolean;
@@ -559,7 +559,7 @@ interface LargeCardProps {
 	onClick?: () => void;
 	// interactive
 	interactive: boolean;
-	onUpdate?: (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
 	seenIt?: boolean;
 }
 

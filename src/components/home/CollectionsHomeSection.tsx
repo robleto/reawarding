@@ -21,7 +21,7 @@ interface FilmCollection {
 interface CollectionsHomeSectionProps {
   movies: Movie[];
   userId: string | null;
-  updateMovieRanking: (movieId: number, data: { ranking?: number | null; seen_it?: boolean }) => void;
+  updateMovieRanking: (movieId: string, data: { ranking?: number | null; seen_it?: boolean }) => void;
   setSelectedMovie: (movie: Movie) => void;
 }
 
@@ -66,7 +66,7 @@ export default function CollectionsHomeSection({
         });
       };
 
-      const shuffled = shuffleWithDailySeed(data || []);
+      const shuffled = shuffleWithDailySeed((data || []) as FilmCollection[]);
       setFeaturedCollections(shuffled.filter(c => c.featured));
       setOtherCollections(shuffled.filter(c => !c.featured));
       setLoading(false);

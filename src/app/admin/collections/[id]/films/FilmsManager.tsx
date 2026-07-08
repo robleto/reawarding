@@ -60,7 +60,7 @@ export default function FilmsManager({ collection }: FilmsManagerProps) {
         return;
       }
 
-      setSearchResults((data || []) as Movie[]);
+      setSearchResults((data || []) as unknown as Movie[]);
       setSearching(false);
     };
 
@@ -91,7 +91,7 @@ export default function FilmsManager({ collection }: FilmsManagerProps) {
       .select('*')
       .in('tmdb_id', tmdbIds);
 
-    setFilms((movies || []) as Movie[]);
+    setFilms((movies || []) as unknown as Movie[]);
     setLoading(false);
   }
 

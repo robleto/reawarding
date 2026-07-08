@@ -17,7 +17,7 @@ interface MovieDetailModalProps {
   movie: Movie;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (movieId: number, newRanking: number | null, newSeenIt: boolean) => void;
+  onUpdate: (movieId: string, newRanking: number | null, newSeenIt: boolean) => void;
   initialRanking?: number | null;
   initialSeenIt?: boolean;
 }

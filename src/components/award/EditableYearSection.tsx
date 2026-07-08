@@ -23,8 +23,8 @@ const LAST_USER_KEY = 'reawarding-awards-last-user';
 const PREFERENCE_KEY = 'reawarding-awards-preference-v1';
 
 type CachedNominationPayload = {
-  nominee_ids: number[];
-  winner_id: number | null;
+  nominee_ids: string[];
+  winner_id: string | null;
   updated_at: string;
 };
 
@@ -75,8 +75,8 @@ const setViewPreference = (userId: string, category: string, year: string, value
 };
 
 interface AwardNomination {
-  nominee_ids: number[];
-  winner_id: number | null;
+  nominee_ids: string[];
+  winner_id: string | null;
 }
 
 export interface EditableYearSectionHandle {
@@ -100,11 +100,11 @@ interface EditableYearSectionProps {
   onRequestScrollToContenders?: () => void;
   /** Optional direct rank updater for workshop cards (used by YearExplorer). */
   onWorkshopRankUpdate?: (
-    movieId: number,
+    movieId: string,
     updates: { seen_it?: boolean; ranking?: number | null }
   ) => void;
   /** Fires when workshop nominees change — provides real-time nominee IDs + winner ID. */
-  onWorkshopNomineesChange?: (nomineeIds: number[], winnerId: number | null) => void;
+  onWorkshopNomineesChange?: (nomineeIds: string[], winnerId: string | null) => void;
   /** When provided, Edit button calls this instead of toggling inline editing. Used by Awards page to open YearExplorer. */
   onEditRequest?: () => void;
 }
@@ -185,7 +185,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     const nomineeIds = initialNominees.map((m) => m.id);
     return allMoviesForYear.filter((m) => !nomineeIds.includes(m.id));
   });
-  const [activeId, setActiveId] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<{
@@ -215,7 +215,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   const workshopMutationInFlightRef = useRef(false);
 
   // Track movies just marked as seen in this session (to keep them visible)
-  const [, setJustSeen] = useState<Set<number>>(new Set());
+  const [, setJustSeen] = useState<Set<string>>(new Set());
 
   // Modal state
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -277,7 +277,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
         const savedIds = data.nominations?.nominee_ids ?? [];
         if (savedIds.length > 0) {
           const nomineeMovies = savedIds
-            .map((id: number) => allMoviesForYear.find(m => m.id === id))
+            .map((id: string) => allMoviesForYear.find(m => m.id === id))
             .filter(Boolean) as Movie[];
           const winnerMovie = data.nominations && data.nominations.winner_id
             ? nomineeMovies.find(m => data.nominations && m.id === data.nominations.winner_id) || null
@@ -477,7 +477,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     setError(null);
   };
 
-  const handleRemoveNominee = (movieId: number) => {
+  const handleRemoveNominee = (movieId: string) => {
     const movieToRemove = nominees.find(m => m.id === movieId);
     if (movieToRemove) {
       setNominees(nominees.filter(m => m.id !== movieId));
@@ -495,7 +495,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   };
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as number);
+    setActiveId(event.active.id as string);
     if (isWorkshop) onEditingChange?.(true);
   };
 
@@ -773,7 +773,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     setIsModalOpen(false);
   };
 
-  const handleModalUpdate = (movieId: number, newRanking: number | null, newSeenIt: boolean) => {
+  const handleModalUpdate = (movieId: string, newRanking: number | null, newSeenIt: boolean) => {
     // Track if movie was just marked as seen
     if (newSeenIt === true) {
       setJustSeen((prev) => new Set(prev).add(movieId));
@@ -820,7 +820,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     }
   };
 
-  const handleWorkshopRankingChange = (movieId: number, nextRanking: number | null) => {
+  const handleWorkshopRankingChange = (movieId: string, nextRanking: number | null) => {
     const inNominees = nominees.find((m) => m.id === movieId);
     const inCurrent = currentNominees.find((m) => m.id === movieId);
     const inAvailable = availableMovies.find((m) => m.id === movieId);
@@ -1063,7 +1063,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     await applyWorkshopState([...activeWorkshopNominees], movie);
   };
 
-  const handleWorkshopRemove = async (movieId: number) => {
+  const handleWorkshopRemove = async (movieId: string) => {
     if (!isWorkshop) return;
     const nextNominees = activeWorkshopNominees.filter((m) => m.id !== movieId);
     const nextWinner =

@@ -273,7 +273,7 @@ export default function HomePage() {
   }, []);
 
   const handleUpdateMovieRanking = useCallback(
-    (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => {
+    (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => {
       void updateMovieRanking(movieId, updates);
     },
     [updateMovieRanking]
@@ -314,14 +314,14 @@ export default function HomePage() {
   // independently so the user's data reflects the literal action they took.
   const handleOnboardingWatch = useCallback(
     (movieId: string | number) => {
-      void updateMovieRanking(movieId as unknown as number, { seen_it: true });
+      void updateMovieRanking(String(movieId), { seen_it: true });
     },
     [updateMovieRanking]
   );
 
   const handleOnboardingRate = useCallback(
     (movieId: string | number, rating: number) => {
-      void updateMovieRanking(movieId as unknown as number, { ranking: rating });
+      void updateMovieRanking(String(movieId), { ranking: rating });
       // Create the award record so the year exists in the user's data. The
       // YearExplorer will be reachable later via a "year forming" surface; we
       // don't auto-open it here.
@@ -447,7 +447,7 @@ export default function HomePage() {
       new Set(
         movies
           .filter((m) => m.rankings.length > 0)
-          .map((m) => m.id as number)
+          .map((m) => m.id)
       ),
     [movies]
   );
@@ -474,7 +474,7 @@ export default function HomePage() {
   );
 
   // Poster URLs for smart list cards — resolved from the already-loaded movies array.
-  const getSmartListPosterUrls = useMemo(() => (movieIds: number[]) =>
+  const getSmartListPosterUrls = useMemo(() => (movieIds: string[]) =>
     movieIds
       .slice(0, 5)
       .map((id) => movies.find((m) => m.id === id))

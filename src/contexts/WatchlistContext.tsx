@@ -5,9 +5,9 @@ import { useAuthState } from "@/hooks/useAuthState";
 import { useWatchlist } from "@/hooks/useWatchlist";
 
 interface WatchlistContextValue {
-  watchlistMovieIds: Set<number>;
-  toggle: (movieId: number) => Promise<void>;
-  removeIfWatched: (movieId: number) => Promise<void>;
+  watchlistMovieIds: Set<string>;
+  toggle: (movieId: string) => Promise<void>;
+  removeIfWatched: (movieId: string) => Promise<void>;
 }
 
 const WatchlistContext = createContext<WatchlistContextValue>({

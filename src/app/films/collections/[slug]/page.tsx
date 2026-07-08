@@ -166,7 +166,7 @@ export default function CollectionDetailPage() {
         return;
       }
       
-      setCollection(collectionData);
+      setCollection(collectionData as FilmCollection);
       
       // Fetch collection items (TMDB IDs)
       const { data: itemsData, error: itemsError } = await supabase

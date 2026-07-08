@@ -86,7 +86,7 @@ export default function ProfileWatchlistPage() {
 
   // Update seen_it / ranking for a watchlist film (owner only)
   const handleUpdateMovie = useCallback(async (
-    movieId: number,
+    movieId: string,
     updates: { seen_it?: boolean; ranking?: number | null }
   ) => {
     if (!isViewer || !user?.id) return;

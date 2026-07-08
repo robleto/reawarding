@@ -11,7 +11,7 @@ export type SmartListAlert = {
   count: number;        // how many films the user has seen
   threshold: number;    // the unlock threshold
   nearMiss: boolean;    // true = within 3 of threshold (teaser); false = at/above (unlock offer)
-  movieIds: number[];   // ids of matching films already seen
+  movieIds: string[];   // ids of matching films already seen
 };
 
 // Thresholds: [near-miss starts at, unlocks at]
@@ -44,7 +44,7 @@ export function useSmartListAlerts(movies: Movie[]): SmartListAlert[] {
     const alerts: SmartListAlert[] = [];
 
     // ── Directors ──────────────────────────────────────────────────────────
-    const byDirector = new Map<string, number[]>();
+    const byDirector = new Map<string, string[]>();
     for (const m of seenMovies) {
       if (!m.director) continue;
       const key = m.director.trim();
@@ -68,7 +68,7 @@ export function useSmartListAlerts(movies: Movie[]): SmartListAlert[] {
     }
 
     // ── Genres ─────────────────────────────────────────────────────────────
-    const byGenre = new Map<string, number[]>();
+    const byGenre = new Map<string, string[]>();
     for (const m of seenMovies) {
       for (const g of m.genres ?? []) {
         const key = g.trim();
@@ -93,7 +93,7 @@ export function useSmartListAlerts(movies: Movie[]): SmartListAlert[] {
     }
 
     // ── Decades ────────────────────────────────────────────────────────────
-    const byDecade = new Map<string, number[]>();
+    const byDecade = new Map<string, string[]>();
     for (const m of seenMovies) {
       if (!m.release_year) continue;
       const label = decadeLabel(m.release_year);
@@ -116,7 +116,7 @@ export function useSmartListAlerts(movies: Movie[]): SmartListAlert[] {
     }
 
     // ── Actors ─────────────────────────────────────────────────────────────
-    const byActor = new Map<string, number[]>();
+    const byActor = new Map<string, string[]>();
     for (const m of seenMovies) {
       for (const a of m.cast_list ?? []) {
         const key = a.trim();

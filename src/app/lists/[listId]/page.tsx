@@ -47,8 +47,8 @@ type MovieList = {
 type ListItem = {
   id: string;
   list_id: string;
-  movie_id: number;
-  ranking: number; // list position
+  movie_id: string;
+  ranking: number | null; // list position
   movie: Movie;
   // These will be merged in from global rankings
   seen_it?: boolean;
@@ -217,7 +217,7 @@ export default function ListDetailPage() {
     .sort((a, b) => {
       if (sortBy === "ranking") {
         // Use list ranking (position in list)
-        return sortOrder === "asc" ? a.ranking - b.ranking : b.ranking - a.ranking;
+        return sortOrder === "asc" ? (a.ranking ?? 0) - (b.ranking ?? 0) : (b.ranking ?? 0) - (a.ranking ?? 0);
       }
       if (sortBy === "title") {
         return sortOrder === "asc" 
@@ -278,7 +278,7 @@ export default function ListDetailPage() {
           return;
         }
 
-        setList(listData);
+        setList(listData as MovieList);
         setEditName(listData.name);
         setEditDescription(listData.description || "");
 
@@ -325,7 +325,7 @@ export default function ListDetailPage() {
         }
 
         // Map movie_id to ranking info
-        const rankingMap = new Map<number, any>();
+        const rankingMap = new Map<string, any>();
         for (const r of rankingsData) {
           rankingMap.set(r.movie_id, r);
         }
@@ -395,7 +395,7 @@ export default function ListDetailPage() {
         }
       }
       // Map movie_id to ranking info
-      const rankingMap = new Map<number, any>();
+      const rankingMap = new Map<string, any>();
       for (const r of rankingsData) {
         rankingMap.set(r.movie_id, r);
       }
@@ -507,6 +507,7 @@ export default function ListDetailPage() {
           .filter(item => item.movies)
           .map(item => ({
             ...item,
+            seen_it: item.seen_it ?? undefined,
             movie: {
               ...item.movies,
               rankings: [],

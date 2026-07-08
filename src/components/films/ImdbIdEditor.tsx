@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useUser } from "@/hooks/useUser";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
 
-export default function ImdbIdEditor({ movieId, initialImdbId }: { movieId: number; initialImdbId?: string | null }) {
+export default function ImdbIdEditor({ movieId, initialImdbId }: { movieId: string; initialImdbId?: string | null }) {
   const { user } = useUser();
   const { showToast } = useGlobalToast();
   const [value, setValue] = useState<string>(initialImdbId || "");

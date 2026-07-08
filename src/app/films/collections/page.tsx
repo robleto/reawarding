@@ -52,7 +52,7 @@ export default function CollectionsPage() {
       if (error) {
         console.error('Error fetching collections:', error);
       } else {
-        setCollections(data || []);
+        setCollections((data || []) as FilmCollection[]);
       }
       
       setCollectionsLoading(false);

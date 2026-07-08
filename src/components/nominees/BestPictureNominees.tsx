@@ -19,7 +19,7 @@ interface BestPictureNomineesProps {
 interface SortableMovieItemProps {
   movie: Movie;
   index: number;
-  onRemove: (movieId: number) => void;
+  onRemove: (movieId: string) => void;
   isSelected: boolean;
   isWinner?: boolean;
 }
@@ -218,7 +218,7 @@ export default function BestPictureNominees({
     }
   };
 
-  const handleRemoveMovie = (movieId: number) => {
+  const handleRemoveMovie = (movieId: string) => {
     const movieToRemove = selectedMovies.find(m => m.id === movieId);
     if (movieToRemove) {
       setSelectedMovies(prev => prev.filter(m => m.id !== movieId));

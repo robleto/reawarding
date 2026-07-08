@@ -35,7 +35,7 @@ interface Props {
   existingAward: UserAward | null;
   onCreateAward: (movie: Movie) => void;
   onUpdateMovieRanking: (
-    movieId: number,
+    movieId: string,
     updates: { seen_it?: boolean; ranking?: number | null }
   ) => void;
   onClose: () => void;
@@ -101,8 +101,8 @@ export default function YearExplorer({
   // Rect of the active tour target (step 2 uses the first empty slot).
   const [tourAnchorRect, setTourAnchorRect] = useState<DOMRect | null>(null);
   // Real-time workshop nominee IDs — kept in sync via onWorkshopNomineesChange callback
-  const [workshopNomineeIds, setWorkshopNomineeIds] = useState<number[]>([]);
-  const [workshopWinnerId, setWorkshopWinnerId] = useState<number | null>(null);
+  const [workshopNomineeIds, setWorkshopNomineeIds] = useState<string[]>([]);
+  const [workshopWinnerId, setWorkshopWinnerId] = useState<string | null>(null);
   // Ballot completion milestone tracking (overlay/confetti disabled until UX finalized)
   const prevNomineeCountRef = useRef<number>(0);
   const milestoneStateInitializedRef = useRef(false);
@@ -234,7 +234,7 @@ export default function YearExplorer({
     // Seed at 7 — the auto-nominate threshold, not a maximal score. This makes the
     // first action a calibration ("dial in how I actually felt") rather than an
     // undoing of an unjustified 10. See PRODUCT_GUARDRAILS — onboarding seeding rule.
-    void onUpdateMovieRanking(pickedMovie.id as unknown as number, {
+    void onUpdateMovieRanking(pickedMovie.id, {
       seen_it: true,
       ranking: 7,
     });
@@ -428,7 +428,7 @@ export default function YearExplorer({
 
   // Workshop nominees change handler — keeps YearExplorer's nominee tracking in sync
   const handleWorkshopNomineesChange = useCallback(
-    (nomineeIds: number[], winnerId: number | null) => {
+    (nomineeIds: string[], winnerId: string | null) => {
       setWorkshopNomineeIds(nomineeIds);
       setWorkshopWinnerId(winnerId);
     },
@@ -508,7 +508,7 @@ export default function YearExplorer({
 
   // Rating-first handler: rating a movie auto-marks as seen + triggers auto-promote
   const handleRatingFirst = useCallback(
-    (movieId: number, updates: { seen_it?: boolean; ranking?: number | null }) => {
+    (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => {
       // If a ranking is being set, auto-mark as seen
       if (updates.ranking != null && updates.ranking > 0) {
         onUpdateMovieRanking(movieId, { ...updates, seen_it: true });
@@ -519,7 +519,7 @@ export default function YearExplorer({
     [onUpdateMovieRanking]
   );
 
-  const flashRecentlyNominated = useCallback((movieId: number | string) => {
+  const flashRecentlyNominated = useCallback((movieId: string | string) => {
     setRecentlyNominated((prev) => new Set(prev).add(movieId));
     window.setTimeout(() => {
       setRecentlyNominated((prev) => {
