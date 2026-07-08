@@ -87,10 +87,7 @@ export async function logError({
     };
 
     // Insert error log
-    // NOTE: 'error_logs' does not exist in the live schema — this insert fails
-    // at runtime (and is swallowed below). Kept compiling until the table ships.
     const { error: insertError } = await supabase
-      // @ts-expect-error error_logs table missing from live schema
       .from('error_logs')
       .insert({
         user_id: user?.id || null,

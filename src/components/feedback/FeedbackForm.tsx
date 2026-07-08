@@ -49,9 +49,6 @@ export default function FeedbackForm({ defaultType = 'bug', onSubmitSuccess }: F
 
       // Submit feedback
       const { error } = await supabase
-        // NOTE: 'feedback' does not exist in the live schema — submissions
-        // currently fail at runtime. Kept compiling until the table ships.
-        // @ts-expect-error feedback table missing from live schema
         .from('feedback')
         .insert({
           user_id: user?.id || null,
