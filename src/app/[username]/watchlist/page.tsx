@@ -26,7 +26,7 @@ export default function ProfileWatchlistPage() {
   const isViewer = !!user && !!profile && profile.id === user.id;
 
   // Live watchlist toggle — only active when the viewer is the owner
-  const { watchlistMovieIds, toggle: toggleWatchlist } = useWatchlist(isViewer ? (user?.id ?? null) : null);
+  const { watchlistMovieIds, toggle: toggleWatchlist, removeIfWatched } = useWatchlist(isViewer ? (user?.id ?? null) : null);
 
   useEffect(() => {
     if (profileLoading || !profile) return;
@@ -61,10 +61,17 @@ export default function ProfileWatchlistPage() {
       const movieIds = items.map((item) => item.movie_id as number);
       const { data: movies } = await supabase
         .from("movies")
-        .select("*")
+        .select("*, rankings(id, seen_it, ranking, user_id)")
         .in("id", movieIds);
 
-      setWatchlistMovies((movies as Movie[]) ?? []);
+      const allMovies = (movies as Movie[]) ?? [];
+      // Auto-remove already-seen films from the watchlist (cleans up stale data)
+      if (isViewer) {
+        allMovies.forEach((m) => {
+          if (m.rankings?.[0]?.seen_it) removeIfWatched(m.id).catch(() => {});
+        });
+      }
+      setWatchlistMovies(allMovies.filter((m) => !m.rankings?.[0]?.seen_it));
       setLoading(false);
     }
 

@@ -188,6 +188,7 @@ interface GridCardProps {
 function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interactive, onUpdate, seenIt, ratingLabel, ratingOnly, footerAction, onWatchlist, isOnWatchlist }: GridCardProps) {
 	const [showRatingModal, setShowRatingModal] = useState(false);
 	const style = getRatingStyle(rating);
+	const { removeIfWatched } = useWatchlistContext();
 
 	const handleClick = (e: React.MouseEvent) => {
 		if (interactive && e.target instanceof HTMLElement) {
@@ -271,7 +272,11 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 								<div className="flex items-center rounded-b-lg w-full px-3 py-2 gap-2 justify-between">
 									<SeenItButton
 										seenIt={seenIt ?? false}
-										onClick={() => onUpdate?.(movie.id, { seen_it: !(seenIt ?? false) })}
+										onClick={() => {
+											const newSeenIt = !(seenIt ?? false);
+											onUpdate?.(movie.id, { seen_it: newSeenIt });
+											if (newSeenIt) removeIfWatched(movie.id).catch(() => {});
+										}}
 									/>
 									<div className="flex flex-col items-center">
 										<button
@@ -367,12 +372,16 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 		onClick?.();
 	};
 
+	const { removeIfWatched } = useWatchlistContext();
+
 	const handleRatingSelect = (newRating: number | null) => {
 		onUpdate?.(movie.id, { ranking: newRating });
 	};
 
 	const toggleSeenIt = () => {
-		onUpdate?.(movie.id, { seen_it: !(seenIt ?? false) });
+		const newSeenIt = !(seenIt ?? false);
+		onUpdate?.(movie.id, { seen_it: newSeenIt });
+		if (newSeenIt) removeIfWatched(movie.id).catch(() => {});
 	};
 
 	if (!interactive) {
@@ -557,7 +566,7 @@ interface LargeCardProps {
 function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interactive, onUpdate, seenIt }: LargeCardProps) {
 	const [showRatingModal, setShowRatingModal] = useState(false);
 	const style = getRatingStyle(rating);
-	const { watchlistMovieIds, toggle: toggleWatchlist } = useWatchlistContext();
+	const { watchlistMovieIds, toggle: toggleWatchlist, removeIfWatched } = useWatchlistContext();
 	const isOnWatchlist = watchlistMovieIds.has(movie.id);
 
 	const handleClick = (e: React.MouseEvent) => {
@@ -638,7 +647,11 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 							{/* Left: Seen / Unseen (3-state when watchlist is wired) */}
 							<SeenItButton
 								seenIt={seenIt ?? false}
-								onClick={() => onUpdate?.(movie.id, { seen_it: !(seenIt ?? false) })}
+								onClick={() => {
+									const newSeenIt = !(seenIt ?? false);
+									onUpdate?.(movie.id, { seen_it: newSeenIt });
+									if (newSeenIt) removeIfWatched(movie.id).catch(() => {});
+								}}
 								showText={true}
 								size="sm"
 								className="h-9 px-2.5 rounded-lg border border-gray-600/40 bg-black/40 hover:bg-black/60 text-xs font-semibold gap-1"

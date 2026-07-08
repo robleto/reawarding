@@ -7,11 +7,13 @@ import { useWatchlist } from "@/hooks/useWatchlist";
 interface WatchlistContextValue {
   watchlistMovieIds: Set<number>;
   toggle: (movieId: number) => Promise<void>;
+  removeIfWatched: (movieId: number) => Promise<void>;
 }
 
 const WatchlistContext = createContext<WatchlistContextValue>({
   watchlistMovieIds: new Set(),
   toggle: async () => {},
+  removeIfWatched: async () => {},
 });
 
 /**
@@ -21,10 +23,10 @@ const WatchlistContext = createContext<WatchlistContextValue>({
  */
 export function WatchlistProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuthState();
-  const { watchlistMovieIds, toggle } = useWatchlist(user?.id ?? null);
+  const { watchlistMovieIds, toggle, removeIfWatched } = useWatchlist(user?.id ?? null);
 
   return (
-    <WatchlistContext.Provider value={{ watchlistMovieIds, toggle }}>
+    <WatchlistContext.Provider value={{ watchlistMovieIds, toggle, removeIfWatched }}>
       {children}
     </WatchlistContext.Provider>
   );

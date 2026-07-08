@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import MovieCard from "@/components/award/MovieCard";
@@ -15,12 +15,18 @@ interface WatchlistMovieRowProps {
 
 export default function WatchlistMovieRow({ userId, username }: WatchlistMovieRowProps) {
   const supabase = useSupabaseClient();
-  const { watchlistMovieIds } = useWatchlistContext();
+  const { watchlistMovieIds, removeIfWatched } = useWatchlistContext();
+  const removeIfWatchedRef = useRef(removeIfWatched);
+  useEffect(() => { removeIfWatchedRef.current = removeIfWatched; });
+
   const [movies, setMovies] = useState<Movie[]>([]);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Fetch full movie data for the watchlisted IDs whenever the set changes
+  // Fetch full movie data (including rankings) for the watchlisted IDs whenever the set changes.
+  // removeIfWatched intentionally omitted from deps — it changes every time watchlistMovieIds
+  // changes (which is already in deps), so including it would cause a double-fire cascade.
+  // We access the latest version via ref instead.
   useEffect(() => {
     if (!userId || watchlistMovieIds.size === 0) {
       setMovies([]);
@@ -29,11 +35,20 @@ export default function WatchlistMovieRow({ userId, username }: WatchlistMovieRo
     const ids = Array.from(watchlistMovieIds);
     supabase
       .from("movies")
-      .select("*")
+      .select("*, rankings(id, seen_it, ranking, user_id)")
       .in("id", ids)
-      .then(({ data }) => {
-        if (data) setMovies(data as Movie[]);
-      });
+      .then(
+        ({ data }) => {
+          if (!data) return;
+          const fetched = data as Movie[];
+          // Silently clean up any stale seen-but-watchlisted entries
+          fetched.forEach((m) => {
+            if (m.rankings?.[0]?.seen_it) removeIfWatchedRef.current(m.id).catch(() => {});
+          });
+          setMovies(fetched.filter((m) => !m.rankings?.[0]?.seen_it));
+        },
+        () => {}
+      );
   }, [userId, watchlistMovieIds, supabase]);
 
   // When watchlistMovieIds shrinks (film removed), drop it from local state immediately
