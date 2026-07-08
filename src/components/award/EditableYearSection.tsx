@@ -1176,12 +1176,12 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                 {/* Section header row — nominees label + edit ballot top-right */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-baseline gap-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Nominees</p>
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-gray-500">Nominees</p>
                     {(() => {
                       const count = isWorkshop ? activeWorkshopNominees.length : nomineeCount;
-                      if (count >= 10) return <span className="text-xs font-medium text-emerald-400">Full Ballot</span>;
-                      if (count >= 5) return <span className="text-xs font-medium text-gray-400">{count} nominees</span>;
-                      if (count > 0) return <span className="text-xs font-medium text-gray-500">{count} nominee{count !== 1 ? "s" : ""}</span>;
+                      if (count >= 10) return <span className="text-sm font-medium text-emerald-400">Full Ballot</span>;
+                      if (count >= 5) return <span className="text-sm font-medium text-gray-400">{count} nominees</span>;
+                      if (count > 0) return <span className="text-sm font-medium text-gray-500">{count} nominee{count !== 1 ? "s" : ""}</span>;
                       return null;
                     })()}
                   </div>
@@ -1236,14 +1236,14 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     if (count >= 10) return null; /* Full ballot — no guidance needed */
                     if (count >= 5) {
                       return (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-sm text-gray-500">
                           {10 - count} more {10 - count === 1 ? "film" : "films"} to complete a Full Ballot
                         </p>
                       );
                     }
                     if (count > 0 && count < 5) {
                       return (
-                        <p className="text-xs text-amber-400/60">
+                        <p className="text-sm text-amber-400/60">
                           Rate {5 - count} more 7+ to fill the 5 nominee slots
                         </p>
                       );

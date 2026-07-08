@@ -96,12 +96,12 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
                       />
                     ))}
                     {nomineeCount > 5 && (
-                      <span className="text-[8px] text-gold-500/70 ml-1.5 font-medium">
+                      <span className="text-[12px] text-gold-500/70 ml-1.5 font-medium">
                         +{nomineeCount - 5}
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-gray-400/90 font-medium">
+                  <span className="text-[12px] text-gray-400/90 font-medium">
                     {nomineeCount} nominee{nomineeCount !== 1 ? "s" : ""}
                   </span>
                 </div>

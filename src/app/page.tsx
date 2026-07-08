@@ -109,6 +109,7 @@ export default function HomePage() {
   // Milestone celebration is now canvas-persistent on the ballot card itself
   // (see ExpandableYearCard). No modal state needed — the card transforms in place.
   const [sessionCoachDismissed, setSessionCoachDismissed] = useState(false);
+  const [savePromptDismissed, setSavePromptDismissed] = useState(false);
   const [suggestedQuery, setSuggestedQuery] = useState<string | undefined>(undefined);
   const [dismissedAlertKeys, setDismissedAlertKeys] = useState<string[]>([]);
   const [savingAlertKey, setSavingAlertKey] = useState<string | null>(null);
@@ -284,12 +285,12 @@ export default function HomePage() {
     setSelectedSearchMovie(movie);
   }, []);
 
-  // A user is "genuinely new" if they're a guest OR an authenticated user with no
-  // ratings yet. Both paths get the same first-action arc: seed at 7, create the
-  // award, open the YearExplorer with the tour. Returning users get the detail modal.
+  // A user is "genuinely new" if they have no ratings yet — guest or authenticated.
+  // New users get the Watch → Rate modal. Returning users (including guests who have
+  // already rated films) get the detail modal so they can continue where they left off.
   const isNewUser = useMemo(
-    () => isGuest || !movies.some((m) => typeof m.rankings?.[0]?.ranking === "number"),
-    [isGuest, movies]
+    () => !movies.some((m) => typeof m.rankings?.[0]?.ranking === "number"),
+    [movies]
   );
 
   const handleSelectMovie = useCallback(
@@ -706,6 +707,35 @@ export default function HomePage() {
               />
             ))}
           </aside>
+
+            {/* ── Returning-guest surfaces: session coach + save prompt ──────────
+              Both are invisible to first-time guests (SessionCoach returns null
+              when totalRated === 0; Banner gates on ratedMovies.length > 0).
+              Returning guests see these before the hero so they land on context,
+              not a marketing pitch they've already seen. */}
+          {!sessionCoachDismissed && (
+            <div className="relative z-10 px-4 pt-4">
+              <SessionCoach
+                movies={movies}
+                bestYear={bestYearData.bestYear}
+                bestYearRatedCount={bestYearData.bestCount}
+                leaderTitle={bestYearData.leaderTitle}
+                onOpenYear={(year) => setExplorerYear(year)}
+                onDismiss={() => setSessionCoachDismissed(true)}
+              />
+            </div>
+          )}
+          {ratedMovies.length > 0 && !savePromptDismissed && (
+            <div className="relative z-10 px-4 pt-2 pb-2">
+              <Banner
+                variant="gold"
+                message={`You have ${ratedMovies.length} film${ratedMovies.length === 1 ? "" : "s"} rated — sign up to save them permanently.`}
+                action={{ label: "Sign up free", onClick: () => router.push("/login") }}
+                secondaryAction={{ label: "Sign in", onClick: () => router.push("/login") }}
+                onDismiss={() => setSavePromptDismissed(true)}
+              />
+            </div>
+          )}
 
           <HomeHero
             reducedMotion={reducedMotion}
