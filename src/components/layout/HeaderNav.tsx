@@ -94,7 +94,7 @@ export default function HeaderNav() {
 							<div className="relative rounded-xl bg-black/20 backdrop-blur-md border border-gray-700/40 shadow-lg">
 								{/* Bubble background */}
 								<div 
-									className="absolute top-0 rounded-lg bg-white/15 backdrop-blur-xl border border-white/10 shadow-md transition-all duration-500 ease-out"
+									className="nav-bubble absolute top-0 rounded-lg backdrop-blur-xl transition-all duration-500 ease-out"
 									style={{
 										...getBubbleStyle(),
 										transitionTimingFunction: `linear(

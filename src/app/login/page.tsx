@@ -192,7 +192,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleResendConfirmation}
                 disabled={loading !== null}
-                className="text-sm text-[#CAAC4C] hover:text-yellow-400 transition-colors"
+                className="text-sm text-gold-500 hover:text-yellow-400 transition-colors"
               >
                 Resend confirmation email
               </button>
@@ -313,7 +313,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading === 'email'}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#CAAC4C] hover:bg-yellow-600 text-gray-900 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gold-500 hover:bg-yellow-600 text-gray-900 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
             >
               {loading === 'email' ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -327,7 +327,7 @@ export default function LoginPage() {
               <div className="text-center">
                 <a
                   href="/auth/forgot-password"
-                  className="text-sm text-[#CAAC4C] hover:text-yellow-400 transition-colors"
+                  className="text-sm text-gold-500 hover:text-yellow-400 transition-colors"
                 >
                   Forgot your password?
                 </a>
@@ -348,7 +348,7 @@ export default function LoginPage() {
                 setUsername('');
                 setFullName('');
               }}
-              className="text-sm text-[#CAAC4C] hover:text-yellow-400 transition-colors"
+              className="text-sm text-gold-500 hover:text-yellow-400 transition-colors"
             >
               {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
             </button>
@@ -400,7 +400,7 @@ export default function LoginPage() {
         <div className="mt-6 text-center">
           <p className="text-gray-400 text-sm">
             Need help? Contact us at{' '}
-            <a href="mailto:support@reawarding.com" className="text-[#CAAC4C] hover:text-yellow-400 transition-colors">
+            <a href="mailto:support@reawarding.com" className="text-gold-500 hover:text-yellow-400 transition-colors">
               support@reawarding.com
             </a>
           </p>

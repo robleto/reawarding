@@ -422,8 +422,8 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 		<div
 			className={`px-1 py-1 md:px-2 md:py-2 mb-2 md:mb-2 rounded-xl border transition duration-200 shadow-sm ${
 				incomplete
-					? "border-[#35353a]/80 bg-[#1a1a1c]/45 hover:bg-[#232326]/75"
-					: "border-[#232326]/80 bg-[#1c1c1e]/60 hover:bg-[#232326]/90"
+					? "border-gray-600/50 bg-gray-900/45 hover:bg-gray-800/70"
+					: "border-gray-700/50 bg-gray-900/60 hover:bg-gray-800/80"
 			} ${
 				onClick ? "cursor-pointer" : ""
 			}`}

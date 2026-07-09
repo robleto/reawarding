@@ -25,13 +25,13 @@ const DARK_COLORS = [
 // Pastel counterparts, one per dark color, tuned to read as a wash on the
 // warm ivory canvas rather than a spotlight.
 const LIGHT_COLORS = [
-  '#EDD494', // Soft gold
-  '#F5B3A9', // Coral blush
-  '#D8BCF2', // Lilac
-  '#AFCFF5', // Powder blue
-  '#ABE3C4', // Mint
-  '#F5BCCE', // Rose
-  '#F5CD96', // Apricot
+  '#EDDCA8', // Soft gold
+  '#F6C9C1', // Coral blush
+  '#E0CCF3', // Lilac
+  '#C4D9F5', // Powder blue
+  '#C2E7D2', // Mint
+  '#F6CCD9', // Rose
+  '#F5DBB0', // Apricot
 ];
 
 export function NetflixGlow() {
@@ -64,8 +64,8 @@ export function NetflixGlow() {
 
   const colors = isDarkMode ? DARK_COLORS : LIGHT_COLORS;
   const glowHidden = !isDarkMode && lightGlowMode === 'off';
-  // Pastels are already soft — they can run at full opacity on ivory.
-  const activeOpacity = isDarkMode ? 1 : 0.8;
+  // Light mode wants an ambient tint, not a color block — keep it quiet.
+  const activeOpacity = isDarkMode ? 1 : 0.55;
 
   // Set the correct color index after mount (client-side)
   useEffect(() => {

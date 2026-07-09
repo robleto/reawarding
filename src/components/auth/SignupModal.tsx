@@ -187,7 +187,7 @@ export default function SignupModal({
         {emailSent ? (
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-900/30">
-              <Mail className="h-6 w-6 text-[#CAAC4C] text-yellow-400" />
+              <Mail className="h-6 w-6 text-gold-500 text-yellow-400" />
             </div>
             <p className="text-gray-300">
               A confirmation link has been sent to <strong>{email}</strong>.
@@ -205,7 +205,7 @@ export default function SignupModal({
             </div>
             <button
               onClick={handleClose}
-              className="mt-5 w-full bg-[#CAAC4C] text-gray-900 py-3 px-4 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 font-medium touch-manipulation min-h-[44px]"
+              className="mt-5 w-full bg-gold-500 text-gray-900 py-3 px-4 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 font-medium touch-manipulation min-h-[44px]"
             >
               Got it
             </button>
@@ -388,7 +388,7 @@ export default function SignupModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#CAAC4C] hover:bg-yellow-600 text-gray-900 py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50 font-medium touch-manipulation min-h-[44px]"
+                className="w-full bg-gold-500 hover:bg-yellow-600 text-gray-900 py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50 font-medium touch-manipulation min-h-[44px]"
               >
                 {loading ? "Creating account..." : "Create Account"}
               </button>
@@ -399,7 +399,7 @@ export default function SignupModal({
                 Already have an account?{" "}
                 <button
                   onClick={onSwitchToLogin}
-                  className="font-medium text-[#CAAC4C] hover:text-yellow-400 transition-colors"
+                  className="font-medium text-gold-500 hover:text-yellow-400 transition-colors"
                 >
                   Sign in
                 </button>

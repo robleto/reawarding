@@ -1429,7 +1429,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                 <div className="lg:col-span-1">
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-xl">🎬</span>
-                    <h3 className="text-xl font-bold text-[#7e7e7e]">
+                    <h3 className="text-xl font-bold text-gray-500">
                       Available Movies
                     </h3>
                   </div>

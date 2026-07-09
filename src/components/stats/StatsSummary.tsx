@@ -197,7 +197,7 @@ export default function StatsSummary({
               <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-4 md:gap-5 lg:gap-6 flex-1">
                 {items.map((item) => (
                   <div key={item.key} className="flex items-center gap-1.5 sm:gap-2">
-                    <div className="text-[#ba7a00] text-yellow-500 bg-yellow-500/10 p-1 sm:p-1.5 rounded flex-shrink-0">
+                    <div className="text-gold-600 text-yellow-500 bg-yellow-500/10 p-1 sm:p-1.5 rounded flex-shrink-0">
                       {item.icon}
                     </div>
                     <div className="flex flex-col min-w-0">
@@ -268,7 +268,7 @@ export default function StatsSummary({
                         </div>
                       )}
                     </div>
-                    <div className="shrink-0 text-[#ba7a00] text-yellow-500 bg-yellow-500/10 p-1.5 sm:p-2 rounded-lg">
+                    <div className="shrink-0 text-gold-600 text-yellow-500 bg-yellow-500/10 p-1.5 sm:p-2 rounded-lg">
                       {item.icon}
                     </div>
                   </div>

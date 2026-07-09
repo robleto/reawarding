@@ -89,7 +89,7 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
 
   return (
     <div
-      className={`px-1 py-1 md:px-2 md:py-2 mb-2 md:mb-2 rounded-xl border border-[#232326]/80 bg-[#1c1c1e]/60 hover:bg-[#232326]/90 active:bg-[#2a2a2e]/90 transition duration-200 shadow-sm ${
+      className={`px-1 py-1 md:px-2 md:py-2 mb-2 md:mb-2 rounded-xl border border-gray-700/50 bg-gray-900/60 hover:bg-gray-800/80 active:bg-gray-700/80 transition duration-200 shadow-sm ${
       onClick ? 'cursor-pointer' : ''
       }`}
       onClick={handleClick}

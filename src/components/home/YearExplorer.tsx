@@ -1077,11 +1077,11 @@ export default function YearExplorer({
               )}
 
               {/* Tour card */}
-              <div className="pointer-events-auto rounded-xl border border-[#3f4654] bg-[#14161b] shadow-2xl shadow-black/50 px-4 py-3.5">
+              <div className="pointer-events-auto rounded-xl border border-gray-600 bg-gray-900 shadow-2xl shadow-black/50 px-4 py-3.5">
 
                   {/* Header: step badge + dismiss */}
                   <div className="flex items-center justify-between mb-2.5">
-                    <span className="inline-flex items-center rounded-full bg-[#263142] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#e6b94d]">
+                    <span className="inline-flex items-center rounded-full bg-gray-800 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-gold-400">
                       Step {ratingTourStep} of 3
                     </span>
                     <button
@@ -1125,17 +1125,17 @@ export default function YearExplorer({
                   )}
 
                   {/* Footer: progress dots + next/done */}
-                  <div className="flex items-center justify-between mt-3.5 pt-2 border-t border-[#2c3340]">
+                  <div className="flex items-center justify-between mt-3.5 pt-2 border-t border-gray-700">
                     <div className="flex gap-2">
                       {[1, 2, 3].map((s) => (
                         <div
                           key={s}
                           className={`h-1.5 rounded-full transition-all duration-300 ${
                             s === ratingTourStep
-                              ? "w-6 bg-[#e6b94d]"
+                              ? "w-6 bg-gold-400"
                               : s < ratingTourStep
-                              ? "w-2 bg-[#e6b94d]/40"
-                              : "w-2 bg-[#4a5160]"
+                              ? "w-2 bg-gold-400/40"
+                              : "w-2 bg-gray-600"
                           }`}
                         />
                       ))}
@@ -1143,7 +1143,7 @@ export default function YearExplorer({
                     {ratingTourStep < 3 ? (
                       <button
                         onClick={() => setRatingTourStep((s) => (s + 1) as 0 | 1 | 2 | 3)}
-                        className="text-sm font-semibold text-[#e6b94d] hover:text-[#f1cf7a] transition-colors"
+                        className="text-sm font-semibold text-gold-400 hover:text-gold-300 transition-colors"
                       >
                         Next →
                       </button>
@@ -1153,7 +1153,7 @@ export default function YearExplorer({
                           setRatingTourStep(0);
                           scrollToCandidates();
                         }}
-                        className="text-sm font-semibold text-[#e6b94d] hover:text-[#f1cf7a] transition-colors"
+                        className="text-sm font-semibold text-gold-400 hover:text-gold-300 transition-colors"
                       >
                         Got it →
                       </button>
