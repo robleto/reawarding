@@ -66,14 +66,17 @@ async function fetchWithRetry(url, attempts = 3) {
 		try {
 			const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
 
-			if (!res.ok) return null;
+			if (res.ok) return res;
 
-			return res;
+			// 404 is permanent; anything else (429, 5xx) is worth retrying
+			if (res.status === 404) return null;
+
+			console.log(`Fetch attempt ${i}/${attempts} got HTTP ${res.status} for ${url}`);
 		} catch (err) {
 			console.log(`Fetch attempt ${i}/${attempts} failed for ${url}: ${err.message}`);
-
-			if (i < attempts) await new Promise((r) => setTimeout(r, 2_000 * i));
 		}
+
+		if (i < attempts) await new Promise((r) => setTimeout(r, 2_000 * i));
 	}
 
 	return null;

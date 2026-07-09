@@ -64,7 +64,7 @@ export default function YearSection({
 					<div className="w-full md:w-1/3 max-w-[300px] mx-auto">
 						<div className="inline-flex items-center justify-center gap-2 mb-2 md:mb-4">
 							<span className="text-xl">🏆</span>
-							<h3 className="text-xl md:text-2xl font-bold text-gold-600 text-gold-400 font-unbounded">
+							<h3 className="text-xl md:text-2xl font-bold text-gold-400 font-unbounded">
 								Winner
 							</h3>
 						</div>
@@ -81,14 +81,14 @@ export default function YearSection({
 
 
 					{/* Divider */}
-					<div className="hidden md:block w-px bg-gray-300 bg-gray-600/50" />
+					<div className="hidden md:block w-px bg-gray-600/50" />
 
 					{/* Nominees */}
 						<div className="w-full md:w-2/3">
 							<div className="flex items-center gap-2 mb-2 md:mb-4">
 							<span className="text-xl">✉️</span>
 
-							<h3 className="text-xl md:text-2xl font-bold text-gray-500 text-gray-200">
+							<h3 className="text-xl md:text-2xl font-bold text-gray-200">
 
 								Nominees
 							</h3>

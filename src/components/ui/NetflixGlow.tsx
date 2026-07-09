@@ -1,7 +1,12 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { gsap } from 'gsap';
+
+// Layout effect on the client so the theme correction lands before paint
+// (avoids a wrong-palette flash); plain effect during SSR to silence warnings.
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 // The scroll-reactive ambient glow behind every page. Dark mode keeps the
 // original saturated cinema palette. Light mode is under evaluation with two
@@ -47,7 +52,7 @@ export function NetflixGlow() {
   const [lightGlowMode, setLightGlowMode] = useState<LightGlowMode>(LIGHT_GLOW_DEFAULT);
 
   // Observe html.dark class changes (Tailwind darkMode: 'class')
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const root = document.documentElement;
     const update = () => setIsDarkMode(root.classList.contains('dark'));
     update();
@@ -106,8 +111,12 @@ export function NetflixGlow() {
       console.log('[NetflixGlow] Color index changed:', prevColorIndex.current, '->', currentColorIndex);
     }
     if (prev && curr) {
-      gsap.to(prev, { opacity: 0, duration: 1, ease: 'power2.out' });
-      gsap.to(curr, { opacity: glowHidden ? 0 : activeOpacity, duration: 0.5, ease: 'power2.out' });
+      // A theme toggle re-runs this with prev === curr; without the guard the
+      // longer fade-out outlives the fade-in and drives the glow to opacity 0.
+      if (prev !== curr) {
+        gsap.to(prev, { opacity: 0, duration: 1, ease: 'power2.out', overwrite: true });
+      }
+      gsap.to(curr, { opacity: glowHidden ? 0 : activeOpacity, duration: 0.5, ease: 'power2.out', overwrite: true });
     }
   }, [currentColorIndex, isDarkMode, glowHidden, activeOpacity, debug]);
 

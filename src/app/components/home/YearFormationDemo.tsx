@@ -136,18 +136,18 @@ export default function YearFormationDemo({
         <span className="font-[var(--font-unbounded,_Unbounded,_sans-serif)] text-xs font-bold tracking-[0.16em] text-[#d4af37]">
           {year}
         </span>
-        <span className="text-[11px] uppercase tracking-[0.14em] text-white/45">Year Explorer</span>
+        <span className="text-[11px] uppercase tracking-[0.14em] text-always-white/45">Year Explorer</span>
       </div>
 
       {/* Inner card grid ─────────────────────────────────────────────────── */}
-      <div className="relative mx-auto w-full max-w-[470px] rounded-xl border border-white/10 bg-[#0d1428] p-3 sm:p-4">
+      <div className="relative mx-auto w-full max-w-[470px] rounded-xl border border-always-white/10 bg-[#0d1428] p-3 sm:p-4">
 
         {/* Placeholder slots — static, always visible beneath the film cards */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={`placeholder-${i}`}
-              className="aspect-[2/3] rounded-md border border-dashed border-white/20 bg-white/[0.03]"
+              className="aspect-[2/3] rounded-md border border-dashed border-always-white/20 bg-always-white/[0.03]"
               aria-hidden="true"
             />
           ))}
@@ -167,7 +167,7 @@ export default function YearFormationDemo({
                 className={`${film.cell} ${baseOpacity}`}
               >
                 {/* Base poster card — no border (border is on the winner overlay) */}
-                <div className="relative h-full w-full overflow-hidden rounded-md border border-white/20 bg-black/30">
+                <div className="relative h-full w-full overflow-hidden rounded-md border border-always-white/20 bg-always-black/30">
                   <img
                     src={film.poster}
                     alt={film.title}
@@ -208,7 +208,7 @@ export default function YearFormationDemo({
       {/* Status line — confirms the system did this automatically */}
       <p
         ref={statusRef}
-        className={`mt-4 text-center text-sm text-white/72 ${
+        className={`mt-4 text-center text-sm text-always-white/72 ${
           reducedMotion ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
         }`}
       >

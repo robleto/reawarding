@@ -186,8 +186,8 @@ export default function SignupModal({
 
         {emailSent ? (
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-900/30">
-              <Mail className="h-6 w-6 text-gold-500 text-yellow-400" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gold-900/30">
+              <Mail className="h-6 w-6 text-gold-400" />
             </div>
             <p className="text-gray-300">
               A confirmation link has been sent to <strong>{email}</strong>.

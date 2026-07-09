@@ -55,6 +55,7 @@ async function exists(key) {
 
 async function ingest() {
 	let offset = 0;
+	let failed = 0;
 	const pageSize = 500;
 
 	while (true) {
@@ -79,6 +80,7 @@ async function ingest() {
 
 				await ingestImage(movie.id, movie.thumb_url, "thumbs", "thumb_url");
 			} catch (err) {
+				failed++;
 				console.log(`Skipping ${movie.id} after error: ${err.message}`);
 			}
 		}
@@ -88,7 +90,12 @@ async function ingest() {
 		console.log(`Processed ${offset} rows`);
 	}
 
-	console.log("Migration complete");
+	if (failed) {
+		console.log(`Migration finished with ${failed} movies skipped due to errors`);
+		process.exitCode = 1;
+	} else {
+		console.log("Migration complete");
+	}
 }
 
 async function fetchWithRetry(url, attempts = 3) {
@@ -96,14 +103,17 @@ async function fetchWithRetry(url, attempts = 3) {
 		try {
 			const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
 
-			if (!res.ok) return null;
+			if (res.ok) return Buffer.from(await res.arrayBuffer());
 
-			return Buffer.from(await res.arrayBuffer());
+			// 404 is permanent; anything else (429, 5xx) is worth retrying
+			if (res.status === 404) return null;
+
+			console.log(`Fetch attempt ${i}/${attempts} got HTTP ${res.status} for ${url}`);
 		} catch (err) {
 			console.log(`Fetch attempt ${i}/${attempts} failed for ${url}: ${err.message}`);
-
-			if (i < attempts) await new Promise((r) => setTimeout(r, 2_000 * i));
 		}
+
+		if (i < attempts) await new Promise((r) => setTimeout(r, 2_000 * i));
 	}
 
 	return null;
@@ -119,10 +129,12 @@ async function ingestImage(id, url, folder, column) {
 	if (await exists(key)) {
 		const newUrl = `${BASE}/${key}`;
 
-		await supabase
+		const { error } = await supabase
 			.from("movies")
 			.update({ [column]: newUrl })
 			.eq("id", id);
+
+		if (error) throw error;
 
 		console.log(`Already exists, updated DB: ${key}`);
 
@@ -149,10 +161,12 @@ async function ingestImage(id, url, folder, column) {
 
 	const newUrl = `${BASE}/${key}`;
 
-	await supabase
+	const { error } = await supabase
 		.from("movies")
 		.update({ [column]: newUrl })
 		.eq("id", id);
+
+	if (error) throw error;
 
 	console.log(`Uploaded ${key}`);
 }

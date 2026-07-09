@@ -105,11 +105,11 @@ export default function LoggedInOnboardingExperience({
           <span className="text-xs font-medium text-gray-500 group-hover:text-gray-300 transition-colors">
             {copy.eyebrow || "First-time setup"}
           </span>
-          <span className="inline text-xs text-gray-700 truncate">
+          <span className="inline text-xs text-gray-500 truncate">
             — {copy.headline || "Start with one film you know."}
           </span>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0 text-[11px] text-gray-600 group-hover:text-gray-400 transition-colors">
+        <div className="flex items-center gap-1 flex-shrink-0 text-[11px] text-gray-500 group-hover:text-gray-400 transition-colors">
           Show guide
           <ChevronDown className="h-3 w-3" />
         </div>
@@ -122,7 +122,7 @@ export default function LoggedInOnboardingExperience({
     <div className="mb-8">
       {/* Outer wrapper: shadow + border + radius — NO overflow-hidden so search glow isn't clipped */}
       <div
-        className={`rounded-2xl border ${stage === "welcome" ? "border-white/[0.06]" : "border-gold-500/25"}`}
+        className={`rounded-2xl border ${stage === "welcome" ? "border-always-white/[0.06]" : "border-always-gold-500/25"}`}
         style={{
           background: "#0B0F14",
           boxShadow: stage === "welcome"
@@ -148,8 +148,8 @@ export default function LoggedInOnboardingExperience({
           <div className="mb-3">
             <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] ${
               stage === "welcome"
-                ? "border border-white/[0.08] bg-transparent text-gray-600"
-                : "border border-gold-500/30 bg-gold-500/[0.10] text-gold-400"
+                ? "border border-always-white/[0.08] bg-transparent text-always-white/40"
+                : "border border-always-gold-500/30 bg-always-gold-500/[0.10] text-always-gold-400"
             }`}>
               {stage !== "welcome" && <Sparkles className="h-2.5 w-2.5" />}
               {copy.eyebrow || "First-time setup"}
@@ -158,12 +158,12 @@ export default function LoggedInOnboardingExperience({
 
           {/* ── Row 2: Headline ─────────────────────────────────────────── */}
           {/* Dominant — largest type on the card, nothing competes */}
-          <h2 className="font-unbounded text-2xl font-bold text-white leading-tight sm:text-3xl">
+          <h2 className="font-unbounded text-2xl font-bold text-always-white leading-tight sm:text-3xl">
             {copy.headline || "Start with one film you know."}
           </h2>
           {/* Body: only shown post-welcome — at welcome the search IS the next step */}
           {stage !== "welcome" && copy.body && (
-            <p className="mt-3 text-sm leading-relaxed text-gray-300 max-w-xl">
+            <p className="mt-3 text-sm leading-relaxed text-always-white/75 max-w-xl">
               {copy.body}
             </p>
           )}
@@ -178,7 +178,7 @@ export default function LoggedInOnboardingExperience({
               suggestedQuery={suggestedQuery}
             />
             {/* Hint: one sentence, small, immediately below input */}
-            <p className="mt-2.5 text-xs text-gray-500">{copy.searchHint}</p>
+            <p className="mt-2.5 text-xs text-always-white/50">{copy.searchHint}</p>
             {/* Chips: example shortcuts, ONLY at welcome — once the user has
                 rated anything, the ballot card below is their workshop and
                 chips would just compete with it. */}
@@ -189,7 +189,7 @@ export default function LoggedInOnboardingExperience({
                     key={film}
                     type="button"
                     onClick={() => onSuggestedQuery(film)}
-                    className="rounded-full border border-white/[0.08] bg-transparent px-3 py-1 text-xs text-gray-500 hover:border-gold-500/35 hover:text-gold-300 transition-colors"
+                    className="rounded-full border border-always-white/[0.08] bg-transparent px-3 py-1 text-xs text-always-white/50 hover:border-always-gold-500/35 hover:text-always-gold-300 transition-colors"
                   >
                     {film}
                   </button>
@@ -203,7 +203,7 @@ export default function LoggedInOnboardingExperience({
             <button
               type="button"
               onClick={onShowHowItWorks}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-400 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs text-always-white/45 hover:text-always-white/65 transition-colors"
             >
               How ratings shape a year
               <ArrowRight className="h-2.5 w-2.5" />
@@ -212,7 +212,7 @@ export default function LoggedInOnboardingExperience({
               <button
                 type="button"
                 onClick={() => setIsCollapsed(true)}
-                className="flex items-center gap-1 text-xs text-gray-700 hover:text-gray-500 transition-colors"
+                className="flex items-center gap-1 text-xs text-always-white/35 hover:text-always-white/55 transition-colors"
               >
                 Hide guide
                 <ChevronUp className="h-3 w-3" />
@@ -220,7 +220,7 @@ export default function LoggedInOnboardingExperience({
               <button
                 type="button"
                 onClick={onDismiss}
-                className="text-xs text-gray-700 hover:text-gray-500 transition-colors"
+                className="text-xs text-always-white/35 hover:text-always-white/55 transition-colors"
               >
                 Don't show again
               </button>

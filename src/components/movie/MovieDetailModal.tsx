@@ -76,11 +76,15 @@ export default function MovieDetailModal({
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [details, setDetails] = useState<Partial<Movie> | null>(null);
 
-  // Self-hydrate full metadata; the movie prop may be a slim list projection
+  // Self-hydrate full metadata; the movie prop may be a slim list projection.
+  // details is keyed by movie.id (DETAIL_FIELDS includes id) so a row hydrated
+  // for a previous film never bleeds into the next one, and reopening the same
+  // film skips the refetch. The error path settles to a bare {id} sentinel so
+  // the loading skeleton always resolves.
   useEffect(() => {
     if (!isOpen) return;
+    if (details?.id === movie.id) return;
     let cancelled = false;
-    setDetails(null);
     supabase
       .from("movies")
       .select(DETAIL_FIELDS)
@@ -90,17 +94,19 @@ export default function MovieDetailModal({
         if (cancelled) return;
         if (error) {
           console.warn("Movie detail hydration failed:", error.message);
+          setDetails({ id: movie.id });
           return;
         }
-        if (data) setDetails(data as Partial<Movie>);
+        setDetails((data as Partial<Movie>) ?? { id: movie.id });
       });
     return () => {
       cancelled = true;
     };
-  }, [isOpen, movie.id]);
+  }, [isOpen, movie.id, details]);
 
-  // Hydrated row wins; prop fields fill the gap until the fetch lands
-  const film: Movie = { ...movie, ...(details ?? {}) };
+  // Hydrated row wins once it matches this movie; prop fills the gap meanwhile
+  const hydrated = details && details.id === movie.id ? details : null;
+  const film: Movie = { ...movie, ...(hydrated ?? {}) };
 
   const videos = parseJsonish<TMDBVideo[]>(film.videos, []);
   const youtubeVideos = Array.isArray(videos)
@@ -374,12 +380,12 @@ export default function MovieDetailModal({
               )}
 
               {/* Hydration placeholder — keeps the panel from looking empty while details load */}
-              {!details && !film.overview && (
+              {!hydrated && !film.overview && (
                 <div className="space-y-2 animate-pulse" aria-hidden="true">
-                  <div className="h-4 w-24 rounded bg-gray-800" />
-                  <div className="h-3 w-full rounded bg-gray-800/70" />
-                  <div className="h-3 w-5/6 rounded bg-gray-800/70" />
-                  <div className="h-3 w-2/3 rounded bg-gray-800/70" />
+                  <div className="h-4 w-24 rounded bg-gray-700" />
+                  <div className="h-3 w-full rounded bg-gray-700/70" />
+                  <div className="h-3 w-5/6 rounded bg-gray-700/70" />
+                  <div className="h-3 w-2/3 rounded bg-gray-700/70" />
                 </div>
               )}
 

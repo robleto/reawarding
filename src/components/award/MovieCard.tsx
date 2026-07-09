@@ -622,7 +622,7 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 						type="button"
 						onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie.id); }}
 						className={`movie-card-overlay absolute top-2 right-2 flex items-center justify-center w-8 h-8 rounded-md bg-always-black/70 backdrop-blur-sm transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-always-black/85 ${
-							isOnWatchlist ? "text-amber-400" : "text-gray-300 hover:text-amber-300"
+							isOnWatchlist ? "text-amber-400" : "text-always-white/80 hover:text-amber-300"
 						}`}
 						title={isOnWatchlist ? "Remove from watchlist" : "Add to watchlist"}
 					>

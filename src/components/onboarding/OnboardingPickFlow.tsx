@@ -358,7 +358,7 @@ function OnboardingMovieCard({
                 <button
                   type="button"
                   onClick={onOpenRatePicker}
-                  className="flex items-center gap-1 min-h-[44px] px-2.5 rounded-lg border border-gray-600/40 text-xs font-semibold transition-colors hover:border-gold-400/60 active:scale-95"
+                  className="flex items-center gap-1 min-h-[44px] px-2.5 rounded-lg border border-always-white/15 text-xs font-semibold transition-colors hover:border-always-gold-400/60 active:scale-95"
                   style={{ backgroundColor: "rgba(30,30,34,0.75)", color: "#fde68a" }}
                   aria-label="Open rating picker"
                 >
@@ -369,8 +369,8 @@ function OnboardingMovieCard({
                 <span
                   className={`flex items-center gap-1 h-9 px-2.5 rounded-lg border font-semibold transition-colors ${
                     selectedRating
-                      ? "text-sm border-gray-700/60"
-                      : "text-xs border-gray-600/40"
+                      ? "text-sm border-always-white/25"
+                      : "text-xs border-always-white/15"
                   }`}
                   style={
                     selectedRating && ratingStyle
