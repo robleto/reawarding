@@ -206,6 +206,19 @@
   --shadow-ink-strong: rgba(20, 20, 19, 0.14);
 }
 
+/* The sticky header applies .dark-background once scrolled, which only has
+   styling under .dark — in light mode it was fully transparent and page
+   content bled through the chrome. Solid-ish light backdrop to match. */
+.light .dark-background {
+  background-color: rgba(251, 251, 250, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-color: rgba(20, 20, 19, 0.08);
+}
+.light .dark-background:hover {
+  background-color: rgba(251, 251, 250, 0.97);
+}
+
 /* Sliding hover/active pill in the desktop nav. Dark: frosted white
    lighten (original look). Light: floating white segment, iOS-style. */
 .nav-bubble {
