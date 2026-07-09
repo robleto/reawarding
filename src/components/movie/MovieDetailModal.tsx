@@ -358,8 +358,16 @@ export default function MovieDetailModal({
                 {film.director && (
                   <div className="flex items-center col-span-2 gap-2 sm:col-span-1">
                     <Clapperboard className="w-4 h-4 text-gold-500/80" />
-                    <span className="text-gray-300 truncate" title={film.director}>
+                    <span className="text-gray-300 truncate" title={`Directed by ${film.director}`}>
                       {film.director}
+                    </span>
+                  </div>
+                )}
+                {film.writer && film.writer !== film.director && (
+                  <div className="flex items-center col-span-2 gap-2 sm:col-span-1">
+                    <Users className="w-4 h-4 text-gold-500/80" />
+                    <span className="text-gray-300 truncate" title={`Written by ${film.writer}`}>
+                      {film.writer}
                     </span>
                   </div>
                 )}
