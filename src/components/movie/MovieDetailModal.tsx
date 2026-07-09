@@ -4,10 +4,11 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@supabase/auth-helpers-react";
 import Image from "next/image";
-import { X, Maximize2, Eye, EyeOff, Film, Clock, Users, Clapperboard, ExternalLink, Copy } from "lucide-react";
+import { X, Maximize2, Eye, EyeOff, Film, Clock, Users, Clapperboard, ExternalLink, Copy, Play } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import RatingModal from "@/components/movie/RatingModal";
-import type { Movie } from "@/types/types";
+import WatchProviders from "@/components/films/WatchProviders";
+import type { Movie, TMDBVideo } from "@/types/types";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { slugifyTitle } from "@/utils/slug";
@@ -25,7 +26,20 @@ interface MovieDetailModalProps {
 // Callers pass whatever slim projection their list query fetched, so the modal
 // hydrates the full metadata row itself instead of trusting the prop to be complete.
 const DETAIL_FIELDS =
-  "id, overview, tagline, runtime, genres, director, writer, cast_list, mpaa_rating, tmdb_id, imdb_rating, metacritic_score";
+  "id, overview, tagline, runtime, genres, director, writer, cast_list, mpaa_rating, tmdb_id, imdb_rating, metacritic_score, videos, watch_providers, backdrop_url";
+
+// JSONB columns may arrive double-encoded as strings (see films/[slug]/[id]/page.tsx)
+function parseJsonish<T>(value: unknown, fallback: T): T {
+  if (value == null) return fallback;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return fallback;
+    }
+  }
+  return value as T;
+}
 
 // Fallback component for missing images
 const PosterFallback = ({ 
@@ -87,6 +101,24 @@ export default function MovieDetailModal({
 
   // Hydrated row wins; prop fields fill the gap until the fetch lands
   const film: Movie = { ...movie, ...(details ?? {}) };
+
+  const videos = parseJsonish<TMDBVideo[]>(film.videos, []);
+  const youtubeVideos = Array.isArray(videos)
+    ? videos.filter((v) => v && v.site === "YouTube" && v.key)
+    : [];
+  const trailer =
+    youtubeVideos.find((v) => v.type === "Trailer" && v.official) ||
+    youtubeVideos.find((v) => v.type === "Trailer") ||
+    youtubeVideos.find((v) => v.type === "Teaser") ||
+    null;
+  const watchProviders = parseJsonish<Movie["watch_providers"]>(film.watch_providers, undefined);
+  const hasProviders =
+    !!watchProviders &&
+    Object.values(watchProviders).some(
+      (region) =>
+        region &&
+        (region.flatrate?.length || region.rent?.length || region.buy?.length)
+    );
 
   // Reset state when modal opens with new movie
   useEffect(() => {
@@ -198,15 +230,25 @@ export default function MovieDetailModal({
         className="bg-charcoal-900/80 border border-gold-500/20 rounded-t-2xl sm:rounded-2xl shadow-lg max-w-4xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto text-gray-200"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-start justify-between p-4 border-b sm:p-6 border-gold-500/20 bg-charcoal-900/80 backdrop-blur-sm">
-          <div>
+        {/* Header — backdrop image behind a dark scrim when available */}
+        <div className="sticky top-0 z-10 flex items-start justify-between p-4 border-b sm:p-6 border-gold-500/20 bg-charcoal-900/80 backdrop-blur-sm overflow-hidden">
+          {film.backdrop_url && (
+            <>
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url(${film.backdrop_url})` }}
+                aria-hidden="true"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-charcoal-900/95 via-charcoal-900/85 to-charcoal-900/70" aria-hidden="true" />
+            </>
+          )}
+          <div className="relative">
             <h2 className="text-2xl font-bold text-gold-400">
               {movie.title}
             </h2>
             <p className="text-gray-400 text-sm">{movie.release_year}</p>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="relative flex items-center gap-1">
             <button
               onClick={() => router.push(`/films/${slugifyTitle(movie.title)}/${movie.id}`)}
               className="p-3 transition-colors rounded-full hover:bg-gray-700/50"
@@ -371,6 +413,17 @@ export default function MovieDetailModal({
                     </span>
                   </div>
                 )}
+                {trailer && (
+                  <a
+                    href={`https://www.youtube.com/watch?v=${trailer.key}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-gold-300 hover:text-gold-200 transition-colors"
+                  >
+                    <Play className="w-4 h-4 text-gold-500/80" />
+                    <span>Watch Trailer</span>
+                  </a>
+                )}
               </div>
 
               {/* External Links / IDs (Admin only) */}
@@ -428,6 +481,14 @@ export default function MovieDetailModal({
                   <p className="text-sm text-gray-300">
                     {film.cast_list.slice(0, 10).join(", ")}
                   </p>
+                </div>
+              )}
+
+              {/* Where to Watch */}
+              {hasProviders && (
+                <div>
+                  <h4 className="mb-2 font-semibold text-gold-400">Where to Watch</h4>
+                  <WatchProviders providersByRegion={watchProviders} preferredRegion="US" />
                 </div>
               )}
 
