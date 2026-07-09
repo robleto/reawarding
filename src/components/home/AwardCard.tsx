@@ -62,8 +62,8 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
 
             {/* Trophy badge — top-right */}
             <div className="absolute top-2.5 right-2.5">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gold-400/30 to-gold-600/20 backdrop-blur-sm border border-gold-500/40 flex items-center justify-center group-hover:from-gold-400/50 group-hover:to-gold-600/40 transition-all duration-300 shadow-lg shadow-gold-500/10">
-                <Trophy className="w-4 h-4 text-gold-400 drop-shadow-[0_0_4px_rgba(234,179,8,0.5)]" />
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-always-gold-400/30 to-always-gold-600/20 backdrop-blur-sm border border-always-gold-500/40 flex items-center justify-center group-hover:from-always-gold-400/50 group-hover:to-always-gold-600/40 transition-all duration-300 shadow-lg shadow-always-gold-500/10">
+                <Trophy className="w-4 h-4 text-always-gold-400 drop-shadow-[0_0_4px_rgba(234,179,8,0.5)]" />
               </div>
             </div>
 
@@ -74,13 +74,13 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
               </p>
               <p className="text-[10px] mt-1 font-medium drop-shadow-md">
                 {isAcademyMatch ? (
-                  <span className="text-gold-300">Agrees with the Academy</span>
+                  <span className="text-always-gold-300">Agrees with the Academy</span>
                 ) : actualWinner ? (
                   <span className="text-always-white/70">
-                    Over <span className="text-gold-400/80">{actualWinner.title}</span>
+                    Over <span className="text-always-gold-400/80">{actualWinner.title}</span>
                   </span>
                 ) : (
-                  <span className="text-gold-400/70">Best Picture</span>
+                  <span className="text-always-gold-400/70">Best Picture</span>
                 )}
               </p>
               {nomineeCount > 1 && (
@@ -89,14 +89,14 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
                     {Array.from({ length: Math.min(nomineeCount, 5) }).map((_, i) => (
                       <div
                         key={i}
-                        className="w-2 h-2 rounded-full border border-gold-600/50 shadow-sm"
+                        className="w-2 h-2 rounded-full border border-always-gold-600/50 shadow-sm"
                         style={{
                           background: `linear-gradient(135deg, rgba(234,179,8,${0.9 - i * 0.12}), rgba(161,98,7,${0.7 - i * 0.1}))`,
                         }}
                       />
                     ))}
                     {nomineeCount > 5 && (
-                      <span className="text-[12px] text-gold-500/70 ml-1.5 font-medium">
+                      <span className="text-[12px] text-always-gold-500/70 ml-1.5 font-medium">
                         +{nomineeCount - 5}
                       </span>
                     )}

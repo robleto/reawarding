@@ -99,7 +99,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
           <button
             type="button"
             onClick={handleSignup}
-            className="w-full py-2 px-3 rounded-md text-sm font-medium text-gray-900 bg-[#CAAC4C] bg-[#CAAC4C] hover:bg-yellow-400 transition-colors shadow"
+            className="w-full py-2 px-3 rounded-md text-sm font-medium text-black bg-gold-500 hover:bg-gold-400 transition-colors shadow"
           >
             Sign Up
           </button>
@@ -119,7 +119,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
         <button
           type="button"
           onClick={handleSignup}
-          className="px-4 py-2 text-sm font-medium text-gray-900 bg-[#CAAC4C] bg-[#CAAC4C] hover:bg-yellow-400 rounded-lg transition-colors shadow"
+          className="px-4 py-2 text-sm font-medium text-black bg-gold-500 hover:bg-gold-400 rounded-lg transition-colors shadow"
         >
           Sign Up
         </button>

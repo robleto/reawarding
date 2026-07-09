@@ -14,18 +14,30 @@ const config = {
 			},
 			colors: {
 				// Add custom Oscar-themed colors
+				// Award gold: bright metallic on the dark canvas, deep bronze on
+				// ivory (MeepleGo's deep-accent-on-pale light pattern, kept in the
+				// awards hue). Resolves through vars — see globals.css.
 				gold: {
+					DEFAULT: 'rgb(var(--tone-gold-500) / <alpha-value>)',
+					50: 'rgb(var(--tone-gold-50) / <alpha-value>)',
+					100: 'rgb(var(--tone-gold-100) / <alpha-value>)',
+					200: 'rgb(var(--tone-gold-200) / <alpha-value>)',
+					300: 'rgb(var(--tone-gold-300) / <alpha-value>)',
+					400: 'rgb(var(--tone-gold-400) / <alpha-value>)',
+					500: 'rgb(var(--tone-gold-500) / <alpha-value>)',
+					600: 'rgb(var(--tone-gold-600) / <alpha-value>)',
+					700: 'rgb(var(--tone-gold-700) / <alpha-value>)',
+					800: 'rgb(var(--tone-gold-800) / <alpha-value>)',
+					900: 'rgb(var(--tone-gold-900) / <alpha-value>)',
+				},
+				// Fixed metallic gold for content on top of poster art (pinned
+				// zone — never flips with the theme).
+				'always-gold': {
 					DEFAULT: '#D4AF37',
-					50: '#F8F3E6',
-					100: '#F1E6CC',
-					200: '#E8D399',
 					300: '#DFC066',
 					400: '#D6AD33',
 					500: '#D4AF37',
 					600: '#B8952C',
-					700: '#8F7322',
-					800: '#665217',
-					900: '#3D310E',
 				},
 				// Theme-flipping tones. The site is authored dark-first; these
 				// scales resolve through CSS variables (globals.css) so `.light`

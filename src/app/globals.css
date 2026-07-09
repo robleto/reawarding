@@ -148,6 +148,16 @@
   --tone-charcoal-700: 85 85 85;
   --tone-charcoal-800: 60 60 60;
   --tone-charcoal-900: 45 45 45;
+  --tone-gold-50: 248 243 230;
+  --tone-gold-100: 241 230 204;
+  --tone-gold-200: 232 211 153;
+  --tone-gold-300: 223 192 102;
+  --tone-gold-400: 214 173 51;
+  --tone-gold-500: 212 175 55;
+  --tone-gold-600: 184 149 44;
+  --tone-gold-700: 143 115 34;
+  --tone-gold-800: 102 82 23;
+  --tone-gold-900: 61 49 14;
   /* Elevation shadows: strong in dark, whisper-soft in light */
   --shadow-ink: rgba(0, 0, 0, 0.40);
   --shadow-ink-strong: rgba(0, 0, 0, 0.50);
@@ -177,6 +187,18 @@
   --tone-charcoal-700: 208 205 197;
   --tone-charcoal-800: 230 228 223;
   --tone-charcoal-900: 242 241 238;
+  /* Gold deepens to bronze so accents hold contrast on ivory; the deep
+     ends (800/900, used as dark washes) flip to pale tints. */
+  --tone-gold-50: 248 243 230;
+  --tone-gold-100: 241 230 204;
+  --tone-gold-200: 226 202 138;
+  --tone-gold-300: 187 138 40;
+  --tone-gold-400: 156 111 16;
+  --tone-gold-500: 139 98 11;
+  --tone-gold-600: 118 83 10;
+  --tone-gold-700: 95 67 9;
+  --tone-gold-800: 241 230 204;
+  --tone-gold-900: 248 243 230;
   --shadow-ink: rgba(28, 26, 22, 0.08);
   --shadow-ink-strong: rgba(28, 26, 22, 0.14);
 }

@@ -143,7 +143,7 @@ export default function CollectionsManager() {
               onClick={() => setFilter(tab)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 filter === tab
-                  ? 'bg-gold-500 text-white shadow-lg shadow-gold-500/20'
+                  ? 'bg-gold-500 text-black shadow-lg shadow-gold-500/20'
                   : 'bg-charcoal-800/50 text-gray-400 hover:text-white hover:bg-charcoal-700/50'
               }`}
             >
