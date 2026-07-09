@@ -14,6 +14,7 @@ import SimilarMoviesGrid from "@/components/films/SimilarMoviesGrid";
 import EnhancedStats from "@/components/films/EnhancedStats";
 import ImdbIdEditor from "@/components/films/ImdbIdEditor";
 import FilmEntryPanel from "@/components/films/FilmEntryPanel";
+import YourTake from "@/components/films/YourTake";
 import {
   ExternalLink, Star, TrendingUp, DollarSign, Users, Calendar, Clock,
   Film as FilmIcon, Award, Video, Image as ImageIcon, BarChart3,
@@ -327,6 +328,9 @@ export default async function MovieDetailPage({ params }: any) {
           </div>
         </div>
       </div>
+
+      {/* Your Take — expression layer (logged-in only; renders nothing for guests) */}
+      <YourTake movieId={movie.id} />
 
       {/* Detailed Information Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

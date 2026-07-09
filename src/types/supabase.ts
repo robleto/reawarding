@@ -241,6 +241,57 @@ export type Database = {
         }
         Relationships: []
       }
+      expressions: {
+        Row: {
+          created_at: string
+          favorite_quote: string | null
+          id: string
+          movie_id: string
+          notes: string | null
+          quality_tags: string[]
+          updated_at: string
+          user_id: string
+          would_recommend: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          favorite_quote?: string | null
+          id?: string
+          movie_id: string
+          notes?: string | null
+          quality_tags?: string[]
+          updated_at?: string
+          user_id: string
+          would_recommend?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          favorite_quote?: string | null
+          id?: string
+          movie_id?: string
+          notes?: string | null
+          quality_tags?: string[]
+          updated_at?: string
+          user_id?: string
+          would_recommend?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expressions_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expressions_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies_with_genres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedback: {
         Row: {
           created_at: string
