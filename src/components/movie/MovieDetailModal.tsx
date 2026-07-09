@@ -641,9 +641,11 @@ export default function MovieDetailModal({
         posterUrl={normalizeImageUrl((movie.poster_url || '').trim())}
         currentRating={ranking}
         movieYear={movie.release_year ?? undefined}
+        movieId={movie.id}
         onRate={(newRanking) => {
+          // Don't close here — RatingModal plays its confirmation beat
+          // (and the Add-your-take invite) then calls onClose itself.
           handleRankingChange(newRanking);
-          setShowRatingModal(false);
         }}
         onClose={() => setShowRatingModal(false)}
       />

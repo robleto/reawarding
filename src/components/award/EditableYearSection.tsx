@@ -1638,6 +1638,7 @@ function WorkshopNomineeRow({
         movieTitle={movie.title}
         posterUrl={movie.poster_url}
         currentRating={ranking || null}
+        movieId={movie.id}
         onRate={(value) => onRankingChange(value)}
         onClose={() => setShowRatingModal(false)}
       />

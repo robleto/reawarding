@@ -326,6 +326,7 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 					movieTitle={movie.title}
 					posterUrl={movie.poster_url}
 					currentRating={rating || null}
+					movieId={movie.id}
 					onRate={(value) => onUpdate?.(movie.id, { ranking: value })}
 					onClose={() => setShowRatingModal(false)}
 				/>
@@ -704,6 +705,7 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 					movieTitle={movie.title}
 					posterUrl={movie.poster_url}
 					currentRating={rating || null}
+					movieId={movie.id}
 					onRate={(value) => onUpdate?.(movie.id, { ranking: value })}
 					onClose={() => setShowRatingModal(false)}
 				/>
