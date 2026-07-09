@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "patch:supabase-fetch": "node scripts/patch-supabase-fetch.cjs",
-    "predev": "npm run patch:supabase-fetch",
+    "predev": "npm run patch:supabase-fetch && node -e \"const ip=require('os').networkInterfaces()['en0']?.find(a=>a.family==='IPv4')?.address; if(ip)console.log('\\n  Phone (same Wi-Fi): http://'+ip+':3000 — ignore the 100.64.x.x Network address (Zscaler VPN tunnel)\\n')\"",
     "prebuild": "npm run patch:supabase-fetch",
     "prestart": "npm run patch:supabase-fetch",
     "dev": "next dev",

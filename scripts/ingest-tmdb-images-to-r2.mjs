@@ -61,6 +61,7 @@ async function ingest() {
 		const { data: movies, error } = await supabase
 			.from("movies")
 			.select("id, poster_url, thumb_url")
+			.order("id")
 			.range(offset, offset + pageSize - 1);
 
 		if (error) throw error;
@@ -68,14 +69,18 @@ async function ingest() {
 		if (!movies.length) break;
 
 		for (const movie of movies) {
-			await ingestImage(
-				movie.id,
-				movie.poster_url,
-				"posters",
-				"poster_url",
-			);
+			try {
+				await ingestImage(
+					movie.id,
+					movie.poster_url,
+					"posters",
+					"poster_url",
+				);
 
-			await ingestImage(movie.id, movie.thumb_url, "thumbs", "thumb_url");
+				await ingestImage(movie.id, movie.thumb_url, "thumbs", "thumb_url");
+			} catch (err) {
+				console.log(`Skipping ${movie.id} after error: ${err.message}`);
+			}
 		}
 
 		offset += pageSize;
@@ -84,6 +89,24 @@ async function ingest() {
 	}
 
 	console.log("Migration complete");
+}
+
+async function fetchWithRetry(url, attempts = 3) {
+	for (let i = 1; i <= attempts; i++) {
+		try {
+			const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+
+			if (!res.ok) return null;
+
+			return Buffer.from(await res.arrayBuffer());
+		} catch (err) {
+			console.log(`Fetch attempt ${i}/${attempts} failed for ${url}: ${err.message}`);
+
+			if (i < attempts) await new Promise((r) => setTimeout(r, 2_000 * i));
+		}
+	}
+
+	return null;
 }
 
 async function ingestImage(id, url, folder, column) {
@@ -106,15 +129,13 @@ async function ingestImage(id, url, folder, column) {
 		return;
 	}
 
-	const res = await fetch(url);
+	const buf = await fetchWithRetry(url);
 
-	if (!res.ok) {
+	if (!buf) {
 		console.log(`Failed fetch: ${url}`);
 
 		return;
 	}
-
-	const buf = Buffer.from(await res.arrayBuffer());
 
 	await r2.send(
 		new PutObjectCommand({
