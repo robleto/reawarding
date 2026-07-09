@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@supabase/auth-helpers-react";
 import Image from "next/image";
-import { X, Maximize2, Eye, EyeOff, Film, Clock, Users, Clapperboard, ExternalLink, Copy, Play } from "lucide-react";
+import { X, Maximize2, Eye, EyeOff, Film, Clock, Users, Clapperboard, ExternalLink, Copy, Play, PenLine, ThumbsUp, ThumbsDown } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import RatingModal from "@/components/movie/RatingModal";
 import WatchProviders from "@/components/films/WatchProviders";
@@ -27,6 +27,13 @@ interface MovieDetailModalProps {
 // hydrates the full metadata row itself instead of trusting the prop to be complete.
 const DETAIL_FIELDS =
   "id, overview, tagline, runtime, genres, director, writer, cast_list, mpaa_rating, tmdb_id, imdb_rating, metacritic_score, videos, watch_providers, backdrop_url";
+
+type Expression = {
+  notes: string | null;
+  favorite_quote: string | null;
+  quality_tags: string[];
+  would_recommend: boolean | null;
+};
 
 // JSONB columns may arrive double-encoded as strings (see films/[slug]/[id]/page.tsx)
 function parseJsonish<T>(value: unknown, fallback: T): T {
@@ -75,6 +82,7 @@ export default function MovieDetailModal({
   const [copiedTmdb, setCopiedTmdb] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [details, setDetails] = useState<Partial<Movie> | null>(null);
+  const [expression, setExpression] = useState<{ movieId: string; data: Expression | null } | null>(null);
 
   // Self-hydrate full metadata; the movie prop may be a slim list projection.
   // details is keyed by movie.id (DETAIL_FIELDS includes id) so a row hydrated
@@ -107,6 +115,42 @@ export default function MovieDetailModal({
   // Hydrated row wins once it matches this movie; prop fills the gap meanwhile
   const hydrated = details && details.id === movie.id ? details : null;
   const film: Movie = { ...movie, ...(hydrated ?? {}) };
+
+  // The user's expression row, read-only here — editing lives on the film page
+  // (YourTake panel) to keep the modal a pure Viewing surface. Keyed by movie
+  // id the same way as details so takes never bleed between films.
+  useEffect(() => {
+    if (!isOpen || !user) return;
+    if (expression?.movieId === movie.id) return;
+    let cancelled = false;
+    supabase
+      .from("expressions")
+      .select("notes, favorite_quote, quality_tags, would_recommend")
+      .eq("movie_id", movie.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn("Expression fetch failed:", error.message);
+          setExpression({ movieId: movie.id, data: null });
+          return;
+        }
+        setExpression({ movieId: movie.id, data: data ?? null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, user, movie.id, expression]);
+
+  const yourTake = expression?.movieId === movie.id ? expression.data : null;
+  const hasTake =
+    !!yourTake &&
+    !!(
+      yourTake.notes ||
+      yourTake.favorite_quote ||
+      yourTake.quality_tags?.length ||
+      yourTake.would_recommend != null
+    );
 
   const videos = parseJsonish<TMDBVideo[]>(film.videos, []);
   const youtubeVideos = Array.isArray(videos)
@@ -431,6 +475,69 @@ export default function MovieDetailModal({
                   </a>
                 )}
               </div>
+
+              {/* Your Take — read-only summary; editing lives on the film page */}
+              {hasTake && yourTake && (
+                <div className="p-4 border rounded-lg bg-gray-800/50 border-gold-500/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-gold-400 flex items-center gap-2">
+                      <PenLine className="w-4 h-4" />
+                      Your Take
+                    </h4>
+                    <button
+                      onClick={() => router.push(`/films/${slugifyTitle(movie.title)}/${movie.id}`)}
+                      className="text-xs font-medium text-gold-300 hover:text-gold-200 transition-colors"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                  {yourTake.favorite_quote && (
+                    <blockquote className="pl-3 border-l-2 border-gold-500/40 text-sm italic text-gray-300">
+                      &ldquo;{yourTake.favorite_quote}&rdquo;
+                    </blockquote>
+                  )}
+                  {yourTake.notes && (
+                    <p className="text-sm text-gray-300 whitespace-pre-wrap">{yourTake.notes}</p>
+                  )}
+                  {yourTake.quality_tags && yourTake.quality_tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {yourTake.quality_tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="px-2 py-0.5 text-xs font-medium bg-gold-900/50 text-gold-300 rounded-full"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {yourTake.would_recommend != null && (
+                    <div
+                      className={`inline-flex items-center gap-1.5 text-sm ${
+                        yourTake.would_recommend ? "text-green-300" : "text-red-300"
+                      }`}
+                    >
+                      {yourTake.would_recommend ? (
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                      ) : (
+                        <ThumbsDown className="w-3.5 h-3.5" />
+                      )}
+                      {yourTake.would_recommend ? "Would recommend" : "Wouldn’t recommend"}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Seen it but nothing expressed yet — quiet invite to the editor */}
+              {user && seenIt && expression?.movieId === movie.id && !hasTake && (
+                <button
+                  onClick={() => router.push(`/films/${slugifyTitle(movie.title)}/${movie.id}`)}
+                  className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gold-300 transition-colors"
+                >
+                  <PenLine className="w-3.5 h-3.5" />
+                  Add your take
+                </button>
+              )}
 
               {/* External Links / IDs (Admin only) */}
               {isAdmin && (
