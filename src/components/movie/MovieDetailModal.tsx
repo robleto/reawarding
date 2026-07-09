@@ -22,6 +22,11 @@ interface MovieDetailModalProps {
   initialSeenIt?: boolean;
 }
 
+// Callers pass whatever slim projection their list query fetched, so the modal
+// hydrates the full metadata row itself instead of trusting the prop to be complete.
+const DETAIL_FIELDS =
+  "id, overview, tagline, runtime, genres, director, writer, cast_list, mpaa_rating, tmdb_id, imdb_rating, metacritic_score";
+
 // Fallback component for missing images
 const PosterFallback = ({ 
   title, 
@@ -55,6 +60,33 @@ export default function MovieDetailModal({
   const [hasValidImage, setHasValidImage] = useState(true);
   const [copiedTmdb, setCopiedTmdb] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [details, setDetails] = useState<Partial<Movie> | null>(null);
+
+  // Self-hydrate full metadata; the movie prop may be a slim list projection
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    setDetails(null);
+    supabase
+      .from("movies")
+      .select(DETAIL_FIELDS)
+      .eq("id", movie.id)
+      .single()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn("Movie detail hydration failed:", error.message);
+          return;
+        }
+        if (data) setDetails(data as Partial<Movie>);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, movie.id]);
+
+  // Hydrated row wins; prop fields fill the gap until the fetch lands
+  const film: Movie = { ...movie, ...(details ?? {}) };
 
   // Reset state when modal opens with new movie
   useEffect(() => {
@@ -145,9 +177,9 @@ export default function MovieDetailModal({
   // Removed unused handleRankingClear function
 
   const handleCopyTmdb = async () => {
-    if (!movie?.tmdb_id) return;
+    if (!film.tmdb_id) return;
     try {
-      await navigator.clipboard.writeText(String(movie.tmdb_id));
+      await navigator.clipboard.writeText(String(film.tmdb_id));
       setCopiedTmdb(true);
       setTimeout(() => setCopiedTmdb(false), 1500);
     } catch (e) {
@@ -263,9 +295,9 @@ export default function MovieDetailModal({
                     </div>
 
                     {/* Genres — in sidebar on mobile only */}
-                    {movie.genres && movie.genres.length > 0 && (
+                    {film.genres && film.genres.length > 0 && (
                       <div className="md:hidden flex flex-wrap gap-1.5 pt-1">
-                        {movie.genres.map((genre: string, index: number) => (
+                        {film.genres.map((genre: string, index: number) => (
                           <span
                             key={index}
                             className="px-2 py-0.5 text-xs font-medium bg-gold-900/50 text-gold-300 rounded-full"
@@ -284,35 +316,50 @@ export default function MovieDetailModal({
 
             {/* Right Column: Details */}
             <div className="flex-1 space-y-6">
+              {/* Tagline */}
+              {film.tagline && (
+                <p className="text-sm italic text-gold-300/80">{film.tagline}</p>
+              )}
+
               {/* Overview */}
-              {movie.overview && (
+              {film.overview && (
                 <div>
                   <h4 className="mb-2 font-semibold text-gold-400">Overview</h4>
                   <p className="text-sm leading-relaxed text-gray-300">
-                    {movie.overview}
+                    {film.overview}
                   </p>
+                </div>
+              )}
+
+              {/* Hydration placeholder — keeps the panel from looking empty while details load */}
+              {!details && !film.overview && (
+                <div className="space-y-2 animate-pulse" aria-hidden="true">
+                  <div className="h-4 w-24 rounded bg-gray-800" />
+                  <div className="h-3 w-full rounded bg-gray-800/70" />
+                  <div className="h-3 w-5/6 rounded bg-gray-800/70" />
+                  <div className="h-3 w-2/3 rounded bg-gray-800/70" />
                 </div>
               )}
 
               {/* Quick Info Grid */}
               <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
-                {movie.runtime && (
+                {film.runtime && (
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-gold-500/80" />
-                    <span className="text-gray-300">{movie.runtime} min</span>
+                    <span className="text-gray-300">{film.runtime} min</span>
                   </div>
                 )}
-                {movie.mpaa_rating && (
+                {film.mpaa_rating && (
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-gold-500/80" />
-                    <span className="text-gray-300">Rated {movie.mpaa_rating}</span>
+                    <span className="text-gray-300">Rated {film.mpaa_rating}</span>
                   </div>
                 )}
-                {movie.director && (
+                {film.director && (
                   <div className="flex items-center col-span-2 gap-2 sm:col-span-1">
                     <Clapperboard className="w-4 h-4 text-gold-500/80" />
-                    <span className="text-gray-300 truncate" title={movie.director}>
-                      {movie.director}
+                    <span className="text-gray-300 truncate" title={film.director}>
+                      {film.director}
                     </span>
                   </div>
                 )}
@@ -324,17 +371,17 @@ export default function MovieDetailModal({
                   <div className="flex items-center gap-2 text-gray-400">
                     <span className="font-mono">DB ID: {movie.id}</span>
                   </div>
-                  {movie.tmdb_id && (
+                  {film.tmdb_id && (
                     <div className="flex items-center gap-3">
                       <a
-                        href={`https://www.themoviedb.org/movie/${movie.tmdb_id}`}
+                        href={`https://www.themoviedb.org/movie/${film.tmdb_id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-gold-300 hover:text-gold-200"
                         title="Open on TMDB"
                       >
                         <ExternalLink className="w-4 h-4" />
-                        TMDB: {movie.tmdb_id}
+                        TMDB: {film.tmdb_id}
                       </a>
                       <button
                         onClick={handleCopyTmdb}
@@ -350,11 +397,11 @@ export default function MovieDetailModal({
               )}
 
               {/* Genres — desktop only (mobile shows genres in the sidebar) */}
-              {movie.genres && movie.genres.length > 0 && (
+              {film.genres && film.genres.length > 0 && (
                 <div className="hidden md:block">
                   <h4 className="mb-2 font-semibold text-gold-400">Genres</h4>
                   <div className="flex flex-wrap gap-2">
-                    {movie.genres.map((genre: string, index: number) => (
+                    {film.genres.map((genre: string, index: number) => (
                       <span
                         key={index}
                         className="px-2.5 py-1 text-xs font-medium bg-gold-900/50 text-gold-300 rounded-full"
@@ -367,32 +414,32 @@ export default function MovieDetailModal({
               )}
 
               {/* Cast */}
-              {movie.cast_list && movie.cast_list.length > 0 && (
+              {film.cast_list && film.cast_list.length > 0 && (
                 <div>
                   <h4 className="mb-2 font-semibold text-gold-400">Cast</h4>
                   <p className="text-sm text-gray-300">
-                    {movie.cast_list.slice(0, 10).join(", ")}
+                    {film.cast_list.slice(0, 10).join(", ")}
                   </p>
                 </div>
               )}
 
               {/* Scores (Admin only) */}
-              {isAdmin && (movie.imdb_rating || movie.metacritic_score) && (
+              {isAdmin && (film.imdb_rating || film.metacritic_score) && (
                 <div>
                   <h4 className="mb-2 font-semibold text-gold-400">Scores</h4>
                   <div className="grid grid-cols-2 gap-4">
-                    {movie.imdb_rating && (
+                    {film.imdb_rating && (
                       <div className="p-3 text-center border rounded-lg bg-gray-800/50 border-gold-500/10">
                         <div className="text-xl font-bold text-white">
-                          {movie.imdb_rating.toFixed(1)}
+                          {film.imdb_rating.toFixed(1)}
                         </div>
                         <div className="text-xs text-gray-400">IMDb</div>
                       </div>
                     )}
-                    {movie.metacritic_score && (
+                    {film.metacritic_score && (
                       <div className="p-3 text-center border rounded-lg bg-gray-800/50 border-gold-500/10">
                         <div className="text-xl font-bold text-white">
-                          {movie.metacritic_score}
+                          {film.metacritic_score}
                         </div>
                         <div className="text-xs text-gray-400">Metacritic</div>
                       </div>
