@@ -114,6 +114,84 @@
   --font-unbounded: "Unbounded";
 }
 
+/* ── Theme tokens ─────────────────────────────────────────────────────────
+   The site is authored dark-first: components say bg-gray-950, text-white,
+   bg-black/40, etc. Rather than adding thousands of `dark:` variants, the
+   gray/charcoal scales plus white/black resolve through these variables
+   (see tailwind.config.js). :root holds the authored dark values; `.light`
+   remaps the whole scale onto a warm ivory ramp, so text-white becomes ink,
+   bg-gray-950 becomes the light canvas, and poster scrims flip with their
+   text. Gold and the semantic accents (emerald/amber/red/blue) are shared.
+   Use always-white / always-black for the rare true-fixed cases. */
+:root,
+.dark {
+  --tone-gray-50: 249 250 251;
+  --tone-gray-100: 243 244 246;
+  --tone-gray-200: 229 231 235;
+  --tone-gray-300: 209 213 219;
+  --tone-gray-400: 156 163 175;
+  --tone-gray-500: 107 114 128;
+  --tone-gray-600: 75 85 99;
+  --tone-gray-700: 55 65 81;
+  --tone-gray-800: 31 41 55;
+  --tone-gray-900: 17 24 39;
+  --tone-gray-950: 3 7 18;
+  --tone-white: 255 255 255;
+  --tone-black: 0 0 0;
+  --tone-charcoal-50: 245 245 245;
+  --tone-charcoal-100: 232 232 232;
+  --tone-charcoal-200: 209 209 209;
+  --tone-charcoal-300: 184 184 184;
+  --tone-charcoal-400: 160 160 160;
+  --tone-charcoal-500: 135 135 135;
+  --tone-charcoal-600: 110 110 110;
+  --tone-charcoal-700: 85 85 85;
+  --tone-charcoal-800: 60 60 60;
+  --tone-charcoal-900: 45 45 45;
+}
+
+.light {
+  --tone-gray-50: 28 26 22;    /* strongest ink */
+  --tone-gray-100: 41 39 34;   /* primary text (was near-white) */
+  --tone-gray-200: 62 59 52;
+  --tone-gray-300: 84 80 71;
+  --tone-gray-400: 107 102 91; /* secondary text */
+  --tone-gray-500: 138 133 121;
+  --tone-gray-600: 189 184 171;
+  --tone-gray-700: 219 215 205; /* borders / hover */
+  --tone-gray-800: 236 233 226; /* cards */
+  --tone-gray-900: 245 243 239; /* panels */
+  --tone-gray-950: 250 249 246; /* page canvas */
+  --tone-white: 28 26 22;       /* text-white → ink */
+  --tone-black: 255 255 255;    /* bg-black/40 scrims → light scrims */
+  --tone-charcoal-50: 25 23 19;
+  --tone-charcoal-100: 38 36 32;
+  --tone-charcoal-200: 59 57 52;
+  --tone-charcoal-300: 83 80 74;
+  --tone-charcoal-400: 106 102 92;
+  --tone-charcoal-500: 135 131 122;
+  --tone-charcoal-600: 168 164 154;
+  --tone-charcoal-700: 208 205 197;
+  --tone-charcoal-800: 230 228 223;
+  --tone-charcoal-900: 242 241 238;
+}
+
+/* dark-glass is used standalone on real pages (settings, profile, award
+   sections). It only had styling under .dark — give it a light-mode base so
+   those cards don't lose their surface when the theme flips. */
+.light .dark-glass {
+  border-radius: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-color: rgba(28, 26, 22, 0.08);
+  box-shadow: 0 4px 24px 0 rgba(28, 26, 22, 0.06);
+}
+.light .dark-glass:hover {
+  background-color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(28, 26, 22, 0.14);
+}
+
 body {
   font-family: var(--font-inter), system-ui, sans-serif;
 }

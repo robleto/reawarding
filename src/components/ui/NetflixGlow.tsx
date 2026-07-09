@@ -3,16 +3,38 @@
 import { useEffect, useState, useRef } from 'react';
 import { gsap } from 'gsap';
 
+// The scroll-reactive ambient glow behind every page. Dark mode keeps the
+// original saturated cinema palette. Light mode is under evaluation with two
+// candidates (see LIGHT_GLOW_DEFAULT below):
+//   'pastel' — same rotation, but soft pastel tints that sit on ivory
+//   'off'    — no glow at all; the light canvas stays clean
+// While we decide, either can be forced with ?glow=pastel or ?glow=off.
+type LightGlowMode = 'pastel' | 'off';
+const LIGHT_GLOW_DEFAULT: LightGlowMode = 'pastel';
+
+const DARK_COLORS = [
+  '#D4AF37', // Gold
+  '#EF4444', // Red
+  '#A855F7', // Purple
+  '#3B82F6', // Blue
+  '#10B981', // Green
+  '#F43F5E', // Pink
+  '#F59E0B', // Orange
+];
+
+// Pastel counterparts, one per dark color, tuned to read as a wash on the
+// warm ivory canvas rather than a spotlight.
+const LIGHT_COLORS = [
+  '#EBDFB3', // Soft gold
+  '#F6CFCA', // Blush red
+  '#E3D3F2', // Lilac
+  '#CDDFF5', // Powder blue
+  '#CBE8D8', // Mint
+  '#F8D4DC', // Rose
+  '#F6E2BE', // Apricot
+];
+
 export function NetflixGlow() {
-  const colors = [
-    '#D4AF37', // Gold
-    '#EF4444', // Red
-    '#A855F7', // Purple
-    '#3B82F6', // Blue
-    '#10B981', // Green
-    '#F43F5E', // Pink
-    '#F59E0B', // Orange
-  ];
   const debug = process.env.NODE_ENV !== 'production';
 
   const [currentColorIndex, setCurrentColorIndex] = useState(0);
@@ -20,8 +42,9 @@ export function NetflixGlow() {
   const gradientRefs = useRef<(HTMLDivElement | null)[]>([]);
   // Track if this is the first render after mount
   const isFirstRender = useRef(true);
-  // Track theme to adjust intensity in light mode only
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // Track theme to swap palettes (dark = saturated, light = pastel/off)
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [lightGlowMode, setLightGlowMode] = useState<LightGlowMode>(LIGHT_GLOW_DEFAULT);
 
   // Observe html.dark class changes (Tailwind darkMode: 'class')
   useEffect(() => {
@@ -33,6 +56,17 @@ export function NetflixGlow() {
     return () => observer.disconnect();
   }, []);
 
+  // Temporary comparison hook while light mode is evaluated: ?glow=off|pastel
+  useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get('glow');
+    if (param === 'off' || param === 'pastel') setLightGlowMode(param);
+  }, []);
+
+  const colors = isDarkMode ? DARK_COLORS : LIGHT_COLORS;
+  const glowHidden = !isDarkMode && lightGlowMode === 'off';
+  // Pastels are already soft — they can run at full opacity on ivory.
+  const activeOpacity = isDarkMode ? 1 : 0.8;
+
   // Set the correct color index after mount (client-side)
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -43,18 +77,6 @@ export function NetflixGlow() {
   }, [colors.length]);
 
   useEffect(() => {
-    if (debug) {
-      console.log('[NetflixGlow] Mounted. Initial color index:', currentColorIndex);
-    }
-    setTimeout(() => {
-      gradientRefs.current.forEach((ref, idx) => {
-        if (ref) {
-          if (debug) {
-            console.log(`[NetflixGlow] On mount: Gradient ${idx} opacity:`, ref.style.opacity);
-          }
-        }
-      });
-    }, 100);
     const handleScroll = () => {
       const scrollY = window.scrollY;
       const scrollTrigger = 600;
@@ -70,7 +92,7 @@ export function NetflixGlow() {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [currentColorIndex, colors.length]);
+  }, [currentColorIndex, colors.length, debug]);
 
   useEffect(() => {
     // Only animate previous and current if not the first render
@@ -84,11 +106,12 @@ export function NetflixGlow() {
       console.log('[NetflixGlow] Color index changed:', prevColorIndex.current, '->', currentColorIndex);
     }
     if (prev && curr) {
-      const targetOpacity = isDarkMode ? 1 : 0.35; // Lighten effect in light mode
       gsap.to(prev, { opacity: 0, duration: 1, ease: 'power2.out' });
-      gsap.to(curr, { opacity: targetOpacity, duration: 0.5, ease: 'power2.out' });
+      gsap.to(curr, { opacity: glowHidden ? 0 : activeOpacity, duration: 0.5, ease: 'power2.out' });
     }
-  }, [currentColorIndex, isDarkMode]);
+  }, [currentColorIndex, isDarkMode, glowHidden, activeOpacity, debug]);
+
+  if (glowHidden) return null;
 
   return (
     <div
@@ -102,7 +125,7 @@ export function NetflixGlow() {
           className="gradient absolute w-full h-full transition-opacity duration-1000 ease-out"
           style={{
             background: `linear-gradient(226.67deg, ${color} -38.52%, ${color}00 50.26%)`,
-            opacity: index === currentColorIndex ? (isDarkMode ? 1 : 0.35) : 0,
+            opacity: index === currentColorIndex ? activeOpacity : 0,
             mixBlendMode: 'normal',
           }}
         />

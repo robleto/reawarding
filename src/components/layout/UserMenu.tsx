@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Activity, Bookmark, Film, LogOut, Star, Trophy, User, Users } from 'lucide-react';
+import { Activity, Bookmark, Film, LogOut, Moon, Star, Sun, Trophy, User, Users } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { useEnsureProfile } from '@/hooks/useEnsureProfile';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import type { Database } from '@/types/supabase';
@@ -27,6 +28,9 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
   const router = useRouter();
   const supabase = useSupabaseClient<Database>();
   const { user, status: authStatus } = useAuthState();
+  const { resolvedTheme, setTheme } = useTheme();
+  const isLightMode = resolvedTheme === 'light';
+  const toggleTheme = () => setTheme(isLightMode ? 'dark' : 'light');
 
   const { profile, loading: profileLoading, error: profileError } = useEnsureProfile(user);
 
@@ -177,6 +181,13 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
           ))}
           <div className="border-t border-gray-700 my-1" />
           <button
+            onClick={toggleTheme}
+            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-md text-sm font-medium text-left text-gray-300 hover:bg-gray-800"
+          >
+            {isLightMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            {isLightMode ? 'Dark Mode' : 'Light Mode'}
+          </button>
+          <button
             onClick={handleSignOut}
             className="flex items-center gap-2 w-full px-3 py-2.5 rounded-md text-sm font-medium text-left text-gray-300 hover:bg-gray-800"
           >
@@ -225,6 +236,14 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
             ))}
 
             <div className="border-t border-gray-700 my-1" />
+
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-gray-700 transition-colors"
+            >
+              {isLightMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              {isLightMode ? 'Dark Mode' : 'Light Mode'}
+            </button>
 
             <button
               onClick={handleSignOut}
