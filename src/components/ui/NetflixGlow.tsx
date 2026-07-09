@@ -25,13 +25,13 @@ const DARK_COLORS = [
 // Pastel counterparts, one per dark color, tuned to read as a wash on the
 // warm ivory canvas rather than a spotlight.
 const LIGHT_COLORS = [
-  '#EBDFB3', // Soft gold
-  '#F6CFCA', // Blush red
-  '#E3D3F2', // Lilac
-  '#CDDFF5', // Powder blue
-  '#CBE8D8', // Mint
-  '#F8D4DC', // Rose
-  '#F6E2BE', // Apricot
+  '#EDD494', // Soft gold
+  '#F5B3A9', // Coral blush
+  '#D8BCF2', // Lilac
+  '#AFCFF5', // Powder blue
+  '#ABE3C4', // Mint
+  '#F5BCCE', // Rose
+  '#F5CD96', // Apricot
 ];
 
 export function NetflixGlow() {

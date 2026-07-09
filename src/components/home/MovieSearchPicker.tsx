@@ -112,10 +112,10 @@ export default function MovieSearchPicker({
   const containerClasses = isHero
     ? [
         "flex items-center gap-3 rounded-xl border px-4 h-14 transition-all duration-200",
-        "bg-gradient-to-b from-[#121826] to-[#0E1420]",
+        "bg-gradient-to-b from-gray-900 to-gray-950",
         isFocused
-          ? "border-gold-500/70 shadow-[0_0_0_3px_rgba(212,175,55,0.30),_0_0_20px_rgba(212,175,55,0.15),_0_4px_24px_rgba(0,0,0,0.50)]"
-          : "border-gold-500/45 shadow-[0_0_0_1px_rgba(212,175,55,0.20),_0_0_12px_rgba(212,175,55,0.08),_0_4px_20px_rgba(0,0,0,0.40)]",
+          ? "border-gold-500/70 shadow-[0_0_0_3px_rgba(212,175,55,0.30),_0_0_20px_rgba(212,175,55,0.15),_0_4px_24px_var(--shadow-ink-strong)]"
+          : "border-gold-500/45 shadow-[0_0_0_1px_rgba(212,175,55,0.20),_0_0_12px_rgba(212,175,55,0.08),_0_4px_20px_var(--shadow-ink)]",
       ].join(" ")
     : "flex items-center gap-2 rounded-xl border border-gray-600/60 bg-charcoal-900/80 backdrop-blur-md shadow-sm px-4 h-12";
 

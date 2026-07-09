@@ -48,7 +48,7 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
             )}
 
             {/* Gradient overlay for text legibility */}
-            <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none" />
+            <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-always-black via-always-black/70 to-transparent pointer-events-none" />
 
             {/* Subtle vignette */}
             <div className="absolute inset-0 shadow-[inset_0_0_30px_rgba(0,0,0,0.5)] pointer-events-none" />
@@ -69,14 +69,14 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
 
             {/* Bottom text overlay */}
             <div className="absolute inset-x-0 bottom-0 p-3">
-              <p className="text-sm font-bold text-white leading-tight line-clamp-2 drop-shadow-lg">
+              <p className="text-sm font-bold text-always-white leading-tight line-clamp-2 drop-shadow-lg">
                 {winnerTitle}
               </p>
               <p className="text-[10px] mt-1 font-medium drop-shadow-md">
                 {isAcademyMatch ? (
                   <span className="text-gold-300">Agrees with the Academy</span>
                 ) : actualWinner ? (
-                  <span className="text-gray-300/90">
+                  <span className="text-always-white/70">
                     Over <span className="text-gold-400/80">{actualWinner.title}</span>
                   </span>
                 ) : (
@@ -101,7 +101,7 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
                       </span>
                     )}
                   </div>
-                  <span className="text-[12px] text-gray-400/90 font-medium">
+                  <span className="text-[12px] text-always-white/60 font-medium">
                     {nomineeCount} nominee{nomineeCount !== 1 ? "s" : ""}
                   </span>
                 </div>

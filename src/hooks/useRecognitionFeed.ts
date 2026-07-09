@@ -12,7 +12,7 @@ export interface FeedRow {
 }
 
 const FEED_COLS =
-  "id, title, release_year, poster_url, thumb_url, cached_poster_url, cached_thumb_url, imdb_rating, genres";
+  "id, title, release_year, poster_url, thumb_url, imdb_rating, genres";
 
 function toMovies(data: Record<string, unknown>[] | null): Movie[] {
   if (!data) return [];

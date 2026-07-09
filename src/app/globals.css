@@ -148,6 +148,9 @@
   --tone-charcoal-700: 85 85 85;
   --tone-charcoal-800: 60 60 60;
   --tone-charcoal-900: 45 45 45;
+  /* Elevation shadows: strong in dark, whisper-soft in light */
+  --shadow-ink: rgba(0, 0, 0, 0.40);
+  --shadow-ink-strong: rgba(0, 0, 0, 0.50);
 }
 
 .light {
@@ -157,11 +160,11 @@
   --tone-gray-300: 84 80 71;
   --tone-gray-400: 107 102 91; /* secondary text */
   --tone-gray-500: 138 133 121;
-  --tone-gray-600: 189 184 171;
-  --tone-gray-700: 219 215 205; /* borders / hover */
-  --tone-gray-800: 236 233 226; /* cards */
-  --tone-gray-900: 245 243 239; /* panels */
-  --tone-gray-950: 250 249 246; /* page canvas */
+  --tone-gray-600: 199 194 181;
+  --tone-gray-700: 227 224 214; /* borders / hover */
+  --tone-gray-800: 255 255 255; /* cards — pure white on the ivory canvas */
+  --tone-gray-900: 250 248 244; /* panels */
+  --tone-gray-950: 242 240 234; /* page canvas — deep ivory so white cards read */
   --tone-white: 28 26 22;       /* text-white → ink */
   --tone-black: 255 255 255;    /* bg-black/40 scrims → light scrims */
   --tone-charcoal-50: 25 23 19;
@@ -174,6 +177,21 @@
   --tone-charcoal-700: 208 205 197;
   --tone-charcoal-800: 230 228 223;
   --tone-charcoal-900: 242 241 238;
+  --shadow-ink: rgba(28, 26, 22, 0.08);
+  --shadow-ink-strong: rgba(28, 26, 22, 0.14);
+}
+
+/* Award gallery cards in light mode: keep the gold shimmer, soften the
+   heavy black drop shadow that was tuned for the dark canvas. */
+.light .award-card-glow {
+  box-shadow:
+    0 0 15px rgba(212, 175, 55, 0.18),
+    0 4px 16px rgba(28, 26, 22, 0.10);
+}
+.light .award-card-glow:hover {
+  box-shadow:
+    0 0 20px rgba(212, 175, 55, 0.30),
+    0 6px 20px rgba(28, 26, 22, 0.14);
 }
 
 /* dark-glass is used standalone on real pages (settings, profile, award

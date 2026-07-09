@@ -154,7 +154,7 @@ function FeaturedCard({ movie, rating, posterSrc, onClick }: { movie: Movie; rat
 					<PosterFallback title={movie.title} />
 				)}
 				<RatingBadge rating={rating} className="absolute bottom-2.5 right-2.5 text-sm px-2 py-1" />
-				<div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+				<div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-always-black/60 to-transparent pointer-events-none" />
 			</div>
 			<h4 className="mt-3 text-xl font-semibold text-white">
 				{movie.title}
@@ -225,13 +225,13 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 					)}
 					{/* Rank badge — top-left */}
 					{rank != null && (
-						<span className="absolute top-2 left-2 w-6 h-6 flex items-center justify-center rounded-full bg-black/65 backdrop-blur-sm text-[10px] font-bold text-white tabular-nums leading-none">
+						<span className="absolute top-2 left-2 w-6 h-6 flex items-center justify-center rounded-full bg-always-black/65 backdrop-blur-sm text-[10px] font-bold text-always-white tabular-nums leading-none">
 							{rank}
 						</span>
 					)}
 					{/* Winner badge — top-right */}
 					{isWinner && (
-						<span className="absolute top-2 right-2 flex items-center justify-center w-6 h-6 rounded-full bg-black/65 backdrop-blur-sm">
+						<span className="absolute top-2 right-2 flex items-center justify-center w-6 h-6 rounded-full bg-always-black/65 backdrop-blur-sm">
 							<Trophy className="w-3.5 h-3.5 text-gold-400" />
 						</span>
 					)}
@@ -264,7 +264,7 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 										{ratingLabel && <VariancePill label={ratingLabel} />}
 										{footerAction}
 									</div>
-									<p className="text-xs font-semibold text-white leading-tight line-clamp-2">
+									<p className="text-xs font-semibold text-always-white leading-tight line-clamp-2">
 										{movie.title}
 									</p>
 								</div>
@@ -305,14 +305,14 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 						<>
 							{/* Display-only rating badge */}
 							<RatingBadge rating={rating} className="absolute bottom-2 right-2 text-[10px] px-1.5 py-0.5" />
-							<div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+							<div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-always-black/70 to-transparent pointer-events-none" />
 						</>
 					)}
 				</div>
 				{/* Title beneath poster (only when NOT in ratingOnly mode, which shows title in overlay) */}
 				{!ratingOnly && (
 					<div className="px-2.5 py-2">
-						<p className="text-xs font-medium text-white leading-snug line-clamp-2">
+						<p className="text-xs font-medium text-always-white leading-snug line-clamp-2">
 							{movie.title}
 						</p>
 					</div>
@@ -605,14 +605,14 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 
 					{/* Rank badge — top-left */}
 					{rank != null && (
-						<span className="absolute top-2 left-2 min-w-[26px] h-[26px] flex items-center justify-center rounded-md bg-black/70 backdrop-blur-sm text-xs font-bold text-white tabular-nums leading-none px-1.5">
+						<span className="absolute top-2 left-2 min-w-[26px] h-[26px] flex items-center justify-center rounded-md bg-always-black/70 backdrop-blur-sm text-xs font-bold text-always-white tabular-nums leading-none px-1.5">
 							{rank}
 						</span>
 					)}
 
 					{/* Winner badge — top-left (if no rank) */}
 					{isWinner && rank == null && (
-						<span className="absolute top-2 left-2 flex items-center justify-center w-7 h-7 rounded-md bg-black/70 backdrop-blur-sm">
+						<span className="absolute top-2 left-2 flex items-center justify-center w-7 h-7 rounded-md bg-always-black/70 backdrop-blur-sm">
 							<Trophy className="w-4 h-4 text-gold-400" />
 						</span>
 					)}
@@ -621,7 +621,7 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 					<button
 						type="button"
 						onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie.id); }}
-						className={`movie-card-overlay absolute top-2 right-2 flex items-center justify-center w-8 h-8 rounded-md bg-black/70 backdrop-blur-sm transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-black/85 ${
+						className={`movie-card-overlay absolute top-2 right-2 flex items-center justify-center w-8 h-8 rounded-md bg-always-black/70 backdrop-blur-sm transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-always-black/85 ${
 							isOnWatchlist ? "text-amber-400" : "text-gray-300 hover:text-amber-300"
 						}`}
 						title={isOnWatchlist ? "Remove from watchlist" : "Add to watchlist"}
@@ -633,7 +633,7 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 					{!interactive && (
 						<>
 							<RatingBadge rating={rating} className="absolute bottom-2 right-2 text-xs px-1.5 py-0.5" />
-							<div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+							<div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-always-black/70 to-transparent pointer-events-none" />
 						</>
 					)}
 
@@ -654,7 +654,7 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 								}}
 								showText={true}
 								size="sm"
-								className="h-9 px-2.5 rounded-lg border border-gray-600/40 bg-black/40 hover:bg-black/60 text-xs font-semibold gap-1"
+								className="h-9 px-2.5 rounded-lg border border-always-white/20 bg-always-black/40 hover:bg-always-black/60 text-xs font-semibold gap-1"
 							/>
 
 							{/* Right: Rate
