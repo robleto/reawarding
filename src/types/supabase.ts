@@ -1062,7 +1062,6 @@ export type Database = {
           id: string
           imported_from: string | null
           movie_id: string | null
-          notes: string | null
           ranking: number | null
           seen_it: boolean | null
           updated_at: string | null
@@ -1074,7 +1073,6 @@ export type Database = {
           id?: string
           imported_from?: string | null
           movie_id?: string | null
-          notes?: string | null
           ranking?: number | null
           seen_it?: boolean | null
           updated_at?: string | null
@@ -1086,7 +1084,6 @@ export type Database = {
           id?: string
           imported_from?: string | null
           movie_id?: string | null
-          notes?: string | null
           ranking?: number | null
           seen_it?: boolean | null
           updated_at?: string | null
