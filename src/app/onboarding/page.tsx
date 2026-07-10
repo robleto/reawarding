@@ -165,7 +165,7 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={() => { setSelectedEra(null); nextStep(); }}
-                className="inline-flex items-center min-h-[44px] px-2 text-sm text-gray-600 hover:text-gray-400 transition-colors"
+                className="inline-flex items-center min-h-[44px] px-2 text-sm text-gray-500 hover:text-gray-300 transition-colors"
               >
                 Skip this step
               </button>
@@ -262,7 +262,7 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={() => setStep((s) => s - 1)}
-                className="inline-flex items-center min-h-[44px] px-2 text-sm text-gray-600 hover:text-gray-400 transition-colors"
+                className="inline-flex items-center min-h-[44px] px-2 text-sm text-gray-500 hover:text-gray-300 transition-colors"
               >
                 Back
               </button>

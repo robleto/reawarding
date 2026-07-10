@@ -22,7 +22,7 @@ export default function MobileTabBar() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-gray-800 bg-charcoal-900/90 backdrop-blur supports-[backdrop-filter]:backdrop-blur"
+      className="mobile-tab-bar md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-gray-700/60 bg-charcoal-900/90 backdrop-blur supports-[backdrop-filter]:backdrop-blur"
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px))" }}
       aria-label="Primary"
     >
@@ -34,7 +34,7 @@ export default function MobileTabBar() {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center justify-center gap-1 min-h-[56px] w-full px-2 py-2 text-xs transition-colors ${
+                className={`mobile-tab-link flex flex-col items-center justify-center gap-1 min-h-[56px] w-full px-2 py-2 text-xs transition-colors ${
                   active
                     ? "text-gold-300"
                     : "text-gray-400 hover:text-gold-300"

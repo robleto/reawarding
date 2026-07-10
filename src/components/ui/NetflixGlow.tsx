@@ -47,8 +47,11 @@ export function NetflixGlow() {
   const gradientRefs = useRef<(HTMLDivElement | null)[]>([]);
   // Track if this is the first render after mount
   const isFirstRender = useRef(true);
-  // Track theme to swap palettes (dark = saturated, light = pastel/off)
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  // Track theme to swap palettes (dark = saturated, light = pastel/off).
+  // null until the layout effect reads the real class: the server-rendered
+  // frame must not assume a palette, or light-mode loads flash the saturated
+  // dark gold before hydration corrects it.
+  const [isDarkMode, setIsDarkMode] = useState<boolean | null>(null);
   const [lightGlowMode, setLightGlowMode] = useState<LightGlowMode>(LIGHT_GLOW_DEFAULT);
 
   // Observe html.dark class changes (Tailwind darkMode: 'class')
@@ -67,10 +70,12 @@ export function NetflixGlow() {
     if (param === 'off' || param === 'pastel') setLightGlowMode(param);
   }, []);
 
+  const themeKnown = isDarkMode !== null;
   const colors = isDarkMode ? DARK_COLORS : LIGHT_COLORS;
-  const glowHidden = !isDarkMode && lightGlowMode === 'off';
+  const glowHidden = themeKnown && !isDarkMode && lightGlowMode === 'off';
   // Light mode wants an ambient tint, not a color block — keep it quiet.
-  const activeOpacity = isDarkMode ? 1 : 0.55;
+  // Opacity 0 until the theme is known (first client paint).
+  const activeOpacity = !themeKnown ? 0 : isDarkMode ? 1 : 0.55;
 
   // Set the correct color index after mount (client-side)
   useEffect(() => {

@@ -232,6 +232,26 @@
   box-shadow: 0 2px 8px rgba(20, 20, 19, 0.10);
 }
 
+/* Mobile tab bar stays legible in light mode without falling back to a dark
+   chrome on an ivory canvas. */
+.mobile-tab-bar {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.light .mobile-tab-bar {
+  background-color: rgba(251, 251, 250, 0.92);
+  border-color: rgba(20, 20, 19, 0.08);
+  box-shadow: 0 -8px 24px rgba(20, 20, 19, 0.06);
+}
+.light .mobile-tab-link {
+  color: rgba(60, 59, 56, 0.9);
+}
+.light .mobile-tab-link:hover {
+  color: rgb(var(--tone-gold-400));
+}
+.light .mobile-tab-link[aria-current="page"] {
+  color: rgb(var(--tone-gold-400));
+}
+
 /* Award gallery cards in light mode: keep the gold shimmer, soften the
    heavy black drop shadow that was tuned for the dark canvas. */
 .light .award-card-glow {
@@ -561,10 +581,13 @@ body {
 
 .home-hero__microcopy {
   font-size: 0.78rem;
-  color: rgba(200, 196, 192, 0.4);
+  color: rgba(200, 196, 192, 0.55);
   letter-spacing: 0.04em;
   margin-top: 0;
   text-align: center;
+}
+.light .home-hero__microcopy {
+  color: rgba(105, 104, 99, 0.75);
 }
 
 .home-search-picker {
