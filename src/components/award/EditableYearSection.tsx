@@ -1202,7 +1202,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
               {/* Nominees */}
               <div className={`w-full ${compact ? "" : "md:w-2/3"}`}>
                 {/* Section header row — nominees label + edit ballot top-right */}
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-wrap items-center justify-between gap-y-2 mb-3">
                   <div className="flex items-baseline gap-3">
                     <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-gray-500">Nominees</p>
                     {(() => {
@@ -1217,9 +1217,9 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     {user && !isEditing && !isWorkshop && (
                       <button
                         onClick={onEditRequest ?? handleStartEditing}
-                        className="flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium text-gray-400 border border-gray-700/40 rounded-md hover:text-white hover:border-gray-600 hover:bg-gray-800/60 transition-all"
+                        className="flex items-center gap-1.5 min-h-[44px] px-3.5 text-sm font-medium text-gray-300 border border-gray-700/40 rounded-lg hover:text-white hover:border-gray-600 hover:bg-gray-800/60 transition-all"
                       >
-                        <Edit3 className="w-3 h-3" />
+                        <Edit3 className="w-3.5 h-3.5" />
                         Edit ballot
                       </button>
                     )}
@@ -1232,7 +1232,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                       <button
                         onClick={handleViewToggle}
                         disabled={!hasStoredCustom}
-                        className="px-2 py-2 text-xs font-medium text-gold-300/70 hover:text-gold-300 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="min-h-[44px] px-3.5 text-sm font-medium text-gold-300 border border-gold-500/30 bg-gold-500/[0.06] rounded-lg hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isUsingCustomView ? 'Show default' : 'Show custom'}
                       </button>
