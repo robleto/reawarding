@@ -202,6 +202,11 @@ export default function AwardsPage() {
         Object.keys(yearElementsRef.current).forEach((y) => next.add(y));
         return next;
       });
+      // Skip the target's entrance animation: the browser aims the scroll at
+      // the section's pre-arrival position (translated 16px down), then the
+      // reveal eased it up under the bar — a slow post-landing creep. A
+      // deliberate jump lands on a stable section instead.
+      setArrivedYears((prev) => new Set(prev).add(String(year)));
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           const el = yearElementsRef.current[String(year)];
@@ -387,9 +392,9 @@ export default function AwardsPage() {
               className={`award-year-enter ${hasArrived ? "award-year-arrived" : ""}`}
               style={{
                 minHeight: isVisible ? "auto" : "600px",
-                // header (4.3rem) + scrubber bar (86px) + the arrival
-                // animation's 16px upward settle + breathing room
-                scrollMarginTop: "calc(4.3rem + 112px + env(safe-area-inset-top))",
+                // header (4.3rem) + scrubber bar (86px) + breathing room.
+                // Jump targets are pre-marked arrived (no post-landing settle).
+                scrollMarginTop: "calc(4.3rem + 104px + env(safe-area-inset-top))",
               }}
             >
               {isVisible ? (
