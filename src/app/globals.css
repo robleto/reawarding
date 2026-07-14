@@ -1819,3 +1819,21 @@ body {
     transform: none !important;
   }
 }
+
+/* ── Awards year sections: full-bleed on phones ──────────────────────────
+   The dark-glass card wrapper reads well on desktop, but on phones its
+   horizontal padding made every ballot row ~32px narrower than the same
+   row on /rankings. Below md the section sheds its card chrome so awards
+   and rankings rows share identical width and rhythm. */
+@media (max-width: 767px) {
+  .award-editable-section.dark-glass,
+  .award-editable-section.dark-glass:hover {
+    background-color: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 0;
+  }
+}

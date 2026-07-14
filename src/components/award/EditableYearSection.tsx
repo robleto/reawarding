@@ -14,6 +14,7 @@ import SelectableMovieItem from "./SelectableMovieItem";
 import MovieDetailModal from "../movie/MovieDetailModal";
 import RatingModal from "@/components/movie/RatingModal";
 import { getRatingStyle } from "@/utils/getRatingStyle";
+import { getRatingDefinition } from "@/lib/ratingScale";
 import type { Movie } from "@/types/types";
 import { useGlobalToast } from '@/hooks/useGlobalToast';
 import { normalizeImageUrl } from "@/utils/imageUrl";
@@ -1345,16 +1346,20 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         the rankings list. Rank numbers are real information
                         here: the ballot is ordered. */}
                     <div className="flex flex-col gap-2 md:hidden">
-                      {displayNominees.map((movie, index) => (
-                        <MovieCard
-                          key={movie.id}
-                          movie={movie}
-                          variant="compact"
-                          rank={index + 1}
-                          isWinner={index === 0}
-                          onClick={() => handleOpenModal(movie)}
-                        />
-                      ))}
+                      {displayNominees.map((movie, index) => {
+                        const rowRating = Math.round(movie.rankings?.[0]?.ranking ?? 0);
+                        return (
+                          <MovieCard
+                            key={movie.id}
+                            movie={movie}
+                            variant="compact"
+                            rank={index + 1}
+                            isWinner={index === 0}
+                            ratingLabel={rowRating > 0 ? getRatingDefinition(rowRating)?.label ?? null : null}
+                            onClick={() => handleOpenModal(movie)}
+                          />
+                        );
+                      })}
                     </div>
                     {displayNominees.length === 0 && (
                       <p className="text-xs text-gray-500 py-3 text-center">No nominees yet.</p>

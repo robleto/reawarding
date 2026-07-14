@@ -395,7 +395,7 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 						: "border-gray-700/50 bg-gray-900/60 hover:bg-gray-800/80"
 				}`}
 			>
-				<div className="flex items-center gap-1 min-h-[60px]">
+				<div className="flex items-center gap-1 min-h-[72px]">
 					{typeof rank === "number" && (
 						<div className="w-5 flex items-center justify-end text-xs font-mono font-bold text-gray-400 tabular-nums select-none pr-1">
 							{rank}
@@ -406,15 +406,15 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 							<Image
 								src={thumbSrc}
 								alt=""
-								width={40}
-								height={60}
-								className="w-10 h-[60px] rounded-md shadow-md object-cover"
-								sizes="40px"
+								width={48}
+								height={72}
+								className="w-12 h-[72px] rounded-md shadow-md object-cover"
+								sizes="48px"
 								placeholder="blur"
-								blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(40, 60))}`}
+								blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(48, 72))}`}
 							/>
 						) : (
-							<div className="flex items-center justify-center bg-gray-800 rounded-md" style={{ width: 40, height: 60 }}>
+							<div className="flex items-center justify-center bg-gray-800 rounded-md" style={{ width: 48, height: 72 }}>
 								<Film className="w-4 h-4 text-gray-600" />
 							</div>
 						)}
@@ -427,7 +427,8 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 						<div className="flex items-center gap-2 ml-2 pr-1">
 							{isWinner && <Trophy className="w-3.5 h-3.5 text-gold-400 flex-shrink-0" />}
 							<div className="flex flex-col items-center">
-								<RatingBadge rating={rating} className="text-base px-2 py-1" />
+								{/* Same 44px scale as the interactive rows' RankingDropdown chip */}
+							<RatingBadge rating={rating} className="min-w-[44px] min-h-[44px] justify-center text-base" />
 								{ratingLabel && (
 									<span className="mt-0.5 text-xs leading-tight text-gray-400">{ratingLabel}</span>
 								)}
@@ -514,7 +515,7 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 
 			{/* Mobile Layout */}
 			<div className="md:hidden">
-				<div className="flex items-center gap-1 min-h-[60px]">
+				<div className="flex items-center gap-1 min-h-[72px]">
 					{typeof rank === "number" && (
 						<div className="w-5 flex items-center justify-end text-xs font-bold text-gray-400 select-none pr-1">
 							{rank}
@@ -525,15 +526,15 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 							<Image
 								src={thumbSrc}
 								alt={movie.title}
-								width={40}
-								height={60}
-								className="w-10 h-[60px] rounded-md shadow-md object-cover"
-								sizes="40px"
+								width={48}
+								height={72}
+								className="w-12 h-[72px] rounded-md shadow-md object-cover"
+								sizes="48px"
 								placeholder="blur"
-								blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(40, 60))}`}
+								blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(48, 72))}`}
 							/>
 						) : (
-							<div className="flex items-center justify-center bg-gray-800 rounded-md" style={{ width: 40, height: 60 }}>
+							<div className="flex items-center justify-center bg-gray-800 rounded-md" style={{ width: 48, height: 72 }}>
 								<Film className="w-4 h-4 text-gray-600" />
 							</div>
 						)}
