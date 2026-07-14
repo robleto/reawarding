@@ -8,6 +8,8 @@ const config = {
 			fontFamily: {
 				sans: ["var(--font-inter)", "sans-serif"],
 				unbounded: ["var(--font-unbounded)", "sans-serif"],
+				// Tabulation face — ballot data only (ratings, ranks, counts)
+				mono: ["var(--font-mono)", "ui-monospace", "monospace"],
 			},
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(circle, var(--tw-gradient-stops))',

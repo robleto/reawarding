@@ -112,6 +112,8 @@
 :root {
   --font-inter: "Inter";
   --font-unbounded: "Unbounded";
+  /* Tabulation face — ballot data only (ratings, ranks, counts). */
+  --font-mono: "Spline Sans Mono";
 }
 
 /* ── Theme tokens ─────────────────────────────────────────────────────────
@@ -125,29 +127,33 @@
    Use always-white / always-black for the rare true-fixed cases. */
 :root,
 .dark {
-  --tone-gray-50: 249 250 251;
-  --tone-gray-100: 243 244 246;
-  --tone-gray-200: 229 231 235;
-  --tone-gray-300: 209 213 219;
-  --tone-gray-400: 156 163 175;
-  --tone-gray-500: 107 114 128;
-  --tone-gray-600: 75 85 99;
-  --tone-gray-700: 55 65 81;
-  --tone-gray-800: 31 41 55;
-  --tone-gray-900: 17 24 39;
-  --tone-gray-950: 3 7 18;
+  /* Screening-room ramp: the dark canvas carries a tungsten-warm undertone
+     (brown-black, not blue-black) so the award gold reads as brass under
+     house lights. Lightness steps match the old ramp — only the temperature
+     changed — so every contrast relationship is preserved. */
+  --tone-gray-50: 250 249 246;
+  --tone-gray-100: 245 243 239;
+  --tone-gray-200: 232 228 221;
+  --tone-gray-300: 213 207 197;
+  --tone-gray-400: 166 157 144;
+  --tone-gray-500: 124 114 101;
+  --tone-gray-600: 90 81 69;
+  --tone-gray-700: 64 56 46;
+  --tone-gray-800: 42 36 29;
+  --tone-gray-900: 26 22 18;
+  --tone-gray-950: 12 10 8;
   --tone-white: 255 255 255;
   --tone-black: 0 0 0;
-  --tone-charcoal-50: 245 245 245;
-  --tone-charcoal-100: 232 232 232;
-  --tone-charcoal-200: 209 209 209;
-  --tone-charcoal-300: 184 184 184;
-  --tone-charcoal-400: 160 160 160;
-  --tone-charcoal-500: 135 135 135;
-  --tone-charcoal-600: 110 110 110;
-  --tone-charcoal-700: 85 85 85;
-  --tone-charcoal-800: 60 60 60;
-  --tone-charcoal-900: 45 45 45;
+  --tone-charcoal-50: 246 243 239;
+  --tone-charcoal-100: 233 229 223;
+  --tone-charcoal-200: 210 205 197;
+  --tone-charcoal-300: 185 179 170;
+  --tone-charcoal-400: 161 154 144;
+  --tone-charcoal-500: 136 129 118;
+  --tone-charcoal-600: 111 104 94;
+  --tone-charcoal-700: 86 80 71;
+  --tone-charcoal-800: 61 56 49;
+  --tone-charcoal-900: 46 42 36;
   --tone-gold-50: 248 243 230;
   --tone-gold-100: 241 230 204;
   --tone-gold-200: 232 211 153;
@@ -159,8 +165,8 @@
   --tone-gold-800: 102 82 23;
   --tone-gold-900: 61 49 14;
   /* Elevation shadows: strong in dark, whisper-soft in light */
-  --shadow-ink: rgba(0, 0, 0, 0.40);
-  --shadow-ink-strong: rgba(0, 0, 0, 0.50);
+  --shadow-ink: rgba(12, 9, 5, 0.42);
+  --shadow-ink-strong: rgba(12, 9, 5, 0.52);
 }
 
 .light {
