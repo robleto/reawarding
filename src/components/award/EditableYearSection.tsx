@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from "react";
 import { useSupabaseClient, useUser, useSessionContext } from '@supabase/auth-helpers-react';
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, GripVertical, Star, Check, Trophy, Plus } from "lucide-react";
 import MovieCard from "./MovieCard";
 import WinnerCard from "./WinnerCard";
+import AwardCard from "@/components/home/AwardCard";
 import DraggableNomineeCard from "./DraggableNomineeCard";
 import SelectableMovieItem from "./SelectableMovieItem";
 import MovieDetailModal from "../movie/MovieDetailModal";
@@ -493,6 +494,13 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   const handleSetWinner = (movie: Movie) => {
     setSelectedWinner(selectedWinner?.id === movie.id ? null : movie);
   };
+
+  // Long-press to drag so touch scrolling isn't hijacked by the sortable
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    })
+  );
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -1080,31 +1088,31 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
   const contentBlock = (
     <>
-    <div className={`award-editable-section flex flex-col w-full rounded-xl shadow-md dark-glass p-5 md:p-8${compact ? '' : ' mb-24'}${isEditing ? ' pb-32 md:pb-0' : ''}`}>
+    <div className={`award-editable-section flex flex-col w-full rounded-xl shadow-md dark-glass p-4 md:p-8${compact ? '' : ' mb-12 md:mb-24'}${isEditing ? ' pb-32 md:pb-0' : ''}`}>
 
           {/* Error Message */}
           {error && (
-            <div className="p-3 mb-4 rounded-lg border border-red-200 bg-red-50">
-              <div className="flex items-center gap-2 text-red-700">
+            <div className="p-3 mb-4 rounded-lg border border-red-500/30 bg-red-500/10">
+              <div className="flex items-center gap-2 text-red-300">
                 <AlertCircle className="w-5 h-5" />
                 <span className="text-sm">{error}</span>
                 {errorDetails && (
                   <button
                     onClick={() => setShowErrorDetails(v => !v)}
-                    className="ml-auto text-xs font-medium underline decoration-red-300 hover:decoration-red-500"
+                    className="ml-auto text-xs font-medium underline decoration-red-400/50 hover:decoration-red-300"
                   >
                     {showErrorDetails ? 'Hide details' : 'Why did this fail?'}
                   </button>
                 )}
               </div>
               {errorDetails && showErrorDetails && (
-                <div className="mt-2 text-xs text-red-800 space-y-1">
+                <div className="mt-2 text-xs text-red-200 space-y-1">
                   {errorDetails.status && (<div>Status: {errorDetails.status}</div>)}
                   {errorDetails.code && (<div>Code: {errorDetails.code}</div>)}
                   {errorDetails.source && (<div>Source: {errorDetails.source}</div>)}
                   {errorDetails.hint && (<div>Hint: {errorDetails.hint}</div>)}
                   {errorDetails.details && (
-                    <pre className="mt-1 max-h-40 overflow-auto bg-white/60 border border-red-200 rounded p-2 whitespace-pre-wrap break-all">
+                    <pre className="mt-1 max-h-40 overflow-auto bg-black/40 border border-red-500/30 rounded p-2 whitespace-pre-wrap break-all">
 {typeof errorDetails.details === 'string' ? errorDetails.details : JSON.stringify(errorDetails.details, null, 2)}
                     </pre>
                   )}
@@ -1134,7 +1142,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                           showToast('Failed to copy details', 'error');
                         }
                       }}
-                      className="text-[11px] px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-100"
+                      className="text-[11px] px-2 py-1 rounded border border-red-500/40 text-red-300 hover:bg-red-500/15"
                     >
                       Copy details
                     </button>
@@ -1147,19 +1155,38 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
           {/* Content */}
           {!isEditing ? (
             /* READ MODE LAYOUT */
-            <div className="flex flex-col gap-8 md:flex-row">
-              {/* Winner */}
+            <div className="flex flex-col gap-6 md:flex-row md:gap-8">
+              {/* Winner — mobile shows a centered, width-capped exhibit so the
+                  nominees stay within the first screenful; desktop keeps the
+                  full-column poster beside the grid. */}
               {!compact && (
               <div className="w-full md:w-1/3">
-                <div className="flex items-center gap-2 mb-4">
+                {/* Eyebrow is desktop-only — on mobile the award artifact
+                    carries its own plaque, trophy, and category label. */}
+                <div className="hidden md:flex items-center gap-2 mb-4">
                   <Trophy className="w-3.5 h-3.5 text-gold-500/60" />
                   <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gold-500/60">Best Picture</p>
                 </div>
                 {displayWinner ? (
-                  <WinnerCard
-                    movie={displayWinner}
-                    onClick={() => handleOpenModal(displayWinner)}
-                  />
+                  <>
+                    {/* Mobile: the canonical gilt award artifact */}
+                    <div className="flex justify-center md:hidden">
+                      <AwardCard
+                        year={Number(year)}
+                        winnerTitle={displayWinner.title}
+                        winnerPoster={displayWinner.poster_url}
+                        nomineeCount={nomineeCount}
+                        onClick={() => handleOpenModal(displayWinner)}
+                      />
+                    </div>
+                    {/* Desktop: full-column featured poster beside the grid */}
+                    <div className="hidden md:block">
+                      <WinnerCard
+                        movie={displayWinner}
+                        onClick={() => handleOpenModal(displayWinner)}
+                      />
+                    </div>
+                  </>
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-500">
                     No winner selected yet.
@@ -1180,8 +1207,8 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     {(() => {
                       const count = isWorkshop ? activeWorkshopNominees.length : nomineeCount;
                       if (count >= 10) return <span className="text-sm font-medium text-emerald-400">Full Ballot</span>;
-                      if (count >= 5) return <span className="text-sm font-medium text-gray-400">{count} nominees</span>;
-                      if (count > 0) return <span className="text-sm font-medium text-gray-500">{count} nominee{count !== 1 ? "s" : ""}</span>;
+                      if (count >= 5) return <span className="font-mono text-sm font-medium tabular-nums text-gray-400">{count}</span>;
+                      if (count > 0) return <span className="font-mono text-sm font-medium tabular-nums text-gray-500">{count}</span>;
                       return null;
                     })()}
                   </div>
@@ -1263,7 +1290,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                   )}
                 </div>
                 {isWorkshop ? (
-                  <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                  <DndContext sensors={dndSensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                     <SortableContext
                       items={activeWorkshopNominees.map((movie) => movie.id)}
                       strategy={verticalListSortingStrategy}
@@ -1314,13 +1341,16 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         />
                       ))}
                     </div>
-                    {/* Mobile: single-column compact rows */}
-                    <div className="flex flex-col gap-1.5 md:hidden">
+                    {/* Mobile: single-column compact rows — same anatomy as
+                        the rankings list. Rank numbers are real information
+                        here: the ballot is ordered. */}
+                    <div className="flex flex-col gap-2 md:hidden">
                       {displayNominees.map((movie, index) => (
                         <MovieCard
                           key={movie.id}
                           movie={movie}
                           variant="compact"
+                          rank={index + 1}
                           isWinner={index === 0}
                           onClick={() => handleOpenModal(movie)}
                         />
@@ -1357,7 +1387,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     <div className="items-center hidden gap-2 md:flex">
                       <button
                         onClick={handleResetToDefault}
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-orange-600 transition-colors rounded-lg bg-orange-50 hover:bg-orange-100"
+                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-orange-300 transition-colors rounded-lg bg-orange-500/10 hover:bg-orange-500/20"
                         title={resolvedCategory === 'best-picture' ? 'Reset to default nominees (7+ first, then fill to 10)' : 'Reset to default nominees (top 10)'}
                       >
                         <RotateCcw className="w-4 h-4" />
@@ -1365,7 +1395,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                       </button>
                       <button
                         onClick={handleCancelEditing}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 transition-colors rounded-lg bg-gray-50 hover:bg-gray-100"
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-300 transition-colors rounded-lg bg-gray-800/60 hover:bg-gray-700"
                       >
                         <X className="w-4 h-4" />
                         Cancel
@@ -1373,7 +1403,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                       <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white transition-colors bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white transition-colors bg-emerald-600 rounded-lg hover:bg-emerald-500 disabled:bg-gray-600"
                       >
                         <Save className="w-4 h-4" />
                         {isSaving ? 'Saving...' : 'Save'}
@@ -1386,6 +1416,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     </div>
                   ) : nominees.length > 0 ? (
                     <DndContext
+                      sensors={dndSensors}
                       onDragStart={handleDragStart}
                       onDragEnd={handleDragEnd}
                     >
@@ -1419,22 +1450,22 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                       </DragOverlay>
                     </DndContext>
                   ) : (
-                    <div className="flex items-center justify-center py-8 text-gray-500 border-2 border-gray-300 border-dashed rounded-xl">
-                      No nominees selected. Add movies from the right panel.
+                    <div className="flex items-center justify-center py-8 text-gray-500 border-2 border-gray-700 border-dashed rounded-xl">
+                      No nominees selected. Add films from the list.
                     </div>
                   )}
                 </div>
 
                 {/* Available Movies Section - Right 1/3 */}
                 <div className="lg:col-span-1">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-xl">🎬</span>
-                    <h3 className="text-xl font-bold text-gray-500">
-                      Available Movies
+                  <div className="flex items-center gap-2 mb-2">
+                    <Film className="w-3.5 h-3.5 text-gray-500" />
+                    <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+                      Available films
                     </h3>
                   </div>
                   <div className="mb-3 text-sm text-gray-500">
-                    {year} • {availableMovies.length} movies
+                    {year} · <span className="font-mono tabular-nums">{availableMovies.length}</span> films
                   </div>
                   {availableMovies.length > 0 ? (
                     <div className="max-h-[500px] overflow-y-auto space-y-3 pr-2">
@@ -1513,9 +1544,11 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
   return (
     <section className="w-full max-w-screen-xl px-0 py-0 mx-auto my-0 font-sans md:px-6">
-      <div className="relative flex flex-col gap-6 md:flex-row md:gap-10">
-        {/* Year label — cinematic vertical treatment */}
-        <h2 className="md:absolute block top-0 md:top-[120px] left-0 text-3xl font-bold text-gray-600/60 mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-[0.25em]">
+      <div className="relative flex flex-col gap-3 md:flex-row md:gap-10">
+        {/* Year label — bright section header on mobile (it's the only header
+            there); reverts to the dim rotated watermark beside the desktop
+            timeline where the card carries the visual weight. */}
+        <h2 className="md:absolute block top-0 md:top-[120px] left-0 text-2xl md:text-3xl font-bold text-gray-100 md:text-gray-600/60 mt-0 md:mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-[0.25em]">
           {year}
         </h2>
         <div className="top-0 bottom-0 flex-col items-center hidden md:absolute md:flex left-4">
@@ -1557,7 +1590,9 @@ function WorkshopNomineeRow({
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 50 : undefined,
   };
-  const thumbSrc = normalizeImageUrl(movie.thumb_url || movie.poster_url);
+  // Poster, not backdrop — the thumbs mirror holds mixed aspect ratios
+  // (2026-07 mixup); a fixed 2:3 poster crop keeps rows uniform.
+  const thumbSrc = normalizeImageUrl(movie.poster_url || movie.thumb_url);
   const ranking = Math.round(movie.rankings?.[0]?.ranking ?? 0);
   const ratingStyle = getRatingStyle(ranking);
 
@@ -1577,20 +1612,20 @@ function WorkshopNomineeRow({
           type="button"
           {...attributes}
           {...listeners}
-          className="flex-shrink-0 p-2 text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing"
+          className="flex-shrink-0 min-w-[44px] min-h-[44px] -my-2 flex items-center justify-center touch-none text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing"
           aria-label="Drag to reorder"
         >
-          <GripVertical className="w-3.5 h-3.5" />
+          <GripVertical className="w-5 h-5" />
         </button>
 
         {/* Rank number hidden — total shown in section header instead */}
 
-        {/* Thumbnail — matches MovieCard compact variant */}
-        <div className="relative flex-shrink-0 overflow-hidden bg-gray-800" style={{ height: 48, borderRadius: 6 }}>
+        {/* Thumbnail — matches MovieCard compact variant (fixed 2:3 poster crop) */}
+        <div className="relative flex-shrink-0 overflow-hidden bg-gray-800 rounded-md" style={{ width: 40, height: 60 }}>
           {thumbSrc ? (
-            <img src={thumbSrc} alt="" className="h-full w-auto object-contain" style={{ borderRadius: 6 }} />
+            <img src={thumbSrc} alt="" className="w-full h-full object-cover" />
           ) : (
-            <div className="flex items-center justify-center" style={{ width: 64, height: 48 }}><Film className="w-4 h-4 text-gray-600" /></div>
+            <div className="flex items-center justify-center w-full h-full"><Film className="w-4 h-4 text-gray-600" /></div>
           )}
         </div>
 

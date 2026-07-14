@@ -240,8 +240,8 @@ export default function AwardsPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-4 border-b-2 border-blue-600 rounded-full border-blue-400" />
-          <p className="text-gray-300">Loading your awards...</p>
+          <div className="w-8 h-8 mx-auto mb-4 border-2 rounded-full border-gold-400/30 border-t-gold-400 animate-spin" />
+          <p className="text-gray-300">Loading your awards…</p>
         </div>
       </div>
     );
@@ -351,16 +351,24 @@ export default function AwardsPage() {
           Copy escalates once the guest has at least one canonical ballot
           to lose (5+ nominees in any year). */}
       {isGuest && (
-        <div className="fixed bottom-0 inset-x-0 z-40 border-t border-gray-800 bg-charcoal-900/95 backdrop-blur-md">
+        <div className="fixed bottom-0 inset-x-0 z-40 border-t border-gray-800 bg-charcoal-900/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
           <div className="max-w-screen-xl mx-auto px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between gap-3">
             <div className="min-w-0 flex items-center gap-2">
               {canonicalYearCount > 0 ? (
                 <>
                   <Trophy className="w-4 h-4 text-gold-300 flex-shrink-0" aria-hidden="true" />
                   <p className="text-sm font-semibold text-gold-200 truncate">
-                    {canonicalYearCount === 1
-                      ? "Your award is set. Save it before you leave."
-                      : `${canonicalYearCount} awards set. Save them before you leave.`}
+                    {canonicalYearCount === 1 ? (
+                      <>
+                        Your award is set.
+                        <span className="hidden sm:inline"> Save it before you leave.</span>
+                      </>
+                    ) : (
+                      <>
+                        {canonicalYearCount} awards set.
+                        <span className="hidden sm:inline"> Save them before you leave.</span>
+                      </>
+                    )}
                   </p>
                 </>
               ) : (
