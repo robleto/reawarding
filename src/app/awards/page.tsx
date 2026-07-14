@@ -193,8 +193,21 @@ export default function AwardsPage() {
 
   const scrollToYear = useCallback(
     (year: number) => {
-      const el = yearElementsRef.current[String(year)];
-      el?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+      // Mount every section before measuring: intermediate 600px placeholders
+      // grow to real height mid-scroll otherwise, and the landing drifts by
+      // a year or more. A chip tap signals index navigation — pay the mount
+      // cost once and jumps stay accurate from then on.
+      setVisibleYears((prev) => {
+        const next = new Set(prev);
+        Object.keys(yearElementsRef.current).forEach((y) => next.add(y));
+        return next;
+      });
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const el = yearElementsRef.current[String(year)];
+          el?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+        });
+      });
     },
     [reducedMotion]
   );
@@ -339,7 +352,11 @@ export default function AwardsPage() {
 
   return (
     <>
-      <div className={`max-w-screen-xl mx-auto ${isGuest ? "pb-32" : ""}`}>
+      {/* w-full min-w-0: this div is a flex item of AppShell's <main> (a flex
+          column). Without min-w-0 the scrubber's flex-shrink-0 year chips
+          propagate their intrinsic width up here and inflate the page past
+          the viewport — iOS then zooms out to "desktop width". */}
+      <div className={`w-full min-w-0 max-w-screen-xl mx-auto ${isGuest ? "pb-32" : ""}`}>
         {/* Year scrubber — sticky index of the register. Scrollspies the
             current year; tapping a chip jumps to that year. */}
         {formattedYears.length > 1 && (

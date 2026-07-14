@@ -757,7 +757,10 @@ export default function HomePage() {
         /* ══════════════════════════════════════════════════════════
            LOGGED-IN USER: New, Building, or Established dashboard
            ═══════════════════════════════════════════════════════ */
-        <div className="pt-6 pb-24">
+        /* w-full min-w-0: flex item of AppShell's <main> — without min-w-0,
+           MuseumYearTimeline's flex-shrink-0 year chips propagate intrinsic
+           width up and inflate the page past the viewport on mobile. */
+        <div className="w-full min-w-0 pt-6 pb-24">
 
     {/* ═══════════════════════════════════════════════════════
         NEW STATE — onboarding prepends the logged-in homepage
