@@ -111,8 +111,10 @@ Keep these thresholds in sync if changed.
 
 ## Dev environment
 
-**TypeScript check** — `node`/`npx` not in default PATH. Use:
-`/opt/homebrew/bin/node /opt/homebrew/lib/node_modules/typescript/bin/tsc --noEmit`
+**TypeScript check** — `node`/`npx` not in default PATH. The globally installed
+TypeScript is v6+ and rejects this project's `baseUrl` config (TS5101); use the
+project-local compiler:
+`/opt/homebrew/bin/node node_modules/typescript/bin/tsc --noEmit`
 
 **Git index.lock** — Cursor's Git extension repeatedly re-creates `.git/index.lock`.
 Fix: retry loop: `for i in 1 2 3 4 5; do rm -f .git/index.lock && git commit ... && break || sleep 1; done`
