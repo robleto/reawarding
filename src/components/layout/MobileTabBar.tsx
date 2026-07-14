@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { Home, Trophy, LineChart, User } from "lucide-react";
 
 // Bottom-nav destinations are intentionally 4. Rankings replaced Films on
@@ -11,8 +12,56 @@ import { Home, Trophy, LineChart, User } from "lucide-react";
 // invested user returns to daily. Films stays in the header hamburger menu.
 // See PRODUCT_DECISION_LOG.md.
 
+// In a BROWSER tab the bar hides while scrolling down (reading room on top of
+// Safari's own chrome) and reveals on any upward scroll or near the page top.
+// When installed as an app (display-mode: standalone — PWA today, native
+// wrapper later) there's no browser chrome to compete with, so the bar stays
+// persistent per platform convention. No rework needed at app time.
+function useAutoHideOnScroll(pathname: string) {
+  const [hidden, setHidden] = useState(false);
+  const lastY = useRef(0);
+  const downTravel = useRef(0);
+
+  // Route changes land at the top of a new page — always start visible.
+  useEffect(() => {
+    downTravel.current = 0;
+    setHidden(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as { standalone?: boolean }).standalone === true;
+    if (standalone) return;
+
+    lastY.current = window.scrollY;
+    const onScroll = () => {
+      const y = Math.max(0, window.scrollY);
+      const delta = y - lastY.current;
+      lastY.current = y;
+      if (y < 80) {
+        downTravel.current = 0;
+        setHidden(false);
+        return;
+      }
+      if (delta > 0) {
+        downTravel.current += delta;
+        if (downTravel.current > 24) setHidden(true);
+      } else if (delta < 0) {
+        downTravel.current = 0;
+        setHidden(false);
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return hidden;
+}
+
 export default function MobileTabBar() {
   const pathname = usePathname() || "/";
+  const hidden = useAutoHideOnScroll(pathname);
 
   const tabs = [
     { href: "/", label: "Home", icon: Home, match: (p: string) => p === "/" },
@@ -23,7 +72,9 @@ export default function MobileTabBar() {
 
   return (
     <nav
-      className="mobile-tab-bar md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-gray-700/60 bg-charcoal-900/90 backdrop-blur supports-[backdrop-filter]:backdrop-blur"
+      className={`mobile-tab-bar md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-gray-700/60 bg-charcoal-900/90 backdrop-blur supports-[backdrop-filter]:backdrop-blur transition-transform duration-200 motion-reduce:transition-none ${
+        hidden ? "translate-y-full" : "translate-y-0"
+      }`}
       style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px))" }}
       aria-label="Primary"
     >
