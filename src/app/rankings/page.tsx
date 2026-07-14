@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Flame } from "lucide-react";
 import type { Movie } from "@/types/types";
@@ -28,6 +28,12 @@ import { useAuthState } from "@/hooks/useAuthState";
 // Loading skeleton constants
 const GRID_SKELETON_COUNT = 12;
 const LIST_SKELETON_COUNT = 8;
+
+// Progressive rendering — the full list can exceed 1,000 rows, which locks up
+// mobile browsers if mounted all at once. Render in batches; a sentinel below
+// the list extends the window as the user approaches it.
+const INITIAL_VISIBLE_ROWS = 60;
+const VISIBLE_ROWS_BATCH = 120;
 
 export const dynamic = "force-dynamic";
 
@@ -211,6 +217,53 @@ function RankingsPageContent() {
   // Use shared grouping/sorting for consistency across pages
   const groupedMovies = groupMovies(filteredMovies, groupBy, sortBy, sortOrder);
   const filteredUnrankedMovies = filteredMovies.filter(isUnrankedMovie);
+
+  // ── Progressive rendering window ──
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_ROWS);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const totalRows = filteredMovies.length;
+  const hasMoreRows = totalRows > visibleCount;
+
+  // Reset the window whenever the underlying list changes shape
+  useEffect(() => {
+    setVisibleCount(INITIAL_VISIBLE_ROWS);
+  }, [activeTab, filterType, filterValue, sortBy, sortOrder, groupBy]);
+
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !hasMoreRows) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisibleCount((count) => count + VISIBLE_ROWS_BATCH);
+        }
+      },
+      { rootMargin: "1600px 0px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMoreRows, visibleCount]);
+
+  // Full per-group totals for the heading tallies — visibleGroupedMovies
+  // below is sliced to the render window, so its lengths undercount. The
+  // unranked tab renders only its unranked subset, so count the same way.
+  const groupTotals = new Map(
+    groupedMovies.map((g) => [
+      g.key,
+      (activeTab === "unranked" ? g.movies.filter(isUnrankedMovie) : g.movies).length,
+    ])
+  );
+
+  // Cap rendered rows at visibleCount across groups, preserving group order
+  // (and therefore the per-group rank numbering, which slices from the top).
+  let rowsLeft = visibleCount;
+  const visibleGroupedMovies: { key: string; movies: Movie[] }[] = [];
+  for (const group of groupedMovies) {
+    if (rowsLeft <= 0) break;
+    const slice = group.movies.slice(0, rowsLeft);
+    visibleGroupedMovies.push({ key: group.key, movies: slice });
+    rowsLeft -= slice.length;
+  }
   
   // Generate unique years and ranks for filter dropdowns
   const uniqueYears = Array.from(new Set(displayMovies.map((m) => m.release_year).filter((y): y is number => typeof y === 'number'))).sort((a, b) => b - a);
@@ -316,33 +369,35 @@ function RankingsPageContent() {
 
   return (
     <div className="max-w-screen-xl">
-      {/* Tab Navigation */}
-      <div className="mb-6 flex gap-2 border-b border-gray-700">
+      {/* Tab Navigation — nowrap + compact mobile labels so all three tabs fit
+          a 390px screen without clipping; full labels return at sm:. */}
+      <div className="mb-3 sm:mb-6 flex gap-1 sm:gap-2 border-b border-gray-700 overflow-x-auto [scrollbar-width:none]">
         <button
           onClick={() => setActiveTab("all")}
-          className={`px-4 py-3 text-sm font-medium transition-colors relative ${
+          className={`px-2.5 sm:px-4 py-2.5 sm:py-3 text-sm font-medium transition-colors relative whitespace-nowrap flex-shrink-0 ${
             activeTab === "all"
               ? "text-yellow-400 border-b-2 border-yellow-400"
               : "text-gray-400 hover:text-gray-300"
           }`}
         >
-          All Rankings
-          <span className="ml-2 text-xs text-gray-500">({rankedMovies.length})</span>
+          <span className="sm:hidden">All</span>
+          <span className="hidden sm:inline">All Rankings</span>
+          <span className="ml-1.5 font-mono text-xs text-gray-500">({rankedMovies.length})</span>
         </button>
         <button
           onClick={() => setActiveTab("unranked")}
-          className={`px-4 py-3 text-sm font-medium transition-colors relative ${
+          className={`px-2.5 sm:px-4 py-2.5 sm:py-3 text-sm font-medium transition-colors relative whitespace-nowrap flex-shrink-0 ${
             activeTab === "unranked"
               ? "text-blue-300 border-b-2 border-blue-300"
               : "text-gray-400 hover:text-gray-300"
           }`}
         >
           Unranked
-          <span className="ml-2 text-xs text-gray-500">({unrankedMovies.length})</span>
+          <span className="ml-1.5 font-mono text-xs text-gray-500">({unrankedMovies.length})</span>
         </button>
         <button
           onClick={() => setActiveTab("hot-takes")}
-          className={`px-4 py-3 text-sm font-medium transition-colors relative flex items-center gap-2 ${
+          className={`px-2.5 sm:px-4 py-2.5 sm:py-3 text-sm font-medium transition-colors relative flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${
             activeTab === "hot-takes"
               ? "text-orange-400 border-b-2 border-orange-400"
               : "text-gray-400 hover:text-gray-300"
@@ -350,7 +405,7 @@ function RankingsPageContent() {
         >
           <Flame className="w-4 h-4" />
           Hot Takes
-          <span className="ml-1 text-xs text-gray-500">({hotTakes.length})</span>
+          <span className="ml-0.5 font-mono text-xs text-gray-500">({hotTakes.length})</span>
         </button>
       </div>
 
@@ -391,7 +446,7 @@ function RankingsPageContent() {
             </p>
           </div>
         )
-        : groupedMovies.map(({ key, movies }: { key: string; movies: Movie[] }) => {
+        : visibleGroupedMovies.map(({ key, movies }: { key: string; movies: Movie[] }) => {
             const rankedGroupMovies = movies.filter(isRankedMovie);
             const unrankedGroupMovies = activeTab === "unranked" ? movies.filter(isUnrankedMovie) : [];
 
@@ -419,7 +474,10 @@ function RankingsPageContent() {
                         const def = rating != null ? getRatingDefinition(rating) : null;
 
                         return (
-                          <div key={movie.id} className="relative">
+                          <div
+                            key={movie.id}
+                            className="relative [content-visibility:auto] [contain-intrinsic-size:auto_320px]"
+                          >
                             <MovieCard
                               movie={movie}
                               variant="large"
@@ -453,20 +511,26 @@ function RankingsPageContent() {
                         const def = rating != null ? getRatingDefinition(rating) : null;
 
                         return (
-                          <MovieCard
+                          // content-visibility skips layout/paint for offscreen
+                          // rows so long lists stay scrollable once mounted.
+                          <div
                             key={movie.id}
-                            movie={movie}
-                            variant="compact"
-                            rank={sectionType === "ranked" ? index + 1 : undefined}
-                            ranking={rating}
-                            ratingLabel={def?.label ?? null}
-                            seenIt={r.seen_it ?? false}
-                            showHotTake={activeTab === "hot-takes"}
-                            showYear
-                            incomplete={sectionType === "unranked"}
-                            onUpdate={updateMovieRanking}
-                            onClick={() => handleOpenModal(movie)}
-                          />
+                            className="[content-visibility:auto] [contain-intrinsic-size:auto_84px]"
+                          >
+                            <MovieCard
+                              movie={movie}
+                              variant="compact"
+                              rank={sectionType === "ranked" ? index + 1 : undefined}
+                              ranking={rating}
+                              ratingLabel={def?.label ?? null}
+                              seenIt={r.seen_it ?? false}
+                              showHotTake={activeTab === "hot-takes"}
+                              showYear
+                              incomplete={sectionType === "unranked"}
+                              onUpdate={updateMovieRanking}
+                              onClick={() => handleOpenModal(movie)}
+                            />
+                          </div>
                         );
                       })}
                     </div>
@@ -476,12 +540,15 @@ function RankingsPageContent() {
             };
 
             return (
-              <div key={key} className="mb-10">
+              <div key={key} className="mb-6 sm:mb-10">
                 {groupBy !== "none" && (
                   <h2
-                    className="mb-6 text-4xl font-unbounded font-regular text-gray-100 tracking-wider"
+                    className="mb-2 text-2xl sm:mb-5 sm:text-4xl font-unbounded font-regular text-gray-100 tracking-wider flex items-baseline gap-2.5"
                   >
                     {key}
+                    <span className="font-mono text-xs sm:text-sm font-normal tracking-normal text-gray-500">
+                      {groupTotals.get(key)} {groupTotals.get(key) === 1 ? "film" : "films"}
+                    </span>
                   </h2>
                 )}
                 {activeTab === "unranked"
@@ -490,6 +557,12 @@ function RankingsPageContent() {
               </div>
             );
           })}
+
+      {/* Sentinel — extends the progressive-render window before the user
+          reaches the bottom. Renders only while rows remain. */}
+      {hasMoreRows && (
+        <div ref={sentinelRef} aria-hidden="true" className="h-12" />
+      )}
 
       {/* Movie Detail Modal */}
       {selectedMovie && (
