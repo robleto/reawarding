@@ -1228,15 +1228,6 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         <Loader2 className="w-3 h-3 animate-spin" />
                       </span>
                     )}
-                    {!isWorkshop && hasCustomNominations && (
-                      <button
-                        onClick={handleViewToggle}
-                        disabled={!hasStoredCustom}
-                        className="min-h-[44px] px-3.5 text-sm font-medium text-gold-300 border border-gold-500/30 bg-gold-500/[0.06] rounded-lg hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isUsingCustomView ? 'Show default' : 'Show custom'}
-                      </button>
-                    )}
                     {/* Auto-saved indicator hidden for guests — for them nothing
                         is persisted server-side, and the green checkmark undercuts
                         the "Sign up to save" CTA shown elsewhere on the page. */}
@@ -1284,9 +1275,24 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                       Auto-selected · top rated · 7+ first
                     </p>
                   )}
+                  {/* View toggle lives here in the metadata whisper, not the
+                      header — comparing saved vs auto-derived is a rare,
+                      curiosity-driven action. Generous py keeps it tappable
+                      without visual weight. */}
                   {!isWorkshop && hasCustomNominations && (
-                    <p className={`text-[9px] pt-1 ${isUsingCustomView ? 'text-gold-500/40' : 'text-gray-600'}`}>
+                    <p className={`text-[10px] pt-1 ${isUsingCustomView ? 'text-gold-500/40' : 'text-gray-600'}`}>
                       {isUsingCustomView ? 'Custom selection' : 'Custom saved'}
+                      {hasStoredCustom && (
+                        <>
+                          {' · '}
+                          <button
+                            onClick={handleViewToggle}
+                            className="underline decoration-dotted underline-offset-2 hover:text-gray-400 py-2 -my-2 px-1 -mx-0.5"
+                          >
+                            {isUsingCustomView ? 'show default' : 'show custom'}
+                          </button>
+                        </>
+                      )}
                     </p>
                   )}
                 </div>
