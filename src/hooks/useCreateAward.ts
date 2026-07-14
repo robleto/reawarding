@@ -7,6 +7,7 @@ import type { Movie } from "@/types/types";
 import useGuestRankingStore from "@/hooks/useGuestRankingStore";
 import { inferRankingsFromAward } from "@/utils/rankingInference";
 import { getContextMessage } from "@/data/bestPictureWinners";
+import { generateUUID } from "@/utils/uuid";
 
 export interface AwardResult {
   success: boolean;
@@ -44,11 +45,7 @@ export function useCreateAward() {
   const user = useUser();
   const guestStore = useGuestRankingStore();
   const lastMutationRef = useRef<LastMutation | null>(null);
-  const guestSessionIdRef = useRef<string>(
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `guest-${Date.now()}`
-  );
+  const guestSessionIdRef = useRef<string>(generateUUID());
   /** Per-year mutex: prevents concurrent double-click from bypassing dedup. */
   const yearLocksRef = useRef<Map<number, Promise<AwardResult>>>(new Map());
   const isGuest = !user;

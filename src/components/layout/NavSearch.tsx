@@ -9,13 +9,20 @@ import { movieSlug } from "@/utils/slug";
 
 type Props = {
   className?: string;
+  /** "inline" is the desktop hover-expanding pill; "panel" is a full-width,
+      always-open field for the mobile header sheet. */
+  variant?: "inline" | "panel";
+  autoFocus?: boolean;
+  /** Called after navigating to a result so the host can close its panel. */
+  onNavigate?: () => void;
 };
 
-export default function NavSearch({ className = "" }: Props) {
+export default function NavSearch({ className = "", variant = "inline", autoFocus = false, onNavigate }: Props) {
+  const isPanel = variant === "panel";
   const router = useRouter();
   const pathname = usePathname();
   const [term, setTerm] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(isPanel);
   const [suggestions, setSuggestions] = useState<Movie[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -23,10 +30,14 @@ export default function NavSearch({ className = "" }: Props) {
 
   // Auto-collapse when route changes
   useEffect(() => {
-    setExpanded(false);
+    setExpanded(isPanel);
     setShowSuggestions(false);
     setTerm("");
-  }, [pathname]);
+  }, [pathname, isPanel]);
+
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus();
+  }, [autoFocus]);
 
   const doSearch = async (value: string) => {
     if (!value) {
@@ -51,9 +62,10 @@ export default function NavSearch({ className = "" }: Props) {
 
   const onSelectMovie = (movie: Movie) => {
     setShowSuggestions(false);
-    setExpanded(false);
+    setExpanded(isPanel);
     setTerm("");
-  router.push(`/films/${movieSlug(movie.title, movie.id)}`);
+    router.push(`/films/${movieSlug(movie.title, movie.id)}`);
+    onNavigate?.();
   };
 
   const onSubmit = (e: React.FormEvent) => {
@@ -63,14 +75,15 @@ export default function NavSearch({ className = "" }: Props) {
     } else if (term.trim()) {
       // Fallback: go to films and let page search UI handle it via URL param
       router.push(`/films?query=${encodeURIComponent(term.trim())}`);
+      onNavigate?.();
     }
   };
 
   return (
     <div
       className={`relative ${className}`}
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => {
+      onMouseEnter={isPanel ? undefined : () => setExpanded(true)}
+      onMouseLeave={isPanel ? undefined : () => {
         if (!term) {
           setExpanded(false);
           setShowSuggestions(false);
@@ -80,8 +93,8 @@ export default function NavSearch({ className = "" }: Props) {
       <form
         onSubmit={onSubmit}
         className={`flex items-center gap-2 transition-all duration-300 rounded-lg border border-gray-600/60 bg-gray-900/50 backdrop-blur-md shadow-sm px-2 ${
-          expanded ? "w-64 sm:w-80" : "w-9"
-        } h-9 overflow-hidden`}
+          isPanel ? "w-full h-11 px-3" : `${expanded ? "w-64 sm:w-80" : "w-9"} h-9`
+        } overflow-hidden`}
         onFocus={() => setExpanded(true)}
       >
         <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -93,7 +106,7 @@ export default function NavSearch({ className = "" }: Props) {
           onChange={onChange}
           onFocus={() => setShowSuggestions(!!term)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-          className={`bg-transparent text-sm text-gray-200 placeholder-gray-400 focus:outline-none ${
+          className={`bg-transparent text-base sm:text-sm text-gray-200 placeholder-gray-400 focus:outline-none ${
             expanded ? "w-full opacity-100" : "w-0 opacity-0"
           } transition-all duration-200`}
         />
@@ -114,7 +127,9 @@ export default function NavSearch({ className = "" }: Props) {
       </form>
 
       {showSuggestions && suggestions.length > 0 && (
-        <ul className="absolute left-0 mt-2 w-72 sm:w-80 bg-gray-900 border border-gray-700 rounded-lg shadow-lg z-[60] max-h-72 overflow-y-auto">
+        <ul className={`absolute left-0 mt-2 bg-gray-900 border border-gray-700 rounded-lg shadow-lg z-[60] max-h-72 overflow-y-auto ${
+          isPanel ? "w-full" : "w-72 sm:w-80"
+        }`}>
           {suggestions.map((m) => (
             <li
               key={m.id}

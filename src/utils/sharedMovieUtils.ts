@@ -6,6 +6,7 @@ import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
 import useGuestRankingStore from "@/hooks/useGuestRankingStore";
 import { useAuthState } from "@/hooks/useAuthState";
+import { generateUUID } from "@/utils/uuid";
 
 export type SortKey = "title" | "release_year" | "ranking";
 export type GroupKey = "release_year" | "ranking" | "none";
@@ -572,7 +573,7 @@ export function useMovieDataWithGuest() {
 					const updatedRankings = [...m.rankings];
 					if (updatedRankings.length === 0) {
 						updatedRankings.push({
-							id: crypto.randomUUID(),
+							id: generateUUID(),
 							user_id: userId!,
 							seen_it: updates.seen_it ?? false,
 							ranking: updates.ranking ?? 0,

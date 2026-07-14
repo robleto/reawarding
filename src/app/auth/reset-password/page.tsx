@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { supabase } from "@/lib/supabaseBrowser";
 import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Logo } from '@/components/ui/Logo';
 
 export default function ResetPasswordPage() {
@@ -24,6 +25,7 @@ function ResetPasswordContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [linkInvalid, setLinkInvalid] = useState(false);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -37,6 +39,20 @@ function ResetPasswordContent() {
         : null;
 
       const getParam = (key: string) => searchParams?.get(key) || hashParams?.get(key) || null;
+
+      // The /auth/confirm route (and Supabase itself, via the URL hash) reports
+      // failed verifications here as error params, e.g. error_code=otp_expired.
+      const errorParam = getParam('error');
+      const errorCode = getParam('error_code');
+      if (!session && errorParam) {
+        setLinkInvalid(true);
+        setError(
+          errorCode === 'otp_expired'
+            ? 'This reset link has expired. Reset links are only valid for 1 hour — please request a new one.'
+            : 'This reset link is invalid or has already been used. Please request a new one.'
+        );
+        return;
+      }
 
       if (!session) {
         const accessToken = getParam('access_token');
@@ -68,12 +84,14 @@ function ResetPasswordContent() {
 
         if (authError) {
           console.error('Password reset auth error:', authError);
+          setLinkInvalid(true);
           setError('Invalid or expired reset link. Please request a new password reset.');
           return;
         }
 
         if (!processed) {
-          setError('No active session found. Please click the password reset link from your email.');
+          setLinkInvalid(true);
+          setError('No active reset session found. Please open the password reset link from your email, or request a new one.');
           return;
         }
 
@@ -164,6 +182,31 @@ function ResetPasswordContent() {
             </p>
 
             <div className="w-8 h-8 mx-auto border-4 border-blue-600 rounded-full border-t-transparent animate-spin" />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (linkInvalid) {
+    return (
+      <main className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+        <div className="w-full max-w-md">
+          <div className="p-8 text-center bg-gray-800 shadow-gray-700 rounded-2xl">
+            <h1 className="mb-2 text-2xl font-bold text-white">
+              Reset link problem
+            </h1>
+
+            <p className="mb-6 text-gray-400">
+              {error}
+            </p>
+
+            <Link
+              href="/auth/forgot-password"
+              className="flex items-center justify-center w-full gap-2 px-4 py-3 font-medium text-gray-900 transition-colors bg-gold-500 rounded-lg hover:bg-yellow-600"
+            >
+              Request a new reset link
+            </Link>
           </div>
         </div>
       </main>

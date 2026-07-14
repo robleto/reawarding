@@ -105,7 +105,7 @@ export default function AddMovieByTmdbModal({ isOpen, onClose, onImported }: Add
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder="TMDB ID or URL"
-            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-600 bg-gray-800 text-gray-100"
+            className="w-full px-3 py-2 text-base sm:text-sm rounded-lg border border-gray-600 bg-gray-800 text-gray-100"
           />
 
           {message && (

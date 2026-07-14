@@ -251,7 +251,7 @@ export default function RatingModal({
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-semibold text-white truncate">{movieTitle}</h3>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-400 mt-0.5">
                 {currentRating ? `Currently rated ${currentRating}` : "Not yet rated"}
               </p>
             </div>
@@ -268,7 +268,7 @@ export default function RatingModal({
 
         {/* ── Threshold hint — always visible before a pick is made ─────── */}
         {!isConfirming && (
-          <p className="px-4 pt-2.5 pb-0 text-xs text-gray-500 text-center">
+          <p className="px-4 pt-2.5 pb-0 text-sm text-gray-400 text-center">
             Rate 7 or higher to nominate
           </p>
         )}

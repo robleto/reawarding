@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Trophy, Film, User } from "lucide-react";
+import { Home, Trophy, LineChart, User } from "lucide-react";
 
-// Bottom-nav destinations were intentionally narrowed to 4 (from the earlier
-// 5-tab Home/Awards/Rank/Films/Lists shape) per Greg's call on 2026-05-09:
-// Films replaces Lists because it's the entry point for adding more films
-// (the engine of the Watch → Rate → ReAward loop). Profile replaces Rank
-// because Rank is internal scaffolding. See the project memory.
+// Bottom-nav destinations are intentionally 4. Rankings replaced Films on
+// 2026-07-13 (reversing the 2026-05-09 call): the Films catalog outgrew
+// browsing — search in the header is now the primary way to find a film,
+// and the + button covers adding one, so the tab goes to the surface an
+// invested user returns to daily. Films stays in the header hamburger menu.
+// See PRODUCT_DECISION_LOG.md.
 
 export default function MobileTabBar() {
   const pathname = usePathname() || "/";
@@ -16,7 +17,7 @@ export default function MobileTabBar() {
   const tabs = [
     { href: "/", label: "Home", icon: Home, match: (p: string) => p === "/" },
     { href: "/awards", label: "Awards", icon: Trophy, match: (p: string) => p.startsWith("/awards") },
-    { href: "/films", label: "Films", icon: Film, match: (p: string) => p.startsWith("/films") },
+    { href: "/rankings", label: "Rankings", icon: LineChart, match: (p: string) => p.startsWith("/rankings") },
     { href: "/profile", label: "Profile", icon: User, match: (p: string) => p.startsWith("/profile") },
   ];
 

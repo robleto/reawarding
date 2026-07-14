@@ -4,7 +4,39 @@ Purpose: Record WHY major product direction decisions were made to prevent futur
 
 ---
 
-## May 2026 — State Thresholds Made Depth-Aware; Gallery Gated; Transition Moment Added
+## July 2026 — Search Becomes the Primary Film-Finder; Rankings Replaces Films in Mobile Nav
+
+### Decision
+
+Finding a film is now a **search-first** action on every surface. Three coordinated changes:
+
+1. **Global search added to the mobile header.** The desktop NavSearch gains a full-width `panel` variant that opens from a magnifier button in the mobile header. Previously mobile had no global search at all — the Films grid was the only finder.
+2. **Rankings replaces Films in the mobile tab bar** (Home / Awards / Rankings / Profile). Films remains one tap away in the header hamburger menu, and the header `+` button still covers adding a film. This reverses the 2026-05-09 tab decision.
+3. **The Films page is reshaped from an exhaustive catalog into a search-first surface.** Search and filters stay on top; below them, curated shelves (Recently added + featured collections) replace the full grid. The complete library is available behind an explicit "Browse the full library" control, progressively rendered (the same windowing fix that unstuck the rankings page — 1,000+ mounted cards lock up mobile browsers).
+
+### Reason
+
+The catalog outgrew browsing. At 1,000+ films, a poster wall is not an entry point — it froze mobile scroll outright and made "find the film I just watched" a chore. The 05-09 rationale for the Films tab ("the entry point for adding more films — the engine of the loop") eroded as the grid grew: an unusable grid isn't an engine. The `+` button covers adding; search covers finding; both do the Films tab's old job better than the Films tab did.
+
+Meanwhile Rankings is the surface an invested user returns to daily — the tally sheet that is the product's soul — and it had no top-level home on mobile.
+
+### What Changed
+
+- `src/components/layout/NavSearch.tsx` — `variant="panel"` (full-width, always-expanded) + `autoFocus` + `onNavigate`
+- `src/components/layout/HeaderNav.tsx` — mobile magnifier button + search panel below the header
+- `src/components/layout/MobileTabBar.tsx` — Films → Rankings (LineChart icon)
+- `src/app/films/page.tsx` — search-first overview (Recently added shelf, `FeaturedCollectionsSection`, "Browse the full library" toggle), progressive rendering of the grid, and `?query=` now shows all title matches instead of the first
+
+### What Did NOT Change
+
+- Films is still first-class: full catalog, filters, grid/list views all remain — one tap deeper, not removed
+- Desktop header nav (Films / Rankings / Awards / Lists) is untouched
+- Watch → Rate → ReAward loop and all component-reuse mandates hold (shelves reuse `CollectionRow`/`MovieCard`; no new card types)
+- New-user onboarding paths through /films (guest mode) are unchanged
+
+### Reversal Conditions
+
+Re-evaluate if: mobile search usage stays near zero while hamburger→Films traffic dominates; users demonstrably fail to find the add-film path; or the Rankings tab proves to be dead weight for new users despite its empty-state invitation.
 
 ### Decision
 

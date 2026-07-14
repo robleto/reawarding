@@ -193,7 +193,7 @@ export default function OnboardingYearPage() {
 
       {/* ─── Sticky bottom CTA — guests only ────────────────────────────── */}
       {isGuest && (
-        <div className="fixed bottom-0 inset-x-0 z-40 border-t border-gray-800 bg-charcoal-900/95 backdrop-blur-md">
+        <div className="fixed bottom-0 inset-x-0 z-40 border-t border-gray-800 bg-charcoal-900/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
           <div className="max-w-4xl mx-auto px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
               {isSet ? (

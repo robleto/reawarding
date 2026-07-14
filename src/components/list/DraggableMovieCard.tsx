@@ -75,7 +75,7 @@ export default function DraggableMovieCard({
           <div
             {...attributes}
             {...listeners}
-            className="absolute top-2 left-16 z-30 p-2 bg-red-500/90 rounded-md shadow-lg transition-colors border-2 border-white cursor-grab active:cursor-grabbing"
+            className="absolute top-2 left-16 z-30 min-w-[44px] min-h-[44px] flex items-center justify-center touch-none bg-red-500/90 rounded-md shadow-lg transition-colors border-2 border-white cursor-grab active:cursor-grabbing"
           >
             <GripVertical className="w-5 h-5 text-white" />
           </div>
@@ -115,9 +115,9 @@ export default function DraggableMovieCard({
         <div
           {...attributes}
           {...listeners}
-          className="p-1 cursor-grab hover:bg-gray-700/50 rounded transition-colors flex-shrink-0"
+          className="min-w-[44px] min-h-[44px] flex items-center justify-center touch-none cursor-grab hover:bg-gray-700/50 rounded transition-colors flex-shrink-0"
         >
-          <GripVertical className="w-4 h-4 text-gray-400" />
+          <GripVertical className="w-5 h-5 text-gray-400" />
         </div>
       )}
 

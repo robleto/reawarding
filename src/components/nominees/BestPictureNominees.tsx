@@ -64,7 +64,7 @@ function SortableMovieItem({ movie, index, onRemove, isSelected, isWinner = fals
       <div
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+        className="min-w-[44px] min-h-[44px] flex items-center justify-center touch-none cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
       >
         <GripVertical className="w-5 h-5" />
       </div>
@@ -131,7 +131,10 @@ export default function BestPictureNominees({
   const [topRankedMovies, setTopRankedMovies] = useState<Movie[]>([]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    // Long-press to drag so touch scrolling isn't hijacked by the sortable
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })

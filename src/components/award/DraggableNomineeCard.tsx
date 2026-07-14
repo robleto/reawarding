@@ -73,10 +73,10 @@ export default function DraggableNomineeCard({
       <button
         {...attributes}
         {...listeners}
-        className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
+        className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center touch-none text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
         aria-label="Drag to reorder"
       >
-        <GripVertical className="w-4 h-4" />
+        <GripVertical className="w-5 h-5" />
       </button>
 
       {/* Movie Thumbnail - Smaller, more compact */}

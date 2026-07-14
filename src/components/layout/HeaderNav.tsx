@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Clapperboard, LineChart, List, Menu, Plus, Trophy, X } from "lucide-react";
+import { Clapperboard, LineChart, List, Menu, Plus, Search, Trophy, X } from "lucide-react";
 import { UserMenu } from "@/components/layout/UserMenu";
 import NavSearch from "@/components/layout/NavSearch";
 import AuthModalManager from "@/components/auth/AuthModalManager";
@@ -20,6 +20,7 @@ export default function HeaderNav() {
 	const [authMode, setAuthMode] = useState<"login" | "signup">("login");
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 	const [mobileUserOpen, setMobileUserOpen] = useState(false);
+	const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 	const [showAddMovieModal, setShowAddMovieModal] = useState(false);
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 	const navRefs = useRef<(HTMLLIElement | null)[]>([]);
@@ -73,7 +74,7 @@ export default function HeaderNav() {
 
 	return (
 		<>
-			<header className={`fixed top-0 left-0 right-0 z-50 w-full border-b border-gray-700 transition-all duration-300 ${
+			<header className={`fixed top-0 left-0 right-0 z-50 w-full pt-[env(safe-area-inset-top)] border-b border-gray-700 transition-all duration-300 ${
 				hasScrolled 
 					? 'dark-background'
 					: 'bg-transparent'
@@ -157,6 +158,16 @@ export default function HeaderNav() {
 								<UserMenu onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
 							</div>
 
+							<button
+								onClick={() => { setMobileSearchOpen(!mobileSearchOpen); if (!mobileSearchOpen) { setMobileMenuOpen(false); setMobileUserOpen(false); } }}
+								className={`md:hidden inline-flex items-center justify-center w-11 h-11 rounded-md transition-colors ${
+									mobileSearchOpen ? "text-gold bg-gray-800" : "text-gray-300 hover:bg-gray-800"
+								}`}
+								aria-label="Search films"
+								aria-expanded={mobileSearchOpen}
+							>
+								<Search className="w-5 h-5" />
+							</button>
 							{user && (
 								<button
 									onClick={() => setShowAddMovieModal(true)}
@@ -171,7 +182,7 @@ export default function HeaderNav() {
 								<button
 									className="md:hidden inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-full hover:bg-gray-800 transition-colors"
 									aria-label="Open user menu"
-									onClick={() => { setMobileUserOpen(!mobileUserOpen); if (!mobileUserOpen) setMobileMenuOpen(false); }}
+									onClick={() => { setMobileUserOpen(!mobileUserOpen); if (!mobileUserOpen) { setMobileMenuOpen(false); setMobileSearchOpen(false); } }}
 								>
 									<UserAvatar
 										imageUrl={avatarUrl}
@@ -183,7 +194,7 @@ export default function HeaderNav() {
 							)}
 							{/* Mobile Menu Button */}
 							<button
-								onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (!mobileMenuOpen) setMobileUserOpen(false); }}
+								onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (!mobileMenuOpen) { setMobileUserOpen(false); setMobileSearchOpen(false); } }}
 								className="md:hidden inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-3 rounded-md hover:bg-gray-800 transition-colors ml-auto"
 								aria-label="Toggle mobile menu"
 							>
@@ -196,6 +207,20 @@ export default function HeaderNav() {
 						</div>
 					</div>
 				</div>
+
+				{/* Mobile Search Panel — search is the primary way to find a film
+				    on mobile (the Films catalog is secondary; see decision log). */}
+				{mobileSearchOpen && (
+					<div className="md:hidden bg-charcoal-900 border-t border-gray-700 shadow-gray-800/50 transition-colors duration-300">
+						<div className="px-6 py-4">
+							<NavSearch
+								variant="panel"
+								autoFocus
+								onNavigate={() => setMobileSearchOpen(false)}
+							/>
+						</div>
+					</div>
+				)}
 
 				{/* Mobile Menu */}
 				{mobileMenuOpen && (

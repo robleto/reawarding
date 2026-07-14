@@ -188,7 +188,7 @@ export default function MovieFilters({
   }
 
   return (
-    <div className="mb-6">
+    <div className="mb-4 sm:mb-6">
       {/* Search Bar and Filters Button Row */}
       <div className="flex gap-3 items-start">
         {/* Search Bar */}
@@ -202,7 +202,7 @@ export default function MovieFilters({
               onChange={handleSearchChange}
               onFocus={() => setShowSuggestions(!localSearchMode && !!searchTerm)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-              className={`w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 text-gray-300 placeholder-gray-400 transition-all duration-300 ${
+              className={`w-full pl-10 pr-4 py-2.5 border rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 text-gray-300 placeholder-gray-400 transition-all duration-300 ${
                 localSearchMode 
                   ? "border-yellow-500/30 bg-yellow-500/5 focus:ring-yellow-500/50" 
                   : "border-gray-600/50 bg-gray-800/50 focus:ring-blue-500"
@@ -354,7 +354,7 @@ export default function MovieFilters({
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as SortKey)}
-                    className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
+                    className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
                   >
                     {SORT_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -428,7 +428,7 @@ export default function MovieFilters({
                 <select
                   value={groupBy}
                   onChange={(e) => setGroupBy(e.target.value as GroupKey)}
-                  className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
+                  className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
                 >
                   {GROUP_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -451,7 +451,7 @@ export default function MovieFilters({
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value as "none" | "year" | "rank" | "movie" | "genre")}
-                    className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
+                    className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
                   >
                     <option value="none">No filter</option>
                     <option value="year">Year</option>
@@ -463,7 +463,7 @@ export default function MovieFilters({
                     <select
                       value={filterValue}
                       onChange={(e) => setFilterValue(e.target.value)}
-                      className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
+                      className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
                     >
                       <option value="all">All Years</option>
                       {uniqueYears.map((year) => (
@@ -478,7 +478,7 @@ export default function MovieFilters({
                     <select
                       value={filterValue}
                       onChange={(e) => setFilterValue(e.target.value)}
-                      className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
+                      className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
                     >
                       <option value="all">All Ratings</option>
                       <option value="unranked">No Rating</option>
@@ -494,7 +494,7 @@ export default function MovieFilters({
                     <select
                       value={filterValue}
                       onChange={(e) => setFilterValue(e.target.value)}
-                      className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
+                      className="w-full border border-gray-600/50 rounded-lg px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800/70 text-gray-300"
                     >
                       <option value="all">All Genres</option>
                       {uniqueGenres.map((genre) => (

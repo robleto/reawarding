@@ -935,7 +935,7 @@ export default function YearExplorer({
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder={`Filter ${year} movies...`}
-                  className="w-full rounded-lg border border-gray-700/50 bg-charcoal-900/60 px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/40"
+                  className="w-full rounded-lg border border-gray-700/50 bg-charcoal-900/60 px-3 py-2 text-base sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/40"
                 />
               </div>
             </div>

@@ -375,7 +375,7 @@ export default function ProfilePage() {
                   <select
                     value={nameBuilder.title}
                     onChange={(e) => setNameBuilder({ ...nameBuilder, title: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white text-sm"
+                    className="w-full px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white text-base sm:text-sm"
                   >
                     <option value="">None</option>
                     <option value="Mr.">Mr.</option>

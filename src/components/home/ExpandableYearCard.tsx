@@ -421,7 +421,7 @@ export default function ExpandableYearCard({
             </div>
             {/* "Rate 7+" hint shown in header when ballot incomplete and not expanded */}
             {!isExpanded && liveNomineeCount < 10 && !isForming && (
-              <span className="text-[10px] text-gray-600 whitespace-nowrap">
+              <span className="text-xs text-gray-400 whitespace-nowrap">
                 Rate 7+ to nominate
               </span>
             )}
@@ -452,7 +452,7 @@ export default function ExpandableYearCard({
         {/* Academy contrast */}
         {academy && (
           <div className="flex flex-col items-end flex-shrink-0 text-right">
-            <p className="text-[10px] uppercase tracking-wider text-gray-600">
+            <p className="text-[10px] uppercase tracking-wider text-gray-400">
               Academy
             </p>
             <p
