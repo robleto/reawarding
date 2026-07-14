@@ -360,7 +360,12 @@ export default function AwardsPage() {
         {/* Year scrubber — sticky index of the register. Scrollspies the
             current year; tapping a chip jumps to that year. */}
         {formattedYears.length > 1 && (
-          <div className="sticky top-[calc(5rem+env(safe-area-inset-top))] z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-2 bg-gray-950/85 backdrop-blur-md">
+          /* top = header's real rendered height (py-3 + 44px logo + border
+             ≈ 4.3rem), NOT main's 5rem padding — 5rem left a gap strip
+             between the nav's border and the bar. [&>div]:mb-0 cancels the
+             timeline's own bottom margin, which collapsed out of the sticky
+             box and read as dead space below it. */
+          <div className="sticky top-[calc(4.3rem+env(safe-area-inset-top))] z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-2 mb-4 bg-gray-950/90 backdrop-blur-md border-b border-gray-800/60 [&>div]:mb-0">
             <MuseumYearTimeline
               years={formattedYears.map((y) => ({
                 year: Number(y.year),
@@ -382,7 +387,9 @@ export default function AwardsPage() {
               className={`award-year-enter ${hasArrived ? "award-year-arrived" : ""}`}
               style={{
                 minHeight: isVisible ? "auto" : "600px",
-                scrollMarginTop: "calc(5rem + 88px + env(safe-area-inset-top))",
+                // header (4.3rem) + scrubber bar (86px) + the arrival
+                // animation's 16px upward settle + breathing room
+                scrollMarginTop: "calc(4.3rem + 112px + env(safe-area-inset-top))",
               }}
             >
               {isVisible ? (
