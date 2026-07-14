@@ -6,7 +6,9 @@ import { ArrowRight, Trophy } from "lucide-react";
 import EditableYearSection from "@/components/award/EditableYearSection";
 import AwardsEmptyState from "@/components/award/AwardsEmptyState";
 import YearExplorer from "@/components/home/YearExplorer";
+import MuseumYearTimeline from "@/components/home/MuseumYearTimeline";
 import ScreenState from "@/components/ui/ScreenState";
+import { usePrefersReducedMotion } from "@/lib/motion";
 import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
 import { useUserAwards } from "@/hooks/useUserAwards";
 import { useCreateAward } from "@/hooks/useCreateAward";
@@ -26,9 +28,17 @@ export default function AwardsPage() {
   const { awards, loading: awardsLoading, error: awardsError, refetch: refetchAwards } = useUserAwards();
   const { createAward } = useCreateAward();
   const tab = "best-picture" as const;
+  const reducedMotion = usePrefersReducedMotion();
   const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());
   const observerRef = useRef<IntersectionObserver | null>(null);
   const yearElementsRef = useRef<Record<string, HTMLDivElement | null>>({});
+  // Scrubber scrollspy — which year currently occupies the reading band.
+  const [activeScrollYear, setActiveScrollYear] = useState<number | null>(null);
+  const spyObserverRef = useRef<IntersectionObserver | null>(null);
+  // Arrival — years whose section has crossed into view once (fires the
+  // one-shot reveal: header fade-up + gilt glow crest). Never removed.
+  const [arrivedYears, setArrivedYears] = useState<Set<string>>(new Set());
+  const arrivalObserverRef = useRef<IntersectionObserver | null>(null);
   const [explorerYear, setExplorerYear] = useState<number | null>(null);
   const [explorerIsEditing, setExplorerIsEditing] = useState(false);
   const lastExplorerYearRef = useRef<number | null>(null);
@@ -127,20 +137,73 @@ export default function AwardsPage() {
       }
     );
 
+    // Scrollspy: a section is "current" while it overlaps the reading band
+    // (upper-middle of the viewport). Sections are far taller than the band,
+    // so effectively one intersects at a time.
+    spyObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const year = entry.target.getAttribute("data-year");
+          if (year && entry.isIntersecting) {
+            setActiveScrollYear(Number(year));
+          }
+        });
+      },
+      { rootMargin: "-25% 0px -60% 0px", threshold: 0 }
+    );
+
+    // Arrival: first time a section meaningfully enters view, mark it and
+    // stop watching — the reveal is a one-shot.
+    arrivalObserverRef.current = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          const year = entry.target.getAttribute("data-year");
+          if (year && entry.isIntersecting) {
+            setArrivedYears((prev) => new Set(prev).add(year));
+            obs.unobserve(entry.target);
+          }
+        });
+      },
+      { rootMargin: "0px 0px -18% 0px", threshold: 0.05 }
+    );
+
+    // Retro-observe anything already mounted (ref callbacks can run before
+    // this effect on the first data render).
+    Object.values(yearElementsRef.current).forEach((el) => {
+      if (!el) return;
+      observerRef.current?.observe(el);
+      spyObserverRef.current?.observe(el);
+      arrivalObserverRef.current?.observe(el);
+    });
+
     return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
+      observerRef.current?.disconnect();
+      spyObserverRef.current?.disconnect();
+      arrivalObserverRef.current?.disconnect();
     };
   }, []);
 
   const yearContainerRef = useCallback((element: HTMLDivElement | null, year: string) => {
     yearElementsRef.current[year] = element;
-    if (!element || !observerRef.current) return;
-    observerRef.current.observe(element);
+    if (!element) return;
+    observerRef.current?.observe(element);
+    spyObserverRef.current?.observe(element);
+    arrivalObserverRef.current?.observe(element);
   }, []);
 
+  const scrollToYear = useCallback(
+    (year: number) => {
+      const el = yearElementsRef.current[String(year)];
+      el?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+    },
+    [reducedMotion]
+  );
+
   useEffect(() => {
+    // The lift-away stack effect is decorative — skip it entirely for
+    // reduced-motion users (this effect previously ignored the preference).
+    if (reducedMotion) return;
+
     let mounted = true;
     let cleanup = () => {};
 
@@ -185,7 +248,7 @@ export default function AwardsPage() {
       mounted = false;
       cleanup();
     };
-  }, [formattedYears]);
+  }, [formattedYears, reducedMotion]);
 
   // Track which year the explorer last opened so we know what to refresh on close
   useEffect(() => {
@@ -277,14 +340,33 @@ export default function AwardsPage() {
   return (
     <>
       <div className={`max-w-screen-xl mx-auto ${isGuest ? "pb-32" : ""}`}>
+        {/* Year scrubber — sticky index of the register. Scrollspies the
+            current year; tapping a chip jumps to that year. */}
+        {formattedYears.length > 1 && (
+          <div className="sticky top-[calc(5rem+env(safe-area-inset-top))] z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-2 bg-gray-950/85 backdrop-blur-md">
+            <MuseumYearTimeline
+              years={formattedYears.map((y) => ({
+                year: Number(y.year),
+                nomineeCount: y.nominees.length,
+              }))}
+              activeYear={activeScrollYear ?? Number(formattedYears[0].year)}
+              onSelectYear={scrollToYear}
+            />
+          </div>
+        )}
         {formattedYears.map((yearData) => {
           const isVisible = visibleYears.has(yearData.year);
+          const hasArrived = arrivedYears.has(yearData.year);
           return (
             <div
               key={`${yearData.year}-${tab}-${sectionRevisions[Number(yearData.year)] ?? 0}`}
               data-year={yearData.year}
               ref={(el) => yearContainerRef(el, yearData.year)}
-              style={{ minHeight: isVisible ? "auto" : "600px" }}
+              className={`award-year-enter ${hasArrived ? "award-year-arrived" : ""}`}
+              style={{
+                minHeight: isVisible ? "auto" : "600px",
+                scrollMarginTop: "calc(5rem + 88px + env(safe-area-inset-top))",
+              }}
             >
               {isVisible ? (
                 <EditableYearSection
