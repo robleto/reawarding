@@ -73,7 +73,7 @@ const resolveImage = (movie: Movie, prefer: "poster" | "thumb") => {
 	return null;
 };
 
-const RatingBadge = ({ rating, className = "" }: { rating: number; className?: string }) => {
+export const RatingBadge = ({ rating, className = "" }: { rating: number; className?: string }) => {
 	const { text, background } = getRatingStyle(rating);
 	if (rating <= 0) return null;
 	return (

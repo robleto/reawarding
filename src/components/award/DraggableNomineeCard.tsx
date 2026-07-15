@@ -4,31 +4,23 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
 import { GripVertical, X, Crown, Film } from "lucide-react";
-import { getRatingStyle } from "@/utils/getRatingStyle";
+import { RatingBadge } from "./MovieCard";
+import { getRatingDefinition } from "@/lib/ratingScale";
 import type { Movie } from "@/types/types";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 
 interface DraggableNomineeCardProps {
   movie: Movie;
+  /** 1-based ballot position — the ballot is ordered, so rank is real information */
+  rank?: number;
   isWinner: boolean;
   onSetWinner: (movie: Movie) => void;
   onRemove: (movieId: string) => void;
 }
 
-// Fallback component for missing images
-const NomineeFallback = ({ 
-  className = "" 
-}: { 
-  title: string; 
-  className?: string; 
-}) => (
-  <div className={`flex items-center justify-center bg-gray-100 text-gray-400 w-24 h-18 ${className}`}>
-    <Film className="w-6 h-6" />
-  </div>
-);
-
 export default function DraggableNomineeCard({
   movie,
+  rank,
   isWinner,
   onSetWinner,
   onRemove,
@@ -48,106 +40,102 @@ export default function DraggableNomineeCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const ranking = movie.rankings?.[0]?.ranking ?? 0;
-  const ratingStyle = getRatingStyle(ranking);
-  const thumbSrc = movie.thumb_url || movie.poster_url;
-  const normalizedThumb = normalizeImageUrl(thumbSrc);
-  // Ensure we have a valid absolute URL or proper relative path
-  const isValidUrl = normalizedThumb && 
-    (normalizedThumb.startsWith('http://') || 
-     normalizedThumb.startsWith('https://') || 
-     (normalizedThumb.startsWith('/') && normalizedThumb.length > 1));
-  const hasValidImage = isValidUrl && !thumbSrc?.includes('placeholder');
+  const ranking = Math.round(movie.rankings?.[0]?.ranking ?? 0);
+  const ratingLabel = ranking > 0 ? getRatingDefinition(ranking)?.label ?? null : null;
+  // Posters, not backdrops — same 2:3 crop as the display rows so edit and
+  // view mode read as the same list (see 2026-07 thumbs/poster mixup).
+  const posterSrc = normalizeImageUrl(movie.poster_url || movie.thumb_url);
+  const isValidUrl = posterSrc &&
+    (posterSrc.startsWith('http://') ||
+     posterSrc.startsWith('https://') ||
+     (posterSrc.startsWith('/') && posterSrc.length > 1));
+  const hasValidImage = isValidUrl && !posterSrc?.includes('placeholder');
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`
-        flex items-center gap-3 p-3 bg-white border rounded-lg shadow-sm
-        ${isWinner ? 'border-gold-400 bg-gold-50' : 'border-gray-200'}
-        hover:shadow-md transition-shadow w-full
-      `}
+      className={`w-full px-1 py-1 md:px-2 rounded-xl border shadow-sm transition-colors ${
+        isWinner
+          ? 'border-gold-500/40 bg-gold-500/5 hover:bg-gold-500/10'
+          : 'border-gray-700/50 bg-gray-900/60 hover:bg-gray-800/80'
+      }`}
     >
-      {/* Drag Handle - Left side, smaller */}
-      <button
-        {...attributes}
-        {...listeners}
-        className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center touch-none text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing"
-        aria-label="Drag to reorder"
-      >
-        <GripVertical className="w-5 h-5" />
-      </button>
+      <div className="flex items-center gap-1 min-h-[72px]">
+        {/* Drag handle — leftmost, 44px tap target */}
+        <button
+          {...attributes}
+          {...listeners}
+          className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center touch-none text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing"
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="w-5 h-5" />
+        </button>
 
-      {/* Movie Thumbnail - Smaller, more compact */}
-      <div className="flex-shrink-0">
-        {hasValidImage ? (
-          <Image
-            src={normalizedThumb}
-            alt={movie.title}
-            width={64}
-            height={48}
-            className="rounded-md object-cover w-16 h-12"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-              if (fallback) fallback.style.display = 'flex';
-            }}
-          />
-        ) : null}
-        {!hasValidImage && (
-          <NomineeFallback
-            title={movie.title}
-            className="rounded-md w-16 h-12"
-          />
+        {typeof rank === "number" && (
+          <div className="w-5 flex items-center justify-end text-xs font-mono font-bold text-gray-400 tabular-nums select-none pr-1">
+            {rank}
+          </div>
         )}
-      </div>
 
-      {/* Movie Info - Takes remaining space */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <h4 className="font-semibold text-gray-900 text-sm leading-tight break-words line-clamp-2">
+        <div className="flex-shrink-0">
+          {hasValidImage ? (
+            <Image
+              src={posterSrc}
+              alt={movie.title}
+              width={48}
+              height={72}
+              className="w-12 h-[72px] rounded-md shadow-md object-cover"
+              sizes="48px"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          <div
+            className={`${hasValidImage ? 'hidden' : 'flex'} items-center justify-center bg-gray-800 rounded-md`}
+            style={{ width: 48, height: 72 }}
+          >
+            <Film className="w-4 h-4 text-gray-600" />
+          </div>
+        </div>
+
+        <div className="flex-1 min-w-0 px-2">
+          <h4 className="text-sm font-semibold text-white leading-tight line-clamp-2 break-words">
             {movie.title}
           </h4>
-          {/* Action buttons - smaller, more compact */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+        </div>
+
+        <div className="flex items-center gap-1 flex-shrink-0 pr-1">
+          <div className="flex flex-col items-center">
+            {/* Same 44px scale as the display rows' rating chip */}
+            <RatingBadge rating={ranking} className="min-w-[44px] min-h-[44px] justify-center text-base" />
+            {ratingLabel && (
+              <span className="mt-0.5 text-xs leading-tight text-gray-400">{ratingLabel}</span>
+            )}
+          </div>
+          <div className="flex flex-col">
             <button
               onClick={() => onSetWinner(movie)}
-              className={`
-                p-2 rounded transition-colors
-                ${isWinner
-                  ? 'text-gold-600 bg-gold-100 hover:bg-gold-200'
-                  : 'text-gray-400 hover:text-gold-600 hover:bg-gold-50'
-                }
-              `}
+              className={`p-2 rounded transition-colors ${
+                isWinner
+                  ? 'text-gold-400 bg-gold-500/15 hover:bg-gold-500/25'
+                  : 'text-gray-500 hover:text-gold-400 hover:bg-gold-500/10'
+              }`}
               title={isWinner ? 'Remove as winner' : 'Set as winner'}
             >
               <Crown className="w-4 h-4" />
             </button>
             <button
               onClick={() => onRemove(movie.id)}
-              className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+              className="p-2 text-red-400/80 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
               title="Remove from nominees"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
-        </div>
-        
-        {/* Rating and Winner badge row - more compact */}
-        <div className="flex items-center gap-2">
-          <span
-            className="px-2 py-0.5 text-xs font-bold rounded"
-            style={{ backgroundColor: ratingStyle.background, color: ratingStyle.text }}
-          >
-            {ranking}
-          </span>
-          {isWinner && (
-            <div className="flex items-center gap-1 text-gold-600">
-              <Crown className="w-3 h-3" />
-              <span className="text-xs font-medium">Winner</span>
-            </div>
-          )}
         </div>
       </div>
     </div>

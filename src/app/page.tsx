@@ -452,19 +452,8 @@ export default function HomePage() {
     [movies]
   );
 
-  const topGenreData = useMemo(() => {
-    if (tasteProfile.topGenres.length === 0) return { genre: null, exemplar: null };
-    const topGenre = tasteProfile.topGenres[0].genre;
-    const exemplarLeader = yearLeaders.find((yl) =>
-      (yl.leader.genres ?? []).includes(topGenre)
-    );
-    return { genre: topGenre, exemplar: exemplarLeader?.leader.title ?? null };
-  }, [tasteProfile, yearLeaders]);
-
   const { rows: feedRows, loading: feedLoading } = useRecognitionFeed(
-    userMovieIds,
-    topGenreData.genre,
-    topGenreData.exemplar
+    userMovieIds
   );
 
   // ── Smart list alerts (P2-d) ──

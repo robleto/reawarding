@@ -208,7 +208,11 @@ export default function UsernameLayout({
   if (!username) return null;
 
   return (
-    <div className="max-w-screen-xl mx-auto py-4">
+    /* w-full min-w-0: flex item of AppShell's <main> (a flex column) — without
+       min-w-0, the tab strip's whitespace-nowrap links propagate their
+       intrinsic width up here and inflate the page past the viewport on
+       mobile (same guard as /awards and the homepage). */
+    <div className="w-full min-w-0 max-w-screen-xl mx-auto py-4">
       <ProfileHeader username={username} />
       <ProfileTabs username={username} />
       {children}

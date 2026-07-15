@@ -127,7 +127,9 @@ export default function AwardsPage() {
         entries.forEach((entry) => {
           const year = entry.target.getAttribute("data-year");
           if (year && entry.isIntersecting) {
-            setVisibleYears((prev) => new Set(prev).add(year));
+            // Return prev when nothing changed so React can bail out — a new
+            // Set identity here re-renders the page for every IO delivery.
+            setVisibleYears((prev) => (prev.has(year) ? prev : new Set(prev).add(year)));
           }
         });
       },
@@ -159,7 +161,7 @@ export default function AwardsPage() {
         entries.forEach((entry) => {
           const year = entry.target.getAttribute("data-year");
           if (year && entry.isIntersecting) {
-            setArrivedYears((prev) => new Set(prev).add(year));
+            setArrivedYears((prev) => (prev.has(year) ? prev : new Set(prev).add(year)));
             obs.unobserve(entry.target);
           }
         });
@@ -183,12 +185,25 @@ export default function AwardsPage() {
     };
   }, []);
 
-  const yearContainerRef = useCallback((element: HTMLDivElement | null, year: string) => {
-    yearElementsRef.current[year] = element;
-    if (!element) return;
-    observerRef.current?.observe(element);
-    spyObserverRef.current?.observe(element);
-    arrivalObserverRef.current?.observe(element);
+  // One stable ref callback per year. An inline `ref={(el) => ...}` gets a new
+  // identity every render, so React detaches/re-attaches it each time — and
+  // every re-attach re-observes the section. The arrival observer unobserves
+  // after its one-shot fire, so re-observing delivers a fresh entry, whose
+  // setState re-renders, re-attaching the ref again: an infinite loop that
+  // trips "Maximum update depth exceeded" once the year explorer is open.
+  const yearRefCallbacksRef = useRef<Record<string, (element: HTMLDivElement | null) => void>>({});
+  const getYearContainerRef = useCallback((year: string) => {
+    if (!yearRefCallbacksRef.current[year]) {
+      yearRefCallbacksRef.current[year] = (element: HTMLDivElement | null) => {
+        if (yearElementsRef.current[year] === element) return;
+        yearElementsRef.current[year] = element;
+        if (!element) return;
+        observerRef.current?.observe(element);
+        spyObserverRef.current?.observe(element);
+        arrivalObserverRef.current?.observe(element);
+      };
+    }
+    return yearRefCallbacksRef.current[year];
   }, []);
 
   const scrollToYear = useCallback(
@@ -200,13 +215,13 @@ export default function AwardsPage() {
       setVisibleYears((prev) => {
         const next = new Set(prev);
         Object.keys(yearElementsRef.current).forEach((y) => next.add(y));
-        return next;
+        return next.size === prev.size ? prev : next;
       });
       // Skip the target's entrance animation: the browser aims the scroll at
       // the section's pre-arrival position (translated 16px down), then the
       // reveal eased it up under the bar — a slow post-landing creep. A
       // deliberate jump lands on a stable section instead.
-      setArrivedYears((prev) => new Set(prev).add(String(year)));
+      setArrivedYears((prev) => (prev.has(String(year)) ? prev : new Set(prev).add(String(year))));
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           const el = yearElementsRef.current[String(year)];
@@ -388,7 +403,7 @@ export default function AwardsPage() {
             <div
               key={`${yearData.year}-${tab}-${sectionRevisions[Number(yearData.year)] ?? 0}`}
               data-year={yearData.year}
-              ref={(el) => yearContainerRef(el, yearData.year)}
+              ref={getYearContainerRef(yearData.year)}
               className={`award-year-enter ${hasArrived ? "award-year-arrived" : ""}`}
               style={{
                 minHeight: isVisible ? "auto" : "600px",

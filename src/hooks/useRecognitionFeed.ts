@@ -30,19 +30,17 @@ const CURATED_WINNER_TITLES = Object.values(BEST_PICTURE_WINNERS)
  * useRecognitionFeed — 2–3 rows of films the user hasn't rated yet,
  * designed as recognition triggers ("oh I've seen that, let me rate it").
  *
- * Row 1  "Award winners"  — curated Best Picture winners fetched by title.
- *                           Guaranteed to return results if those films are in the DB.
- * Row 2  "Acclaimed films" — DB query: imdb_rating IS NOT NULL, sorted desc.
- *                           No numeric floor so it works even with sparse enrichment.
- * Row 3  "More [genre]"   — genre array match, sorted by imdb_rating desc nulls last.
- *                           Only rendered if user has taste data.
+ * Row 1  "Award winners"   — curated Best Picture winners fetched by title.
+ *                            Guaranteed to return results if those films are in the DB.
+ * Row 2  "Acclaimed films" — imdb_rating desc, floored at 1000+ TMDB votes so
+ *                            obscure films with inflated ratings can't outrank classics.
+ * Row 3  "Notable films"   — widely-seen movies: TMDB vote_count desc. Popularity,
+ *                            not acclaim — the row most likely to trigger "I've seen that".
  *
  * userMovieIds is read via ref so a new rating doesn't re-fire the fetch.
  */
 export function useRecognitionFeed(
-  userMovieIds: Set<string>,
-  topGenre: string | null,
-  topGenreExemplar: string | null
+  userMovieIds: Set<string>
 ): { rows: FeedRow[]; loading: boolean } {
   const [rows, setRows] = useState<FeedRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +53,7 @@ export function useRecognitionFeed(
     async function fetchFeed() {
       setLoading(true);
 
-      const [winnersResult, acclaimedResult, genreResult] = await Promise.all([
+      const [winnersResult, acclaimedResult, notableResult] = await Promise.all([
         // Row 1: Curated Best Picture winners — fetch by known titles
         supabase
           .from("movies")
@@ -63,23 +61,23 @@ export function useRecognitionFeed(
           .in("title", CURATED_WINNER_TITLES)
           .limit(30),
 
-        // Row 2: Acclaimed films — no numeric floor, just sort by rating desc
+        // Row 2: Acclaimed films — rating desc, with a vote floor so a 9.3
+        // from a handful of voters can't outrank The Godfather
         supabase
           .from("movies")
           .select(FEED_COLS)
           .not("imdb_rating", "is", null)
+          .gte("vote_count", 1000)
           .order("imdb_rating", { ascending: false })
           .limit(50),
 
-        // Row 3: Genre match (only queried when topGenre is known)
-        topGenre
-          ? supabase
-              .from("movies")
-              .select(FEED_COLS)
-              .contains("genres", [topGenre])
-              .order("imdb_rating", { ascending: false, nullsFirst: false })
-              .limit(40)
-          : Promise.resolve({ data: null, error: null }),
+        // Row 3: Notable films — widely seen, sorted by TMDB vote count desc
+        supabase
+          .from("movies")
+          .select(FEED_COLS)
+          .gt("vote_count", 0)
+          .order("vote_count", { ascending: false })
+          .limit(50),
       ]);
 
       if (cancelled) return;
@@ -116,12 +114,16 @@ export function useRecognitionFeed(
         (m) => !winnerIds.has(m.id)
       );
 
-      const genreFilms = topGenre
-        ? filter(
-            (genreResult.data as Record<string, unknown>[] | null) ?? null,
-            20
-          ).filter((m) => !winnerIds.has(m.id))
-        : [];
+      // Notable row: dedup against both earlier rows so each row feels fresh
+      const earlierIds = new Set([
+        ...winnerIds,
+        ...acclaimedDistinct.map((m) => m.id),
+      ]);
+      const notableFilms = toMovies(
+        (notableResult.data as Record<string, unknown>[] | null) ?? null
+      )
+        .filter((m) => !ids.has(m.id) && !earlierIds.has(m.id))
+        .slice(0, 20);
 
       const newRows: FeedRow[] = [];
 
@@ -141,11 +143,12 @@ export function useRecognitionFeed(
         });
       }
 
-      if (genreFilms.length >= 3 && topGenre) {
-        const label = topGenreExemplar
-          ? `Because you rated ${topGenreExemplar}`
-          : `More ${topGenre.toLowerCase()}`;
-        newRows.push({ id: "genre", label, films: genreFilms });
+      if (notableFilms.length >= 3) {
+        newRows.push({
+          id: "notable",
+          label: "Notable films",
+          films: notableFilms,
+        });
       }
 
       setRows(newRows);
@@ -156,7 +159,7 @@ export function useRecognitionFeed(
     return () => {
       cancelled = true;
     };
-  }, [topGenre, topGenreExemplar]); // userMovieIds read via ref — intentional
+  }, []); // userMovieIds read via ref — intentional
 
   return { rows, loading };
 }

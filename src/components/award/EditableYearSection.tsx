@@ -1436,10 +1436,11 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         strategy={verticalListSortingStrategy}
                       >
                         <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-                          {nominees.map((movie) => (
+                          {nominees.map((movie, index) => (
                             <DraggableNomineeCard
                               key={movie.id}
                               movie={movie}
+                              rank={index + 1}
                               isWinner={selectedWinner?.id === movie.id}
                               onSetWinner={handleSetWinner}
                               onRemove={handleRemoveNominee}
@@ -1452,6 +1453,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                           <div className="opacity-50">
                             <DraggableNomineeCard
                               movie={nominees.find(m => m.id === activeId)!}
+                              rank={nominees.findIndex(m => m.id === activeId) + 1}
                               isWinner={false}
                               onSetWinner={() => {}}
                               onRemove={() => {}}
@@ -1606,13 +1608,14 @@ function WorkshopNomineeRow({
   const thumbSrc = normalizeImageUrl(movie.poster_url || movie.thumb_url);
   const ranking = Math.round(movie.rankings?.[0]?.ranking ?? 0);
   const ratingStyle = getRatingStyle(ranking);
+  const ratingLabel = ranking > 0 ? getRatingDefinition(ranking)?.label ?? null : null;
 
   return (
     <>
       <div
         ref={setNodeRef}
         style={style}
-        className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-colors ${
+        className={`flex items-center gap-1 px-1 md:px-2 py-1 min-h-[72px] rounded-lg border transition-colors ${
           isWinner
             ? "border-gold-500/40 bg-gold-500/5"
             : "border-gray-700/30 bg-charcoal-900/30 hover:bg-gray-800/50"
@@ -1623,16 +1626,19 @@ function WorkshopNomineeRow({
           type="button"
           {...attributes}
           {...listeners}
-          className="flex-shrink-0 min-w-[44px] min-h-[44px] -my-2 flex items-center justify-center touch-none text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing"
+          className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center touch-none text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing"
           aria-label="Drag to reorder"
         >
           <GripVertical className="w-5 h-5" />
         </button>
 
-        {/* Rank number hidden — total shown in section header instead */}
+        {/* Rank number — the ballot is ordered, same column as the display rows */}
+        <div className="w-5 flex items-center justify-end text-xs font-mono font-bold text-gray-400 tabular-nums select-none pr-1">
+          {rank}
+        </div>
 
         {/* Thumbnail — matches MovieCard compact variant (fixed 2:3 poster crop) */}
-        <div className="relative flex-shrink-0 overflow-hidden bg-gray-800 rounded-md" style={{ width: 40, height: 60 }}>
+        <div className="relative flex-shrink-0 overflow-hidden bg-gray-800 rounded-md shadow-md" style={{ width: 48, height: 72 }}>
           {thumbSrc ? (
             <img src={thumbSrc} alt="" className="w-full h-full object-cover" />
           ) : (
@@ -1641,18 +1647,23 @@ function WorkshopNomineeRow({
         </div>
 
         {/* Title — matches MovieCard compact variant */}
-        <p className="flex-1 text-sm font-medium text-white truncate">{movie.title}</p>
+        <p className="flex-1 min-w-0 px-2 text-sm font-semibold text-white leading-tight line-clamp-2 break-words">{movie.title}</p>
 
-        {/* Rating badge — matches MovieCard rating badge style */}
-        <button
-          type="button"
-          onClick={() => setShowRatingModal(true)}
-          data-tour-target="rating-badge"
-          className="flex-shrink-0 text-sm font-bold px-2 py-2.5 min-h-[44px] rounded-md shadow-sm transition-transform active:scale-95"
-          style={ranking > 0 ? { backgroundColor: ratingStyle.background, color: ratingStyle.text } : { backgroundColor: 'rgba(75,85,99,0.4)', color: '#9ca3af' }}
-        >
-          {ranking > 0 ? ranking : "Rate"}
-        </button>
+        {/* Rating badge — same 44px labeled chip as the display rows */}
+        <div className="flex-shrink-0 flex flex-col items-center">
+          <button
+            type="button"
+            onClick={() => setShowRatingModal(true)}
+            data-tour-target="rating-badge"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-base font-mono font-bold tabular-nums rounded-md shadow-sm transition-transform active:scale-95"
+            style={ranking > 0 ? { backgroundColor: ratingStyle.background, color: ratingStyle.text } : { backgroundColor: 'rgba(75,85,99,0.4)', color: '#9ca3af' }}
+          >
+            {ranking > 0 ? ranking : <span className="text-sm font-sans">Rate</span>}
+          </button>
+          {ratingLabel && (
+            <span className="mt-0.5 text-xs leading-tight text-gray-400">{ratingLabel}</span>
+          )}
+        </div>
 
         {/* Winner toggle */}
         <button

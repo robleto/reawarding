@@ -426,6 +426,17 @@ export default function YearExplorer({
     [onUpdateMovieRanking, onCreateAward, activeNomineeIdSet, displayNomineeCount]
   );
 
+  // Stable identity matters: EditableYearSection's workshop sync effect lists
+  // onEditingChange in its deps, so an inline arrow here re-fires that effect
+  // (and its setStates) on every YearExplorer render.
+  const handleEditingChange = useCallback(
+    (editing: boolean) => {
+      setIsEditing(editing);
+      onEditingChange?.(editing);
+    },
+    [onEditingChange]
+  );
+
   // Workshop nominees change handler — keeps YearExplorer's nominee tracking in sync
   const handleWorkshopNomineesChange = useCallback(
     (nomineeIds: string[], winnerId: string | null) => {
@@ -786,10 +797,7 @@ export default function YearExplorer({
               onRequestScrollToContenders={focusContenders}
               onWorkshopRankUpdate={onUpdateMovieRanking}
               onWorkshopNomineesChange={handleWorkshopNomineesChange}
-              onEditingChange={(editing) => {
-                setIsEditing(editing);
-                onEditingChange?.(editing);
-              }}
+              onEditingChange={handleEditingChange}
             />
           </div>
 
