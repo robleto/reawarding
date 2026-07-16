@@ -50,6 +50,7 @@ async function enrichMovie(id, tmdbId, supabaseUrl, supabaseKey, tmdbApiKey, omd
     }
     // IMDb/Metacritic ratings (from OMDb)
     let imdb_rating = null;
+    let imdb_votes = null;
     let metacritic_score = null;
     if (imdb_id && omdbApiKey) {
       try {
@@ -58,9 +59,11 @@ async function enrichMovie(id, tmdbId, supabaseUrl, supabaseKey, tmdbApiKey, omd
         if (omdbRes.ok) {
           const omdb = await omdbRes.json();
           if (omdb.Response === "True") {
-            imdb_rating = omdb.imdbRating ? parseFloat(omdb.imdbRating) : null;
-            metacritic_score = omdb.Metascore ? parseInt(omdb.Metascore, 10) : null;
-            console.log(`Got OMDb data: IMDb rating=${imdb_rating}, Metacritic=${metacritic_score}`);
+            imdb_rating = omdb.imdbRating && omdb.imdbRating !== "N/A" ? parseFloat(omdb.imdbRating) : null;
+            // imdbVotes arrives as a comma-grouped string, e.g. "1,234,567"
+            imdb_votes = omdb.imdbVotes && omdb.imdbVotes !== "N/A" ? parseInt(omdb.imdbVotes.replace(/,/g, ""), 10) : null;
+            metacritic_score = omdb.Metascore && omdb.Metascore !== "N/A" ? parseInt(omdb.Metascore, 10) : null;
+            console.log(`Got OMDb data: IMDb rating=${imdb_rating}, votes=${imdb_votes}, Metacritic=${metacritic_score}`);
           } else {
             console.log(`OMDb returned error: ${omdb.Error || "Unknown error"}`);
           }
@@ -83,6 +86,7 @@ async function enrichMovie(id, tmdbId, supabaseUrl, supabaseKey, tmdbApiKey, omd
       release_year,
       mpaa_rating,
       imdb_rating,
+      imdb_votes,
       metacritic_score,
       tmdb_rating,
       genres,

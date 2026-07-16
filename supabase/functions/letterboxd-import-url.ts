@@ -45,6 +45,7 @@ async function enrichMovie(tmdbId) {
     }
   }
   let imdb_rating = null;
+  let imdb_votes = null;
   let metacritic_score = null;
   if (imdb_id && OMDB_API_KEY) {
     try {
@@ -52,8 +53,10 @@ async function enrichMovie(tmdbId) {
       if (omdbRes.ok) {
         const omdb = await omdbRes.json();
         if (omdb.Response === "True") {
-          imdb_rating = omdb.imdbRating ? parseFloat(omdb.imdbRating) : null;
-          metacritic_score = omdb.Metascore ? parseInt(omdb.Metascore, 10) : null;
+          imdb_rating = omdb.imdbRating && omdb.imdbRating !== "N/A" ? parseFloat(omdb.imdbRating) : null;
+          // imdbVotes arrives as a comma-grouped string, e.g. "1,234,567"
+          imdb_votes = omdb.imdbVotes && omdb.imdbVotes !== "N/A" ? parseInt(omdb.imdbVotes.replace(/,/g, ""), 10) : null;
+          metacritic_score = omdb.Metascore && omdb.Metascore !== "N/A" ? parseInt(omdb.Metascore, 10) : null;
         }
       }
     } catch {}
@@ -67,6 +70,7 @@ async function enrichMovie(tmdbId) {
     release_year,
     mpaa_rating,
     imdb_rating,
+    imdb_votes,
     metacritic_score,
     tmdb_rating,
     genres,

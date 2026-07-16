@@ -204,11 +204,15 @@ def main():
             
             # OMDB data for IMDB ratings
             imdb_rating = None
+            imdb_votes = None
             metacritic_score = None
             if imdb_id and OMDB_API_KEY:
                 omdb = fetch_omdb_data(imdb_id)
                 if omdb:
                     imdb_rating = float(omdb.get('imdbRating')) if omdb.get('imdbRating') != 'N/A' else None
+                    # imdbVotes arrives as a comma-grouped string, e.g. "1,234,567"
+                    raw_votes = (omdb.get('imdbVotes') or '').replace(',', '')
+                    imdb_votes = int(raw_votes) if raw_votes.isdigit() else None
                     metacritic_score = int(omdb.get('Metascore')) if omdb.get('Metascore') and omdb.get('Metascore').isdigit() else None
             
             # Build update data
@@ -222,6 +226,7 @@ def main():
                 'release_year': release_year,
                 'mpaa_rating': mpaa_rating,
                 'imdb_rating': imdb_rating,
+                'imdb_votes': imdb_votes,
                 'metacritic_score': metacritic_score,
                 'tmdb_rating': tmdb_rating,
                 'genres': genres,
