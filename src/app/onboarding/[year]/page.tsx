@@ -157,15 +157,16 @@ export default function OnboardingYearPage() {
               </>
             )}
           </p>
-          {/* Once the year is set, offer a quiet path to the full Awards
-              gallery so the guest can see what they've built before being
-              asked to save it. The page is guest-accessible. */}
-          {isSet && (
+          {/* Offer a quiet path to this year's ballot workspace as soon as
+              there's a nominee to show — even one nominee is a real result
+              worth seeing, not just once the ballot is fully set. Awards are
+              the emotional output of this loop, not a gate. Guest-accessible. */}
+          {nomineeCount > 0 && (
             <Link
-              href="/awards"
+              href={`/year/${year}`}
               className="mt-3 inline-flex items-center gap-1.5 min-h-[44px] text-sm font-medium text-gold-300 hover:text-gold-200 transition-colors"
             >
-              See your awards
+              {isSet ? "See your awards" : `See your ${year} race so far`}
               <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </Link>
           )}
@@ -193,7 +194,7 @@ export default function OnboardingYearPage() {
 
       {/* ─── Sticky bottom CTA — guests only ────────────────────────────── */}
       {isGuest && (
-        <div className="fixed bottom-0 inset-x-0 z-40 border-t border-gray-800 bg-charcoal-900/95 backdrop-blur-md">
+        <div className="fixed bottom-0 inset-x-0 z-40 border-t border-gray-800 bg-charcoal-900/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
           <div className="max-w-4xl mx-auto px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
               {isSet ? (
@@ -235,6 +236,7 @@ export default function OnboardingYearPage() {
           router.push("/onboarding");
         }}
         onSignup={() => router.push("/login")}
+        onSeeStanding={() => router.push(`/year/${year}`)}
         onPickAnother={() => setPickedMovie(null)}
         onClose={() => setPickedMovie(null)}
       />

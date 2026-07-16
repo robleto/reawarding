@@ -3,162 +3,72 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>You're Invited to ReAwarding</title>
-    <style>
-        /* Reset styles */
-        body, table, td, p, a, li, blockquote {
-            -webkit-text-size-adjust: 100%;
-            -ms-text-size-adjust: 100%;
-        }
-        img {
-            -ms-interpolation-mode: bicubic;
-            border: 0;
-            height: auto;
-            line-height: 100%;
-            outline: none;
-            text-decoration: none;
-        }
-
-        /* Main styles */
-        body {
-            margin: 0 !important;
-            padding: 0 !important;
-            background-color: #f4f4f4;
-            font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        }
-        
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-        }
-        
-        .header {
-            background-color: #ffffff;
-            padding: 40px 20px;
-            text-align: center;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        .logo {
-            height: 50px;
-            width: auto;
-        }
-        
-        .content {
-            padding: 40px 30px;
-        }
-        
-        .welcome-text {
-            font-size: 24px;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 16px;
-            text-align: center;
-        }
-        
-        .description {
-            font-size: 16px;
-            color: #6b7280;
-            line-height: 1.6;
-            margin-bottom: 32px;
-            text-align: center;
-        }
-        
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #d4af37 0%, #b8941f 100%);
-            color: #ffffff !important;
-            text-decoration: none;
-            padding: 16px 32px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            text-align: center;
-            margin: 0 auto;
-            display: block;
-            width: fit-content;
-        }
-        
-        .cta-button:hover {
-            opacity: 0.9;
-        }
-        
-        .footer {
-            background-color: #f9fafb;
-            padding: 30px;
-            text-align: center;
-            border-top: 1px solid #e5e7eb;
-        }
-        
-        .footer-text {
-            font-size: 14px;
-            color: #6b7280;
-            line-height: 1.5;
-        }
-        
-        .footer-link {
-            color: #667eea;
-            text-decoration: none;
-        }
-        
-        .footer-link:hover {
-            text-decoration: underline;
-        }
-
-        /* Oscar theme elements */
-        .oscar-accent {
-            color: #d4af37;
-        }
-        
-        .divider {
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #d4af37, transparent);
-            margin: 20px 0;
-        }
-    </style>
+    <title>You're Invited to Reawarding</title>
 </head>
-<body>
-    <div class="email-container">
-        <!-- Header -->
-        <div class="header">
-            <img src="{{ .SiteURL }}/Logo-on-white.png" alt="Reawarding" class="logo">
-        </div>
-        
-        <!-- Main Content -->
-        <div class="content">
-            <h1 class="welcome-text">You're Invited to Reawarding!</h1>
-            
-            <div class="divider"></div>
-            
-            <p class="description">
-                Someone has invited you to join ReAwarding, the ultimate community for ranking, noting and awarding the best movies according to you. 
-                Click the button below to accept your invitation and start creating your personalized rankings.
-            </p>
-            
-            <a href="{{ .ConfirmationURL }}" class="cta-button">
-                Accept Invitation
-            </a>
-            
-            <div class="divider"></div>
-            
-            <p class="description" style="font-size: 14px; margin-top: 32px;">
-                If the button doesn't work, copy and paste this link into your browser:<br>
-                <a href="{{ .ConfirmationURL }}" class="footer-link">{{ .ConfirmationURL }}</a>
-            </p>
-        </div>
-        
-        <!-- Footer -->
-        <div class="footer">
-            <p class="footer-text">
-                This invitation was sent to you by another ReAwarding user.<br>
-                If you don't want to join, you can safely ignore this email.
-            </p>
-            <p class="footer-text" style="margin-top: 16px;">
-                <a href="{{ .SiteURL }}" class="footer-link">Visit ReAwarding</a> • 
-                <a href="{{ .SiteURL }}/help" class="footer-link">Get Help</a>
-            </p>
-        </div>
-    </div>
+<body style="margin:0; padding:0; background-color:#f4f4f4; font-family:'Inter','Helvetica Neue',Helvetica,Arial,sans-serif; -webkit-text-size-adjust:100%;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f4;">
+        <tr>
+            <td align="center" style="padding:20px 10px;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; width:100%; background-color:#ffffff;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding:40px 20px; border-bottom:1px solid #e5e7eb;">
+                            <a href="{{ .SiteURL }}" style="text-decoration:none;">
+                                <span style="font-size:24px; font-weight:800; letter-spacing:4px; color:#1f2937; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">RE<span style="color:#d4af37;">&#9733;</span>AWARDING</span>
+                            </a>
+                        </td>
+                    </tr>
+
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding:40px 30px;">
+                            <h1 style="font-size:24px; font-weight:600; color:#1f2937; margin:0 0 16px 0; text-align:center;">You're Invited to Reawarding!</h1>
+
+                            <div style="height:1px; background-color:#d4af37; margin:20px 0;"></div>
+
+                            <p style="font-size:16px; color:#6b7280; line-height:1.6; margin:0 0 32px 0; text-align:center;">
+                                Someone has invited you to join Reawarding, the ultimate community for ranking, noting and awarding the best movies according to you.
+                                Click the button below to accept your invitation and start creating your personalized rankings.
+                            </p>
+
+                            <!-- CTA Button -->
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
+                                <tr>
+                                    <td align="center" bgcolor="#d4af37" style="border-radius:8px;">
+                                        <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite&amp;next=/auth/reset-password" style="display:inline-block; padding:16px 32px; font-size:16px; font-weight:600; color:#1f2937 !important; text-decoration:none; border-radius:8px; background-color:#d4af37; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+                                            Accept Invitation
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <div style="height:1px; background-color:#e5e7eb; margin:20px 0;"></div>
+
+                            <p style="font-size:14px; color:#6b7280; line-height:1.6; margin:32px 0 0 0; text-align:center;">
+                                If the button doesn't work, copy and paste this link into your browser:<br>
+                                <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite&amp;next=/auth/reset-password" style="color:#b8941f; text-decoration:underline; word-break:break-all;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite&amp;next=/auth/reset-password</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color:#f9fafb; padding:30px; text-align:center; border-top:1px solid #e5e7eb;">
+                            <p style="font-size:14px; color:#6b7280; line-height:1.5; margin:0;">
+                                This invitation was sent to you by another Reawarding user.<br>
+                                If you don't want to join, you can safely ignore this email.
+                            </p>
+                            <p style="font-size:14px; color:#6b7280; line-height:1.5; margin:16px 0 0 0;">
+                                <a href="{{ .SiteURL }}" style="color:#b8941f; text-decoration:none;">Visit Reawarding</a> &bull;
+                                <a href="{{ .SiteURL }}/help" style="color:#b8941f; text-decoration:none;">Get Help</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

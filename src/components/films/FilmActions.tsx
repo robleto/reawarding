@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Bookmark } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { supabase } from "@/lib/supabaseBrowser";
 import SeenItButton from "@/components/movie/SeenItButton";
 import RankingDropdown from "@/components/movie/RankingDropdown";
 import useGuestRankingStore from "@/hooks/useGuestRankingStore";
+import { useWatchlistContext } from "@/contexts/WatchlistContext";
 
 type Props = {
   movieId: string;
@@ -13,6 +15,8 @@ type Props = {
 
 export default function FilmActions({ movieId }: Props) {
   const { user } = useUser();
+  const { watchlistMovieIds, toggle: toggleWatchlist, removeIfWatched } = useWatchlistContext();
+  const isOnWatchlist = watchlistMovieIds.has(movieId);
   const [ranking, setRanking] = useState<number | null>(null);
   const [seenIt, setSeenIt] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -83,6 +87,12 @@ export default function FilmActions({ movieId }: Props) {
     }
   };
 
+  const handleSeenItClick = () => {
+    const newSeenIt = !seenIt;
+    handleUpdate({ seen_it: newSeenIt });
+    if (newSeenIt) removeIfWatched(movieId).catch(() => {});
+  };
+
   if (loading) {
     return <div className="flex gap-3 items-center text-gray-500">Loading...</div>;
   }
@@ -91,12 +101,27 @@ export default function FilmActions({ movieId }: Props) {
     <div className="flex gap-3 items-center">
       <SeenItButton
         seenIt={seenIt}
-        onClick={() => handleUpdate({ seen_it: !seenIt })}
+        onClick={handleSeenItClick}
       />
       <RankingDropdown
         ranking={ranking}
         onChange={(value) => handleUpdate({ ranking: value })}
       />
+      {!seenIt && (
+        <button
+          type="button"
+          onClick={() => toggleWatchlist(movieId)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
+            isOnWatchlist
+              ? "bg-amber-800/40 text-amber-300 hover:bg-amber-700/40"
+              : "bg-gray-700/50 text-gray-300 hover:bg-gray-600/50"
+          }`}
+          title={isOnWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+        >
+          <Bookmark className={`w-4 h-4 ${isOnWatchlist ? "fill-current" : ""}`} />
+          {isOnWatchlist ? "On Watchlist" : "Watchlist"}
+        </button>
+      )}
     </div>
   );
 }

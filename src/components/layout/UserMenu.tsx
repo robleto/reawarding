@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Activity, Bookmark, Film, LogOut, Moon, Star, Sun, Trophy, User, Users } from 'lucide-react';
+import { Activity, Bookmark, Film, LogOut, Moon, Monitor, Settings, Star, Sun, Trophy, User, Users, List } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useEnsureProfile } from '@/hooks/useEnsureProfile';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
@@ -11,6 +11,35 @@ import type { Database } from '@/types/supabase';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { signOutEverywhere } from '@/utils/signOut';
 import { useAuthState } from '@/hooks/useAuthState';
+
+const THEME_OPTIONS = [
+  { value: 'light', icon: Sun, label: 'Light mode' },
+  { value: 'system', icon: Monitor, label: 'System theme' },
+  { value: 'dark', icon: Moon, label: 'Dark mode' },
+] as const;
+
+function ThemeSwitcher({ theme, setTheme }: { theme: string | undefined; setTheme: (theme: string) => void }) {
+  return (
+    <div className="flex items-center justify-center px-4 py-3">
+      <div className="flex items-center gap-1 p-1 border border-gray-700 rounded-full bg-gray-900/60">
+        {THEME_OPTIONS.map(({ value, icon: Icon, label }) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setTheme(value)}
+            aria-label={label}
+            aria-pressed={theme === value}
+            className={`flex items-center justify-center w-12 h-9 rounded-full transition-colors ${
+              theme === value ? 'bg-gray-700 text-gold-300' : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <Icon className="w-4 h-4" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface UserMenuProps {
   onLoginClick?: () => void;
@@ -28,9 +57,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
   const router = useRouter();
   const supabase = useSupabaseClient<Database>();
   const { user, status: authStatus } = useAuthState();
-  const { resolvedTheme, setTheme } = useTheme();
-  const isLightMode = resolvedTheme === 'light';
-  const toggleTheme = () => setTheme(isLightMode ? 'dark' : 'light');
+  const { theme, setTheme } = useTheme();
 
   const { profile, loading: profileLoading, error: profileError } = useEnsureProfile(user);
 
@@ -92,14 +119,14 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
             type="button"
             onClick={handleLogin}
             data-testid="primary-cta-login"
-            className="w-full py-2 px-3 rounded-md text-sm font-medium text-gray-300 border border-gray-600/60 hover:bg-gray-800 transition-colors"
+            className="w-full px-3 py-2 text-sm font-medium text-gray-300 transition-colors border rounded-md border-gray-600/60 hover:bg-gray-800"
           >
             Log In
           </button>
           <button
             type="button"
             onClick={handleSignup}
-            className="w-full py-2 px-3 rounded-md text-sm font-medium text-black bg-gold-500 hover:bg-gold-400 transition-colors shadow"
+            className="w-full px-3 py-2 text-sm font-medium text-black transition-colors rounded-md shadow bg-gold-500 hover:bg-gold-400"
           >
             Sign Up
           </button>
@@ -119,7 +146,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
         <button
           type="button"
           onClick={handleSignup}
-          className="px-4 py-2 text-sm font-medium text-black bg-gold-500 hover:bg-gold-400 rounded-lg transition-colors shadow"
+          className="px-4 py-2 text-sm font-medium text-black transition-colors rounded-lg shadow bg-gold-500 hover:bg-gold-400"
         >
           Sign Up
         </button>
@@ -147,12 +174,13 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
 
   const navItems = u ? [
     { href: `/${u}`,            icon: User,     label: 'My Profile'   },
-    { href: `/${u}/activity`,   icon: Activity, label: 'My Activity'  },
-    { href: `/${u}/films`,      icon: Film,     label: 'My Films'     },
-    { href: `/${u}/rankings`,   icon: Star,     label: 'My Ratings'   },
     { href: `/${u}/awards`,     icon: Trophy,   label: 'My Awards'    },
+    { href: `/${u}/rankings`,   icon: Star,     label: 'My Ratings'   },
+    { href: `/${u}/films`,      icon: Film,     label: 'My Films'     },
     { href: `/${u}/watchlist`,  icon: Bookmark, label: 'My Watchlist' },
-    { href: `/${u}/friends`,    icon: Users,    label: 'My Friends'   },
+    { href: `/${u}/lists`,      icon: List,     label: 'My Lists'     },
+    { href: `/${u}/activity`,   icon: Activity, label: 'My Activity'  },
+    { href: `/${u}/following`,  icon: Users,    label: 'My Friends'   },
   ] : [];
 
   // ── Inline variant (mobile hamburger panel) ──────────────────────────────
@@ -179,14 +207,14 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
               {label}
             </Link>
           ))}
-          <div className="border-t border-gray-700 my-1" />
-          <button
-            onClick={toggleTheme}
-            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-md text-sm font-medium text-left text-gray-300 hover:bg-gray-800"
+          <div className="my-1 border-t border-gray-700" />
+          <Link
+            href="/settings"
+            className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-800"
           >
-            {isLightMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            {isLightMode ? 'Dark Mode' : 'Light Mode'}
-          </button>
+            <Settings className="w-4 h-4" />
+            Settings
+          </Link>
           <button
             onClick={handleSignOut}
             className="flex items-center gap-2 w-full px-3 py-2.5 rounded-md text-sm font-medium text-left text-gray-300 hover:bg-gray-800"
@@ -194,6 +222,8 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
             <LogOut className="w-4 h-4" />
             Sign Out
           </button>
+          <div className="my-1 border-t border-gray-700" />
+          <ThemeSwitcher theme={theme} setTheme={setTheme} />
         </div>
       </div>
     );
@@ -204,7 +234,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
     <div className="relative inline-block text-left" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-700 transition-colors"
+        className="flex items-center gap-2 p-1 transition-colors rounded-full hover:bg-gray-700"
         aria-label="User menu"
         data-testid="user-menu-trigger"
       >
@@ -212,7 +242,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 w-52 mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-lg">
+        <div className="absolute right-0 z-50 mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-lg w-52">
           <div className="py-1">
             {/* User identity header */}
             <div className="px-4 py-2.5 border-b border-gray-700">
@@ -227,7 +257,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
               <Link
                 key={href}
                 href={href}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-gray-700"
                 onClick={() => setOpen(false)}
               >
                 <Icon className="w-4 h-4" />
@@ -235,23 +265,28 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
               </Link>
             ))}
 
-            <div className="border-t border-gray-700 my-1" />
+            <div className="my-1 border-t border-gray-700" />
 
-            <button
-              onClick={toggleTheme}
-              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-gray-700 transition-colors"
+            <Link
+              href="/settings"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-gray-700"
+              onClick={() => setOpen(false)}
             >
-              {isLightMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-              {isLightMode ? 'Dark Mode' : 'Light Mode'}
-            </button>
+              <Settings className="w-4 h-4" />
+              Settings
+            </Link>
 
             <button
               onClick={handleSignOut}
-              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-left text-gray-300 hover:bg-gray-700 transition-colors"
+              className="flex items-center w-full gap-2 px-4 py-2 text-sm text-left text-gray-300 transition-colors hover:bg-gray-700"
             >
               <LogOut className="w-4 h-4" />
               Sign Out
             </button>
+
+            <div className="my-1 border-t border-gray-700" />
+
+            <ThemeSwitcher theme={theme} setTheme={setTheme} />
           </div>
         </div>
       )}

@@ -13,7 +13,7 @@ type PanelTimelineProps = {
 
 // Curated demo canon — the user's personal ReAwarded picks across decades.
 // 1994 (Shawshank) and 2010 (Social Network) deliberately echo the panels above.
-// AwardCard's internal getActualWinner() auto-surfaces "Over Forrest Gump"
+// AwardCard's internal official-winners lookup auto-surfaces "Over Forrest Gump"
 // and "Over The King's Speech" for those two entries — free narrative payoff.
 const DEMO_AWARDS = [
 	{

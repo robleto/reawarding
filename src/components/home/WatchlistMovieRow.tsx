@@ -37,6 +37,7 @@ export default function WatchlistMovieRow({ userId, username }: WatchlistMovieRo
       .from("movies")
       .select("*, rankings(id, seen_it, ranking, user_id)")
       .in("id", ids)
+      .eq("rankings.user_id", userId)
       .then(
         ({ data }) => {
           if (!data) return;

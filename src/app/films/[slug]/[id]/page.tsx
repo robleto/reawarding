@@ -14,6 +14,7 @@ import SimilarMoviesGrid from "@/components/films/SimilarMoviesGrid";
 import EnhancedStats from "@/components/films/EnhancedStats";
 import ImdbIdEditor from "@/components/films/ImdbIdEditor";
 import FilmEntryPanel from "@/components/films/FilmEntryPanel";
+import YourTake from "@/components/films/YourTake";
 import {
   ExternalLink, Star, TrendingUp, DollarSign, Users, Calendar, Clock,
   Film as FilmIcon, Award, Video, Image as ImageIcon, BarChart3,
@@ -216,7 +217,13 @@ export default async function MovieDetailPage({ params }: any) {
   };
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-4 py-6">
+    // No mx-auto/px-4 here — AppShell's <main> already applies max-w-screen-xl
+    // + mx-auto + px-4 sm:px-6 to every page. Duplicating mx-auto/px-4 here
+    // rendered this wrapper at its own full 1280px instead of the ~1232px
+    // actually available inside main's padded content box, overflowing main
+    // by exactly main's own padding (48px) — same pattern as films/page.tsx,
+    // which only declares max-w-screen-xl and leaves centering/padding to main.
+    <div className="max-w-screen-xl py-6">
       {isGuest && movie.release_year && (
         <FilmEntryPanel
           film={{ id: movie.id, title: movie.title }}
@@ -226,8 +233,10 @@ export default async function MovieDetailPage({ params }: any) {
       )}
       {/* Hero Section */}
       <div className="grid grid-cols-1 md:grid-cols-[280px,1fr] lg:grid-cols-[350px,1fr] gap-6 lg:gap-8 mb-8">
-        {/* Poster */}
-        <div className="rounded-xl overflow-hidden border border-yellow-500/20 bg-gray-900/60 shadow-2xl max-w-xl md:max-w-none mx-auto md:mx-0 w-full">
+        {/* Poster — self-start so this column doesn't stretch to match the
+            (usually much taller) info column's height, which left a large
+            empty gap below the poster inside its own bordered box. */}
+        <div className="self-start rounded-xl overflow-hidden border border-yellow-500/20 bg-gray-900/60 shadow-2xl max-w-xl md:max-w-none mx-auto md:mx-0 w-full">
           <div className="relative aspect-[2/3]">
             {poster ? (
               <Image src={poster} alt={movie.title} fill className="object-cover" />
@@ -239,8 +248,12 @@ export default async function MovieDetailPage({ params }: any) {
           </div>
         </div>
 
-        {/* Main Info */}
-        <div className="flex flex-col">
+        {/* Main Info — min-w-0 so this raw `1fr` grid track can actually
+            shrink to fit; without it, a grid column's default min-width is
+            `auto` (content's min-content size), and unwrapped content
+            anywhere inside can force the whole column — and the page —
+            wider than the viewport. */}
+        <div className="flex flex-col min-w-0">
           <div className="flex-grow">
             <h1 className="text-4xl lg:text-5xl font-unbounded font-bold text-yellow-400 mb-2">
               {movie.title}
@@ -328,6 +341,9 @@ export default async function MovieDetailPage({ params }: any) {
         </div>
       </div>
 
+      {/* Your Take — expression layer (logged-in only; renders nothing for guests) */}
+      <YourTake movieId={movie.id} />
+
       {/* Detailed Information Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Cast & Crew */}
@@ -407,13 +423,21 @@ export default async function MovieDetailPage({ params }: any) {
               </div>
               <div className="mt-2">
                 <div className="text-xs text-gray-400 mb-1">Rating Distribution</div>
-                <div className="grid grid-cols-10 gap-1 items-end h-16">
+                <div className="grid grid-cols-10 gap-1 h-16">
                   {communityStats.histogram.map((count, i) => {
                     const max = Math.max(1, ...communityStats.histogram);
                     const h = Math.round((count / max) * 100);
                     return (
                       <div key={i} className="flex flex-col items-center">
-                        <div className="w-2 sm:w-3 bg-yellow-500/70" style={{ height: `${h}%` }} />
+                        {/* Fixed-height bar well so the bar's percentage height
+                            has a definite basis to resolve against — against
+                            an auto-height parent (the old items-end grid item,
+                            with no explicit height), `height: X%` computes to
+                            nothing and the bar silently renders at 0 height
+                            regardless of the data. */}
+                        <div className="w-full h-12 flex items-end justify-center">
+                          <div className="w-2 sm:w-3 bg-yellow-500/70 rounded-t-sm" style={{ height: `${h}%` }} />
+                        </div>
                         <div className="text-[10px] text-gray-500 mt-1">{i + 1}</div>
                       </div>
                     );
@@ -505,7 +529,7 @@ export default async function MovieDetailPage({ params }: any) {
 
       {/* Videos Section */}
       {videos && Array.isArray(videos) && videos.length > 0 && (
-        <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+        <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10 overflow-hidden">
           <div className="flex items-center gap-3 mb-4">
             <Video className="w-6 h-6 text-yellow-400" />
             <h3 className="text-lg font-unbounded font-semibold text-yellow-400">
@@ -519,7 +543,7 @@ export default async function MovieDetailPage({ params }: any) {
 
       {/* Backdrops Gallery */}
       {images?.backdrops && Array.isArray(images.backdrops) && images.backdrops.length > 0 && (
-        <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+        <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10 overflow-hidden">
           <div className="flex items-center gap-3 mb-4">
             <ImageIcon className="w-6 h-6 text-yellow-400" />
             <h3 className="text-lg font-unbounded font-semibold text-yellow-400">
@@ -617,7 +641,7 @@ export default async function MovieDetailPage({ params }: any) {
       {/* User Stats & Community (removed for now; community stats moved to left column) */}
 
       {/* Similar Movies / Recommendations */}
-      <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10">
+      <div className="mt-8 p-6 rounded-lg bg-gray-900/40 border border-yellow-500/10 overflow-hidden">
         <div className="flex items-center gap-3 mb-4">
           <ThumbsUp className="w-6 h-6 text-yellow-400" />
           <h3 className="text-lg font-unbounded font-semibold text-yellow-400">More Like This</h3>

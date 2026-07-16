@@ -32,6 +32,7 @@
     "diagnose:metadata": "tsx scripts/report-metadata-backlog.ts",
     "backfill:imdb": "TS_NODE_TRANSPILE_ONLY=1 npx ts-node scripts/backfill-imdb-ids.ts",
     "backfill:tmdb": "TS_NODE_TRANSPILE_ONLY=1 npx ts-node scripts/backfill-tmdb-ids.ts",
+    "backfill:official-winners": "TS_NODE_TRANSPILE_ONLY=1 npx ts-node scripts/backfill-official-winners.ts",
     "func:deploy:backfill-ids": "supabase functions deploy backfill-external-ids",
     "func:invoke:backfill-ids": "bash -lc 'set -a; source .env >/dev/null 2>&1 || true; curl -sS -X POST \"$NEXT_PUBLIC_SUPABASE_URL/functions/v1/backfill-external-ids?mode=both&limit=300\" -H \"X-CRON-SECRET: $CRON_SECRET\"'",
     "func:deploy:backfill-directors": "supabase functions deploy backfill-directors",

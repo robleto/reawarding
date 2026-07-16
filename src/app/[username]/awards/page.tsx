@@ -154,7 +154,10 @@ export default function ProfileAwardsPage() {
   }
 
   return (
-    <div className="max-w-screen-xl mx-auto">
+    /* w-full min-w-0: flex item of AppShell's <main> (a flex column) — without
+       min-w-0, wide intrinsic children propagate their width up here and
+       inflate the page past the viewport on mobile (same guard as /awards). */
+    <div className="w-full min-w-0 max-w-screen-xl mx-auto">
       {formattedYears.map((yearData) => {
         const isVisible = visibleYears.has(yearData.year);
         return (

@@ -15,8 +15,8 @@ export default function AlternativeTitles({ titles, max = 10 }: AlternativeTitle
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {display.map((t, idx) => (
           <div key={`${t.title}-${idx}`} className="flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-gray-800/50 border border-yellow-500/10">
-            <div className="text-gray-200 truncate" title={t.title}>{t.title}</div>
-            <div className="text-xs text-gray-500 whitespace-nowrap">{t.iso_3166_1}{t.type ? ` · ${t.type}` : ''}</div>
+            <div className="min-w-0 text-gray-200 truncate" title={t.title}>{t.title}</div>
+            <div className="flex-shrink-0 text-xs text-gray-500 whitespace-nowrap">{t.iso_3166_1}{t.type ? ` · ${t.type}` : ''}</div>
           </div>
         ))}
       </div>

@@ -45,7 +45,14 @@ export default function HorizontalScroller({ children, className = "", innerClas
   };
 
   return (
-    <div className={`relative -mx-10 sm:-mx-6 px-10 sm:px-6 ${className}`}>
+    // No negative-margin bleed here (previously -mx-10 sm:-mx-6 px-10 sm:px-6,
+    // meant to cancel against a matching parent padding for an edge-to-edge
+    // look). It relied on the parent using the exact matching padding at every
+    // breakpoint, and any mismatch bled this row's real min-content width
+    // (2000px+ with several video/backdrop thumbnails) straight into the
+    // page's layout — the film detail page's horizontal-overflow bug traced
+    // back to exactly this. Not worth the fragility for a cosmetic effect.
+    <div className={`relative ${className}`}>
       {/* Arrows */}
       {showArrows && (
         <>

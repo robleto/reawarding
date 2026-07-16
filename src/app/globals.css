@@ -112,6 +112,8 @@
 :root {
   --font-inter: "Inter";
   --font-unbounded: "Unbounded";
+  /* Tabulation face — ballot data only (ratings, ranks, counts). */
+  --font-mono: "Spline Sans Mono";
 }
 
 /* ── Theme tokens ─────────────────────────────────────────────────────────
@@ -125,29 +127,33 @@
    Use always-white / always-black for the rare true-fixed cases. */
 :root,
 .dark {
-  --tone-gray-50: 249 250 251;
-  --tone-gray-100: 243 244 246;
-  --tone-gray-200: 229 231 235;
-  --tone-gray-300: 209 213 219;
-  --tone-gray-400: 156 163 175;
-  --tone-gray-500: 107 114 128;
-  --tone-gray-600: 75 85 99;
-  --tone-gray-700: 55 65 81;
-  --tone-gray-800: 31 41 55;
-  --tone-gray-900: 17 24 39;
-  --tone-gray-950: 3 7 18;
+  /* Screening-room ramp: the dark canvas carries a tungsten-warm undertone
+     (brown-black, not blue-black) so the award gold reads as brass under
+     house lights. Lightness steps match the old ramp — only the temperature
+     changed — so every contrast relationship is preserved. */
+  --tone-gray-50: 250 249 246;
+  --tone-gray-100: 245 243 239;
+  --tone-gray-200: 232 228 221;
+  --tone-gray-300: 213 207 197;
+  --tone-gray-400: 166 157 144;
+  --tone-gray-500: 124 114 101;
+  --tone-gray-600: 90 81 69;
+  --tone-gray-700: 64 56 46;
+  --tone-gray-800: 42 36 29;
+  --tone-gray-900: 26 22 18;
+  --tone-gray-950: 12 10 8;
   --tone-white: 255 255 255;
   --tone-black: 0 0 0;
-  --tone-charcoal-50: 245 245 245;
-  --tone-charcoal-100: 232 232 232;
-  --tone-charcoal-200: 209 209 209;
-  --tone-charcoal-300: 184 184 184;
-  --tone-charcoal-400: 160 160 160;
-  --tone-charcoal-500: 135 135 135;
-  --tone-charcoal-600: 110 110 110;
-  --tone-charcoal-700: 85 85 85;
-  --tone-charcoal-800: 60 60 60;
-  --tone-charcoal-900: 45 45 45;
+  --tone-charcoal-50: 246 243 239;
+  --tone-charcoal-100: 233 229 223;
+  --tone-charcoal-200: 210 205 197;
+  --tone-charcoal-300: 185 179 170;
+  --tone-charcoal-400: 161 154 144;
+  --tone-charcoal-500: 136 129 118;
+  --tone-charcoal-600: 111 104 94;
+  --tone-charcoal-700: 86 80 71;
+  --tone-charcoal-800: 61 56 49;
+  --tone-charcoal-900: 46 42 36;
   --tone-gold-50: 248 243 230;
   --tone-gold-100: 241 230 204;
   --tone-gold-200: 232 211 153;
@@ -159,8 +165,8 @@
   --tone-gold-800: 102 82 23;
   --tone-gold-900: 61 49 14;
   /* Elevation shadows: strong in dark, whisper-soft in light */
-  --shadow-ink: rgba(0, 0, 0, 0.40);
-  --shadow-ink-strong: rgba(0, 0, 0, 0.50);
+  --shadow-ink: rgba(12, 9, 5, 0.42);
+  --shadow-ink-strong: rgba(12, 9, 5, 0.52);
 }
 
 .light {
@@ -230,6 +236,26 @@
   background-color: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(20, 20, 19, 0.08);
   box-shadow: 0 2px 8px rgba(20, 20, 19, 0.10);
+}
+
+/* Mobile tab bar stays legible in light mode without falling back to a dark
+   chrome on an ivory canvas. */
+.mobile-tab-bar {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.light .mobile-tab-bar {
+  background-color: rgba(251, 251, 250, 0.92);
+  border-color: rgba(20, 20, 19, 0.08);
+  box-shadow: 0 -8px 24px rgba(20, 20, 19, 0.06);
+}
+.light .mobile-tab-link {
+  color: rgba(60, 59, 56, 0.9);
+}
+.light .mobile-tab-link:hover {
+  color: rgb(var(--tone-gold-400));
+}
+.light .mobile-tab-link[aria-current="page"] {
+  color: rgb(var(--tone-gold-400));
 }
 
 /* Award gallery cards in light mode: keep the gold shimmer, soften the
@@ -561,10 +587,13 @@ body {
 
 .home-hero__microcopy {
   font-size: 0.78rem;
-  color: rgba(200, 196, 192, 0.4);
+  color: rgba(200, 196, 192, 0.55);
   letter-spacing: 0.04em;
   margin-top: 0;
   text-align: center;
+}
+.light .home-hero__microcopy {
+  color: rgba(105, 104, 99, 0.75);
 }
 
 .home-search-picker {
@@ -1788,5 +1817,65 @@ body {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+  }
+}
+
+/* ── Awards year sections: full-bleed on phones ──────────────────────────
+   The dark-glass card wrapper reads well on desktop, but on phones its
+   horizontal padding made every ballot row ~32px narrower than the same
+   row on /rankings. Below md the section sheds its card chrome so awards
+   and rankings rows share identical width and rhythm. */
+@media (max-width: 767px) {
+  .award-editable-section.dark-glass,
+  .award-editable-section.dark-glass:hover {
+    background-color: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 0;
+  }
+}
+
+/* ── Awards year arrival — one-shot reveal per section ───────────────────
+   When a year section first crosses into view (IntersectionObserver on
+   /awards), the section fades up and the winner's gilt frame glow crests
+   once, settling into .award-card-glow's resting shadow. Guarded by
+   prefers-reduced-motion: reduced users get everything in place, instantly. */
+@media (prefers-reduced-motion: no-preference) {
+  .award-year-enter {
+    opacity: 0.001;
+    transform: translateY(16px);
+  }
+  .award-year-enter.award-year-arrived {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity 550ms ease-out,
+      transform 550ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes award-arrival-glow {
+    0% {
+      box-shadow:
+        0 0 15px rgba(234, 179, 8, 0.15),
+        0 0 30px rgba(234, 179, 8, 0.05),
+        0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    45% {
+      box-shadow:
+        0 0 26px rgba(234, 179, 8, 0.5),
+        0 0 52px rgba(234, 179, 8, 0.22),
+        0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    100% {
+      box-shadow:
+        0 0 15px rgba(234, 179, 8, 0.15),
+        0 0 30px rgba(234, 179, 8, 0.05),
+        0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+  }
+  .award-year-arrived .award-card-glow {
+    animation: award-arrival-glow 1200ms ease-out 250ms 1;
   }
 }

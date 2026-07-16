@@ -166,6 +166,50 @@ export type Database = {
           },
         ]
       }
+      official_award_winners: {
+        Row: {
+          id: number
+          year: number
+          category: string
+          ceremony_number: number
+          film_title: string
+          movie_id: string | null
+          match_status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          year: number
+          category?: string
+          ceremony_number: number
+          film_title: string
+          movie_id?: string | null
+          match_status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          year?: number
+          category?: string
+          ceremony_number?: number
+          film_title?: string
+          movie_id?: string | null
+          match_status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "official_award_winners_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ceremonies: {
         Row: {
           created_at: string
@@ -240,6 +284,57 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      expressions: {
+        Row: {
+          created_at: string
+          favorite_quote: string | null
+          id: string
+          movie_id: string
+          notes: string | null
+          quality_tags: string[]
+          updated_at: string
+          user_id: string
+          would_recommend: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          favorite_quote?: string | null
+          id?: string
+          movie_id: string
+          notes?: string | null
+          quality_tags?: string[]
+          updated_at?: string
+          user_id: string
+          would_recommend?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          favorite_quote?: string | null
+          id?: string
+          movie_id?: string
+          notes?: string | null
+          quality_tags?: string[]
+          updated_at?: string
+          user_id?: string
+          would_recommend?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expressions_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expressions_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies_with_genres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feedback: {
         Row: {
@@ -1011,7 +1106,6 @@ export type Database = {
           id: string
           imported_from: string | null
           movie_id: string | null
-          notes: string | null
           ranking: number | null
           seen_it: boolean | null
           updated_at: string | null
@@ -1023,7 +1117,6 @@ export type Database = {
           id?: string
           imported_from?: string | null
           movie_id?: string | null
-          notes?: string | null
           ranking?: number | null
           seen_it?: boolean | null
           updated_at?: string | null
@@ -1035,7 +1128,6 @@ export type Database = {
           id?: string
           imported_from?: string | null
           movie_id?: string | null
-          notes?: string | null
           ranking?: number | null
           seen_it?: boolean | null
           updated_at?: string | null

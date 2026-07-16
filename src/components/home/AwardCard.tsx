@@ -2,32 +2,66 @@
 
 import React from "react";
 import { Trophy, Share2 } from "lucide-react";
-import { getActualWinner } from "@/data/bestPictureWinners";
+import { useOfficialAwardWinners } from "@/data/officialAwardWinners";
+import type { AcademyStatusResult } from "@/data/officialAwardWinners";
+import AcademyStamp from "@/components/award/AcademyStamp";
 
 interface Props {
   year: number;
   winnerTitle: string;
   winnerPoster?: string | null;
   nomineeCount: number;
+  /** Preferred over title matching when the caller has it — see comparison below. */
+  winnerMovieId?: string | number | null;
   onClick?: () => void;
   /** If provided, a share icon appears below the card */
   onShare?: () => void;
+  /** Stretch to fill the parent instead of the fixed shelf width — for
+      standalone placements (e.g. above a year's nominee grid) where this
+      is the one card on screen, not a card in a horizontal scroll shelf. */
+  fullWidth?: boolean;
+  /** The three-state Academy comparison (upheld/reawarded/unscreened) for
+      this year, from getAcademyStatus. fullWidth renders it as the poster's
+      ink-stamp; the shelf card uses it to gate the "Over X"/"Agrees with the
+      Academy" caption text — pass it whenever the caller can compute it, so
+      the card never claims a win over a film the user hasn't screened.
+      Omit only when the caller has no ballot/ranking data to compute it from;
+      the card then falls back to a simple title/id match with no screening
+      check. */
+  academyStatus?: AcademyStatusResult | null;
 }
 
 /**
  * AwardCard — prestige poster card for "Your Awards" shelf.
- * Receives pre-resolved movie data — no database fetching.
+ * Receives pre-resolved movie data — no database fetching of its own beyond
+ * the shared, cached official-winners lookup (see src/data/officialAwardWinners.ts).
  */
-export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCount, onClick, onShare }: Props) {
-  const actualWinner = getActualWinner(year);
+export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCount, winnerMovieId, onClick, onShare, fullWidth, academyStatus }: Props) {
+  const { winners } = useOfficialAwardWinners();
+  const actualWinner = winners.get(year) ?? null;
+  // ID comparison when the caller passes one (exact, immune to title formatting
+  // differences); falls back to a case-insensitive title compare otherwise.
+  // Only used as a fallback when the caller can't supply academyStatus (see below).
   const isAcademyMatch =
-    actualWinner && winnerTitle && actualWinner.title.toLowerCase() === winnerTitle.toLowerCase();
+    !!actualWinner &&
+    (winnerMovieId != null && actualWinner.movieId != null
+      ? String(actualWinner.movieId) === String(winnerMovieId)
+      : !!winnerTitle && actualWinner.filmTitle.toLowerCase() === winnerTitle.toLowerCase());
+  // `academyStatus === undefined` means the caller didn't compute one (no
+  // ballot/ranking data available) — fall back to the simple title/id match
+  // above. `null` means the caller computed it and it's not eligible (thin
+  // ballot or no matched official pick) — render a neutral caption rather
+  // than the id/title-match fallback, which can't tell "unscreened" apart
+  // from "actually disagreed" and would falsely claim a win either way.
+  const hasAcademyStatus = academyStatus !== undefined;
 
   return (
     <div className="flex flex-col items-center gap-1.5">
     <button
       onClick={onClick}
-      className="group relative flex-shrink-0 w-[160px] sm:w-[180px] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 rounded-xl"
+      className={`group relative text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 rounded-xl ${
+        fullWidth ? "w-full max-w-[360px]" : "flex-shrink-0 w-[160px] sm:w-[180px]"
+      }`}
     >
       {/* Animated gold shimmer frame */}
       <div className="award-card-frame award-card-glow">
@@ -47,8 +81,14 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
               </div>
             )}
 
-            {/* Gradient overlay for text legibility */}
-            <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-always-black via-always-black/70 to-transparent pointer-events-none" />
+            {/* Gradient overlay — full-height for the shelf card's text
+                overlay; just enough at the base to seat the fullWidth card's
+                Academy stamp when there's no text overlay to support. */}
+            <div
+              className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-always-black via-always-black/70 to-transparent pointer-events-none ${
+                fullWidth ? "h-1/4" : "h-3/4"
+              }`}
+            />
 
             {/* Subtle vignette */}
             <div className="absolute inset-0 shadow-[inset_0_0_30px_rgba(0,0,0,0.5)] pointer-events-none" />
@@ -67,56 +107,85 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
               </div>
             </div>
 
-            {/* Bottom text overlay */}
-            <div className="absolute inset-x-0 bottom-0 p-3">
-              <p className="text-sm font-bold text-always-white leading-tight line-clamp-2 drop-shadow-lg">
-                {winnerTitle}
-              </p>
-              <p className="text-[10px] mt-1 font-medium drop-shadow-md">
-                {isAcademyMatch ? (
-                  <span className="text-always-gold-300">Agrees with the Academy</span>
-                ) : actualWinner ? (
-                  <span className="text-always-white/70">
-                    Over <span className="text-always-gold-400/80">{actualWinner.title}</span>
-                  </span>
-                ) : (
-                  <span className="text-always-gold-400/70">Best Picture</span>
-                )}
-              </p>
-              {nomineeCount > 1 && (
-                <div className="flex items-center gap-1.5 mt-2">
-                  <div className="flex -space-x-1">
-                    {Array.from({ length: Math.min(nomineeCount, 5) }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-2 h-2 rounded-full border border-always-gold-600/50 shadow-sm"
-                        style={{
-                          background: `linear-gradient(135deg, rgba(234,179,8,${0.9 - i * 0.12}), rgba(161,98,7,${0.7 - i * 0.1}))`,
-                        }}
-                      />
-                    ))}
-                    {nomineeCount > 5 && (
-                      <span className="text-[12px] text-always-gold-500/70 ml-1.5 font-medium">
-                        +{nomineeCount - 5}
+            {/* Academy stamp — lower-right, fullWidth only. Same ink-stamp
+                treatment as the desktop card's open-corner stamp, scaled down
+                to fit the poster corner instead of floating beside the grid. */}
+            {fullWidth && academyStatus && (
+              <div className="absolute bottom-1 right-1 origin-bottom-right scale-[0.45]">
+                <AcademyStamp academyStatus={academyStatus} />
+              </div>
+            )}
+
+            {/* Bottom text overlay — shelf card only. The fullWidth marquee
+                card shows just the name, as a caption below the frame. */}
+            {!fullWidth && (
+              <div className="absolute inset-x-0 bottom-0 p-3">
+                <p className="text-sm font-bold text-always-white leading-tight line-clamp-2 drop-shadow-lg">
+                  {winnerTitle}
+                </p>
+                <p className="text-[10px] mt-1 font-medium drop-shadow-md">
+                  {hasAcademyStatus ? (
+                    academyStatus?.status === "upheld" ? (
+                      <span className="text-always-gold-300">Agrees with the Academy</span>
+                    ) : academyStatus?.status === "reawarded" ? (
+                      <span className="text-always-white/70">
+                        Over <span className="text-always-gold-400/80">{academyStatus.officialTitle}</span>
                       </span>
-                    )}
+                    ) : (
+                      <span className="text-always-gold-400/70">Best Picture</span>
+                    )
+                  ) : isAcademyMatch ? (
+                    <span className="text-always-gold-300">Agrees with the Academy</span>
+                  ) : actualWinner ? (
+                    <span className="text-always-white/70">
+                      Over <span className="text-always-gold-400/80">{actualWinner.filmTitle}</span>
+                    </span>
+                  ) : (
+                    <span className="text-always-gold-400/70">Best Picture</span>
+                  )}
+                </p>
+                {nomineeCount > 1 && (
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <div className="flex -space-x-1">
+                      {Array.from({ length: Math.min(nomineeCount, 5) }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-2 h-2 rounded-full border border-always-gold-600/50 shadow-sm"
+                          style={{
+                            background: `linear-gradient(135deg, rgba(234,179,8,${0.9 - i * 0.12}), rgba(161,98,7,${0.7 - i * 0.1}))`,
+                          }}
+                        />
+                      ))}
+                      {nomineeCount > 5 && (
+                        <span className="text-[12px] text-always-gold-500/70 ml-1.5 font-medium">
+                          +{nomineeCount - 5}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[12px] text-always-white/60 font-medium">
+                      {nomineeCount} nominee{nomineeCount !== 1 ? "s" : ""}
+                    </span>
                   </div>
-                  <span className="text-[12px] text-always-white/60 font-medium">
-                    {nomineeCount} nominee{nomineeCount !== 1 ? "s" : ""}
-                  </span>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Caption — fullWidth only: the name, below the frame, museum-placard style */}
+      {fullWidth && (
+        <p className="mt-2.5 text-center font-unbounded text-base font-semibold text-white line-clamp-2">
+          {winnerTitle}
+        </p>
+      )}
     </button>
 
     {onShare && (
       <button
         type="button"
         onClick={onShare}
-        className="inline-flex items-center gap-1 min-h-[44px] px-2 text-[11px] text-gray-600 hover:text-gold-400 transition-colors"
+        className="inline-flex items-center gap-1 min-h-[44px] px-2 text-xs text-gray-400 hover:text-gold-400 transition-colors"
         aria-label={`Share ${year} ballot`}
       >
         <Share2 className="h-3 w-3" />

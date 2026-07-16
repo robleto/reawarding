@@ -62,7 +62,8 @@ export default function ProfileWatchlistPage() {
       const { data: movies } = await supabase
         .from("movies")
         .select("*, rankings(id, seen_it, ranking, user_id)")
-        .in("id", movieIds);
+        .in("id", movieIds)
+        .eq("rankings.user_id", profile!.id);
 
       const allMovies = (movies as Movie[]) ?? [];
       // Auto-remove already-seen films from the watchlist (cleans up stale data)

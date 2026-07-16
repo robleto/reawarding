@@ -3,13 +3,17 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { Check, Star, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@supabase/auth-helpers-react";
+import { Check, PenLine, Star, X } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import { slugifyTitle } from "@/utils/slug";
 
 // ─── Timing constants ─────────────────────────────────────────────────────────
-const DWELL_MS = 500; // confirmation visible before fade begins
-const FADE_MS  = 200; // modal fade-out animation duration
+const DWELL_MS        = 500;  // confirmation visible before fade begins
+const INVITE_DWELL_MS = 2200; // longer beat when the take invite is shown (7+, logged in)
+const FADE_MS         = 200;  // modal fade-out animation duration
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const RATING_OPTIONS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1] as const;
@@ -38,6 +42,9 @@ interface Props {
   posterUrl: string | null;
   currentRating: number | null;
   movieYear?: number | null;
+  /** When set (and the user is logged in), a 7+ rating's confirmation offers
+   *  "Add your take" — the post-rate beat is peak motivation for expression. */
+  movieId?: string;
   onRate: (value: number | null) => void;
   onClose: () => void;
 }
@@ -48,21 +55,32 @@ export default function RatingModal({
   posterUrl,
   currentRating,
   movieYear,
+  movieId,
   onRate,
   onClose,
 }: Props) {
+  const router = useRouter();
+  const user = useUser();
   const panelRef    = useRef<HTMLDivElement>(null);
   const dwellTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [phase, setPhase]               = useState<Phase>("idle");
   const [selectedRating, setSelected]   = useState<number | null>(null);
+  // The film page is a server component that fetches on navigation — there's
+  // a real gap between tapping "Add your take" and the new page appearing.
+  // Without this, the tap closes RatingModal instantly with nothing else
+  // visibly happening in that gap, which reads as broken.
+  const [navigatingToTake, setNavigatingToTake] = useState(false);
 
-  // Reset on every open
+  // Reset on every open — including navigatingToTake, since this component
+  // stays mounted across close/reopen (visibility is gated by `isOpen` below,
+  // not by unmounting) rather than clearing its own state on close.
   useEffect(() => {
     if (isOpen) {
       setPhase("idle");
       setSelected(null);
+      setNavigatingToTake(false);
     }
   }, [isOpen]);
 
@@ -72,13 +90,33 @@ export default function RatingModal({
     if (closeTimer.current) clearTimeout(closeTimer.current);
   }, []);
 
-  // Escape — only during idle (confirmation phase should finish naturally)
+  // The invite only appears for logged-in users when the caller supplied a
+  // movie id; guests land on the film page's entry panel, not the editor.
+  const canInvite = !!movieId && !!user;
+
+  // Skip the remaining dwell and close now — used when the invite beat is
+  // showing and the user wants to keep moving.
+  const dismissEarly = useCallback(() => {
+    if (dwellTimer.current) clearTimeout(dwellTimer.current);
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setPhase("closing");
+    closeTimer.current = setTimeout(onClose, FADE_MS);
+  }, [onClose]);
+
+  // Escape — during idle closes immediately; during the invite beat it
+  // dismisses early (the short standard confirmation finishes naturally)
   useEffect(() => {
-    if (!isOpen || phase !== "idle") return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    if (!isOpen) return;
+    const inInviteBeat = phase === "confirmed" && canInvite;
+    if (phase !== "idle" && !inInviteBeat) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (phase === "idle") onClose();
+      else dismissEarly();
+    };
     document.addEventListener("keydown", handler, true);
     return () => document.removeEventListener("keydown", handler, true);
-  }, [isOpen, phase, onClose]);
+  }, [isOpen, phase, canInvite, onClose, dismissEarly]);
 
   // Body scroll lock
   useEffect(() => {
@@ -101,9 +139,24 @@ export default function RatingModal({
     setSelected(num);
     setPhase("confirmed");
 
-    dwellTimer.current = setTimeout(() => setPhase("closing"), DWELL_MS);
-    closeTimer.current = setTimeout(onClose, DWELL_MS + FADE_MS);
-  }, [onRate, onClose]);
+    // Nominee ratings with the invite hold the beat longer so it can be acted
+    // on; everything else keeps the fast-loop rhythm.
+    const dwell = canInvite && num >= 7 ? INVITE_DWELL_MS : DWELL_MS;
+    dwellTimer.current = setTimeout(() => setPhase("closing"), dwell);
+    closeTimer.current = setTimeout(onClose, dwell + FADE_MS);
+  }, [onRate, onClose, canInvite]);
+
+  // Navigate to the film page's Your Take editor. Deliberately does NOT call
+  // onClose() — the film page is a server component with its own data fetch,
+  // so there's a real gap before it appears. Staying mounted (with a loading
+  // state) through that gap means something is always visibly happening;
+  // the whole modal unmounts naturally once the new route takes over.
+  const handleAddTake = useCallback(() => {
+    if (dwellTimer.current) clearTimeout(dwellTimer.current);
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setNavigatingToTake(true);
+    router.push(`/films/${slugifyTitle(movieTitle)}/${movieId}`);
+  }, [router, movieTitle, movieId]);
 
   if (!isOpen) return null;
 
@@ -117,6 +170,7 @@ export default function RatingModal({
   const isConfirming = phase !== "idle";
   const isNominee    = selectedRating != null && selectedRating >= 7;
   const confirmYear  = movieYear ?? new Date().getFullYear();
+  const showInvite   = isNominee && canInvite;
 
   return createPortal(
     <div
@@ -129,13 +183,19 @@ export default function RatingModal({
       <button
         type="button"
         aria-label="Close rating"
-        disabled={isConfirming}
+        disabled={isConfirming && !showInvite}
         className={`absolute inset-0 bg-black/70 backdrop-blur-sm ${
           phase === "closing"
             ? "animate-out fade-out duration-200"
             : "animate-in fade-in duration-200"
         }`}
-        onClick={phase === "idle" ? onClose : undefined}
+        onClick={
+          phase === "idle"
+            ? onClose
+            : phase === "confirmed" && showInvite
+            ? dismissEarly
+            : undefined
+        }
       />
 
       {/* Panel */}
@@ -170,6 +230,21 @@ export default function RatingModal({
                 : `Rated ${selectedRating}. Keep rating to build the field.`
               }
             </p>
+            {showInvite && (
+              <button
+                type="button"
+                onClick={handleAddTake}
+                disabled={navigatingToTake}
+                className="mt-2.5 inline-flex items-center gap-1.5 text-sm font-medium text-gold-300 hover:text-gold-200 transition-colors animate-in fade-in duration-300 disabled:opacity-70"
+              >
+                {navigatingToTake ? (
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-gold-300/30 border-t-gold-300 animate-spin" />
+                ) : (
+                  <PenLine className="w-3.5 h-3.5" />
+                )}
+                {navigatingToTake ? "Opening…" : "Add your take"}
+              </button>
+            )}
           </div>
         ) : (
           // Default header
@@ -193,7 +268,7 @@ export default function RatingModal({
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-semibold text-white truncate">{movieTitle}</h3>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-400 mt-0.5">
                 {currentRating ? `Currently rated ${currentRating}` : "Not yet rated"}
               </p>
             </div>
@@ -210,7 +285,7 @@ export default function RatingModal({
 
         {/* ── Threshold hint — always visible before a pick is made ─────── */}
         {!isConfirming && (
-          <p className="px-4 pt-2.5 pb-0 text-xs text-gray-500 text-center">
+          <p className="px-4 pt-2.5 pb-0 text-sm text-gray-400 text-center">
             Rate 7 or higher to nominate
           </p>
         )}

@@ -46,6 +46,8 @@ interface Props {
   onTryAnotherYear: () => void;
   /** Navigate to signup so the user can save their guest progress. */
   onSignup: () => void;
+  /** Close + take the user to this year's ballot workspace to see the current standing. */
+  onSeeStanding: () => void;
   onPickAnother: () => void;
   onClose: () => void;
 }
@@ -59,6 +61,7 @@ export default function OnboardingPickFlow({
   onRateAnother,
   onTryAnotherYear,
   onSignup,
+  onSeeStanding,
   onPickAnother,
   onClose,
 }: Props) {
@@ -256,6 +259,14 @@ export default function OnboardingPickFlow({
               onSignup={() => {
                 setNavigatingLabel("Taking you to sign up…");
                 onSignup();
+              }}
+              onSeeStanding={() => {
+                setNavigatingLabel(
+                  movie.release_year
+                    ? `Loading your ${movie.release_year} race…`
+                    : "Loading your race…"
+                );
+                onSeeStanding();
               }}
               onClose={onClose}
             />
@@ -556,6 +567,7 @@ function FormingPanel({
   onRateAnother,
   onTryAnotherYear,
   onSignup,
+  onSeeStanding,
   onClose,
 }: {
   movie: Movie;
@@ -564,6 +576,7 @@ function FormingPanel({
   onRateAnother: () => void;
   onTryAnotherYear: () => void;
   onSignup: () => void;
+  onSeeStanding: () => void;
   onClose: () => void;
 }) {
   const year = movie.release_year;
@@ -660,6 +673,14 @@ function FormingPanel({
           ? `${stillNeeded} more ${stillNeeded === 1 ? "rating" : "ratings"} of 7+ from ${year} to set your award.`
           : `Your ${year} ballot is set — keep rating to fill all 10 nominee slots.`}
       </p>
+      <button
+        type="button"
+        onClick={onSeeStanding}
+        className="mt-3 inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-200 transition-colors"
+      >
+        See your {year} race so far
+        <ArrowRight className="w-3 h-3" aria-hidden="true" />
+      </button>
       <div className="mt-5 flex flex-col gap-2">
         <button
           type="button"

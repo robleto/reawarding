@@ -108,7 +108,10 @@ export default function ListDetailPage() {
   const [errorKind, setErrorKind] = useState<"not_found" | "unauthorized" | "fetch" | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    // Long-press to drag so touch scrolling isn't hijacked by the sortable
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })

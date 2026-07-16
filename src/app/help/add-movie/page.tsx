@@ -72,7 +72,7 @@ export default function AddMovieHelpPage() {
             value={tmdbId}
             onChange={e => setTmdbId(e.target.value.replace(/\D/g, ""))}
             placeholder="e.g. 27205"
-            className="border rounded px-3 py-1 text-sm"
+            className="border rounded px-3 py-1 text-base sm:text-sm"
           />
           <button type="submit" className="bg-blue-600 text-white rounded px-4 py-1 mt-1 hover:bg-blue-700">Import Now</button>
         </form>
@@ -89,7 +89,7 @@ export default function AddMovieHelpPage() {
             value={request.email}
             onChange={e => setRequest(r => ({ ...r, email: e.target.value }))}
             placeholder="you@email.com"
-            className="border rounded px-3 py-1 text-sm"
+            className="border rounded px-3 py-1 text-base sm:text-sm"
           />
           <label htmlFor="message" className="text-sm">Film details or TMDB link</label>
           <textarea
@@ -97,7 +97,7 @@ export default function AddMovieHelpPage() {
             value={request.message}
             onChange={e => setRequest(r => ({ ...r, message: e.target.value }))}
             placeholder="Tell us about the film or paste a TMDB link..."
-            className="border rounded px-3 py-1 text-sm"
+            className="border rounded px-3 py-1 text-base sm:text-sm"
             rows={3}
           />
           <button type="submit" className="bg-blue-600 text-white rounded px-4 py-1 mt-1 hover:bg-blue-700">Send Request</button>

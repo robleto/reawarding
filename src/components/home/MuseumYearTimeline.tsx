@@ -11,6 +11,8 @@ interface Props {
   years: MuseumYearTimelineEntry[];
   activeYear: number;
   onSelectYear: (year: number) => void;
+  /** Text appended after the count (e.g. "/10" for nominee slots). Pass "" to show a bare count. Defaults to "/10". */
+  subLabelSuffix?: string;
 }
 
 /**
@@ -20,20 +22,27 @@ interface Props {
  * skipped years. Sorted newest → oldest. The active chip scrolls into
  * view when activeYear changes.
  */
-export default function MuseumYearTimeline({ years, activeYear, onSelectYear }: Props) {
+export default function MuseumYearTimeline({ years, activeYear, onSelectYear, subLabelSuffix = "/10" }: Props) {
   const activeChipRef = useRef<HTMLButtonElement>(null);
+  const railRef = useRef<HTMLDivElement>(null);
   const sorted = [...years].sort((a, b) => b.year - a.year);
 
+  // Center the active chip by scrolling the rail directly. scrollIntoView
+  // also scrolled ancestor containers (including the page), which yanked
+  // the rail under the user's finger mid-tap and nudged page scroll.
   useEffect(() => {
-    if (activeChipRef.current) {
-      activeChipRef.current.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-    }
+    const rail = railRef.current;
+    const chip = activeChipRef.current;
+    if (!rail || !chip) return;
+    const target = chip.offsetLeft + chip.offsetWidth / 2 - rail.clientWidth / 2;
+    rail.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
   }, [activeYear]);
 
   return (
     <div className="relative mb-6">
       <div
-        className="flex items-start overflow-x-auto pb-3 snap-x snap-mandatory"
+        ref={railRef}
+        className="flex items-start overflow-x-auto pb-3"
         style={{ scrollbarWidth: "none" }}
       >
         {sorted.map((yl, idx) => {
@@ -42,7 +51,7 @@ export default function MuseumYearTimeline({ years, activeYear, onSelectYear }: 
           const gapSize = nextYl ? yl.year - nextYl.year : 0;
 
           return (
-            <div key={yl.year} className="flex-shrink-0 flex items-start snap-start">
+            <div key={yl.year} className="flex-shrink-0 flex items-start">
               <button
                 ref={isActive ? activeChipRef : undefined}
                 type="button"
@@ -72,7 +81,7 @@ export default function MuseumYearTimeline({ years, activeYear, onSelectYear }: 
                     isActive ? "text-gold-500/60" : "text-gray-700"
                   }`}
                 >
-                  {yl.nomineeCount}/10
+                  {yl.nomineeCount}{subLabelSuffix}
                 </span>
               </button>
 

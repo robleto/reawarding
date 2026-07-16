@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useUser } from "@supabase/auth-helpers-react";
 import Image from "next/image";
-import { X, Maximize2, Eye, EyeOff, Film, Clock, Users, Clapperboard, ExternalLink, Copy, Play } from "lucide-react";
+import { X, Maximize2, Eye, EyeOff, Bookmark, Film, Clock, Users, Clapperboard, ExternalLink, Copy, Play, PenLine, ThumbsUp, ThumbsDown } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import RatingModal from "@/components/movie/RatingModal";
 import WatchProviders from "@/components/films/WatchProviders";
@@ -13,6 +14,8 @@ import { normalizeImageUrl } from "@/utils/imageUrl";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { slugifyTitle } from "@/utils/slug";
 import { getRatingStyle } from "@/utils/getRatingStyle";
+import { SUGGESTED_QUALITY_TAGS } from "@/utils/qualityTags";
+import { useWatchlistContext } from "@/contexts/WatchlistContext";
 
 interface MovieDetailModalProps {
   movie: Movie;
@@ -27,6 +30,13 @@ interface MovieDetailModalProps {
 // hydrates the full metadata row itself instead of trusting the prop to be complete.
 const DETAIL_FIELDS =
   "id, overview, tagline, runtime, genres, director, writer, cast_list, mpaa_rating, tmdb_id, imdb_rating, metacritic_score, videos, watch_providers, backdrop_url";
+
+type Expression = {
+  notes: string | null;
+  favorite_quote: string | null;
+  quality_tags: string[];
+  would_recommend: boolean | null;
+};
 
 // JSONB columns may arrive double-encoded as strings (see films/[slug]/[id]/page.tsx)
 function parseJsonish<T>(value: unknown, fallback: T): T {
@@ -68,6 +78,8 @@ export default function MovieDetailModal({
   const user = useUser();
   const router = useRouter();
   const { isAdmin } = useIsAdmin();
+  const { watchlistMovieIds, toggle: toggleWatchlist, removeIfWatched } = useWatchlistContext();
+  const isOnWatchlist = watchlistMovieIds.has(movie.id);
   const [seenIt, setSeenIt] = useState(initialSeenIt);
   const [ranking, setRanking] = useState(initialRanking);
   const [isLoading, setIsLoading] = useState(false);
@@ -75,6 +87,7 @@ export default function MovieDetailModal({
   const [copiedTmdb, setCopiedTmdb] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [details, setDetails] = useState<Partial<Movie> | null>(null);
+  const [expression, setExpression] = useState<{ movieId: string; data: Expression | null } | null>(null);
 
   // Self-hydrate full metadata; the movie prop may be a slim list projection.
   // details is keyed by movie.id (DETAIL_FIELDS includes id) so a row hydrated
@@ -107,6 +120,55 @@ export default function MovieDetailModal({
   // Hydrated row wins once it matches this movie; prop fills the gap meanwhile
   const hydrated = details && details.id === movie.id ? details : null;
   const film: Movie = { ...movie, ...(hydrated ?? {}) };
+
+  // The user's expression row, read-only here — editing lives on the film page
+  // (YourTake panel) to keep the modal a pure Viewing surface. Keyed by movie
+  // id the same way as details so takes never bleed between films.
+  useEffect(() => {
+    if (!isOpen || !user) return;
+    if (expression?.movieId === movie.id) return;
+    let cancelled = false;
+    supabase
+      .from("expressions")
+      .select("notes, favorite_quote, quality_tags, would_recommend")
+      .eq("movie_id", movie.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn("Expression fetch failed:", error.message);
+          setExpression({ movieId: movie.id, data: null });
+          return;
+        }
+        setExpression({ movieId: movie.id, data: data ?? null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, user, movie.id, expression]);
+
+  const yourTake = expression?.movieId === movie.id ? expression.data : null;
+  // Mirrors `yourTake`, but updated synchronously (not just on re-render) so
+  // rapid taps read each other's optimistic result instead of both starting
+  // from the same stale snapshot — see handleToggleQualityTag.
+  const yourTakeRef = useRef(yourTake);
+  useEffect(() => {
+    yourTakeRef.current = yourTake;
+  }, [yourTake]);
+  // Curated tags get their own always-visible quick-toggle row, so they don't
+  // count toward whether the "Your Take" summary card (Edit-link, quote,
+  // notes, recommend) is worth showing.
+  const customQualityTags = (yourTake?.quality_tags ?? []).filter(
+    (tag) => !SUGGESTED_QUALITY_TAGS.some((s) => s.toLowerCase() === tag.toLowerCase())
+  );
+  const hasDeeperTake =
+    !!yourTake &&
+    !!(
+      yourTake.notes ||
+      yourTake.favorite_quote ||
+      customQualityTags.length ||
+      yourTake.would_recommend != null
+    );
 
   const videos = parseJsonish<TMDBVideo[]>(film.videos, []);
   const youtubeVideos = Array.isArray(videos)
@@ -198,10 +260,46 @@ export default function MovieDetailModal({
     }
   };
 
+  // Quick, one-tap tag toggle — unlocked once the film is seen + rated (the
+  // moment there's actually an opinion worth tagging). Unlike YourTake's
+  // manual-save form, this auto-saves per tap, matching SeenItButton/
+  // RatingModal's quick-capture rhythm. Always upserts the FULL row so a tag
+  // tap never wipes notes/quote/recommend set elsewhere.
+  const handleToggleQualityTag = async (tag: string) => {
+    if (!user) return;
+    const base = yourTakeRef.current;
+    const current = base?.quality_tags ?? [];
+    const has = current.some((t) => t.toLowerCase() === tag.toLowerCase());
+    const nextTags = has
+      ? current.filter((t) => t.toLowerCase() !== tag.toLowerCase())
+      : [...current, tag];
+    const nextData = {
+      notes: base?.notes ?? null,
+      favorite_quote: base?.favorite_quote ?? null,
+      quality_tags: nextTags,
+      would_recommend: base?.would_recommend ?? null,
+    };
+    // Update the ref synchronously (ahead of the await) so a second rapid tap
+    // builds on this tap's result instead of the same stale snapshot.
+    yourTakeRef.current = nextData;
+
+    const { error } = await supabase.from("expressions").upsert(
+      { user_id: user.id, movie_id: movie.id, ...nextData },
+      { onConflict: "user_id,movie_id" }
+    );
+    if (error) {
+      console.error("Failed to toggle quality tag:", error.message);
+      yourTakeRef.current = base;
+      return;
+    }
+    setExpression({ movieId: movie.id, data: nextData });
+  };
+
   const handleSeenItToggle = () => {
     const newSeenIt = !seenIt;
     setSeenIt(newSeenIt);
     updateRanking(ranking, newSeenIt);
+    if (newSeenIt) removeIfWatched(movie.id).catch(() => {});
   };
 
   const handleRankingChange = (newRanking: number | null) => {
@@ -227,7 +325,14 @@ export default function MovieDetailModal({
 
   if (!isOpen) return null;
 
-  return (
+  // Portaled to document.body: this modal is opened from deep inside pages
+  // like /year/[year] where an ancestor further up the tree can end up
+  // establishing a CSS containing block for `position: fixed` descendants
+  // (a transformed/filtered/sticky element anywhere between here and the
+  // viewport is enough), which silently confines "fixed inset-0" to that
+  // ancestor's box instead of the real viewport. A portal sidesteps that
+  // entirely regardless of where this component is mounted.
+  const modal = (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
@@ -304,6 +409,27 @@ export default function MovieDetailModal({
                 {/* Actions panel — 1/3 sidebar on mobile, full-width below poster on desktop */}
                 <div className="flex-1 min-w-0">
                   <div className="h-full md:h-auto p-3 md:p-4 border rounded-lg bg-gray-800/50 border-gold-500/10 flex flex-col gap-3 md:gap-4">
+
+                    {/* Watchlist Toggle — want to watch but haven't yet; a
+                        separate concept from Seen/Rate, so it gets its own
+                        row rather than folding into Status. */}
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-0">
+                      <span className="text-xs md:text-sm font-medium text-gray-400 md:text-gray-200">Watchlist</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleWatchlist(movie.id)}
+                        className={`
+                          flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-sm font-medium transition-colors self-start
+                          ${isOnWatchlist
+                            ? 'bg-amber-800/40 text-amber-300 hover:bg-amber-700/40'
+                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                          }
+                        `}
+                      >
+                        <Bookmark className={`w-3.5 h-3.5 ${isOnWatchlist ? 'fill-current' : ''}`} />
+                        {isOnWatchlist ? "On Watchlist" : "Add to Watchlist"}
+                      </button>
+                    </div>
 
                     {/* Seen It Toggle */}
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-0">
@@ -432,6 +558,105 @@ export default function MovieDetailModal({
                 )}
               </div>
 
+              {/* Your Take — read-only summary for notes/quote/recommend/custom
+                  tags; editing those stays on the film page. Curated quality
+                  tags get their own quick-toggle row below, independent of
+                  this card, so tagging never waits on a "deeper" take existing. */}
+              {hasDeeperTake && yourTake && (
+                <div className="p-4 border rounded-lg bg-gray-800/50 border-gold-500/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-gold-400 flex items-center gap-2">
+                      <PenLine className="w-4 h-4" />
+                      Your Take
+                    </h4>
+                    <button
+                      onClick={() => router.push(`/films/${slugifyTitle(movie.title)}/${movie.id}`)}
+                      className="text-xs font-medium text-gold-300 hover:text-gold-200 transition-colors"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                  {yourTake.favorite_quote && (
+                    <blockquote className="pl-3 border-l-2 border-gold-500/40 text-sm italic text-gray-300">
+                      &ldquo;{yourTake.favorite_quote}&rdquo;
+                    </blockquote>
+                  )}
+                  {yourTake.notes && (
+                    <p className="text-sm text-gray-300 whitespace-pre-wrap">{yourTake.notes}</p>
+                  )}
+                  {customQualityTags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {customQualityTags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="px-2 py-0.5 text-xs font-medium bg-gold-900/50 text-gold-300 rounded-full"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {yourTake.would_recommend != null && (
+                    <div
+                      className={`inline-flex items-center gap-1.5 text-sm ${
+                        yourTake.would_recommend ? "text-green-300" : "text-red-300"
+                      }`}
+                    >
+                      {yourTake.would_recommend ? (
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                      ) : (
+                        <ThumbsDown className="w-3.5 h-3.5" />
+                      )}
+                      {yourTake.would_recommend ? "Would recommend" : "Wouldn’t recommend"}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Quick tag toggle — unlocked once seen + rated, the moment
+                  there's an opinion worth tagging. One-tap, auto-saves per
+                  toggle (unlike YourTake's manual-save form). */}
+              {user && seenIt && ranking != null && (
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Tag what stood out
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {SUGGESTED_QUALITY_TAGS.map((tag) => {
+                      const active = (yourTake?.quality_tags ?? []).some(
+                        (t) => t.toLowerCase() === tag.toLowerCase()
+                      );
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => handleToggleQualityTag(tag)}
+                          className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-colors ${
+                            active
+                              ? "bg-gold-500/90 text-gray-900 border-gold-500/90 hover:bg-gold-400"
+                              : "bg-transparent text-gray-400 border-gray-700 hover:border-gold-500/40 hover:text-gray-200"
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* No deeper take yet — quiet invite to the fuller editor
+                  (notes, favorite quote, would-recommend) on the film page. */}
+              {user && seenIt && expression?.movieId === movie.id && !hasDeeperTake && (
+                <button
+                  onClick={() => router.push(`/films/${slugifyTitle(movie.title)}/${movie.id}`)}
+                  className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gold-300 transition-colors"
+                >
+                  <PenLine className="w-3.5 h-3.5" />
+                  Add your take
+                </button>
+              )}
+
               {/* External Links / IDs (Admin only) */}
               {isAdmin && (
                 <div className="space-y-2 text-sm">
@@ -525,21 +750,30 @@ export default function MovieDetailModal({
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Rating modal — opened via Rate button */}
-      <RatingModal
-        isOpen={showRatingModal}
-        movieTitle={movie.title}
-        posterUrl={normalizeImageUrl((movie.poster_url || '').trim())}
-        currentRating={ranking}
-        movieYear={movie.release_year ?? undefined}
-        onRate={(newRanking) => {
-          handleRankingChange(newRanking);
-          setShowRatingModal(false);
-        }}
-        onClose={() => setShowRatingModal(false)}
-      />
+        {/* Rating modal — opened via Rate button. Rendered inside the
+            stopPropagation wrapper (not as a sibling of it): RatingModal
+            portals to document.body, but React still bubbles its clicks
+            through the REACT tree, not the DOM tree. Nested here, a rating
+            tap is stopped by this div's stopPropagation before it can reach
+            the outer backdrop's onClose and close the whole modal. */}
+        <RatingModal
+          isOpen={showRatingModal}
+          movieTitle={movie.title}
+          posterUrl={normalizeImageUrl((movie.poster_url || '').trim())}
+          currentRating={ranking}
+          movieYear={movie.release_year ?? undefined}
+          movieId={movie.id}
+          onRate={(newRanking) => {
+            // Don't close here — RatingModal plays its confirmation beat
+            // (and the Add-your-take invite) then calls onClose itself.
+            handleRankingChange(newRanking);
+          }}
+          onClose={() => setShowRatingModal(false)}
+        />
+      </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modal, document.body) : modal;
 }

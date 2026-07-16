@@ -85,12 +85,15 @@ Deno.serve(async (req)=>{
         }
         // Optionally fetch OMDb data if imdb_id is present
         let imdb_rating = null;
+        let imdb_votes = null;
         let metacritic_score = null;
         if (imdb_id && omdbApiKey) {
           const omdb = await fetchOmdbData(imdb_id);
           if (omdb) {
-            imdb_rating = omdb.imdbRating ? parseFloat(omdb.imdbRating) : null;
-            metacritic_score = omdb.Metascore ? parseInt(omdb.Metascore, 10) : null;
+            imdb_rating = omdb.imdbRating && omdb.imdbRating !== "N/A" ? parseFloat(omdb.imdbRating) : null;
+            // imdbVotes arrives as a comma-grouped string, e.g. "1,234,567"
+            imdb_votes = omdb.imdbVotes && omdb.imdbVotes !== "N/A" ? parseInt(omdb.imdbVotes.replace(/,/g, ""), 10) : null;
+            metacritic_score = omdb.Metascore && omdb.Metascore !== "N/A" ? parseInt(omdb.Metascore, 10) : null;
           }
         }
         // Upsert movie with all available data
@@ -103,6 +106,7 @@ Deno.serve(async (req)=>{
           release_year,
           mpaa_rating,
           imdb_rating,
+          imdb_votes,
           metacritic_score,
           tmdb_rating,
           genres,

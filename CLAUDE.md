@@ -67,14 +67,14 @@ Before building something new, check `docs/FEATURE-STATUS.md` — most features 
 
 ## Homepage states
 
-The homepage is adaptive across four user states. The workbench scales DOWN as the user matures — established users still see a workbench-led layout; mature users see a museum-led layout with a collapsed workbench strip.
+The homepage is no longer a different *layout* per tier. Once a user has started any ballot, Home renders the awards showcase directly (search + year timeline + the editable year archive) — there's no separate workbench-vs-museum layout switch. The four states now govern (a) which reward sections are earned below the showcase (Awards Gallery, Recognition Feed, Canon) and (b) which single contextual nudge, if any, is eligible to show above it — see "Nudges earn their place" in `PRODUCT_DESIGN_PRINCIPLES.md`.
 
 | State | Threshold (summary) | Primary content |
 |---|---|---|
-| New | 0 years touched AND < 5 rated | Search + recognition feed |
+| New | 0 years touched AND < 5 rated | Search + recognition feed (no ballot yet, nothing to showcase) |
 | Building | 1+ year touched, 0 set ballots | Active year card + year-scoped feed |
-| Established | 1+ set ballot OR 2+ depth years OR 20+ rated | Workbench-led: search + year timeline + active ballot + (gallery, gated) + lists |
-| Mature | Established + (3+ set ballots OR 5+ depth years OR 50+ rated) | Museum-led: compact strip + Awards Gallery + lists + recognition feed |
+| Established | 1+ set ballot OR 2+ depth years OR 20+ rated | Showcase (search + timeline + archive) + at most one eligible nudge; Ready-Made lists become eligible |
+| Mature | Established + (3+ set ballots OR 5+ depth years OR 50+ rated) | Showcase, same layout as Established, plus Awards Gallery / Recognition Feed / Canon unlock |
 
 Definitions, gating rules, the transition moment, and the editorial leads per state are canonical in `PRODUCT_DESIGN_PRINCIPLES.md` — read it before changing state logic. Detection code lives in `src/app/page.tsx`.
 
@@ -111,8 +111,32 @@ Keep these thresholds in sync if changed.
 
 ## Dev environment
 
-**TypeScript check** — `node`/`npx` not in default PATH. Use:
-`/opt/homebrew/bin/node /opt/homebrew/lib/node_modules/typescript/bin/tsc --noEmit`
+**Secrets / security policy — do NOT read `.env` from shell commands.**
+Any Bash command whose text touches `.env`/`.env.local` (`cat`, `grep`, `cut`,
+`source`, etc.) trips a blocking company-security hook ("may violate TMF company
+security policy"). Never extract `DATABASE_URL`, API keys, or any secret into a
+shell variable or terminal output. Instead:
+
+- **Database queries**: `/opt/homebrew/bin/node scripts/dev-db.mjs "SELECT ...;"`
+  — loads credentials inside the process, never prints them, read-only guard,
+  auto-falls back to the IPv4 pooler when the direct (IPv6-only) host times out.
+- **Anything else needing env vars** (API keys, service role, etc.): write a
+  Node script that reads `.env`/`.env.local` itself via `fs`/`dotenv` and uses
+  the values internally without logging them. Scripts must live in the repo so
+  `node_modules` resolves.
+- Migrations/DDL: extend the same pattern (a script that connects itself);
+  don't paste connection strings into psql commands.
+- **`rm` also trips the hook.** Don't delete files via shell. Put throwaway
+  scripts/screenshots in the session scratchpad dir (auto-cleaned) — from there,
+  import repo packages by absolute path (e.g.
+  `import puppeteer from "<repo>/node_modules/puppeteer/lib/esm/puppeteer/puppeteer.js"`).
+  If a scratch file must live in the repo, name it `.tmp-*` (gitignored) and
+  leave it for the user to delete.
+
+**TypeScript check** — `node`/`npx` not in default PATH. The globally installed
+TypeScript is v6+ and rejects this project's `baseUrl` config (TS5101); use the
+project-local compiler:
+`/opt/homebrew/bin/node node_modules/typescript/bin/tsc --noEmit`
 
 **Git index.lock** — Cursor's Git extension repeatedly re-creates `.git/index.lock`.
 Fix: retry loop: `for i in 1 2 3 4 5; do rm -f .git/index.lock && git commit ... && break || sleep 1; done`

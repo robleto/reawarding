@@ -162,7 +162,7 @@ function ProfileTabs({ username }: { username: string }) {
     { label: "Watchlist", href: `${basePath}/watchlist`, icon: Bookmark },
     { label: "Lists", href: `${basePath}/lists`, icon: List },
     { label: "Activity", href: `${basePath}/activity`, icon: Activity },
-    { label: "Following", href: `${basePath}/following`, icon: Users },
+    { label: "Friends", href: `${basePath}/following`, icon: Users },
   ];
 
   return (
@@ -173,6 +173,8 @@ function ProfileTabs({ username }: { username: string }) {
           const isActive =
             tab.href === basePath
               ? currentPath === basePath
+              : tab.label === "Friends"
+              ? currentPath.startsWith(`${basePath}/following`) || currentPath.startsWith(`${basePath}/followers`)
               : currentPath.startsWith(tab.href);
 
           return (
@@ -208,7 +210,11 @@ export default function UsernameLayout({
   if (!username) return null;
 
   return (
-    <div className="max-w-screen-xl mx-auto py-4">
+    /* w-full min-w-0: flex item of AppShell's <main> (a flex column) — without
+       min-w-0, the tab strip's whitespace-nowrap links propagate their
+       intrinsic width up here and inflate the page past the viewport on
+       mobile (same guard as /awards and the homepage). */
+    <div className="w-full min-w-0 max-w-screen-xl mx-auto py-4">
       <ProfileHeader username={username} />
       <ProfileTabs username={username} />
       {children}

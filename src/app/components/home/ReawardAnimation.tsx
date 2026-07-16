@@ -28,6 +28,17 @@ export interface ReawardAnimationProps {
   headline?: string;
   /** Section body copy — defaults to the Premise body */
   body?: string;
+  /**
+   * Play the swap once, automatically, this many ms after mount — instead of
+   * scrubbing it to scroll position. Ignored when reducedMotion is true. Use
+   * for a hero placement above the fold, where there's no scroll distance yet
+   * to drive a ScrollTrigger scrub.
+   */
+  autoplayDelayMs?: number;
+  /** Called once, after the autoplay swap finishes. No-op in scroll-scrubbed or reducedMotion mode. */
+  onSwapComplete?: () => void;
+  /** Suppress the built-in headline/body header — caller is driving that copy separately. */
+  hideHeader?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -84,6 +95,9 @@ export function ReawardAnimation({
   panelId = "panel-premise",
   headline = "Revisit film history—through your eyes.",
   body = "Every year has winners. Not every year feels settled. ReAwarding lets you step in—with personal taste and the vantage of hindsight—to correct the record.",
+  autoplayDelayMs,
+  onSwapComplete,
+  hideHeader = false,
 }: ReawardAnimationProps) {
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -140,11 +154,13 @@ export function ReawardAnimation({
     ) return;
 
     let ctx: gsap.Context | null = null;
+    let delayedCall: gsap.core.Tween | null = null;
 
     // Measure center positions before any transforms
     const raf = requestAnimationFrame(() => {
       let swapMetrics = measureSwapMetrics(origCard, newCard);
       const isHookPanel = panelId === "panel-hook";
+      const isAutoplay = typeof autoplayDelayMs === "number";
       const pinStart = isHookPanel ? "top top+=24" : "top top";
       const pinEnd = isHookPanel
         ? "bottom top"
@@ -153,26 +169,30 @@ export function ReawardAnimation({
       const priority = panelId === "panel-premise" ? 30 : isHookPanel ? 22 : 10;
 
       ctx = gsap.context(() => {
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: section,
-            pin: true,
-            pinSpacing: true,
-            scrub: pinScrub,
-            anticipatePin: 1,
-            start: pinStart,
-            end: pinEnd,
-            invalidateOnRefresh: true,
-            refreshPriority: priority,
-            preventOverlaps: "home-panels",
-            onRefreshInit: () => {
-              // Measure in the untransformed start state so breakpoint/layout changes
-              // (especially mobile) don't leave stale motion vectors.
-              gsap.set([origCard, newCard], { x: 0, y: 0, scale: 1 });
-              swapMetrics = measureSwapMetrics(origCard, newCard);
-            },
-          },
-        });
+        const tl = gsap.timeline(
+          isAutoplay
+            ? { paused: true }
+            : {
+                scrollTrigger: {
+                  trigger: section,
+                  pin: true,
+                  pinSpacing: true,
+                  scrub: pinScrub,
+                  anticipatePin: 1,
+                  start: pinStart,
+                  end: pinEnd,
+                  invalidateOnRefresh: true,
+                  refreshPriority: priority,
+                  preventOverlaps: "home-panels",
+                  onRefreshInit: () => {
+                    // Measure in the untransformed start state so breakpoint/layout changes
+                    // (especially mobile) don't leave stale motion vectors.
+                    gsap.set([origCard, newCard], { x: 0, y: 0, scale: 1 });
+                    swapMetrics = measureSwapMetrics(origCard, newCard);
+                  },
+                },
+              }
+        );
 
         // ── Phase 1 (0–25%): FG loses prominence ────────────────────
         tl.to(origCard, {
@@ -229,14 +249,27 @@ export function ReawardAnimation({
           0.74,
         );
         tl.to({}, { duration: panelId === "panel-premise" ? 0.34 : 0.18 }, 0.9);
+
+        if (isAutoplay) {
+          // Scroll-scrub durations above are timeline-progress units, not real
+          // seconds — stretch playback so the ~1.2s of built-in tween time
+          // reads as a deliberate reveal instead of a blink once it's driven
+          // by the clock instead of scroll position.
+          tl.timeScale(0.45);
+          if (onSwapComplete) {
+            tl.eventCallback("onComplete", onSwapComplete);
+          }
+          delayedCall = gsap.delayedCall(autoplayDelayMs / 1000, () => tl.play());
+        }
       }, section);
     });
 
     return () => {
       cancelAnimationFrame(raf);
+      delayedCall?.kill();
       ctx?.revert();
     };
-  }, [panelId, reducedMotion]);
+  }, [panelId, reducedMotion, autoplayDelayMs, onSwapComplete]);
 
   // ── Reduced-motion: show final (swapped) state immediately ────────
   if (reducedMotion) {
@@ -246,17 +279,19 @@ export function ReawardAnimation({
         id={panelId}
         data-panel-id={panelId}
         className="home-panel"
-        aria-labelledby={`${panelId}-heading`}
+        aria-labelledby={hideHeader ? undefined : `${panelId}-heading`}
       >
         <div className="home-panel__inner">
-          <header className="space-y-6 max-w-3xl">
-            <h2 id={`${panelId}-heading`} className="motion-reveal motion-reveal--visible">
-              {headline}
-            </h2>
-            <p className="home-panel__body motion-reveal motion-reveal--visible" style={{ transitionDelay: "120ms" }}>
-              {body}
-            </p>
-          </header>
+          {!hideHeader && (
+            <header className="space-y-6 max-w-3xl">
+              <h2 id={`${panelId}-heading`} className="motion-reveal motion-reveal--visible">
+                {headline}
+              </h2>
+              <p className="home-panel__body motion-reveal motion-reveal--visible" style={{ transitionDelay: "120ms" }}>
+                {body}
+              </p>
+            </header>
+          )}
           <AwardsStage
             year={year}
             winnerLabel={<><span>★</span> ReAwarded</>}
@@ -279,23 +314,25 @@ export function ReawardAnimation({
       id={panelId}
       data-panel-id={panelId}
       className="home-panel"
-      aria-labelledby={`${panelId}-heading`}
+      aria-labelledby={hideHeader ? undefined : `${panelId}-heading`}
     >
       <div className="home-panel__inner">
-        <header className="space-y-6 max-w-3xl">
-          <h2
-            id={`${panelId}-heading`}
-            className={`motion-reveal ${panelVisible ? "motion-reveal--visible" : ""}`}
-          >
-            {headline}
-          </h2>
-          <p
-            className={`home-panel__body motion-reveal ${panelVisible ? "motion-reveal--visible" : ""}`}
-            style={{ transitionDelay: panelVisible ? "120ms" : "0ms" }}
-          >
-            {body}
-          </p>
-        </header>
+        {!hideHeader && (
+          <header className="space-y-6 max-w-3xl">
+            <h2
+              id={`${panelId}-heading`}
+              className={`motion-reveal ${panelVisible ? "motion-reveal--visible" : ""}`}
+            >
+              {headline}
+            </h2>
+            <p
+              className={`home-panel__body motion-reveal ${panelVisible ? "motion-reveal--visible" : ""}`}
+              style={{ transitionDelay: panelVisible ? "120ms" : "0ms" }}
+            >
+              {body}
+            </p>
+          </header>
+        )}
 
         {/* ── Awards-style glass card stage ─────────────────────── */}
         <div className="ra-stage-wrap">

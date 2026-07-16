@@ -4,7 +4,93 @@ Purpose: Record WHY major product direction decisions were made to prevent futur
 
 ---
 
-## May 2026 — State Thresholds Made Depth-Aware; Gallery Gated; Transition Moment Added
+## July 2026 — Premium Tier Direction: Scope-and-Reflection Model; First Feature Is Your Alternate Oscar History
+
+### Decision
+
+Reawarding will monetize on a "bigger, not faster" model: every premium feature expands what a user can *reach*; none let a user *skip* something the free tier already makes earnable through engagement.
+
+- Free tier keeps the entire Watch → Rate → ReAward loop, Best Picture as a category, unlimited years, and Ready-Made Lists — still unlocked by investment (e.g. 10 seen films by a director), never by payment.
+- Premium expands scope (the full Academy category slate beyond Best Picture; unlimited historical ballot construction beyond a free recency window) and adds a reflection/output layer that doesn't exist for free users at all.
+- The first premium feature specified is **Your Alternate Oscar History** — a comparison between a user's own Best Picture ballots and the Academy's real historical winners, at both a per-year and a lifetime-aggregate level.
+
+### Your Alternate Oscar History — Feature Spec
+
+**Per-year status** (free, shown on the existing year card — `ExpandableYearCard`/`AwardCard`, no new card type):
+- **Upheld** — the user's ballot winner matches the Academy's official winner for that year.
+- **Reawarded** — the user rated the Academy's winner, but their own ballot winner differs. Tracks intensity: Academy's winner landed as the user's runner-up (mild) vs. rated below the user's own 7+ nominee bar (loud) — same disparity-magnitude idea as the existing film-level Hot Take, applied at the ballot level.
+- **Unscreened** — the Academy's winner isn't in the user's rated data at all. Never presented as disagreement — a user can't be said to disagree with a film they haven't watched (Law 8).
+
+**Gating** — status only computes for years with a **set ballot** (reuses the existing Gallery-gate definition: 5+ nominees + explicit winner). Thin/unset years show nothing.
+
+**Aggregate view** (premium, lives inside Canon — the existing Mature-tier earned-reward surface): Upheld/Reawarded rate across all set-ballot years, trend by decade, and a ranked "most controversial call" surfaced by Reawarded intensity. Unscreened years are counted and shown separately ("N years not yet comparable"), never silently dropped from the denominator.
+
+Naming note: "Reawarded" is the product's own name used as a verb — the exact act of picking a different winner than history did. "Upheld" mirrors it as an institutional-verdict term rather than "agreed," and "Unscreened" ties to the screening-room visual language and states a fact about sequencing, not a gap (no-shame, per "partial data is valid data"). If gold is reserved as the signature/untouchable accent elsewhere in the UI, keep the Reawarded badge in a secondary color — don't dilute gold on a comparison badge.
+
+**Data prerequisite** — no queryable "official winner by year" data exists today; the only Oscar data in the app is a per-film lookup via a third-party Awards API (`src/app/api/awards/route.ts`), which can't answer "who won in 1994" without already knowing the film. This feature requires a one-time backfill (a stable public Oscar-winner dataset, matched to internal movie IDs, with ambiguous title/year matches surfaced for human confirmation rather than silently guessed) plus a small annual append. Full-category data should be pulled in that same backfill pass even though V1 only compares Best Picture, since a second backfill later would be wasted work.
+
+**Craft/tag-emergent categories are never compared to the Academy** — not deferred pending a vocabulary mapping, decided outright. Tag-driven categories (Great score, Sharp screenplay, career-best performance, etc.) are bottom-up and personal; even the tags with an obvious institutional analog stay uncompared, because mapping them into official Academy category language would mismanage a personal artifact into an institutional one — directly against Law 8's line that personal awards are canon and the system never validates against the Academy. Only genre-based official categories (Animated, Documentary, International — determined by what a film institutionally *is*, not by a user's taste tags) are eligible for Academy-slate premium treatment and Alternate-Oscar-History-style comparison, since those map to real Academy categories by construction, not by inference.
+
+### Reason
+
+Paiges' premium model was the starting reference: free tier is the complete functional loop, premium is an added reflection/output layer (Wrap-Ups, shareable posters), never a gate on the core action. Reawarding's own Product Laws make that non-optional rather than a stylistic choice — Laws 3/4 forbid gating award formation behind activity or payment, and the V1 north star requires a new user to form a Best Picture award in under 30 seconds regardless of tier.
+
+Within that constraint, Alternate Oscar History was chosen as the flagship premium feature over a generic annual-recap because it's structurally native to Reawarding's own premise — rewriting award history with hindsight — rather than a borrowed SaaS pattern. It also reuses an established product mechanic (Hot Take's rating-vs-consensus disparity) instead of inventing new interaction language.
+
+The three-state model (Upheld/Reawarded/Unscreened), rather than a binary, exists specifically to avoid a false verdict on films a user hasn't seen — a direct application of Law 5 (never hide how a conclusion was reached) and Law 8 (identity over completion).
+
+### What Changed
+
+- Direction established: premium features are additive scope + reflection/output only; nothing in the free tier's core loop, Best Picture access, or Ready-Made earn-mechanic changes.
+- Your Alternate Oscar History specified above as the first premium feature.
+- Craft-category comparison against real Oscar categories ruled out permanently, not deferred — tag-emergent categories stay personal-only and are never compared to the Academy (Law 8). Only genre-based official categories are eligible for Academy-slate premium treatment and comparison.
+
+### What Did NOT Change
+
+- Watch → Rate → ReAward remains fully free and ungated, all tiers.
+- Best Picture, unlimited years, remains free — only *other* categories beyond Best Picture and pre-recency-window historical range are premium scope expansions.
+- Ready-Made Lists remain earned by investment, not payment.
+- Laws 1–8 govern as before; nothing about ballot formation, emergence, or user ownership changes for any tier.
+
+### Reversal Conditions
+
+Re-evaluate the "bigger not faster" framing if user research shows real willingness to pay for convenience unlocks (e.g. skipping the Ready-Made investment threshold) that scope-only premium doesn't capture. Re-evaluate Alternate Oscar History's Best Picture-only scope once genre-based official categories (Animated, Documentary, etc.) exist with their own reference data — that's the intended expansion path. The craft/tag-category exclusion from Academy comparison is a direct application of Law 8, not a scoping gap, and shouldn't be revisited without revisiting Law 8 itself.
+
+---
+
+## July 2026 — Search Becomes the Primary Film-Finder; Rankings Replaces Films in Mobile Nav
+
+### Decision
+
+Finding a film is now a **search-first** action on every surface. Three coordinated changes:
+
+1. **Global search added to the mobile header.** The desktop NavSearch gains a full-width `panel` variant that opens from a magnifier button in the mobile header. Previously mobile had no global search at all — the Films grid was the only finder.
+2. **Rankings replaces Films in the mobile tab bar** (Home / Awards / Rankings / Profile). Films remains one tap away in the header hamburger menu, and the header `+` button still covers adding a film. This reverses the 2026-05-09 tab decision.
+3. **The Films page is reshaped from an exhaustive catalog into a search-first surface.** Search and filters stay on top; below them, curated shelves (Recently added + featured collections) replace the full grid. The complete library is available behind an explicit "Browse the full library" control, progressively rendered (the same windowing fix that unstuck the rankings page — 1,000+ mounted cards lock up mobile browsers).
+
+### Reason
+
+The catalog outgrew browsing. At 1,000+ films, a poster wall is not an entry point — it froze mobile scroll outright and made "find the film I just watched" a chore. The 05-09 rationale for the Films tab ("the entry point for adding more films — the engine of the loop") eroded as the grid grew: an unusable grid isn't an engine. The `+` button covers adding; search covers finding; both do the Films tab's old job better than the Films tab did.
+
+Meanwhile Rankings is the surface an invested user returns to daily — the tally sheet that is the product's soul — and it had no top-level home on mobile.
+
+### What Changed
+
+- `src/components/layout/NavSearch.tsx` — `variant="panel"` (full-width, always-expanded) + `autoFocus` + `onNavigate`
+- `src/components/layout/HeaderNav.tsx` — mobile magnifier button + search panel below the header
+- `src/components/layout/MobileTabBar.tsx` — Films → Rankings (LineChart icon)
+- `src/app/films/page.tsx` — search-first overview (Recently added shelf, `FeaturedCollectionsSection`, "Browse the full library" toggle), progressive rendering of the grid, and `?query=` now shows all title matches instead of the first
+
+### What Did NOT Change
+
+- Films is still first-class: full catalog, filters, grid/list views all remain — one tap deeper, not removed
+- Desktop header nav (Films / Rankings / Awards / Lists) is untouched
+- Watch → Rate → ReAward loop and all component-reuse mandates hold (shelves reuse `CollectionRow`/`MovieCard`; no new card types)
+- New-user onboarding paths through /films (guest mode) are unchanged
+
+### Reversal Conditions
+
+Re-evaluate if: mobile search usage stays near zero while hamburger→Films traffic dominates; users demonstrably fail to find the add-film path; or the Rankings tab proves to be dead weight for new users despite its empty-state invitation.
 
 ### Decision
 

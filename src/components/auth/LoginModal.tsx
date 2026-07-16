@@ -237,6 +237,7 @@ export default function LoginModal({
           <div className="flex items-center justify-between text-sm">
             <Link
               href="/auth/forgot-password"
+              onClick={handleClose}
               className="text-gold-500 hover:text-yellow-400 font-medium transition-colors"
             >
               Forgot password?

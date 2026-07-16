@@ -1,6 +1,13 @@
 // Repairs movies whose poster_url/thumb_url is null or not yet on R2:
-// re-fetches the poster path from TMDB by tmdb_id, mirrors the image to R2,
-// and points the DB at the R2 copy. Companion to ingest-tmdb-images-to-r2.mjs.
+// re-fetches image paths from TMDB by tmdb_id, mirrors them to R2, and
+// points the DB at the R2 copy. Companion to ingest-tmdb-images-to-r2.mjs.
+//
+// Posters come from poster_path (portrait); thumbs MUST come from
+// backdrop_path (landscape). A previous version used poster_path for both,
+// which filled ~half the thumbs/ bucket with portrait posters (2026-07).
+// Films with no TMDB backdrop keep their thumb_url untouched — list rows
+// render from posters, so a missing landscape thumb only affects wide
+// surfaces, which prefer no image over a mis-shaped one.
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 
@@ -172,13 +179,17 @@ async function repair() {
 			}
 
 			if (!onR2(movie.thumb_url)) {
-				ok =
-					(await mirrorToR2(
-						movie.id,
-						`https://image.tmdb.org/t/p/w500${details.poster_path}`,
-						"thumbs",
-						"thumb_url",
-					)) && ok;
+				if (details.backdrop_path) {
+					ok =
+						(await mirrorToR2(
+							movie.id,
+							`https://image.tmdb.org/t/p/w780${details.backdrop_path}`,
+							"thumbs",
+							"thumb_url",
+						)) && ok;
+				} else {
+					console.log(`No backdrop on TMDB: ${movie.title} (${movie.tmdb_id})`);
+				}
 			}
 
 			if (ok) repaired++;
