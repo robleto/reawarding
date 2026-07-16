@@ -250,7 +250,7 @@ export default function StatsSummary({
                 // Build links for specific cards
                 let href: string | null = null;
                 if (item.key === "awards") {
-                  href = scope === "year" ? `/awards?year=${currentYear}` : "/awards";
+                  href = scope === "year" ? `/year/${currentYear}` : "/";
                 }
 
                 const Card = (

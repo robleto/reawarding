@@ -27,6 +27,7 @@ import { normalizeImageUrl } from "@/utils/imageUrl";
 import { slugifyTitle } from "@/utils/slug";
 import AwardCard from "@/components/home/AwardCard";
 import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
+import { useOfficialAwardWinners, getAcademyStatus } from "@/data/officialAwardWinners";
 import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
 
@@ -557,6 +558,7 @@ function AwardsGallery({
   username: string;
 }) {
   const router = useRouter();
+  const { winners: officialWinners } = useOfficialAwardWinners();
 
   const awardYears = useMemo(() => {
     const withRankings = movies.filter(
@@ -584,12 +586,30 @@ function AwardsGallery({
           ? sorted.find((m) => String(m.id) === String(savedAward.winner_id))
           : null;
         const winner = savedWinner ?? (nominees.length > 0 ? nominees[0] : sorted[0]);
-        return { year: Number(yearStr), winner, nominees };
+        const year = Number(yearStr);
+        // null (thin/unset ballot, or no matched official pick) means AwardCard
+        // has no basis for an Academy-comparison claim and falls back to a
+        // neutral caption rather than guessing — see AwardCard's academyStatus prop.
+        const academyStatus = getAcademyStatus({
+          year,
+          existingAward: savedAward
+            ? {
+                year,
+                category: savedAward.category,
+                winnerId: savedAward.winner_id,
+                nomineeIds: savedAward.nominee_ids,
+              }
+            : null,
+          liveNomineeCount: nominees.length,
+          yearMovies: sorted,
+          winners: officialWinners,
+        });
+        return { year, winner, nominees, academyStatus };
       })
       .filter((d) => d.winner)
       .sort((a, b) => b.year - a.year)
       .slice(0, 8);
-  }, [movies, awards]);
+  }, [movies, awards, officialWinners]);
 
   if (awardYears.length === 0) {
     return null;
@@ -619,6 +639,7 @@ function AwardsGallery({
                 winnerPoster={entry.winner.poster_url}
                 winnerMovieId={entry.winner.id}
                 nomineeCount={entry.nominees.length}
+                academyStatus={entry.academyStatus}
                 onClick={() => router.push(`/${username}/awards`)}
               />
             </div>

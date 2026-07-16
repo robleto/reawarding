@@ -73,11 +73,14 @@ export default function RatingModal({
   // visibly happening in that gap, which reads as broken.
   const [navigatingToTake, setNavigatingToTake] = useState(false);
 
-  // Reset on every open
+  // Reset on every open — including navigatingToTake, since this component
+  // stays mounted across close/reopen (visibility is gated by `isOpen` below,
+  // not by unmounting) rather than clearing its own state on close.
   useEffect(() => {
     if (isOpen) {
       setPhase("idle");
       setSelected(null);
+      setNavigatingToTake(false);
     }
   }, [isOpen]);
 

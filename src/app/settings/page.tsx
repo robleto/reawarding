@@ -9,6 +9,7 @@ import type { Database } from "@/types/supabase";
 import { signOutEverywhere } from "@/utils/signOut";
 import { useAuthState } from "@/hooks/useAuthState";
 import UserAvatar from "@/components/ui/UserAvatar";
+import StatsSummary from "@/components/stats/StatsSummary";
 
 interface Profile {
   id: string;
@@ -239,6 +240,11 @@ export default function SettingsPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
         <p className="text-gray-300">Manage your profile, account, and library.</p>
+      </div>
+
+      {/* Stats — moved here when /profile became a redirect to /settings */}
+      <div className="mb-6">
+        <StatsSummary />
       </div>
 
       {/* Profile */}

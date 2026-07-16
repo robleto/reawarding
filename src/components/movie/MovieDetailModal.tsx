@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useUser } from "@supabase/auth-helpers-react";
@@ -148,6 +148,13 @@ export default function MovieDetailModal({
   }, [isOpen, user, movie.id, expression]);
 
   const yourTake = expression?.movieId === movie.id ? expression.data : null;
+  // Mirrors `yourTake`, but updated synchronously (not just on re-render) so
+  // rapid taps read each other's optimistic result instead of both starting
+  // from the same stale snapshot — see handleToggleQualityTag.
+  const yourTakeRef = useRef(yourTake);
+  useEffect(() => {
+    yourTakeRef.current = yourTake;
+  }, [yourTake]);
   // Curated tags get their own always-visible quick-toggle row, so they don't
   // count toward whether the "Your Take" summary card (Edit-link, quote,
   // notes, recommend) is worth showing.
@@ -260,36 +267,32 @@ export default function MovieDetailModal({
   // tap never wipes notes/quote/recommend set elsewhere.
   const handleToggleQualityTag = async (tag: string) => {
     if (!user) return;
-    const current = yourTake?.quality_tags ?? [];
+    const base = yourTakeRef.current;
+    const current = base?.quality_tags ?? [];
     const has = current.some((t) => t.toLowerCase() === tag.toLowerCase());
     const nextTags = has
       ? current.filter((t) => t.toLowerCase() !== tag.toLowerCase())
       : [...current, tag];
+    const nextData = {
+      notes: base?.notes ?? null,
+      favorite_quote: base?.favorite_quote ?? null,
+      quality_tags: nextTags,
+      would_recommend: base?.would_recommend ?? null,
+    };
+    // Update the ref synchronously (ahead of the await) so a second rapid tap
+    // builds on this tap's result instead of the same stale snapshot.
+    yourTakeRef.current = nextData;
 
     const { error } = await supabase.from("expressions").upsert(
-      {
-        user_id: user.id,
-        movie_id: movie.id,
-        notes: yourTake?.notes ?? null,
-        favorite_quote: yourTake?.favorite_quote ?? null,
-        quality_tags: nextTags,
-        would_recommend: yourTake?.would_recommend ?? null,
-      },
+      { user_id: user.id, movie_id: movie.id, ...nextData },
       { onConflict: "user_id,movie_id" }
     );
     if (error) {
       console.error("Failed to toggle quality tag:", error.message);
+      yourTakeRef.current = base;
       return;
     }
-    setExpression({
-      movieId: movie.id,
-      data: {
-        notes: yourTake?.notes ?? null,
-        favorite_quote: yourTake?.favorite_quote ?? null,
-        quality_tags: nextTags,
-        would_recommend: yourTake?.would_recommend ?? null,
-      },
-    });
+    setExpression({ movieId: movie.id, data: nextData });
   };
 
   const handleSeenItToggle = () => {

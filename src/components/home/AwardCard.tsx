@@ -20,8 +20,14 @@ interface Props {
       standalone placements (e.g. above a year's nominee grid) where this
       is the one card on screen, not a card in a horizontal scroll shelf. */
   fullWidth?: boolean;
-  /** fullWidth only: renders the Upheld/Reawarded ink-stamp at the poster's
-      lower-right, scaled down from the desktop corner-stamp treatment. */
+  /** The three-state Academy comparison (upheld/reawarded/unscreened) for
+      this year, from getAcademyStatus. fullWidth renders it as the poster's
+      ink-stamp; the shelf card uses it to gate the "Over X"/"Agrees with the
+      Academy" caption text — pass it whenever the caller can compute it, so
+      the card never claims a win over a film the user hasn't screened.
+      Omit only when the caller has no ballot/ranking data to compute it from;
+      the card then falls back to a simple title/id match with no screening
+      check. */
   academyStatus?: AcademyStatusResult | null;
 }
 
@@ -35,11 +41,19 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
   const actualWinner = winners.get(year) ?? null;
   // ID comparison when the caller passes one (exact, immune to title formatting
   // differences); falls back to a case-insensitive title compare otherwise.
+  // Only used as a fallback when the caller can't supply academyStatus (see below).
   const isAcademyMatch =
     !!actualWinner &&
     (winnerMovieId != null && actualWinner.movieId != null
       ? String(actualWinner.movieId) === String(winnerMovieId)
       : !!winnerTitle && actualWinner.filmTitle.toLowerCase() === winnerTitle.toLowerCase());
+  // `academyStatus === undefined` means the caller didn't compute one (no
+  // ballot/ranking data available) — fall back to the simple title/id match
+  // above. `null` means the caller computed it and it's not eligible (thin
+  // ballot or no matched official pick) — render a neutral caption rather
+  // than the id/title-match fallback, which can't tell "unscreened" apart
+  // from "actually disagreed" and would falsely claim a win either way.
+  const hasAcademyStatus = academyStatus !== undefined;
 
   return (
     <div className="flex flex-col items-center gap-1.5">
@@ -110,7 +124,17 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
                   {winnerTitle}
                 </p>
                 <p className="text-[10px] mt-1 font-medium drop-shadow-md">
-                  {isAcademyMatch ? (
+                  {hasAcademyStatus ? (
+                    academyStatus?.status === "upheld" ? (
+                      <span className="text-always-gold-300">Agrees with the Academy</span>
+                    ) : academyStatus?.status === "reawarded" ? (
+                      <span className="text-always-white/70">
+                        Over <span className="text-always-gold-400/80">{academyStatus.officialTitle}</span>
+                      </span>
+                    ) : (
+                      <span className="text-always-gold-400/70">Best Picture</span>
+                    )
+                  ) : isAcademyMatch ? (
                     <span className="text-always-gold-300">Agrees with the Academy</span>
                   ) : actualWinner ? (
                     <span className="text-always-white/70">
