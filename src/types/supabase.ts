@@ -166,6 +166,50 @@ export type Database = {
           },
         ]
       }
+      official_award_winners: {
+        Row: {
+          id: number
+          year: number
+          category: string
+          ceremony_number: number
+          film_title: string
+          movie_id: string | null
+          match_status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          year: number
+          category?: string
+          ceremony_number: number
+          film_title: string
+          movie_id?: string | null
+          match_status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          year?: number
+          category?: string
+          ceremony_number?: number
+          film_title?: string
+          movie_id?: string | null
+          match_status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "official_award_winners_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ceremonies: {
         Row: {
           created_at: string

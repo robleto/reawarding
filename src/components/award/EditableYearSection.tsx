@@ -9,6 +9,7 @@ import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, GripVertical, St
 import MovieCard from "./MovieCard";
 import WinnerCard from "./WinnerCard";
 import AwardCard from "@/components/home/AwardCard";
+import AcademyStamp from "./AcademyStamp";
 import DraggableNomineeCard from "./DraggableNomineeCard";
 import SelectableMovieItem from "./SelectableMovieItem";
 import MovieDetailModal from "../movie/MovieDetailModal";
@@ -18,6 +19,7 @@ import { getRatingDefinition } from "@/lib/ratingScale";
 import type { Movie } from "@/types/types";
 import { useGlobalToast } from '@/hooks/useGlobalToast';
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import { useOfficialAwardWinners, getAcademyStatus } from "@/data/officialAwardWinners";
 import type { Database } from "@/types/supabase";
  
 const STORAGE_KEY = 'reawarding-awards-cache-v1';
@@ -520,8 +522,11 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
         (isWorkshop ? activeWorkshopNominees : nominees).findIndex(item => item.id === over.id)
       );
       if (isWorkshop) {
-        const winnerId = activeWorkshopWinner?.id ?? reordered[0]?.id ?? null;
-        const nextWinner = reordered.find((m) => m.id === winnerId) ?? reordered[0] ?? null;
+        // Reordering shouldn't invent a winner — only carry an already-explicit
+        // pick to its new position. No winner set stays no winner set.
+        const nextWinner = activeWorkshopWinner
+          ? reordered.find((m) => m.id === activeWorkshopWinner.id) ?? null
+          : null;
         void applyWorkshopState(reordered, nextWinner);
       } else {
         setNominees(reordered);
@@ -844,6 +849,22 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   const displayNominees = isEditing ? nominees : currentNominees;
   const displayWinner = isEditing ? selectedWinner : currentWinner;
   const nomineeCount = displayNominees.length;
+  const { winners: officialWinners } = useOfficialAwardWinners();
+  const academyStatus =
+    resolvedCategory === "best-picture"
+      ? getAcademyStatus({
+          year: Number(year),
+          existingAward: {
+            year: Number(year),
+            category: "best-picture",
+            winnerId: displayWinner?.id ?? null,
+            nomineeIds: displayNominees.map((m) => m.id),
+          },
+          liveNomineeCount: nomineeCount,
+          yearMovies: allMoviesForYear,
+          winners: officialWinners,
+        })
+      : null;
   const nomineesNeededForComplete = Math.max(0, 5 - nomineeCount);
   const defaultNomineeIds = movies.map((m) => m.id);
   const defaultWinnerId = winner?.id ?? movies[0]?.id ?? null;
@@ -988,7 +1009,12 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     // which triggers this effect, which re-sets nominees to the same values.
     if (workshopMutationInFlightRef.current) return;
     setNominees([...currentNominees]);
-    setSelectedWinner(currentWinner ?? currentNominees[0] ?? null);
+    // Mirror the read view exactly: no saved winner means no crown, full
+    // stop. Defaulting to currentNominees[0] here used to silently crown
+    // the top-ranked nominee the moment the workshop opened — visually
+    // indistinguishable from an explicit pick, and confusing when the read
+    // view had just shown "No winner selected yet." for the same ballot.
+    setSelectedWinner(currentWinner ?? null);
     onEditingChange?.(false);
   }, [isWorkshop, currentNominees, currentWinner, onEditingChange]);
 
@@ -1062,8 +1088,9 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
       if (activeWorkshopNominees.length >= 10) return;
       if (activeWorkshopNominees.some((m) => m.id === movie.id)) return;
       const nextNominees = [...activeWorkshopNominees, movie];
-      const nextWinner = activeWorkshopWinner ?? nextNominees[0] ?? null;
-      void applyWorkshopState(nextNominees, nextWinner);
+      // Adding a nominee shouldn't invent a winner either — preserve whatever
+      // was (or wasn't) already explicitly selected.
+      void applyWorkshopState(nextNominees, activeWorkshopWinner ?? null);
     },
   }), [isWorkshop, activeWorkshopNominees, activeWorkshopWinner, applyWorkshopState]);
 
@@ -1089,7 +1116,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
   const contentBlock = (
     <>
-    <div className={`award-editable-section flex flex-col w-full rounded-xl shadow-md dark-glass p-4 md:p-8${compact ? '' : ' mb-12 md:mb-24'}${isEditing ? ' pb-32 md:pb-0' : ''}`}>
+    <div className={`award-editable-section relative flex flex-col w-full rounded-xl shadow-md dark-glass p-4 md:p-8${compact ? '' : ' mb-12 md:mb-24'}${isEditing ? ' pb-32 md:pb-0' : ' overflow-hidden'}`}>
 
           {/* Error Message */}
           {error && (
@@ -1156,7 +1183,19 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
           {/* Content */}
           {!isEditing ? (
             /* READ MODE LAYOUT */
-            <div className="flex flex-col gap-6 md:flex-row md:gap-8">
+            <div className="relative flex flex-col gap-6 md:flex-row md:gap-8">
+              {/* Academy stamp — sits in the open space under the winner
+                  title and the first couple nominees of row 2, run past the
+                  card's true bottom edge and clipped there by the outer
+                  award-editable-section's overflow-hidden (not this inner div
+                  — clipping here would leave a padding gap before the real
+                  card boundary). Upheld/Reawarded only; see AcademyStamp for
+                  why Unscreened has no stamp here. */}
+              {!compact && (
+                <div className="pointer-events-none absolute -bottom-10 left-[20%] z-10 hidden md:block">
+                  <AcademyStamp academyStatus={academyStatus} />
+                </div>
+              )}
               {/* Winner — mobile shows a centered, width-capped exhibit so the
                   nominees stay within the first screenful; desktop keeps the
                   full-column poster beside the grid. */}
@@ -1164,20 +1203,25 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
               <div className="w-full md:w-1/3">
                 {/* Eyebrow is desktop-only — on mobile the award artifact
                     carries its own plaque, trophy, and category label. */}
-                <div className="hidden md:flex items-center gap-2 mb-4">
+                <div className="hidden md:flex items-center gap-2 mb-3">
                   <Trophy className="w-3.5 h-3.5 text-gold-500/60" />
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gold-500/60">Best Picture</p>
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-gold-500/60">Best Picture</p>
                 </div>
                 {displayWinner ? (
                   <>
-                    {/* Mobile: the canonical gilt award artifact */}
+                    {/* Mobile: the canonical gilt award artifact — full width
+                        so it reads as the marquee piece, not a card the same
+                        size as (or smaller than) the nominee grid beneath it. */}
                     <div className="flex justify-center md:hidden">
                       <AwardCard
                         year={Number(year)}
                         winnerTitle={displayWinner.title}
                         winnerPoster={displayWinner.poster_url}
+                        winnerMovieId={displayWinner.id}
                         nomineeCount={nomineeCount}
                         onClick={() => handleOpenModal(displayWinner)}
+                        fullWidth
+                        academyStatus={academyStatus}
                       />
                     </div>
                     {/* Desktop: full-column featured poster beside the grid */}
@@ -1185,6 +1229,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                       <WinnerCard
                         movie={displayWinner}
                         onClick={() => handleOpenModal(displayWinner)}
+                        hideRating
                       />
                     </div>
                   </>
@@ -1201,8 +1246,13 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
               {/* Nominees */}
               <div className={`w-full ${compact ? "" : "md:w-2/3"}`}>
-                {/* Section header row — nominees label + edit ballot top-right */}
-                <div className="flex flex-wrap items-center justify-between gap-y-2 mb-3">
+                {/* Section header row — nominees label + count. On desktop
+                    Edit ballot lives in the card's lower-right instead (see
+                    below); mobile keeps it here since there's no separate
+                    lower-right slot on the stacked mobile layout. items-start
+                    (not items-center) keeps "Nominees" aligned with "Best
+                    Picture" regardless of what renders in this row. */}
+                <div className="flex flex-wrap items-start justify-between gap-y-2 mb-3">
                   <div className="flex items-baseline gap-3">
                     <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-gray-500">Nominees</p>
                     {(() => {
@@ -1217,7 +1267,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     {user && !isEditing && !isWorkshop && (
                       <button
                         onClick={onEditRequest ?? handleStartEditing}
-                        className="flex items-center gap-1.5 min-h-[44px] px-3.5 text-sm font-medium text-gray-300 border border-gray-700/40 rounded-lg hover:text-white hover:border-gray-600 hover:bg-gray-800/60 transition-all"
+                        className="md:hidden flex items-center gap-1.5 min-h-[44px] px-3.5 text-sm font-medium text-gray-300 border border-gray-700/40 rounded-lg hover:text-white hover:border-gray-600 hover:bg-gray-800/60 transition-all"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                         Edit ballot
@@ -1248,55 +1298,31 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     )}
                   </div>
                 </div>
-                {/* Ballot guidance — secondary info below header, tertiary metadata last */}
-                <div className="mb-4 space-y-0.5">
-                  {(() => {
-                    const count = isWorkshop ? activeWorkshopNominees.length : nomineeCount;
-                    if (count >= 10) return null; /* Full ballot — no guidance needed */
-                    if (count >= 5) {
-                      return (
-                        <p className="text-sm text-gray-500">
-                          {10 - count} more {10 - count === 1 ? "film" : "films"} to complete a Full Ballot
-                        </p>
-                      );
-                    }
-                    if (count > 0 && count < 5) {
-                      return (
-                        <p className="text-sm text-amber-400/60">
-                          Rate {5 - count} more 7+ to fill the 5 nominee slots
-                        </p>
-                      );
-                    }
-                    return null;
-                  })()}
-                  {/* Tertiary — system metadata, visually de-emphasized */}
-                  {!isWorkshop && !hasCustomNominations && nomineeCount > 0 && (
-                    <p className="text-[9px] text-gray-600 pt-1">
-                      Auto-selected · top rated · 7+ first
-                    </p>
-                  )}
-                  {/* View toggle lives here in the metadata whisper, not the
-                      header — comparing saved vs auto-derived is a rare,
-                      curiosity-driven action. Generous py keeps it tappable
-                      without visual weight. */}
-                  {!isWorkshop && hasCustomNominations && (
-                    <p className={`text-[10px] pt-1 ${isUsingCustomView ? 'text-gold-500/40' : 'text-gray-600'}`}>
-                      {isUsingCustomView ? 'Custom selection' : 'Custom saved'}
-                      {hasStoredCustom && (
-                        <>
-                          {' · '}
-                          <button
-                            onClick={handleViewToggle}
-                            className="underline decoration-dotted underline-offset-2 hover:text-gray-400 py-2 -my-2 px-1 -mx-0.5"
-                          >
-                            {isUsingCustomView ? 'show default' : 'show custom'}
-                          </button>
-                        </>
-                      )}
-                    </p>
-                  )}
-                </div>
                 {isWorkshop ? (
+                  <>
+                  {/* Ballot guidance — workshop keeps it above the grid; the
+                      user is actively editing and wants this context immediately. */}
+                  <div className="mb-4 space-y-0.5">
+                    {(() => {
+                      const count = activeWorkshopNominees.length;
+                      if (count >= 10) return null; /* Full ballot — no guidance needed */
+                      if (count >= 5) {
+                        return (
+                          <p className="text-sm text-gray-500">
+                            {10 - count} more {10 - count === 1 ? "film" : "films"} to complete a Full Ballot
+                          </p>
+                        );
+                      }
+                      if (count > 0 && count < 5) {
+                        return (
+                          <p className="text-sm text-amber-400/60">
+                            Rate {5 - count} more 7+ to fill the 5 nominee slots
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
                   <DndContext sensors={dndSensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                     <SortableContext
                       items={activeWorkshopNominees.map((movie) => movie.id)}
@@ -1331,9 +1357,10 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                       </div>
                     </SortableContext>
                   </DndContext>
+                  </>
                 ) : (
                   /* Responsive nominee grid using unified MovieCard:
-                     mobile  → single-column compact rows
+                     mobile  → 2-col nomination-card poster grid
                      desktop → 5-column poster grid (2 rows of 5) */
                   <>
                     {/* Desktop: 5-col poster grid */}
@@ -1343,25 +1370,26 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                           key={movie.id}
                           movie={movie}
                           variant="grid"
-                          isWinner={index === 0}
+                          isWinner={displayWinner?.id === movie.id}
                           onClick={() => handleOpenModal(movie)}
                         />
                       ))}
                     </div>
-                    {/* Mobile: single-column compact rows — same anatomy as
-                        the rankings list. Rank numbers are real information
-                        here: the ballot is ordered. */}
-                    <div className="flex flex-col gap-2 md:hidden">
-                      {displayNominees.map((movie, index) => {
-                        const rowRating = Math.round(movie.rankings?.[0]?.ranking ?? 0);
+                    {/* Mobile: nomination-card poster grid. Every card keeps
+                        its rating badge in the lower-right — that number is
+                        still real, useful information. The winner is marked
+                        by a small cup icon in the lower-left instead, so the
+                        two corners never compete. */}
+                    <div className="grid grid-cols-2 gap-2.5 md:hidden">
+                      {displayNominees.map((movie) => {
+                        const isTheWinner = displayWinner?.id === movie.id;
                         return (
                           <MovieCard
                             key={movie.id}
                             movie={movie}
-                            variant="compact"
-                            rank={index + 1}
-                            isWinner={index === 0}
-                            ratingLabel={rowRating > 0 ? getRatingDefinition(rowRating)?.label ?? null : null}
+                            variant="grid"
+                            isWinner={isTheWinner}
+                            winnerLabel
                             onClick={() => handleOpenModal(movie)}
                           />
                         );
@@ -1370,6 +1398,65 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     {displayNominees.length === 0 && (
                       <p className="text-xs text-gray-500 py-3 text-center">No nominees yet.</p>
                     )}
+                    {/* Ballot guidance — moved below the grid in view mode so the
+                        header sits flush against the grid and top-aligns with the
+                        winner poster; the freed corner above holds the Academy
+                        stamp. Edit ballot sits beside this whole block, vertically
+                        centered against however many of these lines actually
+                        render — in-flow (not absolutely positioned) so it always
+                        claims its own space, instead of floating over the grid
+                        when a short winner title leaves the poster column
+                        shorter than the nominees column. Desktop only; mobile
+                        keeps its own Edit ballot copy in the header above. */}
+                    <div className="mt-4 flex items-center justify-between gap-2">
+                      <div className="space-y-0.5">
+                        {nomineeCount < 10 && nomineeCount >= 5 && (
+                          <p className="text-sm text-gray-500">
+                            {10 - nomineeCount} more {10 - nomineeCount === 1 ? "film" : "films"} to complete a Full Ballot
+                          </p>
+                        )}
+                        {nomineeCount > 0 && nomineeCount < 5 && (
+                          <p className="text-sm text-amber-400/60">
+                            Rate {5 - nomineeCount} more 7+ to fill the 5 nominee slots
+                          </p>
+                        )}
+                        {/* Tertiary — system metadata, visually de-emphasized */}
+                        {!hasCustomNominations && nomineeCount > 0 && (
+                          <p className="text-[9px] text-gray-600">
+                            Auto-selected · top rated · 7+ first
+                          </p>
+                        )}
+                        {/* View toggle lives here in the metadata whisper, not the
+                            header — comparing saved vs auto-derived is a rare,
+                            curiosity-driven action. Generous py keeps it tappable
+                            without visual weight. */}
+                        {hasCustomNominations && (
+                          <p className={`text-[10px] ${isUsingCustomView ? 'text-gold-500/40' : 'text-gray-600'}`}>
+                            {isUsingCustomView ? 'Custom selection' : 'Custom saved'}
+                            {hasStoredCustom && (
+                              <>
+                                {' · '}
+                                <button
+                                  onClick={handleViewToggle}
+                                  className="underline decoration-dotted underline-offset-2 hover:text-gray-400 py-2 -my-2 px-1 -mx-0.5"
+                                >
+                                  {isUsingCustomView ? 'show default' : 'show custom'}
+                                </button>
+                              </>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                      {!compact && user && !isEditing && !isWorkshop && (
+                        <button
+                          onClick={onEditRequest ?? handleStartEditing}
+                          className="hidden md:flex items-center gap-1.5 min-h-[32px] px-3 text-xs font-medium text-gray-300 border border-gray-700/40 rounded-lg hover:text-white hover:border-gray-600 hover:bg-gray-800/60 transition-all flex-shrink-0"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          Edit ballot
+                        </button>
+                      )}
+                    </div>
                   </>
                 )}
               </div>

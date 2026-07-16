@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { UserPlus } from "lucide-react";
 import { useUser } from "@supabase/auth-helpers-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
 import { useFollowing } from "@/hooks/useFollowing";
@@ -81,25 +82,36 @@ export default function ProfileFollowersPage() {
   return (
     <div className="max-w-xl mx-auto px-4 py-6">
       {/* Tab switcher */}
-      <div className="flex border-b border-gray-800 mb-6">
-        <Link
-          href={`/${username}/following`}
-          className="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent -mb-px text-gray-500 hover:text-gray-300 transition-colors"
-        >
-          Following
-          {following.length > 0 && (
-            <span className="ml-1.5 text-xs text-gray-600">{following.length}</span>
-          )}
-        </Link>
-        <Link
-          href={`/${username}/followers`}
-          className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors border-yellow-400 text-white`}
-        >
-          Followers
-          {followers.length > 0 && (
-            <span className="ml-1.5 text-xs text-gray-600">{followers.length}</span>
-          )}
-        </Link>
+      <div className="flex items-center justify-between border-b border-gray-800 mb-6">
+        <div className="flex">
+          <Link
+            href={`/${username}/following`}
+            className="px-4 py-2.5 text-sm font-medium border-b-2 border-transparent -mb-px text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            Following
+            {following.length > 0 && (
+              <span className="ml-1.5 text-xs text-gray-600">{following.length}</span>
+            )}
+          </Link>
+          <Link
+            href={`/${username}/followers`}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors border-yellow-400 text-white`}
+          >
+            Followers
+            {followers.length > 0 && (
+              <span className="ml-1.5 text-xs text-gray-600">{followers.length}</span>
+            )}
+          </Link>
+        </div>
+        {isOwnProfile && (
+          <Link
+            href="/members"
+            className="inline-flex items-center gap-1.5 mb-2 px-3 py-1.5 text-xs font-medium rounded-md border border-yellow-500/30 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20 transition-colors flex-shrink-0"
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            Find Friends
+          </Link>
+        )}
       </div>
 
       {followers.length === 0 ? (

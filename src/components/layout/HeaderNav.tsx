@@ -34,9 +34,17 @@ export default function HeaderNav() {
 		? [
 				{ label: "Films", href: "/films", match: "/films", icon: Clapperboard },
 				{ label: "Rankings", href: "/rankings", match: "/rankings", icon: LineChart },
-				{ label: "Awards", href: "/awards", match: "/awards", icon: Trophy },
 				{ label: "Lists", href: "/lists", match: "/lists", icon: List },
 		  ]
+		: [];
+
+	// Desktop-only: Awards is deliberately absent from the mobile bottom tab
+	// bar (see MobileTabBar.tsx — Home absorbed the year timeline /awards
+	// used to own, so a redundant tab was retired there). On desktop it's
+	// still worth naming explicitly as the first item, even though it points
+	// at the same surface as the logo/Home link.
+	const desktopNavItems = user
+		? [{ label: "Awards", href: "/awards", match: "/awards", icon: Trophy }, ...navItems]
 		: [];
 
 	const handleLoginClick = () => {
@@ -106,7 +114,7 @@ export default function HeaderNav() {
 									}}
 								/>
 								<ul className="flex items-center font-medium text-sm font-inter relative z-10">
-									{navItems.map((item, index) => {
+									{desktopNavItems.map((item, index) => {
 										const Icon = item.icon;
 										const isActive =
 											pathname === item.match ||

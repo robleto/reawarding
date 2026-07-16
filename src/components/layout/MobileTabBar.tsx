@@ -3,14 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Home, Trophy, LineChart, User } from "lucide-react";
+import { Trophy, Film, List, LineChart } from "lucide-react";
 
-// Bottom-nav destinations are intentionally 4. Rankings replaced Films on
-// 2026-07-13 (reversing the 2026-05-09 call): the Films catalog outgrew
-// browsing — search in the header is now the primary way to find a film,
-// and the + button covers adding one, so the tab goes to the surface an
-// invested user returns to daily. Films stays in the header hamburger menu.
-// See PRODUCT_DECISION_LOG.md.
+// Bottom-nav destinations are intentionally 4: Awards, Films, Rankings, Lists —
+// the surfaces someone returns to daily. Home is still reachable via the
+// header logo and Settings via the user-avatar menu (UserMenu.tsx), so neither
+// needs a tab slot. See PRODUCT_DECISION_LOG.md for prior tab-lineup history.
 
 // In a BROWSER tab the bar hides while scrolling down (reading room on top of
 // Safari's own chrome) and reveals on any upward scroll or near the page top.
@@ -64,10 +62,10 @@ export default function MobileTabBar() {
   const hidden = useAutoHideOnScroll(pathname);
 
   const tabs = [
-    { href: "/", label: "Home", icon: Home, match: (p: string) => p === "/" },
     { href: "/awards", label: "Awards", icon: Trophy, match: (p: string) => p.startsWith("/awards") },
+    { href: "/films", label: "Films", icon: Film, match: (p: string) => p.startsWith("/films") },
     { href: "/rankings", label: "Rankings", icon: LineChart, match: (p: string) => p.startsWith("/rankings") },
-    { href: "/profile", label: "Profile", icon: User, match: (p: string) => p.startsWith("/profile") },
+    { href: "/lists", label: "Lists", icon: List, match: (p: string) => p.startsWith("/lists") },
   ];
 
   return (

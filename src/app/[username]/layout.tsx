@@ -162,7 +162,7 @@ function ProfileTabs({ username }: { username: string }) {
     { label: "Watchlist", href: `${basePath}/watchlist`, icon: Bookmark },
     { label: "Lists", href: `${basePath}/lists`, icon: List },
     { label: "Activity", href: `${basePath}/activity`, icon: Activity },
-    { label: "Following", href: `${basePath}/following`, icon: Users },
+    { label: "Friends", href: `${basePath}/following`, icon: Users },
   ];
 
   return (
@@ -173,6 +173,8 @@ function ProfileTabs({ username }: { username: string }) {
           const isActive =
             tab.href === basePath
               ? currentPath === basePath
+              : tab.label === "Friends"
+              ? currentPath.startsWith(`${basePath}/following`) || currentPath.startsWith(`${basePath}/followers`)
               : currentPath.startsWith(tab.href);
 
           return (

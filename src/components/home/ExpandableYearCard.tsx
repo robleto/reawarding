@@ -2,8 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { Film, Trophy, Star } from "lucide-react";
-import { getActualWinner } from "@/data/bestPictureWinners";
+import { Film, Trophy, Star, RefreshCcw, EyeOff } from "lucide-react";
+import { useOfficialAwardWinners, getAcademyStatus } from "@/data/officialAwardWinners";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import { isCanonicalCandidate } from "@/utils/canonicalFilm";
 import MovieCard from "@/components/award/MovieCard";
@@ -77,9 +77,7 @@ export default function ExpandableYearCard({
     setPosterError(false);
   }, [leader.id]);
 
-  const academy = getActualWinner(year);
-  const agreedWithAcademy =
-    academy && academy.title.toLowerCase() === leader.title.toLowerCase();
+  const { winners: officialWinners } = useOfficialAwardWinners();
 
   const rawPoster =
     leader.poster_url ||
@@ -109,6 +107,23 @@ export default function ExpandableYearCard({
     if (existingAward?.nomineeIds?.length) return existingAward.nomineeIds.length;
     return nomineeCount;
   }, [existingAward, nomineeCount]);
+
+  const yearMoviesAll = useMemo(
+    () => allMovies.filter((m) => m.release_year === year),
+    [allMovies, year]
+  );
+
+  const academyStatus = useMemo(
+    () =>
+      getAcademyStatus({
+        year,
+        existingAward,
+        liveNomineeCount,
+        yearMovies: yearMoviesAll,
+        winners: officialWinners,
+      }),
+    [year, existingAward, liveNomineeCount, yearMoviesAll, officialWinners]
+  );
 
   const winnerTitle = useMemo(() => {
     const winnerId = existingAward?.winnerId;
@@ -449,23 +464,46 @@ export default function ExpandableYearCard({
           </div>
         </div>
 
-        {/* Academy contrast */}
-        {academy && (
-          <div className="flex flex-col items-end flex-shrink-0 text-right">
-            <p className="text-[10px] uppercase tracking-wider text-gray-400">
-              Academy
-            </p>
-            <p
-              className={`text-xs font-medium ${
-                agreedWithAcademy ? "text-emerald-400" : "text-gray-400"
-              }`}
-            >
-              {academy.title}
-            </p>
-            {agreedWithAcademy ? (
-              <p className="text-[10px] text-emerald-500">Match</p>
-            ) : (
-              <p className="text-[10px] text-gold-500/60">Different</p>
+        {/* Academy status — Upheld / Reawarded / Unscreened. Only appears once
+            this year has a set ballot (5+ nominees + explicit winner); a thin
+            or unset year shows nothing here, per the same gating as the
+            Canonical/Forming pills above. */}
+        {academyStatus && (
+          <div className="flex flex-col items-end flex-shrink-0 text-right gap-0.5">
+            {academyStatus.status === "upheld" && (
+              <span
+                role="status"
+                aria-label={`Upheld: your ${year} winner matches the Academy's`}
+                className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300"
+              >
+                <Trophy className="w-2.5 h-2.5" aria-hidden="true" />
+                Upheld
+              </span>
+            )}
+            {academyStatus.status === "reawarded" && (
+              <span
+                role="status"
+                aria-label={`Reawarded: you overruled the Academy's ${year} pick, ${academyStatus.officialTitle}`}
+                className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-300"
+              >
+                <RefreshCcw className="w-2.5 h-2.5" aria-hidden="true" />
+                Reawarded
+              </span>
+            )}
+            {academyStatus.status === "unscreened" && (
+              <span
+                role="status"
+                aria-label={`Unscreened: you haven't rated the Academy's ${year} pick, ${academyStatus.officialTitle}`}
+                className="inline-flex items-center gap-1 rounded-full bg-gray-500/10 border border-gray-600/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400"
+              >
+                <EyeOff className="w-2.5 h-2.5" aria-hidden="true" />
+                Unscreened
+              </span>
+            )}
+            {academyStatus.status !== "upheld" && (
+              <p className="text-xs text-gray-500 max-w-[140px] truncate">
+                {academyStatus.officialTitle}
+              </p>
             )}
           </div>
         )}

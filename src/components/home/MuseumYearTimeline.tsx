@@ -11,6 +11,8 @@ interface Props {
   years: MuseumYearTimelineEntry[];
   activeYear: number;
   onSelectYear: (year: number) => void;
+  /** Text appended after the count (e.g. "/10" for nominee slots). Pass "" to show a bare count. Defaults to "/10". */
+  subLabelSuffix?: string;
 }
 
 /**
@@ -20,7 +22,7 @@ interface Props {
  * skipped years. Sorted newest → oldest. The active chip scrolls into
  * view when activeYear changes.
  */
-export default function MuseumYearTimeline({ years, activeYear, onSelectYear }: Props) {
+export default function MuseumYearTimeline({ years, activeYear, onSelectYear, subLabelSuffix = "/10" }: Props) {
   const activeChipRef = useRef<HTMLButtonElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
   const sorted = [...years].sort((a, b) => b.year - a.year);
@@ -79,7 +81,7 @@ export default function MuseumYearTimeline({ years, activeYear, onSelectYear }: 
                     isActive ? "text-gold-500/60" : "text-gray-700"
                   }`}
                 >
-                  {yl.nomineeCount}/10
+                  {yl.nomineeCount}{subLabelSuffix}
                 </span>
               </button>
 

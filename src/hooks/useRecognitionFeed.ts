@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseBrowser";
-import { BEST_PICTURE_WINNERS } from "@/data/bestPictureWinners";
+import { fetchOfficialAwardWinners } from "@/data/officialAwardWinners";
 import type { Movie } from "@/types/types";
 
 export interface FeedRow {
@@ -20,11 +20,16 @@ function toMovies(data: Record<string, unknown>[] | null): Movie[] {
 }
 
 // Curated pool: Best Picture winners from the last 25 years, newest first.
-// These are films everyone recognises — ideal recognition triggers.
-const CURATED_WINNER_TITLES = Object.values(BEST_PICTURE_WINNERS)
-  .sort((a, b) => b.year - a.year)
-  .slice(0, 25)
-  .map((w) => w.title);
+// These are films everyone recognises — ideal recognition triggers. Sourced
+// from the verified official_award_winners table (see src/data/officialAwardWinners.ts),
+// not the old static file, which mislabeled the 1st ceremony's winner.
+async function getCuratedWinnerTitles(): Promise<string[]> {
+  const winners = await fetchOfficialAwardWinners();
+  return Array.from(winners.values())
+    .sort((a, b) => b.year - a.year)
+    .slice(0, 25)
+    .map((w) => w.filmTitle);
+}
 
 /**
  * useRecognitionFeed — 2–3 rows of films the user hasn't rated yet,
@@ -32,9 +37,9 @@ const CURATED_WINNER_TITLES = Object.values(BEST_PICTURE_WINNERS)
  *
  * Row 1  "Award winners"   — curated Best Picture winners fetched by title.
  *                            Guaranteed to return results if those films are in the DB.
- * Row 2  "Acclaimed films" — imdb_rating desc, floored at 1000+ TMDB votes so
- *                            obscure films with inflated ratings can't outrank classics.
- * Row 3  "Notable films"   — widely-seen movies: TMDB vote_count desc. Popularity,
+ * Row 2  "Acclaimed films" — imdb_rating desc, floored at 250k+ IMDb votes so
+ *                            fan-vote-inflated obscurities can't outrank classics.
+ * Row 3  "Notable films"   — widely-seen movies: imdb_votes desc. Popularity,
  *                            not acclaim — the row most likely to trigger "I've seen that".
  *
  * userMovieIds is read via ref so a new rating doesn't re-fire the fetch.
@@ -53,30 +58,33 @@ export function useRecognitionFeed(
     async function fetchFeed() {
       setLoading(true);
 
+      const curatedWinnerTitles = await getCuratedWinnerTitles();
+      if (cancelled) return;
+
       const [winnersResult, acclaimedResult, notableResult] = await Promise.all([
         // Row 1: Curated Best Picture winners — fetch by known titles
         supabase
           .from("movies")
           .select(FEED_COLS)
-          .in("title", CURATED_WINNER_TITLES)
+          .in("title", curatedWinnerTitles)
           .limit(30),
 
-        // Row 2: Acclaimed films — rating desc, with a vote floor so a 9.3
-        // from a handful of voters can't outrank The Godfather
+        // Row 2: Acclaimed films — rating desc, with a high vote floor so
+        // fan-vote-inflated obscurities can't outrank The Godfather
         supabase
           .from("movies")
           .select(FEED_COLS)
           .not("imdb_rating", "is", null)
-          .gte("vote_count", 1000)
+          .gte("imdb_votes", 250000)
           .order("imdb_rating", { ascending: false })
           .limit(50),
 
-        // Row 3: Notable films — widely seen, sorted by TMDB vote count desc
+        // Row 3: Notable films — widely seen, sorted by IMDb vote count desc
         supabase
           .from("movies")
           .select(FEED_COLS)
-          .gt("vote_count", 0)
-          .order("vote_count", { ascending: false })
+          .gt("imdb_votes", 0)
+          .order("imdb_votes", { ascending: false })
           .limit(50),
       ]);
 
@@ -97,8 +105,8 @@ export function useRecognitionFeed(
         return raw
           .sort(
             (a, b) =>
-              CURATED_WINNER_TITLES.indexOf(a.title) -
-              CURATED_WINNER_TITLES.indexOf(b.title)
+              curatedWinnerTitles.indexOf(a.title) -
+              curatedWinnerTitles.indexOf(b.title)
           )
           .slice(0, 20);
       })();

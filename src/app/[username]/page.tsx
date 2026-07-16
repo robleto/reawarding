@@ -22,8 +22,11 @@ import {
 import { usePublicProfile, type PublicAward } from "@/hooks/usePublicProfile";
 import { useUser } from "@/hooks/useUser";
 import { useEnsureProfile } from "@/hooks/useEnsureProfile";
+import { useQualityTagCollections } from "@/hooks/useQualityTagCollections";
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import { slugifyTitle } from "@/utils/slug";
 import AwardCard from "@/components/home/AwardCard";
+import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
 import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
 
@@ -614,12 +617,64 @@ function AwardsGallery({
                 year={entry.year}
                 winnerTitle={entry.winner.title}
                 winnerPoster={entry.winner.poster_url}
+                winnerMovieId={entry.winner.id}
                 nomineeCount={entry.nominees.length}
                 onClick={() => router.push(`/${username}/awards`)}
               />
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── My Collections Preview ─────────────────────────────
+// Films grouped by the quality tags you've applied (e.g. "Great score").
+// expressions RLS is owner-only, so ownerUserId is only non-null when this
+// is your own profile — for anyone else the hook returns an empty list and
+// this section renders nothing, no extra check needed.
+function MyCollectionsPreview({
+  movies,
+  username,
+  ownerUserId,
+}: {
+  movies: Movie[];
+  username: string;
+  ownerUserId: string | null;
+}) {
+  const { collections } = useQualityTagCollections(ownerUserId, movies);
+
+  if (collections.length === 0) {
+    return null;
+  }
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-lg font-semibold text-white">My Collections</h2>
+          <p className="text-xs text-gray-500">Films grouped by what you noticed</p>
+        </div>
+        <Link
+          href={`/${username}/collections`}
+          className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-yellow-300 transition-colors"
+        >
+          See all <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
+      <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+        {collections.map((collection) => (
+          <div key={collection.tag} className="min-w-[260px] max-w-[260px] flex-shrink-0 snap-start">
+            <ReadyMadeCard
+              title={collection.tag}
+              count={collection.count}
+              subtitle={<span>Tagged films</span>}
+              posterUrls={collection.posterUrls}
+              viewHref={`/${username}/collections/${slugifyTitle(collection.tag)}`}
+            />
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -780,6 +835,7 @@ export default function ProfileOverviewPage() {
         persistedPickIds={Array.isArray(profile?.signature_picks) ? profile?.signature_picks : null}
       />
       <AwardsGallery movies={movies} awards={awards} username={username} />
+      <MyCollectionsPreview movies={movies} username={username} ownerUserId={ownerUserId} />
       <SignatureTasteStats movies={movies} />
     </div>
   );

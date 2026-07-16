@@ -67,6 +67,11 @@ export default function RatingModal({
 
   const [phase, setPhase]               = useState<Phase>("idle");
   const [selectedRating, setSelected]   = useState<number | null>(null);
+  // The film page is a server component that fetches on navigation — there's
+  // a real gap between tapping "Add your take" and the new page appearing.
+  // Without this, the tap closes RatingModal instantly with nothing else
+  // visibly happening in that gap, which reads as broken.
+  const [navigatingToTake, setNavigatingToTake] = useState(false);
 
   // Reset on every open
   useEffect(() => {
@@ -138,13 +143,17 @@ export default function RatingModal({
     closeTimer.current = setTimeout(onClose, dwell + FADE_MS);
   }, [onRate, onClose, canInvite]);
 
-  // Navigate to the film page's Your Take editor, closing everything first
+  // Navigate to the film page's Your Take editor. Deliberately does NOT call
+  // onClose() — the film page is a server component with its own data fetch,
+  // so there's a real gap before it appears. Staying mounted (with a loading
+  // state) through that gap means something is always visibly happening;
+  // the whole modal unmounts naturally once the new route takes over.
   const handleAddTake = useCallback(() => {
     if (dwellTimer.current) clearTimeout(dwellTimer.current);
     if (closeTimer.current) clearTimeout(closeTimer.current);
-    onClose();
+    setNavigatingToTake(true);
     router.push(`/films/${slugifyTitle(movieTitle)}/${movieId}`);
-  }, [onClose, router, movieTitle, movieId]);
+  }, [router, movieTitle, movieId]);
 
   if (!isOpen) return null;
 
@@ -222,10 +231,15 @@ export default function RatingModal({
               <button
                 type="button"
                 onClick={handleAddTake}
-                className="mt-2.5 inline-flex items-center gap-1.5 text-sm font-medium text-gold-300 hover:text-gold-200 transition-colors animate-in fade-in duration-300"
+                disabled={navigatingToTake}
+                className="mt-2.5 inline-flex items-center gap-1.5 text-sm font-medium text-gold-300 hover:text-gold-200 transition-colors animate-in fade-in duration-300 disabled:opacity-70"
               >
-                <PenLine className="w-3.5 h-3.5" />
-                Add your take
+                {navigatingToTake ? (
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-gold-300/30 border-t-gold-300 animate-spin" />
+                ) : (
+                  <PenLine className="w-3.5 h-3.5" />
+                )}
+                {navigatingToTake ? "Opening…" : "Add your take"}
               </button>
             )}
           </div>

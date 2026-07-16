@@ -18,19 +18,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
 import { PenLine, Plus, X, Check, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
+import { SUGGESTED_QUALITY_TAGS as SUGGESTED_TAGS } from "@/utils/qualityTags";
 
 interface YourTakeProps {
   movieId: string;
 }
-
-const SUGGESTED_TAGS = [
-  "Gorgeous cinematography",
-  "Career-best performance",
-  "Great score",
-  "Sharp screenplay",
-  "Stuck with me for days",
-  "Great third act",
-];
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 

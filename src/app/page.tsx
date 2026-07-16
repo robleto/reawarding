@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import HomeHero from "@/app/components/home/HomeHero";
-import PanelPremise from "@/app/components/home/PanelPremise";
+import HeroReveal from "@/app/components/home/HeroReveal";
 import HowItWorksSection from "@/app/components/home/HowItWorksSection";
 import PanelHook from "@/app/components/home/PanelHook";
 import PanelTimeline from "@/app/components/home/PanelTimeline";
@@ -14,34 +13,24 @@ import PanelReassurance from "@/app/components/home/PanelReassurance";
 import PanelFinalCTA from "@/app/components/home/PanelFinalCTA";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
 import { scrollToElementById, usePrefersReducedMotion } from "@/lib/motion";
-import YearExplorer from "@/components/home/YearExplorer";
 import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
 import { useCreateAward } from "@/hooks/useCreateAward";
 import { useUserAwards } from "@/hooks/useUserAwards";
 import { buildTasteProfile, getYearLeaders } from "@/utils/tasteInsights";
-import { ArrowRight, ChevronDown, ChevronUp, X } from "lucide-react";
-import ExpandableYearCard from "@/components/home/ExpandableYearCard";
+import { ArrowRight, Trophy, X } from "lucide-react";
 import MuseumYearTimeline from "@/components/home/MuseumYearTimeline";
+import EditableYearSection from "@/components/award/EditableYearSection";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
-import RecognitionFeed from "@/components/home/RecognitionFeed";
 import useOnboardingState from "@/hooks/useOnboardingState";
 import SessionCoach from "@/components/onboarding/SessionCoach";
 import LoggedInOnboardingExperience from "@/components/onboarding/LoggedInOnboardingExperience";
 import OnboardingPickFlow from "@/components/onboarding/OnboardingPickFlow";
-import { useRecognitionFeed } from "@/hooks/useRecognitionFeed";
-import { useSmartListAlerts, type SmartListAlert } from "@/hooks/useSmartListAlerts";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
-import { useUserLists } from "@/hooks/useUserLists";
+import { useSmartListAlerts } from "@/hooks/useSmartListAlerts";
 import { useLoggedInOnboarding } from "@/hooks/useLoggedInOnboarding";
 import Banner from "@/components/ui/Banner";
-import HorizontalListRow from "@/components/list/HorizontalListRow";
-import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
-import WatchlistMovieRow from "@/components/home/WatchlistMovieRow";
-import AwardCard from "@/components/home/AwardCard";
-import { slugifyTitle } from "@/utils/slug";
-import { List } from "lucide-react";
 import type { Movie } from "@/types/types";
 import { useAuthState } from "@/hooks/useAuthState";
+import { useWatchlistContext } from "@/contexts/WatchlistContext";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -53,8 +42,6 @@ const PANEL_IDS = [
   "panel-reassurance",
   "panel-final-cta",
 ] as const;
-
-type OnboardingTourStep = 0 | 1 | 2 | 3;
 
 /**
  * Returns the "active" Oscar year.
@@ -78,10 +65,6 @@ const SUGGESTED_YEARS = [0, -1, -2, -4, -7, -12, -19, -27].map(
   (offset) => ACTIVE_OSCAR_YEAR + offset,
 );
 
-// Gate the Awards Gallery on this many nominees per year — see
-// PRODUCT_DESIGN_PRINCIPLES.md "Galleries earn their place".
-const GALLERY_MIN_NOMINEES = 3;
-
 // First-award localStorage key prefix. Composed with userId at use so two users
 // on the same device don't share the dismissal — flagged by qa-critic as a
 // silent multi-user collision risk.
@@ -96,59 +79,23 @@ export default function HomePage() {
   const { awards, loading: awardsLoading, error: awardsError } = useUserAwards();
   const [activePanelId, setActivePanelId] = useState<string>(PANEL_IDS[0]);
   const [showIndicator, setShowIndicator] = useState(false);
-  const [explorerYear, setExplorerYear] = useState<number | null>(null);
-  const [explorerIsEditing, setExplorerIsEditing] = useState(false);
-  const [onboardingPickedMovieId, setOnboardingPickedMovieId] = useState<string | number | null>(null);
-  const [onboardingPickedMovie, setOnboardingPickedMovie] = useState<Movie | null>(null);
-  const [onboardingRatingTourStep, setOnboardingRatingTourStep] = useState<OnboardingTourStep>(0);
   // New onboarding flow — modal-first Watch → Rate sequence for new users.
   // Replaces the "drop them into YearExplorer with auto-seed + tour" approach.
   const [onboardingPickFlowMovie, setOnboardingPickFlowMovie] = useState<Movie | null>(null);
-  const [expandedCardYear, setExpandedCardYear] = useState<number | null>(null);
   const [selectedSearchMovie, setSelectedSearchMovie] = useState<Movie | null>(null);
-  // Milestone celebration is now canvas-persistent on the ballot card itself
-  // (see ExpandableYearCard). No modal state needed — the card transforms in place.
   const [sessionCoachDismissed, setSessionCoachDismissed] = useState(false);
   const [savePromptDismissed, setSavePromptDismissed] = useState(false);
   const [suggestedQuery, setSuggestedQuery] = useState<string | undefined>(undefined);
-  const [dismissedAlertKeys, setDismissedAlertKeys] = useState<string[]>([]);
-  const [savingAlertKey, setSavingAlertKey] = useState<string | null>(null);
-  const [savedAlertKeys, setSavedAlertKeys] = useState<string[]>([]);
-  const supabase = useSupabaseClient();
 
-  // ── Smart list save handler ──────────────────────────────────────────────
-  const handleSaveSmartList = async (alert: SmartListAlert) => {
-    if (!userId) return;
-    const key = `${alert.type}:${alert.label}`;
-    setSavingAlertKey(key);
-    try {
-      const { data: list, error } = await supabase
-        .from("movie_lists")
-        .insert({
-          user_id: userId,
-          name: alert.label,
-          description: `Auto-generated from your seen films • ${alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}`,
-          is_public: false,
-        })
-        .select("id")
-        .single();
-      if (error || !list) throw error ?? new Error("No list returned");
-      const items = alert.movieIds.map((id, idx) => ({ list_id: list.id, movie_id: id, ranking: idx + 1 }));
-      await supabase.from("movie_list_items").insert(items);
-      setSavedAlertKeys((prev) => [...prev, key]);
-    } catch (e) {
-      console.error("Failed to save smart list:", e);
-    } finally {
-      setSavingAlertKey(null);
-    }
-  };
-
-  // Ballot timeline — how many years to show. Persists for the browser session.
-  const [shownBallotCount, setShownBallotCount] = useState<number>(() => {
-    if (typeof window === "undefined") return 10;
-    const stored = sessionStorage.getItem("reawarding-ballot-count");
-    return stored ? parseInt(stored, 10) : 10;
-  });
+  // ── Year timeline (ported from /awards) — visibility windowing, scrollspy,
+  // and one-shot arrival reveal for the scrubbable year-by-year ballot list. ──
+  const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const yearElementsRef = useRef<Record<string, HTMLDivElement | null>>({});
+  const [activeScrollYear, setActiveScrollYear] = useState<number | null>(null);
+  const spyObserverRef = useRef<IntersectionObserver | null>(null);
+  const [arrivedYears, setArrivedYears] = useState<Set<string>>(new Set());
+  const arrivalObserverRef = useRef<IntersectionObserver | null>(null);
 
   // Determine if we're showing guest panels (unauthenticated).
   // `showGuestPanels` tracks whether to render the GSAP scroll panels.
@@ -156,11 +103,6 @@ export default function HomePage() {
   // For guest→logged-in transitions, GSAP cleanup happens before unmount.
   const [showGuestPanels, setShowGuestPanels] = useState<boolean | null>(null);
   const guestPanelsActiveRef = useRef(false);
-
-  const onboardingSessionKey = useMemo(
-    () => `reawarding-year-explorer-onboarding:${userId || "guest"}`,
-    [userId]
-  );
 
   // ── Onboarding state ──
   const hasDismissedOnboarding = useOnboardingState((state) => state.hasDismissedOnboarding);
@@ -201,46 +143,100 @@ export default function HomePage() {
     return { bestYear, bestCount, leaderTitle };
   }, [movies]);
 
-  const existingAward = useMemo(() => {
-    if (explorerYear == null) return null;
-    return awards.find((award) => award.year === explorerYear) ?? null;
-  }, [awards, explorerYear]);
-
-  // Gallery years — the 8 most recent years the user has a real ballot for.
-  // Gate is GALLERY_MIN_NOMINEES at module scope (see top of file).
-  const galleryYears = useMemo(() => {
-    const withRankings = movies.filter(
-      (m) => m.rankings?.length > 0 && m.rankings[0].ranking !== null
+  // Full year timeline (ported from /awards) — every year with at least one
+  // rated film, rendered as an editable ballot section. This is what makes
+  // Home the actual archive rather than a preview of it.
+  const formattedYears = useMemo<{
+    year: string;
+    winner: Movie | undefined;
+    nominees: Movie[];
+    allMovies: Movie[];
+  }[]>(() => {
+    const moviesWithRankings = movies.filter(
+      (movie) => movie.rankings && movie.rankings.length > 0 && movie.rankings[0].ranking !== null
     );
-    const grouped: Record<number, Movie[]> = {};
-    for (const m of withRankings) {
-      const y = m.release_year;
-      if (!y) continue;
-      if (!grouped[y]) grouped[y] = [];
-      grouped[y].push(m);
-    }
-    return Object.entries(grouped)
-      .map(([yearStr, yearMovies]) => {
-        const sorted = [...yearMovies].sort(
-          (a, b) => (b.rankings![0]?.ranking ?? 0) - (a.rankings![0]?.ranking ?? 0)
+
+    const groupedByYear = moviesWithRankings.reduce<Record<string, Movie[]>>((acc, movie) => {
+      const year = String(movie.release_year);
+      if (!acc[year]) acc[year] = [];
+      acc[year].push(movie);
+      return acc;
+    }, {});
+
+    return Object.entries(groupedByYear)
+      .map(([year, moviesInYear]) => {
+        const sorted = [...moviesInYear].sort(
+          (a, b) => (b.rankings[0]?.ranking ?? 0) - (a.rankings[0]?.ranking ?? 0)
         );
-        const nominees = sorted.filter((m) => (m.rankings![0]?.ranking ?? 0) >= 7).slice(0, 10);
-        if (nominees.length < GALLERY_MIN_NOMINEES) return null;
-        // Movie ids are UUID strings at runtime even though the type says
-        // number. Compare as strings — Number(uuid) is NaN and the lookup
-        // silently fell back to the highest-rated nominee, ignoring the
-        // user's explicitly saved winner.
-        const savedAward = awards.find((a) => a.year === Number(yearStr));
-        const savedWinner = savedAward?.winnerId
-          ? sorted.find((m) => String(m.id) === String(savedAward.winnerId))
+
+        const defaultNominees = sorted
+          .filter((movie) => (movie.rankings[0]?.ranking ?? 0) >= 7)
+          .slice(0, 10);
+
+        const defaultWinner = defaultNominees.length > 0 ? defaultNominees[0] : sorted[0];
+
+        const savedAward = awards.find((a) => a.year === Number(year));
+
+        // Movie ids are UUID strings at runtime; Number(uuid) → NaN, which
+        // silently breaks saved-winner/nominee lookups. Compare as strings.
+        const savedNominees = savedAward?.nomineeIds?.length
+          ? (savedAward.nomineeIds
+              .map((id) => sorted.find((m) => String(m.id) === String(id)))
+              .filter((m): m is Movie => Boolean(m)))
           : null;
-        const winner = savedWinner ?? nominees[0];
-        return { year: Number(yearStr), winner, nomineeCount: nominees.length };
+
+        const savedWinner = savedAward?.winnerId
+          ? (sorted.find((m) => String(m.id) === String(savedAward.winnerId)) ?? null)
+          : null;
+
+        return {
+          year,
+          winner: savedWinner ?? defaultWinner,
+          nominees: savedNominees?.length ? savedNominees : defaultNominees,
+          allMovies: sorted,
+        };
       })
-      .filter((d): d is NonNullable<typeof d> => d !== null)
-      .sort((a, b) => b.year - a.year)
-      .slice(0, 8);
+      .filter((yearData) => yearData.allMovies.length >= 1)
+      .sort((a, b) => Number(b.year) - Number(a.year));
   }, [movies, awards]);
+
+  // One stable ref callback per year (see /awards for why: an inline
+  // `ref={(el) => ...}` gets a new identity every render, causing React to
+  // detach/re-attach it each time, re-observing the arrival observer's
+  // one-shot target on every render — an infinite update-depth loop once
+  // the year explorer is open).
+  const yearRefCallbacksRef = useRef<Record<string, (element: HTMLDivElement | null) => void>>({});
+  const getYearContainerRef = useCallback((year: string) => {
+    if (!yearRefCallbacksRef.current[year]) {
+      yearRefCallbacksRef.current[year] = (element: HTMLDivElement | null) => {
+        if (yearElementsRef.current[year] === element) return;
+        yearElementsRef.current[year] = element;
+        if (!element) return;
+        observerRef.current?.observe(element);
+        spyObserverRef.current?.observe(element);
+        arrivalObserverRef.current?.observe(element);
+      };
+    }
+    return yearRefCallbacksRef.current[year];
+  }, []);
+
+  const scrollToYear = useCallback(
+    (year: number) => {
+      setVisibleYears((prev) => {
+        const next = new Set(prev);
+        Object.keys(yearElementsRef.current).forEach((y) => next.add(y));
+        return next.size === prev.size ? prev : next;
+      });
+      setArrivedYears((prev) => (prev.has(String(year)) ? prev : new Set(prev).add(String(year))));
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const el = yearElementsRef.current[String(year)];
+          el?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+        });
+      });
+    },
+    [reducedMotion]
+  );
 
   // Milestone callback retained for future analytics wiring.
   // The visual recognition moment lives on the ballot card itself (canvas-persistent).
@@ -261,16 +257,6 @@ export default function HomePage() {
     },
     [createAward]
   );
-
-  const openYearExplorerForMovie = useCallback((movie: Movie, tourStep: OnboardingTourStep) => {
-    if (!movie.release_year) return;
-    window.setTimeout(() => {
-      setExplorerYear(movie.release_year);
-      setOnboardingPickedMovieId(movie.id);
-      setOnboardingPickedMovie(movie);
-      setOnboardingRatingTourStep(tourStep);
-    }, 0);
-  }, []);
 
   const handleUpdateMovieRanking = useCallback(
     (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => {
@@ -333,69 +319,112 @@ export default function HomePage() {
     [updateMovieRanking, movies, handleCreateAwardFromExplorer]
   );
 
-  const scrollToPremise = useCallback(() => {
-    scrollToElementById("panel-premise", reducedMotion);
-  }, [reducedMotion]);
-
-  const handleCloseExplorer = useCallback(() => {
-    if (explorerIsEditing) return;
-    setExplorerYear(null);
-    setOnboardingPickedMovieId(null);
-    setOnboardingPickedMovie(null);
-    setOnboardingRatingTourStep(0);
-  }, [explorerIsEditing]);
-
-  // Session storage for year explorer state
+  // Year timeline observers (ported from /awards) — visibility windowing so
+  // 100+ year sections don't all mount at once, scrollspy for the sticky
+  // scrubber, and a one-shot arrival reveal per year.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const raw = window.sessionStorage.getItem(onboardingSessionKey);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as Partial<{ explorerYear: number; pickedMovieId: string | number | null; ratingTourStep: OnboardingTourStep }>;
-      if (typeof parsed.explorerYear === "number" && Number.isFinite(parsed.explorerYear)) {
-        setExplorerYear(parsed.explorerYear);
-      }
-      if (typeof parsed.pickedMovieId === "string" || typeof parsed.pickedMovieId === "number" || parsed.pickedMovieId === null) {
-        setOnboardingPickedMovieId(parsed.pickedMovieId);
-      }
-      if (parsed.ratingTourStep === 0 || parsed.ratingTourStep === 1 || parsed.ratingTourStep === 2 || parsed.ratingTourStep === 3) {
-        setOnboardingRatingTourStep(parsed.ratingTourStep);
-      }
-    } catch {
-      window.sessionStorage.removeItem(onboardingSessionKey);
-    }
-  }, [onboardingSessionKey]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (explorerYear === null) {
-      window.sessionStorage.removeItem(onboardingSessionKey);
-      return;
-    }
-    window.sessionStorage.setItem(onboardingSessionKey, JSON.stringify({
-      explorerYear,
-      pickedMovieId: onboardingPickedMovieId,
-      ratingTourStep: onboardingRatingTourStep,
-    }));
-  }, [explorerYear, onboardingPickedMovieId, onboardingRatingTourStep, onboardingSessionKey]);
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const year = entry.target.getAttribute("data-year");
+          if (year && entry.isIntersecting) {
+            setVisibleYears((prev) => (prev.has(year) ? prev : new Set(prev).add(year)));
+          }
+        });
+      },
+      { rootMargin: "400px", threshold: 0 }
+    );
 
-  useEffect(() => {
-    if (!explorerYear) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = previousOverflow; };
-  }, [explorerYear]);
+    spyObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const year = entry.target.getAttribute("data-year");
+          if (year && entry.isIntersecting) {
+            setActiveScrollYear(Number(year));
+          }
+        });
+      },
+      { rootMargin: "-25% 0px -60% 0px", threshold: 0 }
+    );
 
-  useEffect(() => {
-    if (!explorerYear) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (explorerIsEditing) return;
-      handleCloseExplorer();
+    arrivalObserverRef.current = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          const year = entry.target.getAttribute("data-year");
+          if (year && entry.isIntersecting) {
+            setArrivedYears((prev) => (prev.has(year) ? prev : new Set(prev).add(year)));
+            obs.unobserve(entry.target);
+          }
+        });
+      },
+      { rootMargin: "0px 0px -18% 0px", threshold: 0.05 }
+    );
+
+    Object.values(yearElementsRef.current).forEach((el) => {
+      if (!el) return;
+      observerRef.current?.observe(el);
+      spyObserverRef.current?.observe(el);
+      arrivalObserverRef.current?.observe(el);
+    });
+
+    return () => {
+      observerRef.current?.disconnect();
+      spyObserverRef.current?.disconnect();
+      arrivalObserverRef.current?.disconnect();
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [explorerYear, explorerIsEditing, handleCloseExplorer]);
+  }, []);
+
+  useEffect(() => {
+    // The lift-away stack effect is decorative — skip for reduced-motion.
+    if (reducedMotion) return;
+
+    let mounted = true;
+    let cleanup = () => {};
+
+    (async () => {
+      const [{ gsap: gsapModule }, { ScrollTrigger: ScrollTriggerModule }] = await Promise.all([
+        import("gsap"),
+        import("gsap/ScrollTrigger"),
+      ]);
+
+      if (!mounted) return;
+
+      gsapModule.registerPlugin(ScrollTriggerModule);
+
+      const orderedElements = formattedYears
+        .map((yearData) => yearElementsRef.current[yearData.year])
+        .filter((el): el is HTMLDivElement => Boolean(el));
+
+      const triggers = orderedElements.slice(1).map((currentEl, index) => {
+        const prevEl = orderedElements[index];
+        return ScrollTriggerModule.create({
+          trigger: currentEl,
+          start: "top 72%",
+          end: "top 40%",
+          onEnter: () => {
+            gsapModule.to(prevEl, { y: -26, scale: 0.985, duration: 0.35, ease: "power2.out" });
+          },
+          onLeaveBack: () => {
+            gsapModule.to(prevEl, { y: 0, scale: 1, duration: 0.35, ease: "power2.out" });
+          },
+        });
+      });
+
+      cleanup = () => {
+        triggers.forEach((trigger) => trigger.kill());
+        gsapModule.set(orderedElements, { clearProps: "transform" });
+      };
+
+      ScrollTriggerModule.refresh();
+    })();
+
+    return () => {
+      mounted = false;
+      cleanup();
+    };
+  }, [formattedYears, reducedMotion]);
 
   // GSAP panel tracking for guest onboarding
   useEffect(() => {
@@ -438,39 +467,23 @@ export default function HomePage() {
   const tasteProfile = useMemo(() => buildTasteProfile(ratedMovies), [ratedMovies]);
   const yearLeaders = useMemo(() => getYearLeaders(ratedMovies), [ratedMovies]);
 
+  // ── Actionable years — years where the user has an unrated-but-seen film
+  // or a watchlisted film, i.e. a real next step. A forming year with no
+  // actionable film left isn't "unfinished," it's just capped by what the
+  // user has watched — the homepage shouldn't nag about it. ──
+  const { watchlistMovieIds } = useWatchlistContext();
+  const actionableYears = useMemo(() => {
+    const years = new Set<number>();
+    for (const m of movies) {
+      const seenUnrated = m.rankings?.[0]?.seen_it && (m.rankings[0].ranking == null || m.rankings[0].ranking < 1);
+      if (seenUnrated || watchlistMovieIds.has(m.id)) years.add(m.release_year);
+    }
+    return years;
+  }, [movies, watchlistMovieIds]);
 
-  // ── Recognition feed data ──
-  // Only exclude movies the user has actually interacted with (has a ranking row).
-  // `movies` is the full DB catalog — filtering ALL of it would hide everything.
-  const userMovieIds = useMemo(
-    () =>
-      new Set(
-        movies
-          .filter((m) => m.rankings.length > 0)
-          .map((m) => m.id)
-      ),
-    [movies]
-  );
-
-  const { rows: feedRows, loading: feedLoading } = useRecognitionFeed(
-    userMovieIds
-  );
-
-  // ── Smart list alerts (P2-d) ──
+  // ── Smart list alerts (P2-d) — lightweight "you have enough for a list"
+  // nudges. The full Ready-Made rail lives on /lists now. ──
   const smartAlerts = useSmartListAlerts(movies);
-  const visibleAlerts = smartAlerts.filter(
-    (a) => !dismissedAlertKeys.includes(`${a.type}:${a.label}`)
-  );
-
-  // Poster URLs for smart list cards — resolved from the already-loaded movies array.
-  const getSmartListPosterUrls = useMemo(() => (movieIds: string[]) =>
-    movieIds
-      .slice(0, 5)
-      .map((id) => movies.find((m) => m.id === id))
-      .filter((m): m is Movie => Boolean(m))
-      .map((m) => m.poster_url || "")
-      .filter(Boolean) as string[],
-  [movies]);
 
   // ── User state detection ──
   // Source of truth: PRODUCT_DESIGN_PRINCIPLES.md "State thresholds measure
@@ -499,22 +512,6 @@ export default function HomePage() {
     : isEstablished
     ? "established"
     : "building";
-
-  // Awards Gallery edit mode — the gallery rail flips in place to expose the
-  // year timeline + active ballot card. Same surface, two states: rewards
-  // (golden register) ↔ workshop (editable). On toggle: scroll the gallery
-  // section's top into view so the header + toggle stay anchored through
-  // the body swap.
-  const [workshopOpen, setWorkshopOpen] = useState(false);
-  const galleryRef = useRef<HTMLElement>(null);
-  const workshopOpenRef = useRef(false);
-  useEffect(() => {
-    const wasOpen = workshopOpenRef.current;
-    workshopOpenRef.current = workshopOpen;
-    if (wasOpen !== workshopOpen && galleryRef.current) {
-      galleryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, [workshopOpen]);
 
   // ── First-set-ballot moment ─────────────────────────────────────────────────
   // PRODUCT_DESIGN_PRINCIPLES.md "Crossing into Established is a marked moment":
@@ -545,8 +542,15 @@ export default function HomePage() {
     if (typeof window === "undefined" || !firstAwardSeenKey) return;
     setFirstAwardDismissed(localStorage.getItem(firstAwardSeenKey) === "true");
   }, [firstAwardSeenKey]);
+  // Gated by !isMature: this is a one-time "crossing the threshold" moment,
+  // not a permanent fixture. Without this, any account that reaches the
+  // threshold and never happens to click the dismiss (X) — including
+  // long-established accounts with a dozen+ set ballots — would see "your
+  // first award" forever, since the localStorage flag only ever tracks
+  // whether the X was clicked, not whether the crossing actually just
+  // happened. A mature account has unambiguously moved well past "first."
   const showFirstAwardMoment =
-    setBallotCount >= 1 && firstSetBallotYear !== null && !firstAwardDismissed;
+    !isMature && setBallotCount >= 1 && firstSetBallotYear !== null && !firstAwardDismissed;
   const dismissFirstAwardMoment = useCallback(() => {
     setFirstAwardDismissed(true);
     if (typeof window !== "undefined" && firstAwardSeenKey) {
@@ -554,56 +558,29 @@ export default function HomePage() {
     }
   }, [firstAwardSeenKey]);
 
-  // ── Established "Now try another year" suggestions ──────────────────────
-  // The Established lead's job (PRODUCT_DESIGN_PRINCIPLES.md): "You have a
-  // {year} ballot. What's next?" — propose specific years rather than leave
-  // the user staring at an empty search bar. Priority:
-  //  1. Years the user has touched but not set (1–4 nominees) — finishing
-  //     what they started, closest-to-set first.
-  //  2. Fall back to canonical SUGGESTED_YEARS they haven't touched yet.
-  const nextYearSuggestions = useMemo(() => {
-    const touchedYears = new Set(yearLeaders.map((yl) => yl.year));
-    const formingYears = yearLeaders
-      .filter((yl) => yl.nomineeCount > 0 && yl.nomineeCount < 5)
+  // ── "Finish what you started" / "Try another year" — two DISTINCT tiers,
+  // not one combined list. The Established lead's job (PRODUCT_DESIGN_
+  // PRINCIPLES.md): "You have a {year} ballot. What's next?"
+  //  1. actionableFormingYears — years touched but not set (1–4 nominees)
+  //     with an actionable next film (see `actionableYears`), closest-to-
+  //     set first. This is real unfinished work and outranks Ready-made
+  //     lists in the priority slot below.
+  //  2. freshYearSuggestions — canonical SUGGESTED_YEARS never touched at
+  //     all. This is a discovery invitation, not unfinished work, so it
+  //     ranks BELOW Ready-made lists: a veteran who has already touched
+  //     every suggested year doesn't need "try another year" outranking a
+  //     genuinely relevant Ready-made-lists nudge.
+  const actionableFormingYears = useMemo(() => {
+    return yearLeaders
+      .filter((yl) => yl.nomineeCount > 0 && yl.nomineeCount < 5 && actionableYears.has(yl.year))
       .sort((a, b) => (5 - a.nomineeCount) - (5 - b.nomineeCount))
-      .map((yl) => yl.year);
-    const freshYears = SUGGESTED_YEARS.filter((y) => !touchedYears.has(y));
-    const combined = [...formingYears, ...freshYears];
-    // Dedupe + cap at 3
-    return Array.from(new Set(combined)).slice(0, 3);
+      .map((yl) => yl.year)
+      .slice(0, 3);
+  }, [yearLeaders, actionableYears]);
+  const freshYearSuggestions = useMemo(() => {
+    const touchedYears = new Set(yearLeaders.map((yl) => yl.year));
+    return SUGGESTED_YEARS.filter((y) => !touchedYears.has(y)).slice(0, 3);
   }, [yearLeaders]);
-  const hasFormingTouched = useMemo(
-    () => yearLeaders.some((yl) => yl.nomineeCount > 0 && yl.nomineeCount < 5),
-    [yearLeaders]
-  );
-
-  // ── User lists for established + mature homepages ──
-  const { lists: userLists, loading: listsLoading } = useUserLists(
-    isEstablished || isMature ? (userId ?? null) : null
-  );
-
-  // Most recent active ballot (closest to completion, but not yet complete)
-  const mostRecentBallot = useMemo(() => {
-    if (yearLeaders.length === 0) return null;
-    // Prefer closest to completion that isn't full yet
-    const incomplete = yearLeaders.filter((yl) => yl.neededForBallot > 0);
-    if (incomplete.length > 0) {
-      return incomplete.reduce((best, yl) =>
-        yl.neededForBallot < best.neededForBallot ? yl : best,
-        incomplete[0]
-      );
-    }
-    // All complete — show most recent
-    return yearLeaders[0];
-  }, [yearLeaders]);
-
-  // Default-expand the most recent ballot so it acts as the primary continue-rating CTA.
-  // Only sets once — if the user collapses it, their choice is preserved.
-  useEffect(() => {
-    if (mostRecentBallot && expandedCardYear === null) {
-      setExpandedCardYear(mostRecentBallot.year);
-    }
-  }, [mostRecentBallot]);
 
   // Sync guest panel visibility with auth state.
   // On guest→logged-in transition, kill GSAP ScrollTriggers before unmounting
@@ -676,6 +653,10 @@ export default function HomePage() {
     );
   }
 
+  // Canonical ballots count for the guest signup-banner messaging — a year
+  // "sets" once it has 5+ nominees.
+  const canonicalYearCount = formattedYears.filter((y) => y.nominees.length >= 5).length;
+
   return (
     <div className="home-shell">
       {showGuestPanels ? (
@@ -709,7 +690,7 @@ export default function HomePage() {
                 bestYear={bestYearData.bestYear}
                 bestYearRatedCount={bestYearData.bestCount}
                 leaderTitle={bestYearData.leaderTitle}
-                onOpenYear={(year) => setExplorerYear(year)}
+                onOpenYear={(year) => router.push(`/year/${year}`)}
                 onDismiss={() => setSessionCoachDismissed(true)}
               />
             </div>
@@ -726,21 +707,22 @@ export default function HomePage() {
             </div>
           )}
 
-          <HomeHero
-            reducedMotion={reducedMotion}
-            onSelectMovie={handleSelectMovie}
-            onExploreYear={scrollToPremise}
-          />
+          <HeroReveal reducedMotion={reducedMotion} onSelectMovie={handleSelectMovie} />
 
-          <PanelPremise reducedMotion={reducedMotion} />
           <HowItWorksSection reducedMotion={reducedMotion} />
           <PanelHook reducedMotion={reducedMotion} />
           <PanelTimeline reducedMotion={reducedMotion} />
           <PanelReassurance reducedMotion={reducedMotion} />
-          <PanelFinalCTA
-            reducedMotion={reducedMotion}
-            onSelectMovie={handleSelectMovie}
-          />
+          {/* Extra bottom breathing room — panel-reassurance's leftover
+              100vh whitespace above reads as a gap before this panel, while
+              the panel itself hugged the footer below with barely any room,
+              leaving the closing CTA feeling bottom-heavy rather than centered. */}
+          <div className="pb-16 md:pb-28">
+            <PanelFinalCTA
+              reducedMotion={reducedMotion}
+              onSelectMovie={handleSelectMovie}
+            />
+          </div>
         </>
       ) : (
         /* ══════════════════════════════════════════════════════════
@@ -780,12 +762,15 @@ export default function HomePage() {
     )}
 
     {/* ═══════════════════════════════════════════════════════
-        BUILDING STATE — ballot card is the hero
-        Show: active ballot → search → alerts → coach
+        HAS STARTED BALLOTS — the full editable year archive.
+        Building, Established and Mature all render the same surface now:
+        onboarding (if still shown) → first-award moment → welcome + next-
+        year chips + search → alerts → coach → scrubbable editable timeline
+        (ported from /awards) → guest signup nudges.
         ═══════════════════════════════════════════════════ */}
-    {userState === "building" && (
+    {userState !== "new" && (
       <>
-        {onboardingFlow.shouldShow ? (
+        {onboardingFlow.shouldShow && (
           <LoggedInOnboardingExperience
             stage={onboardingFlow.stage}
             suggestedQuery={suggestedQuery}
@@ -794,133 +779,27 @@ export default function HomePage() {
             onShowHowItWorks={() => scrollToElementById("logged-in-onboarding-steps", reducedMotion)}
             onDismiss={dismissOnboarding}
           />
-        ) : null}
-
-        {/* ─── Hero: active ballot ─── */}
-        {mostRecentBallot && (() => {
-          // Two leads for Building (PRODUCT_DESIGN_PRINCIPLES.md "Building has
-          // two leads"). Near-set (4+ nominees) is the highest-urgency moment
-          // in the app — copy says it. Forming reads as patient. `>= 4` (not
-          // `=== 4`) protects against a race where nomineeCount briefly reads
-          // 5+ while userState is still Building — flagged by qa-critic.
-          const nearSet = mostRecentBallot.nomineeCount >= 4;
-          return (
-          <section className="mb-8">
-            <p className={`mb-3 text-xs font-semibold uppercase tracking-wider ${
-              nearSet ? "text-gold-300" : "text-gray-500"
-            }`}>
-              {nearSet
-                ? `One more film completes your ${mostRecentBallot.year} ballot`
-                : `Keep going on ${mostRecentBallot.year}`}
-            </p>
-            <ExpandableYearCard
-              key={mostRecentBallot.year}
-              year={mostRecentBallot.year}
-              leader={mostRecentBallot.leader}
-              nomineeCount={mostRecentBallot.nomineeCount}
-              neededForBallot={mostRecentBallot.neededForBallot}
-              allMovies={movies}
-              awards={awards}
-              currentUserId={userId}
-              isExpanded={expandedCardYear === mostRecentBallot.year}
-              onToggle={() =>
-                setExpandedCardYear((prev) =>
-                  prev === mostRecentBallot.year ? null : mostRecentBallot.year
-                )
-              }
-              onUpdateMovieRanking={handleUpdateMovieRanking}
-              onCreateAward={handleCreateAwardFromExplorer}
-              onOpenFullExplorer={(year) => setExplorerYear(year)}
-              onMilestoneReached={handleBallotMilestone}
-            />
-          </section>
-          );
-        })()}
-
-        {/* ─── Search: add another film ─── */}
-        {!onboardingFlow.shouldShow && (
-          <section className="mb-8">
-            <div className="mx-auto max-w-3xl">
-              <MovieSearchPicker
-                onSelect={handleOpenMovieDetail}
-                placeholder="Search for a film you've watched"
-                variant="hero"
-                suggestedQuery={suggestedQuery}
-              />
-            </div>
-            {/* Start a different year */}
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              <span className="text-xs text-gray-600 self-center mr-1">Or start a new year:</span>
-              {SUGGESTED_YEARS.filter(
-                (year) => !yearLeaders.some((yl) => yl.year === year)
-              ).slice(0, 6).map((year) => (
-                <button
-                  key={year}
-                  type="button"
-                  onClick={() => setExplorerYear(year)}
-                  className="flex-shrink-0 rounded-md border border-gray-700/30 bg-charcoal-900/40 px-3 py-1.5 font-unbounded text-xs font-semibold text-gray-400 hover:border-gold-500/30 hover:text-white transition-all"
-                >
-                  {year}
-                </button>
-              ))}
-            </div>
-          </section>
         )}
 
-        {/* ─── Smart list alerts ─── */}
-        {!onboardingFlow.shouldShow && visibleAlerts.length > 0 && (
-          <div className="mb-8 space-y-2">
-            {visibleAlerts.map((alert) => {
-              const alertKey = `${alert.type}:${alert.label}`;
-              const remaining = alert.threshold - alert.count;
-              const message = alert.nearMiss
-                ? `${remaining} more ${alert.label} films and you have a list`
-                : `You've seen ${alert.count} ${alert.label} films — enough for a list`;
-              return (
-                <Banner
-                  key={alertKey}
-                  variant="gold"
-                  icon={List}
-                  message={message}
-                  action={{ label: alert.nearMiss ? "See films" : "Create list", onClick: () => { window.location.href = "/lists/ready-made"; } }}
-                  onDismiss={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
-                />
-              );
-            })}
-          </div>
-        )}
-
-        {/* ─── Session coach ─── */}
-        {!onboardingFlow.shouldShow && !sessionCoachDismissed && (
-          <div className="mb-8">
-            <SessionCoach
-              movies={movies}
-              bestYear={bestYearData.bestYear}
-              bestYearRatedCount={bestYearData.bestCount}
-              leaderTitle={bestYearData.leaderTitle}
-              onOpenYear={(year) => setExplorerYear(year)}
-              onDismiss={() => setSessionCoachDismissed(true)}
-            />
-          </div>
-        )}
-      </>
-    )}
-
-    {/* ═══════════════════════════════════════════════════════
-        ESTABLISHED STATE — search leads, full ballot grid
-        Show: search → alerts → coach → ballots → lists
-        ═══════════════════════════════════════════════════ */}
-    {userState === "established" && (
-      <>
-        {/* ─── First-award moment ───────────────────────────────────────────
-            One-time inline acknowledgement of the Building → Established
-            crossing. Fires on the first render where setBallotCount >= 1
-            (covers both the organic single-set case and the batch-import
-            case where multiple ballots arrive at once). Dismissible,
-            never returns once dismissed. Persistent on-canvas, not a toast.
-            See PRODUCT_DESIGN_PRINCIPLES.md ("Crossing into Established
-            is a marked moment"). */}
-        {showFirstAwardMoment && (
+        {/* ─── Priority nudge — at most one line, chosen by relevance ───────
+            Each candidate must earn its place for THIS user right now, not
+            render on a fixed per-tier checklist (PRODUCT_DESIGN_PRINCIPLES.md
+            "Nudges earn their place"). Priority order:
+              1. First-award moment — one-time crossing into Established,
+                 never shown once !isMature is false. Persistent-on-canvas,
+                 dismissible, never a toast.
+              2. Finish what you started — real unfinished work: years with
+                 an actionable next film (`actionableYears`). Outranks
+                 Ready-made lists because it's actionable now.
+              3. Ready-made lists — withheld until Established, so a
+                 coincidental early streak on one director doesn't read as
+                 a pattern before it is one.
+              4. Try another year — a discovery invitation for a never-
+                 touched year, lowest priority: a veteran who's touched
+                 every suggested year doesn't need this outranking #3, and
+                 a user with nothing else eligible still gets an invite
+                 instead of an empty strip. ─────────────────────────────── */}
+        {showFirstAwardMoment ? (
           <div className="mb-6 flex items-center gap-3 rounded-xl border border-gold-500/40 bg-gold-500/5 px-4 py-3">
             <p className="flex-1 text-sm leading-snug text-gray-200">
               {setBallotCount === 1 ? (
@@ -945,269 +824,76 @@ export default function HomePage() {
               <X className="w-4 h-4" />
             </button>
           </div>
-        )}
-
-        {/* ═══════════════════════════════════════════════════════
-            ZONE 1 — Workbench (search → timeline → ballot → gallery)
-            Tight inter-section spacing — these belong together rhythmically.
-            ═══════════════════════════════════════════════════ */}
-        <section className="mb-6">
-          {/* Lightweight greeting — low visual weight, does not compete with search */}
-          <p className="mb-3 text-center text-2xl font-bold text-white font-unbounded tracking-tight">Welcome back.</p>
-          {/* "Now try another year" — Established's directional lead. Suggests
-              specific years to pursue so the user has a concrete next action
-              rather than an empty search bar. Mature users have the workshop
-              drawer for this — skip here. */}
-          {nextYearSuggestions.length > 0 && (() => {
-            // Routing per-suggestion: years the user has already touched
-            // open the in-app YearExplorer (no navigation, no
-            // "starting-from-zero" feel). Fresh years use the full
-            // onboarding poster grid via SPA navigation.
-            const touchedYearSet = new Set(yearLeaders.map((yl) => yl.year));
-            return (
-              <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
-                <span className="text-xs uppercase tracking-wider text-gray-500">
-                  {hasFormingTouched ? "Finish what you started" : "Try another year"}
-                </span>
-                {nextYearSuggestions.map((year) => {
-                  const isTouched = touchedYearSet.has(year);
-                  const chipClass = "inline-flex items-center gap-1 rounded-md border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors";
-                  if (isTouched) {
-                    return (
-                      <button
-                        key={year}
-                        type="button"
-                        onClick={() => setExplorerYear(year)}
-                        className={chipClass}
-                      >
-                        {year}
-                        <ArrowRight className="w-3 h-3" aria-hidden="true" />
-                      </button>
-                    );
-                  }
-                  return (
-                    <Link
-                      key={year}
-                      href={`/onboarding/${year}`}
-                      className={chipClass}
-                    >
-                      {year}
-                      <ArrowRight className="w-3 h-3" aria-hidden="true" />
-                    </Link>
-                  );
-                })}
-              </div>
-            );
-          })()}
-          <div className="max-w-3xl mx-auto">
-            <MovieSearchPicker
-              onSelect={handleOpenMovieDetail}
-              placeholder="Search for a film you've watched"
-              variant="hero"
-              suggestedQuery={suggestedQuery}
-            />
+        ) : actionableFormingYears.length > 0 ? (
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            <span className="text-xs uppercase tracking-wider text-gray-500">Finish what you started</span>
+            {actionableFormingYears.map((year) => (
+              <Link
+                key={year}
+                href={`/year/${year}`}
+                className="inline-flex items-center gap-1 rounded-md border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
+              >
+                {year}
+                <ArrowRight className="w-3 h-3" aria-hidden="true" />
+              </Link>
+            ))}
           </div>
-        </section>
-
-        {/* ═══════════════════════════════════════════════════════
-            TIER 1 — Active ballot
-            Year selector chips → single focused year card
-            ═══════════════════════════════════════════════════ */}
-        {yearLeaders.length > 0 && (() => {
-          const activeYl =
-            yearLeaders.find((yl) => yl.year === expandedCardYear) ?? yearLeaders[0];
-
-          return (
-            <section className="mb-8">
-              <MuseumYearTimeline
-                years={yearLeaders}
-                activeYear={activeYl.year}
-                onSelectYear={setExpandedCardYear}
-              />
-
-              {/* ── Active year card (always expanded) ── */}
-              <ExpandableYearCard
-                key={activeYl.year}
-                year={activeYl.year}
-                leader={activeYl.leader}
-                nomineeCount={activeYl.nomineeCount}
-                neededForBallot={activeYl.neededForBallot}
-                allMovies={movies}
-                awards={awards}
-                currentUserId={userId}
-                isExpanded={true}
-                onToggle={() => {}}
-                onUpdateMovieRanking={handleUpdateMovieRanking}
-                onCreateAward={handleCreateAwardFromExplorer}
-                onOpenFullExplorer={(year) => setExplorerYear(year)}
-                onMilestoneReached={handleBallotMilestone}
-              />
-            </section>
-          );
-        })()}
-
-        {/* ─── Winners Gallery — gold AwardCard rail, just below ballot ─── */}
-        {galleryYears.length > 0 && (
-          <section className="mb-12">
-            <div className="flex items-center justify-between mb-4 px-1">
-              <div>
-                <h2 className="text-xl font-bold text-white tracking-wide">Awards Gallery</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Best Picture winners by year</p>
-              </div>
-              {user?.user_metadata?.username && (
+        ) : isEstablished && !onboardingFlow.shouldShow && smartAlerts.length > 0 ? (
+          <div className="mb-6">
+            <Link
+              href="/lists/ready-made"
+              className="sm:hidden inline-flex items-center gap-1.5 rounded-md border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
+            >
+              Ready-made lists
+              <ArrowRight className="w-3 h-3" aria-hidden="true" />
+            </Link>
+            <div className="hidden sm:flex flex-wrap items-center gap-2">
+              <span className="text-xs uppercase tracking-wider text-gray-500">Ready-made lists</span>
+              {smartAlerts.slice(0, 4).map((alert) => {
+                const alertKey = `${alert.type}:${alert.label}`;
+                const remaining = alert.threshold - alert.count;
+                const chipLabel = alert.nearMiss
+                  ? `${remaining} more ${alert.label}`
+                  : `${alert.label} (${alert.count})`;
+                return (
+                  <Link
+                    key={alertKey}
+                    href="/lists/ready-made"
+                    className="inline-flex items-center gap-1 rounded-md border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
+                  >
+                    {chipLabel}
+                    <ArrowRight className="w-3 h-3" aria-hidden="true" />
+                  </Link>
+                );
+              })}
+              {smartAlerts.length > 4 && (
                 <Link
-                  href={`/${user.user_metadata.username}/awards`}
-                  className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gold-300 transition-colors"
+                  href="/lists/ready-made"
+                  className="text-xs text-gray-500 hover:text-gold-300 transition-colors"
                 >
-                  Full history <ArrowRight className="w-3 h-3" />
+                  +{smartAlerts.length - 4} more
                 </Link>
               )}
             </div>
-            <div className="flex gap-3 pb-3 overflow-x-auto snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-              {galleryYears.map((entry) => (
-                <div key={entry.year} className="flex-shrink-0 w-[160px] sm:w-[180px] snap-start">
-                  <AwardCard
-                    year={entry.year}
-                    winnerTitle={entry.winner.title}
-                    winnerPoster={entry.winner.poster_url}
-                    nomineeCount={entry.nomineeCount}
-                    onClick={() => setExplorerYear(entry.year)}
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ─── Session coach (subtle, below primary action) ─── */}
-        {!sessionCoachDismissed && (
-          <div className="mb-6">
-            <SessionCoach
-              movies={movies}
-              bestYear={bestYearData.bestYear}
-              bestYearRatedCount={bestYearData.bestCount}
-              leaderTitle={bestYearData.leaderTitle}
-              onOpenYear={(year) => setExplorerYear(year)}
-              onDismiss={() => setSessionCoachDismissed(true)}
-            />
           </div>
-        )}
-
-        {/* ═══════════════════════════════════════════════════════
-            ZONE 2 — Secondary surfaces (lists, suggestions)
-            Generous mt-16 break signals a content shift from the workbench.
-            ═══════════════════════════════════════════════════ */}
-        {/* ─── 1. User Lists — primary, personalized ─── */}
-        {(userLists.length > 0 || listsLoading) && (
-          <section className="mt-16 mb-8">
-            <HorizontalListRow
-              title="Your Lists"
-              lists={userLists}
-              seeAllHref="/lists/mine"
-              readOnly={false}
-              onAdd={() => { window.location.href = "/lists"; }}
-            />
-          </section>
-        )}
-
-        {/* ═══════════════════════════════════════════════════════
-            2. Ready-Made Lists — horizontal scroll rail
-            Auto-generated from ratings. Sorted: directors → actors
-            → decades → genres. Terminates in a gold dashed CTA that
-            opens the full Ready-Made library (moved here from
-            HorizontalListRow's "Your Lists" rail).
-            ═══════════════════════════════════════════════════ */}
-        {smartAlerts.filter((a) => !a.nearMiss).length > 0 && (
-          <section className="mb-12">
-            <div className="flex items-center justify-between mb-5 px-1">
-              <div>
-                <h2 className="text-xl font-bold text-white tracking-wide">Ready-Made Lists</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Pre-built from your ratings — save any of these in one tap.</p>
-              </div>
-              <Link href="/lists/ready-made" className="text-sm text-gold-400 hover:text-gold-300 transition-colors font-medium">
-                See all →
-              </Link>
-            </div>
-            <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-              {smartAlerts.filter((a) => !a.nearMiss).map((alert) => {
-                const alertKey = `${alert.type}:${alert.label}`;
-                const posterUrls = getSmartListPosterUrls(alert.movieIds);
-                const typeLabel = alert.type.charAt(0).toUpperCase() + alert.type.slice(1);
-                const isSaving = savingAlertKey === alertKey;
-                const isSaved = savedAlertKeys.includes(alertKey);
-                const isDismissed = dismissedAlertKeys.includes(alertKey);
-                if (isDismissed) return null;
-                return (
-                  <div key={alertKey} className="min-w-[300px] max-w-[300px] flex-shrink-0 snap-start overflow-visible">
-                    <ReadyMadeCard
-                      title={alert.label}
-                      count={alert.count}
-                      subtitle={<span>{typeLabel}</span>}
-                      posterUrls={posterUrls}
-                      viewHref={`/lists/ready-made/${slugifyTitle(alert.label)}`}
-                      headerRight={
-                        isSaved ? (
-                          <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleSaveSmartList(alert)}
-                            disabled={isSaving}
-                            className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400 disabled:opacity-50 font-medium"
-                          >
-                            {isSaving ? "Saving…" : "Save"}
-                          </button>
-                        )
-                      }
-                      dismissForm={
-                        !isSaved && (
-                          <button
-                            type="button"
-                            onClick={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
-                            className="text-sm text-gray-400 hover:text-gray-300"
-                            title="Hide this suggestion"
-                          >
-                            Dismiss
-                          </button>
-                        )
-                      }
-                    />
-                  </div>
-                );
-              })}
-              {/* Terminator — relocated from HorizontalListRow's "Your Lists" rail */}
+        ) : freshYearSuggestions.length > 0 ? (
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            <span className="text-xs uppercase tracking-wider text-gray-500">Try another year</span>
+            {freshYearSuggestions.map((year) => (
               <Link
-                href="/lists/ready-made"
-                className="min-w-[300px] max-w-[300px] h-[260px] mt-5 flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gold-500/40 bg-charcoal-900/40 hover:border-gold-500/60 hover:bg-charcoal-900/60 rounded-lg shadow-md transition-all p-6 group"
-                aria-label="Browse all ready-made lists"
+                key={year}
+                href={`/onboarding/${year}`}
+                className="inline-flex items-center gap-1 rounded-md border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
               >
-                <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-gold-500/20 group-hover:bg-gold-500/40 transition-all">
-                  <List className="w-7 h-7 text-gold-300" />
-                </div>
-                <span className="mt-2 text-base font-semibold text-gold-200 group-hover:text-gold-300 transition-colors">Browse all</span>
-                <span className="mt-1 text-xs text-gray-300">More from your ratings</span>
+                {year}
+                <ArrowRight className="w-3 h-3" aria-hidden="true" />
               </Link>
-            </div>
-          </section>
-        )}
-      </>
-    )}
+            ))}
+          </div>
+        ) : null}
 
-    {/* ═══════════════════════════════════════════════════════
-        MATURE STATE — museum-led; workbench collapses to a pill.
-        The user has earned reward-forward framing. Continue / search
-        are present but quiet. Awards Gallery leads, then curatorial
-        surfaces (Lists, Ready-Made), then discovery, then Canon coda.
-        See PRODUCT_DESIGN_PRINCIPLES §5 (workbench scales with maturity).
-        ═══════════════════════════════════════════════════ */}
-    {userState === "mature" && (
-      <>
-        {/* ─── Compact workbench strip ───
-            Welcome back is the prominent headline. Search sits full-width
-            directly below — it remains the canonical entry into the loop.
-            "Open workshop" lives next to the Awards Gallery below so the
-            workshop is reachable from the rewards register, not the entry. */}
-        <section className="mb-10 scroll-mt-4">
+        {/* ─── Welcome + search ─── */}
+        <section className="mb-6">
           <h1 className="mb-5 text-2xl sm:text-3xl font-bold text-white font-unbounded tracking-tight">
             Welcome back
             {user?.user_metadata?.username ? `, ${user.user_metadata.username}` : ""}.
@@ -1222,230 +908,152 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ─── Awards Gallery — the lead (your collection) ───
-            Two states share one surface. Default: golden AwardCard rail
-            (rewards register). Edit: timeline rail + active ballot card
-            (workshop). The header + flanking actions stay put; only the
-            body swaps. "Open workshop" flips the body to edit mode, "See
-            all" deep-links to the user's full awards register. */}
-        {galleryYears.length > 0 && (
-          <section ref={galleryRef} className="mb-12 scroll-mt-4">
-            <div className="flex items-center justify-between gap-3 mb-4 px-1">
-              <div>
-                <h2 className="text-xl font-bold text-white tracking-wide">Awards Gallery</h2>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {workshopOpen
-                    ? "Adjust your ratings — winners reshape automatically."
-                    : "Best Picture winners by year"}
-                </p>
-              </div>
-              <div className="flex items-center gap-4 sm:gap-5">
-                {yearLeaders.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setWorkshopOpen((open) => !open)}
-                    aria-expanded={workshopOpen}
-                    aria-controls="mature-workshop"
-                    className="inline-flex items-center gap-1.5 min-h-[44px] text-sm font-medium text-gold-300 hover:text-gold-200 transition-colors whitespace-nowrap"
-                  >
-                    {workshopOpen ? "Close workshop" : "Open workshop"}
-                    {workshopOpen ? (
-                      <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" />
-                    ) : (
-                      <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
-                    )}
-                  </button>
-                )}
-                {user?.user_metadata?.username && (
-                  <Link
-                    href={`/${user.user_metadata.username}/awards`}
-                    className="inline-flex items-center gap-1 min-h-[44px] text-sm text-gray-400 hover:text-gold-300 transition-colors whitespace-nowrap"
-                  >
-                    See all <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                )}
-              </div>
-            </div>
-
-            {workshopOpen && yearLeaders.length > 0 ? (
-              /* Edit mode — timeline rail + active ballot card replace the
-                 golden rail in place. Same dot + heartbeat treatment as the
-                 established state's workbench. */
-              (() => {
-                const activeYl =
-                  yearLeaders.find((yl) => yl.year === expandedCardYear) ?? yearLeaders[0];
-
-                return (
-                  <div id="mature-workshop" aria-label="Workshop — edit your ballots">
-                    <MuseumYearTimeline
-                      years={yearLeaders}
-                      activeYear={activeYl.year}
-                      onSelectYear={setExpandedCardYear}
-                    />
-
-                    <ExpandableYearCard
-                      key={activeYl.year}
-                      year={activeYl.year}
-                      leader={activeYl.leader}
-                      nomineeCount={activeYl.nomineeCount}
-                      neededForBallot={activeYl.neededForBallot}
-                      allMovies={movies}
-                      awards={awards}
-                      currentUserId={userId}
-                      isExpanded={true}
-                      onToggle={() => {}}
-                      onUpdateMovieRanking={handleUpdateMovieRanking}
-                      onCreateAward={handleCreateAwardFromExplorer}
-                      onOpenFullExplorer={(year) => setExplorerYear(year)}
-                      onMilestoneReached={handleBallotMilestone}
-                    />
-                  </div>
-                );
-              })()
-            ) : (
-              /* Rewards register — the golden AwardCard rail */
-              <div className="flex gap-3 pb-3 overflow-x-auto snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-                {galleryYears.map((entry) => (
-                  <div key={entry.year} className="flex-shrink-0 w-[160px] sm:w-[180px] snap-start">
-                    <AwardCard
-                      year={entry.year}
-                      winnerTitle={entry.winner.title}
-                      winnerPoster={entry.winner.poster_url}
-                      nomineeCount={entry.nomineeCount}
-                      onClick={() => setExplorerYear(entry.year)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* ─── Your Lists — what you've curated ─── */}
-        {(userLists.length > 0 || listsLoading) && (
-          <section className="mb-12">
-            <HorizontalListRow
-              title="Your Lists"
-              lists={userLists}
-              seeAllHref="/lists/mine"
-              readOnly={false}
-              onAdd={() => { window.location.href = "/lists"; }}
+        {/* ─── Session coach ─── */}
+        {!onboardingFlow.shouldShow && !sessionCoachDismissed && (
+          <div className="mb-8">
+            <SessionCoach
+              movies={movies}
+              bestYear={bestYearData.bestYear}
+              bestYearRatedCount={bestYearData.bestCount}
+              leaderTitle={bestYearData.leaderTitle}
+              onOpenYear={(year) => router.push(`/year/${year}`)}
+              onDismiss={() => setSessionCoachDismissed(true)}
             />
-          </section>
+          </div>
         )}
 
-        {/* ─── Recognition Feed — discovery elevated for mature users ───
-            Deep users have earned the system's highest-value offer (taste-
-            matched film suggestions). Promoted ahead of Ready-Made Lists so
-            it doesn't sit buried beneath curatorial surfaces. The shared
-            RecognitionFeed render below is suppressed for mature users
-            (`userState !== "mature"`) to avoid double-rendering. */}
-        {(feedLoading || feedRows.length > 0) && (
-          <section className="mb-12">
-            <RecognitionFeed
-              rows={feedRows}
-              loading={feedLoading}
-              onSelectMovie={handleOpenMovieDetail}
-              onUpdate={handleUpdateMovieRanking}
-              currentUserId={userId}
-            />
-          </section>
-        )}
-
-        {/* ─── Ready-Made Lists — auto-built from your taste ───
-            Horizontal scroll. Terminates in a gold dashed CTA that opens
-            the full Ready-Made library (moved here from HorizontalListRow). */}
-        {smartAlerts.filter((a) => !a.nearMiss).length > 0 && (
-          <section className="mb-12">
-            <div className="flex items-center justify-between mb-5 px-1">
-              <div>
-                <h2 className="text-xl font-bold text-white tracking-wide">Ready-Made Lists</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Pre-built from your ratings — save any of these in one tap.</p>
-              </div>
-              <Link href="/lists/ready-made" className="text-sm text-gold-400 hover:text-gold-300 transition-colors font-medium">
-                See all →
-              </Link>
+        {/* ═══════════════════════════════════════════════════════
+            THE ARCHIVE — sticky year scrubber + every year's editable
+            ballot, ported straight from /awards. This is the surface;
+            Home doesn't preview it anymore, it IS it.
+            ═══════════════════════════════════════════════════ */}
+        <div className={isGuest ? "pb-32" : ""}>
+          {formattedYears.length > 1 && (
+            <div className="sticky top-[calc(4.3rem+env(safe-area-inset-top))] z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-2 mb-4 bg-gray-950/90 backdrop-blur-md border-b border-gray-800/60 [&>div]:mb-0">
+              <MuseumYearTimeline
+                years={formattedYears.map((y) => ({
+                  year: Number(y.year),
+                  nomineeCount: y.nominees.length,
+                }))}
+                activeYear={activeScrollYear ?? Number(formattedYears[0].year)}
+                onSelectYear={scrollToYear}
+              />
             </div>
-            <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-              {smartAlerts.filter((a) => !a.nearMiss).map((alert) => {
-                const alertKey = `${alert.type}:${alert.label}`;
-                const posterUrls = getSmartListPosterUrls(alert.movieIds);
-                const typeLabel = alert.type.charAt(0).toUpperCase() + alert.type.slice(1);
-                const isSaving = savingAlertKey === alertKey;
-                const isSaved = savedAlertKeys.includes(alertKey);
-                const isDismissed = dismissedAlertKeys.includes(alertKey);
-                if (isDismissed) return null;
-                return (
-                  <div key={alertKey} className="min-w-[300px] max-w-[300px] flex-shrink-0 snap-start overflow-visible">
-                    <ReadyMadeCard
-                      title={alert.label}
-                      count={alert.count}
-                      subtitle={<span>{typeLabel}</span>}
-                      posterUrls={posterUrls}
-                      viewHref={`/lists/ready-made/${slugifyTitle(alert.label)}`}
-                      headerRight={
-                        isSaved ? (
-                          <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleSaveSmartList(alert)}
-                            disabled={isSaving}
-                            className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400 disabled:opacity-50 font-medium"
-                          >
-                            {isSaving ? "Saving…" : "Save"}
-                          </button>
-                        )
-                      }
-                      dismissForm={
-                        !isSaved && (
-                          <button
-                            type="button"
-                            onClick={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
-                            className="text-sm text-gray-400 hover:text-gray-300"
-                            title="Hide this suggestion"
-                          >
-                            Dismiss
-                          </button>
-                        )
-                      }
-                    />
-                  </div>
-                );
-              })}
-              {/* Terminator — relocated from HorizontalListRow's "Your Lists" rail */}
-              <Link
-                href="/lists/ready-made"
-                className="min-w-[300px] max-w-[300px] h-[260px] mt-5 flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gold-500/40 bg-charcoal-900/40 hover:border-gold-500/60 hover:bg-charcoal-900/60 rounded-lg shadow-md transition-all p-6 group"
-                aria-label="Browse all ready-made lists"
+          )}
+          {formattedYears.map((yearData) => {
+            const isVisible = visibleYears.has(yearData.year);
+            const hasArrived = arrivedYears.has(yearData.year);
+            return (
+              <div
+                key={yearData.year}
+                data-year={yearData.year}
+                ref={getYearContainerRef(yearData.year)}
+                className={`award-year-enter ${hasArrived ? "award-year-arrived" : ""}`}
+                style={{
+                  minHeight: isVisible ? "auto" : "600px",
+                  scrollMarginTop: "calc(4.3rem + 104px + env(safe-area-inset-top))",
+                }}
               >
-                <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-gold-500/20 group-hover:bg-gold-500/40 transition-all">
-                  <List className="w-7 h-7 text-gold-300" />
+                {isVisible ? (
+                  <EditableYearSection
+                    year={yearData.year}
+                    winner={yearData.winner}
+                    movies={yearData.nominees}
+                    allMoviesForYear={yearData.allMovies}
+                    category="best-picture"
+                    nomineeImageMode="poster"
+                    onEditRequest={() => router.push(`/year/${yearData.year}`)}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center" style={{ minHeight: "600px" }}>
+                    <div className="text-gray-400 text-sm">Loading {yearData.year}...</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* End-of-list closer — content-anchored signup nudge for guests. */}
+          {isGuest && (
+            <div className="mt-12 mx-auto max-w-2xl px-4 sm:px-6">
+              <div className="rounded-2xl border border-gold-500/30 bg-gradient-to-b from-gold-500/[0.08] to-charcoal-900/40 px-6 py-8 text-center">
+                <div className="flex justify-center mb-3">
+                  <Trophy className="w-8 h-8 text-gold-300" aria-hidden="true" />
                 </div>
-                <span className="mt-2 text-base font-semibold text-gold-200 group-hover:text-gold-300 transition-colors">Browse all</span>
-                <span className="mt-1 text-xs text-gray-300">More from your ratings</span>
-              </Link>
+                <h2 className="text-xl font-bold text-white font-unbounded tracking-tight">
+                  You&apos;ve built {formattedYears.length} {formattedYears.length === 1 ? "year" : "years"} of awards.
+                </h2>
+                <p className="mt-3 text-sm text-gray-300 leading-relaxed max-w-md mx-auto">
+                  These don&apos;t auto-save.{" "}
+                  {canonicalYearCount > 0 ? (
+                    <>
+                      Your {canonicalYearCount === 1 ? "award is" : `${canonicalYearCount} awards are`} ready — sign up to keep {canonicalYearCount === 1 ? "it" : "them"} as your collection grows.
+                    </>
+                  ) : (
+                    <>Sign up to keep them as your collection grows.</>
+                  )}
+                </p>
+                <div className="mt-6 flex flex-col items-center gap-2">
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-lg bg-gold-500 px-5 py-2.5 text-sm font-semibold text-black hover:bg-gold-400 transition-colors"
+                  >
+                    Save my awards
+                    <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+                  </Link>
+                </div>
+              </div>
             </div>
-          </section>
+          )}
+        </div>
+
+        {/* Guest sticky CTA — copy escalates once the guest has at least
+            one canonical ballot to lose (5+ nominees in any year). */}
+        {isGuest && (
+          <div className="fixed bottom-0 inset-x-0 z-40 border-t border-gray-800 bg-charcoal-900/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
+            <div className="max-w-screen-xl mx-auto px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between gap-3">
+              <div className="min-w-0 flex items-center gap-2">
+                {canonicalYearCount > 0 ? (
+                  <>
+                    <Trophy className="w-4 h-4 text-gold-300 flex-shrink-0" aria-hidden="true" />
+                    <p className="text-sm font-semibold text-gold-200 truncate">
+                      {canonicalYearCount === 1 ? (
+                        <>
+                          Your award is set.
+                          <span className="hidden sm:inline"> Save it before you leave.</span>
+                        </>
+                      ) : (
+                        <>
+                          {canonicalYearCount} awards set.
+                          <span className="hidden sm:inline"> Save them before you leave.</span>
+                        </>
+                      )}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-300 truncate">
+                    These travel with your account. Sign up to keep them.
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Link
+                  href="/login"
+                  className={`inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                    canonicalYearCount > 0
+                      ? "bg-gold-500 text-black hover:bg-gold-400"
+                      : "border border-gold-500/40 bg-gold-500/10 text-gold-200 hover:bg-gold-500/15"
+                  }`}
+                >
+                  {canonicalYearCount > 0 ? "Save my awards" : "Sign up"}
+                  <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+                </Link>
+              </div>
+            </div>
+          </div>
         )}
       </>
     )}
-
-  {/* ─── Up Next — first horizontal row ─── */}
-  <WatchlistMovieRow userId={userId} username={user?.user_metadata?.username ?? null} />
-
-  {/* ─── Recognition feed ─── (mature renders this earlier, inside its own branch) */}
-  {userState !== "mature" && (feedLoading || feedRows.length > 0) && (
-    <section className="mb-12">
-      <RecognitionFeed
-        rows={feedRows}
-        loading={feedLoading}
-        onSelectMovie={handleOpenMovieDetail}
-        onUpdate={handleUpdateMovieRanking}
-        currentUserId={userId}
-      />
-    </section>
-  )}
 
   {/* ═══════════════════════════════════════════════════════
       ZONE 4 — Coda: Your Canon (established + mature)
@@ -1555,38 +1163,6 @@ export default function HomePage() {
 </div>
       )}
 
-      {/* ── Year Explorer overlay ── */}
-      {explorerYear !== null ? (
-        <div className="fixed inset-0 z-[80]">
-          <button
-            type="button"
-            aria-label="Close year explorer"
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={handleCloseExplorer}
-          />
-          <div className="relative h-full px-3 py-4 overflow-y-auto sm:py-16 md:py-24 md:px-6">
-            <div className="max-w-screen-xl mx-auto">
-              <YearExplorer
-                year={explorerYear}
-                allMovies={movies}
-                currentUserId={userId}
-                existingAward={existingAward}
-                onCreateAward={handleCreateAwardFromExplorer}
-                onUpdateMovieRanking={handleUpdateMovieRanking}
-                onClose={handleCloseExplorer}
-                isGuest={isGuest}
-                onEditingChange={setExplorerIsEditing}
-                isOnboardingPick={onboardingPickedMovieId !== null}
-                pickedMovieId={onboardingPickedMovieId}
-                pickedMovie={onboardingPickedMovie}
-                initialRatingTourStep={onboardingRatingTourStep}
-                onRatingTourStepChange={setOnboardingRatingTourStep}
-              />
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       {/* Movie detail modal — opened when a returning user picks a film from search */}
       {selectedSearchMovie && (
         <MovieDetailModal
@@ -1639,6 +1215,14 @@ export default function HomePage() {
           window.location.href = "/films";
         }}
         onSignup={() => { window.location.href = "/login"; }}
+        onSeeStanding={() => {
+          // Take the user straight to this year's ballot workspace — the
+          // real "where do I go to add more" surface, not a summary screen.
+          const year = onboardingPickFlowMovie?.release_year;
+          if (year) {
+            window.location.href = `/year/${year}`;
+          }
+        }}
         onPickAnother={() => setOnboardingPickFlowMovie(null)}
         onClose={() => setOnboardingPickFlowMovie(null)}
       />

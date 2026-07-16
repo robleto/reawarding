@@ -6,7 +6,7 @@ import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
 import useGuestRankingStore from "@/hooks/useGuestRankingStore";
 import { inferRankingsFromAward } from "@/utils/rankingInference";
-import { getContextMessage } from "@/data/bestPictureWinners";
+import { fetchOfficialAwardWinners, getAcademyContextMessage } from "@/data/officialAwardWinners";
 import { generateUUID } from "@/utils/uuid";
 
 export interface AwardResult {
@@ -292,7 +292,8 @@ export function useCreateAward() {
       const rankings = existingRankingsMap ?? getExistingRankings(mergedNominees);
       await applyInferredRankings(winnerId, mergedNominees, rankings);
 
-      const context = getContextMessage(movie.title, year);
+      const officialWinners = await fetchOfficialAwardWinners();
+      const context = getAcademyContextMessage(movie.id, movie.title, year, officialWinners);
       const success: AwardResult = {
         success: true,
         year,
@@ -414,7 +415,8 @@ export function useCreateAward() {
         return failed;
       }
 
-      const context = getContextMessage(winner.title, year);
+      const officialWinners = await fetchOfficialAwardWinners();
+      const context = getAcademyContextMessage(winner.id, winner.title, year, officialWinners);
       const success: AwardResult = {
         success: true,
         year,

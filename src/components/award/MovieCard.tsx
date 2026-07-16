@@ -2,11 +2,12 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { Film, Trophy, Flame, TrendingUp, TrendingDown, Star, Bookmark } from "lucide-react";
+import { Film, Trophy, Flame, TrendingUp, TrendingDown, Star, Bookmark, RefreshCcw, EyeOff } from "lucide-react";
 import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
 import { normalizeImageUrl } from "@/utils/imageUrl";
+import type { AcademyStatusResult } from "@/data/officialAwardWinners";
 import RatingModal from "@/components/movie/RatingModal";
 import SeenItButton from "@/components/movie/SeenItButton";
 import RankingDropdown from "@/components/movie/RankingDropdown";
@@ -56,10 +57,12 @@ export interface MovieCardProps {
 	showYear?: boolean;
 	/** Subtle visual treatment for seen-but-unrated items */
 	incomplete?: boolean;
-	/** Grid: called when the user taps the watchlist bookmark. Only shown when unseen + not winner. */
-	onWatchlist?: (movieId: string) => void;
-	/** Grid: whether the film is already on the watchlist (fills the bookmark icon) */
-	isOnWatchlist?: boolean;
+	/** Featured: Upheld/Reawarded/Unscreened badge vs. the real Academy winner */
+	academyStatus?: AcademyStatusResult | null;
+	/** Featured/grid: hide the rating number overlay (e.g. when an Academy stamp sits near it, or the score has already done its job of ordering the ballot) */
+	hideRating?: boolean;
+	/** Grid, non-interactive: move the winner badge to bottom-left instead of top-right, so it doesn't compete with a rank badge up top and leaves bottom-right free for the rating */
+	winnerLabel?: boolean;
 }
 
 /* ── Shared helpers ── */
@@ -120,7 +123,38 @@ function VariancePill({ label }: { label: string }) {
    FEATURED VARIANT — Large poster hero (winner display)
    ═══════════════════════════════════════════════════════ */
 
-function FeaturedCard({ movie, rating, posterSrc, onClick }: { movie: Movie; rating: number; posterSrc: string | null; onClick?: () => void }) {
+const ACADEMY_STATUS_STYLES: Record<
+	AcademyStatusResult["status"],
+	{ label: string; icon: typeof Trophy; classes: string }
+> = {
+	upheld: { label: "Upheld", icon: Trophy, classes: "bg-emerald-500/15 border-emerald-500/40 text-emerald-300" },
+	reawarded: { label: "Reawarded", icon: RefreshCcw, classes: "bg-amber-500/15 border-amber-500/40 text-amber-300" },
+	unscreened: { label: "Unscreened", icon: EyeOff, classes: "bg-gray-500/15 border-gray-600/40 text-gray-400" },
+};
+
+function AcademyStatusBadge({ academyStatus }: { academyStatus: AcademyStatusResult }) {
+	const style = ACADEMY_STATUS_STYLES[academyStatus.status];
+	const Icon = style.icon;
+	return (
+		<div className="absolute top-2.5 left-2.5 flex flex-col items-start gap-1">
+			<span
+				role="status"
+				aria-label={`${style.label}${academyStatus.status !== "upheld" ? `: ${academyStatus.officialTitle}` : ""}`}
+				className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] shadow-lg backdrop-blur-sm ${style.classes}`}
+			>
+				<Icon className="w-2.5 h-2.5" aria-hidden="true" />
+				{style.label}
+			</span>
+			{academyStatus.status !== "upheld" && (
+				<span className="rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-gray-300 max-w-[140px] truncate">
+					{academyStatus.officialTitle}
+				</span>
+			)}
+		</div>
+	);
+}
+
+function FeaturedCard({ movie, rating, posterSrc, onClick, academyStatus, hideRating }: { movie: Movie; rating: number; posterSrc: string | null; onClick?: () => void; academyStatus?: AcademyStatusResult | null; hideRating?: boolean }) {
 	return (
 		<article
 			className={`text-left ${onClick ? "cursor-pointer" : ""}`}
@@ -147,10 +181,11 @@ function FeaturedCard({ movie, rating, posterSrc, onClick }: { movie: Movie; rat
 				) : (
 					<PosterFallback title={movie.title} />
 				)}
-				<RatingBadge rating={rating} className="absolute bottom-2.5 right-2.5 text-sm px-2 py-1" />
+				{academyStatus && <AcademyStatusBadge academyStatus={academyStatus} />}
+				{!hideRating && <RatingBadge rating={rating} className="absolute bottom-2.5 right-2.5 text-sm px-2 py-1" />}
 				<div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-always-black/60 to-transparent pointer-events-none" />
 			</div>
-			<h4 className="mt-3 text-xl font-semibold text-white">
+			<h4 className="mt-3 text-xl font-semibold text-white pr-[100px]">
 				{movie.title}
 			</h4>
 		</article>
@@ -175,14 +210,16 @@ interface GridCardProps {
 	ratingLabel?: string | null;
 	ratingOnly?: boolean;
 	footerAction?: React.ReactNode;
-	onWatchlist?: (movieId: string) => void;
-	isOnWatchlist?: boolean;
+	hideRating?: boolean;
+	winnerLabel?: boolean;
 }
 
-function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interactive, onUpdate, seenIt, ratingLabel, ratingOnly, footerAction, onWatchlist, isOnWatchlist }: GridCardProps) {
+function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interactive, onUpdate, seenIt, ratingLabel, ratingOnly, footerAction, hideRating, winnerLabel }: GridCardProps) {
 	const [showRatingModal, setShowRatingModal] = useState(false);
 	const style = getRatingStyle(rating);
-	const { removeIfWatched } = useWatchlistContext();
+	const { watchlistMovieIds, toggle: toggleWatchlist, removeIfWatched } = useWatchlistContext();
+	const isOnWatchlist = watchlistMovieIds.has(movie.id);
+	const showBookmark = !isWinner && !seenIt;
 
 	const handleClick = (e: React.MouseEvent) => {
 		if (interactive && e.target instanceof HTMLElement) {
@@ -223,11 +260,33 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 							{rank}
 						</span>
 					)}
-					{/* Winner badge — top-right */}
-					{isWinner && (
+					{/* Winner badge — top-right icon by default; bottom-left when
+					    winnerLabel is set (nomination-card surfaces), leaving the
+					    bottom-right corner free for the rating badge. */}
+					{isWinner && !winnerLabel && (
 						<span className="absolute top-2 right-2 flex items-center justify-center w-6 h-6 rounded-full bg-always-black/65 backdrop-blur-sm">
 							<Trophy className="w-3.5 h-3.5 text-gold-400" />
 						</span>
+					)}
+					{isWinner && winnerLabel && (
+						<span className="absolute bottom-2 left-2 flex items-center justify-center w-6 h-6 rounded-full bg-always-black/65 backdrop-blur-sm">
+							<Trophy className="w-3.5 h-3.5 text-gold-400" />
+						</span>
+					)}
+
+					{/* Bookmark — top-right, icon-only. Hidden for winners (trophy owns
+					    that corner) and once seen (watchlist is for what's still ahead). */}
+					{showBookmark && (
+						<button
+							type="button"
+							onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie.id); }}
+							className={`movie-card-overlay absolute top-2 right-2 z-30 flex items-center justify-center w-7 h-7 rounded-full bg-always-black/65 backdrop-blur-sm transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-always-black/85 ${
+								isOnWatchlist ? "text-amber-400" : "text-always-white/80 hover:text-amber-300"
+							}`}
+							title={isOnWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+						>
+							<Bookmark className={`w-3.5 h-3.5 ${isOnWatchlist ? "fill-current" : ""}`} />
+						</button>
 					)}
 
 					{/* ── Interactive overlay: always visible on mobile, hover-only on sm+ ── */}
@@ -292,13 +351,18 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 											<span className="mt-0.5"><VariancePill label={ratingLabel} /></span>
 										)}
 									</div>
+									{footerAction}
 								</div>
 							)}
 						</div>
 					) : (
 						<>
-							{/* Display-only rating badge */}
-							<RatingBadge rating={rating} className="absolute bottom-2 right-2 text-sm px-2 py-0.5" />
+							{/* Display-only rating badge — omitted when hideRating: the
+							    score already did its job selecting/ordering this ballot,
+							    so a nomination-card surface doesn't need to keep showing it. */}
+							{!hideRating && (
+								<RatingBadge rating={rating} className="absolute bottom-2 right-2 text-sm px-2 py-0.5" />
+							)}
 							<div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-always-black/70 to-transparent pointer-events-none" />
 						</>
 					)}
@@ -367,7 +431,9 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 		onClick?.();
 	};
 
-	const { removeIfWatched } = useWatchlistContext();
+	const { watchlistMovieIds, toggle: toggleWatchlist, removeIfWatched } = useWatchlistContext();
+	const isOnWatchlist = watchlistMovieIds.has(movie.id);
+	const showBookmark = !isWinner && !seenIt;
 
 	const handleRatingSelect = (newRating: number | null) => {
 		onUpdate?.(movie.id, { ranking: newRating });
@@ -504,6 +570,18 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 							/>
 						</>
 					)}
+					{showBookmark && (
+						<button
+							type="button"
+							onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie.id); }}
+							className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+								isOnWatchlist ? "text-amber-400 bg-amber-500/10" : "text-gray-400 hover:text-amber-300 hover:bg-gray-800"
+							}`}
+							title={isOnWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+						>
+							<Bookmark className={`w-4 h-4 ${isOnWatchlist ? "fill-current" : ""}`} />
+						</button>
+					)}
 					<div className="flex flex-col items-center">
 						<RankingDropdown ranking={rating || null} onChange={handleRatingSelect} />
 						{ratingLabel && (
@@ -553,6 +631,18 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 								size="sm"
 								variant="compact"
 							/>
+							{showBookmark && (
+								<button
+									type="button"
+									onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie.id); }}
+									className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
+										isOnWatchlist ? "text-amber-400 bg-amber-500/10" : "text-gray-400 hover:text-amber-300 hover:bg-gray-800"
+									}`}
+									title={isOnWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+								>
+									<Bookmark className={`w-3.5 h-3.5 ${isOnWatchlist ? "fill-current" : ""}`} />
+								</button>
+							)}
 							<div className="flex flex-col items-center">
 								<RankingDropdown ranking={rating || null} onChange={handleRatingSelect} />
 								{ratingLabel && (
@@ -755,8 +845,9 @@ export default function MovieCard({
 	footerAction,
 	showYear,
 	incomplete,
-	onWatchlist,
-	isOnWatchlist,
+	academyStatus,
+	hideRating,
+	winnerLabel,
 }: MovieCardProps) {
 	// Use explicit ranking if provided, otherwise pull from movie data
 	const resolvedRating = ranking !== undefined ? Math.round(ranking ?? 0) : Math.round(movie.rankings?.[0]?.ranking ?? 0);
@@ -766,7 +857,7 @@ export default function MovieCard({
 
 	switch (variant) {
 		case "featured":
-			return <FeaturedCard movie={movie} rating={resolvedRating} posterSrc={posterSrc} onClick={onClick} />;
+			return <FeaturedCard movie={movie} rating={resolvedRating} posterSrc={posterSrc} onClick={onClick} academyStatus={academyStatus} hideRating={hideRating} />;
 		case "compact":
 			return (
 				<CompactCard
@@ -818,8 +909,8 @@ export default function MovieCard({
 					ratingLabel={ratingLabel}
 					ratingOnly={ratingOnly}
 					footerAction={footerAction}
-					onWatchlist={onWatchlist}
-					isOnWatchlist={isOnWatchlist}
+					hideRating={hideRating}
+					winnerLabel={winnerLabel}
 				/>
 			);
 	}

@@ -1,16 +1,21 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Library, Plus } from "lucide-react";
 import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieFilters from "@/components/filters/MovieFilters";
+import MuseumYearTimeline from "@/components/home/MuseumYearTimeline";
 import FeaturedCollectionsSection from "@/components/home/FeaturedCollectionsSection";
+import RecognitionFeed from "@/components/home/RecognitionFeed";
+import WatchlistMovieRow from "@/components/home/WatchlistMovieRow";
+import { useRecognitionFeed } from "@/hooks/useRecognitionFeed";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import AddMovieByTmdbModal from "@/components/movie/AddMovieByTmdbModal";
+import { useAuthState } from "@/hooks/useAuthState";
 import type { Movie } from "@/types/types";
 
 import {
@@ -42,6 +47,15 @@ function FilmsPageContent() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
+	const { user } = useAuthState();
+
+	// Discovery rows (ported from Home — explore/awards-as-home moved
+	// discovery off Home now that Home is the awards archive).
+	const userMovieIds = useMemo(
+		() => new Set(movies.filter((m) => m.rankings.length > 0).map((m) => m.id)),
+		[movies]
+	);
+	const { rows: feedRows, loading: feedLoading } = useRecognitionFeed(userMovieIds);
 
 	// Guests are first-class on /films per the project's guest-mode mandate.
 	// The previous redirect-to-home blocked the natural "rate another from
@@ -203,6 +217,22 @@ function FilmsPageContent() {
 
 	// Generate unique years and ranks for filter dropdowns
 	const uniqueYears = Array.from(new Set(movies.map((m) => m.release_year).filter((y): y is number => typeof y === 'number'))).sort((a, b) => b - a);
+
+	// Year-jump timeline (reuses the Awards page's MuseumYearTimeline) — lets
+	// the user jump straight to a year's films instead of scrolling past every
+	// other year to find it. Counts are total films in the catalog per year,
+	// not nominee counts, so the "/10" nominee suffix is suppressed.
+	const yearTimelineEntries = useMemo(() => {
+		const counts = new Map<number, number>();
+		for (const m of movies) {
+			if (typeof m.release_year === "number") {
+				counts.set(m.release_year, (counts.get(m.release_year) ?? 0) + 1);
+			}
+		}
+		return uniqueYears.map((year) => ({ year, nomineeCount: counts.get(year) ?? 0 }));
+	}, [movies, uniqueYears]);
+	const activeTimelineYear =
+		filterType === "year" && filterValue !== "all" ? Number(filterValue) : NaN;
 	const uniqueRanks = Array.from(
 		new Set(
 			movies
@@ -288,6 +318,42 @@ function FilmsPageContent() {
 					filterValue: "all"
 				}}
 			/>
+
+			{groupBy === "release_year" && yearTimelineEntries.length > 1 && (
+				<div className="mt-4 mb-2">
+					<div className="flex items-center justify-between mb-1 px-2">
+						<span className="text-xs uppercase tracking-wider text-gray-500">Jump to a year</span>
+						{filterType === "year" && filterValue !== "all" && (
+							<button
+								onClick={() => {
+									setFilterType("none");
+									setFilterValue("all");
+									setBrowseAll(true);
+								}}
+								className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+							>
+								Show all years
+							</button>
+						)}
+					</div>
+					<MuseumYearTimeline
+						years={yearTimelineEntries}
+						activeYear={activeTimelineYear}
+						subLabelSuffix=""
+						onSelectYear={(year) => {
+							if (filterType === "year" && Number(filterValue) === year) {
+								setFilterType("none");
+								setFilterValue("all");
+							} else {
+								setFilterType("year");
+								setFilterValue(String(year));
+							}
+							setBrowseAll(true);
+						}}
+					/>
+				</div>
+			)}
+
 			{filteredMovies.length === 0 && (filterType === "search" || filterType === "movie") ? (
 				<div className="mt-8 rounded-xl border border-gray-700 bg-gray-900 p-8 text-center">
 					<h3 className="text-xl font-semibold text-white mb-2">No films found</h3>
@@ -341,6 +407,20 @@ function FilmsPageContent() {
 						updateMovieRanking={updateMovieRanking}
 						setSelectedMovie={handleOpenModal}
 					/>
+
+					<WatchlistMovieRow userId={userId} username={user?.user_metadata?.username ?? null} />
+
+					{(feedLoading || feedRows.length > 0) && (
+						<section className="mb-10">
+							<RecognitionFeed
+								rows={feedRows}
+								loading={feedLoading}
+								onSelectMovie={handleOpenModal}
+								onUpdate={updateMovieRanking}
+								currentUserId={userId}
+							/>
+						</section>
+					)}
 
 					<div className="mt-10 border-t border-gray-700/60 pt-6">
 						<button

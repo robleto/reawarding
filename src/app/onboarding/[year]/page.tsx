@@ -157,15 +157,16 @@ export default function OnboardingYearPage() {
               </>
             )}
           </p>
-          {/* Once the year is set, offer a quiet path to the full Awards
-              gallery so the guest can see what they've built before being
-              asked to save it. The page is guest-accessible. */}
-          {isSet && (
+          {/* Offer a quiet path to this year's ballot workspace as soon as
+              there's a nominee to show — even one nominee is a real result
+              worth seeing, not just once the ballot is fully set. Awards are
+              the emotional output of this loop, not a gate. Guest-accessible. */}
+          {nomineeCount > 0 && (
             <Link
-              href="/awards"
+              href={`/year/${year}`}
               className="mt-3 inline-flex items-center gap-1.5 min-h-[44px] text-sm font-medium text-gold-300 hover:text-gold-200 transition-colors"
             >
-              See your awards
+              {isSet ? "See your awards" : `See your ${year} race so far`}
               <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </Link>
           )}
@@ -235,6 +236,7 @@ export default function OnboardingYearPage() {
           router.push("/onboarding");
         }}
         onSignup={() => router.push("/login")}
+        onSeeStanding={() => router.push(`/year/${year}`)}
         onPickAnother={() => setPickedMovie(null)}
         onClose={() => setPickedMovie(null)}
       />

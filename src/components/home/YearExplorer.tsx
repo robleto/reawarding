@@ -14,12 +14,12 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import Image from "next/image";
-import { X, Trophy, Info, Star, Plus, HelpCircle, Lock } from "lucide-react";
+import { ArrowLeft, X, Trophy, Info, Star, Plus, HelpCircle, Lock } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import ContextualTip from "@/components/onboarding/ContextualTip";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
 import type { Movie } from "@/types/types";
-import { getActualWinner } from "@/data/bestPictureWinners";
+import { useOfficialAwardWinners } from "@/data/officialAwardWinners";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import { isCanonicalCandidate } from "@/utils/canonicalFilm";
 import EditableYearSection from "@/components/award/EditableYearSection";
@@ -107,7 +107,8 @@ export default function YearExplorer({
   const prevNomineeCountRef = useRef<number>(0);
   const milestoneStateInitializedRef = useRef(false);
 
-  const actualWinner = getActualWinner(year);
+  const { winners: officialWinners } = useOfficialAwardWinners();
+  const actualWinner = officialWinners.get(year) ?? null;
 
   // ─── Compute fallback data for EditableYearSection ─────────────
   // These are only used when no saved award exists in the DB.
@@ -344,15 +345,22 @@ export default function YearExplorer({
   );
 
   // ─── 3-tier candidate pool: Top contenders / Other / Deep cuts ─────────
-  // Cards stay visible once marked Seen (so the user can see where their action
-  // went and click Rate on the same card). Films exit the pool only when they
-  // become a current nominee — i.e. once they've earned their place on the ballot.
+  // Films exit the pool once they become a current nominee, or once they've
+  // already been ranked (and thus already appear in the "Movies you've ranked"
+  // section above) — otherwise a ranked 7+ film shows up twice on the page.
+  const contenderMovieIdSet = useMemo(
+    () => new Set(contenderMovies.map((m) => String(m.id))),
+    [contenderMovies]
+  );
+
   const candidateFilms = useMemo(
     () =>
       filteredYearMovies.filter(
-        (movie) => !activeNomineeIdSet.has(String(movie.id))
+        (movie) =>
+          !activeNomineeIdSet.has(String(movie.id)) &&
+          !contenderMovieIdSet.has(String(movie.id))
       ),
-    [filteredYearMovies, activeNomineeIdSet]
+    [filteredYearMovies, activeNomineeIdSet, contenderMovieIdSet]
   );
 
   const topContenders = useMemo(
@@ -392,7 +400,11 @@ export default function YearExplorer({
   // lowRatedMovies removed — folded into contenderMovies (all user-ranked films).
 
   const focusContenders = useCallback(() => {
-    contendersSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // "nearest" — on the lg two-column layout this section is already
+    // onscreen beside the ballot, so "start" would force-scroll past it,
+    // cutting off the ballot above. On mobile's stacked layout it still
+    // brings the (offscreen) grid into view.
+    contendersSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, []);
 
   const scrollToCandidates = useCallback(() => {
@@ -709,7 +721,7 @@ export default function YearExplorer({
   const ratedFilmsForYearCount = moviesWithRankings.length;
   const showBallotFraming = ratedFilmsForYearCount >= 3;
   return (
-    <div className="bg-charcoal-900/80 border border-gray-700/60 shadow-2xl rounded-2xl p-4 md:p-6 min-h-[70vh] animate-in fade-in slide-in-from-top-2 duration-300">
+    <div className="p-4 md:p-6 min-h-[70vh] animate-in fade-in slide-in-from-top-2 duration-300">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div>
@@ -745,10 +757,11 @@ export default function YearExplorer({
           </button>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-white transition-colors"
-            aria-label="Close year explorer"
+            className="flex items-center gap-1.5 p-2 rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-white transition-colors"
+            aria-label="Back to Home"
           >
-            <X className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" />
+            <span className="hidden sm:inline text-sm">Back to Home</span>
           </button>
         </div>
       </div>
@@ -760,7 +773,7 @@ export default function YearExplorer({
       {actualWinner && (
         <p className="text-xs text-gray-400 mb-4">
           The Academy chose{" "}
-          <span className="font-medium text-gold-400">{actualWinner.title}</span>.
+          <span className="font-medium text-gold-400">{actualWinner.filmTitle}</span>.
           {showBallotFraming && (
             <> <span className="text-gray-500">Will your ballot agree?</span></>
           )}
@@ -876,7 +889,9 @@ export default function YearExplorer({
             show={
               !!actualWinner &&
               !!canonicalWinnerMovie &&
-              canonicalWinnerMovie.title.toLowerCase() !== actualWinner.title.toLowerCase() &&
+              (actualWinner.movieId != null
+                ? String(actualWinner.movieId) !== String(canonicalWinnerMovie.id)
+                : canonicalWinnerMovie.title.toLowerCase() !== actualWinner.filmTitle.toLowerCase()) &&
               moviesWithRankings.length >= 5
             }
             position="below"
