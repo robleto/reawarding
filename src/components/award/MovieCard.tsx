@@ -325,13 +325,15 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 								<div className="flex items-center rounded-b-lg w-full px-3 py-2 gap-2 justify-between">
 									<SeenItButton
 										seenIt={seenIt ?? false}
+										showText={!footerAction}
+										className="shrink-0"
 										onClick={() => {
 											const newSeenIt = !(seenIt ?? false);
 											onUpdate?.(movie.id, { seen_it: newSeenIt });
 											if (newSeenIt) removeIfWatched(movie.id).catch(() => {});
 										}}
 									/>
-									<div className="flex flex-col items-center">
+									<div className="flex flex-col items-center min-w-0 shrink-0">
 										<button
 											type="button"
 											onClick={() => setShowRatingModal(true)}
@@ -351,7 +353,7 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 											<span className="mt-0.5"><VariancePill label={ratingLabel} /></span>
 										)}
 									</div>
-									{footerAction}
+									{footerAction && <div className="shrink-0">{footerAction}</div>}
 								</div>
 							)}
 						</div>

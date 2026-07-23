@@ -33,6 +33,7 @@ export default function ListsHomePage() {
   const [createIsPublic, setCreateIsPublic] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [readyMadeBannerDismissed, setReadyMadeBannerDismissed] = useState(false);
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -282,6 +283,10 @@ export default function ListsHomePage() {
       .filter(Boolean),
   [seenMovies]);
 
+  const visibleSmartAlerts = smartAlerts.filter(
+    (a) => !a.nearMiss && !dismissedAlertKeys.includes(`${a.type}:${a.label}`)
+  );
+
   if (loading) return <Loader message="Loading lists..." />;
 
   if (status === "loading") return <Loader message="Loading lists..." />;
@@ -317,6 +322,32 @@ export default function ListsHomePage() {
         </>
       )}
 
+      {/* Ready-Made Lists fallback banner — sits at the top, above My Lists, so
+          it's the first thing seen; only shown when the personalized rail below
+          isn't (no qualifying alerts), and can be dismissed for this visit. */}
+      {user &&
+        visibleSmartAlerts.length === 0 &&
+        !(myLists.length === 0 && publicLists.length === 0) &&
+        !readyMadeBannerDismissed && (
+          <div className="relative p-5 mb-8 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
+            <button
+              type="button"
+              onClick={() => setReadyMadeBannerDismissed(true)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-200 transition-colors"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex items-center justify-between pr-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gold-200">Ready-Made Lists</h3>
+                <p className="text-sm text-gray-300">Pre-built from your ratings — directors, decades, genres and more.</p>
+              </div>
+              <a href="/lists/ready-made" className="px-3 py-2 text-black bg-gold-500 rounded hover:bg-gold-400">Explore</a>
+            </div>
+          </div>
+        )}
+
       {/* My Lists — always first, primary */}
       {user && myLists.length > 0 && (
         <HorizontalListRow
@@ -324,6 +355,23 @@ export default function ListsHomePage() {
           lists={myLists.slice(0, 8)}
           seeAllHref={myLists.length > 3 ? "/lists/mine" : undefined}
           onAdd={handleCreateListClick}
+          headerActions={
+            <>
+              <button
+                type="button"
+                onClick={handleCreateListClick}
+                className="px-3 py-1.5 text-sm font-medium text-black bg-gold-500 rounded hover:bg-gold-400 transition-colors whitespace-nowrap"
+              >
+                Create New List
+              </button>
+              <Link
+                href="/lists/ready-made"
+                className="px-3 py-1.5 text-sm font-medium text-gold-300 border border-gold-500/40 rounded hover:bg-gold-500/10 transition-colors whitespace-nowrap"
+              >
+                Find Ready-Made List
+              </Link>
+            </>
+          }
         />
       )}
 
@@ -337,9 +385,7 @@ export default function ListsHomePage() {
         />
       )}
 
-      {/* Ready-Made Lists — horizontal scroll rail, mirrors the home page.
-          Terminates in the gold dashed "Browse all" CTA. */}
-      {smartAlerts.filter((a) => !a.nearMiss && !dismissedAlertKeys.includes(`${a.type}:${a.label}`)).length > 0 && (
+      {visibleSmartAlerts.length > 0 && (
         <section className="mb-10">
           <div className="flex items-center justify-between mb-5 px-1">
             <div>
@@ -351,7 +397,7 @@ export default function ListsHomePage() {
             </a>
           </div>
           <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-            {smartAlerts.filter((a) => !a.nearMiss).slice(0, 6).map((alert) => {
+            {visibleSmartAlerts.slice(0, 6).map((alert) => {
               const alertKey = `${alert.type}:${alert.label}`;
               if (dismissedAlertKeys.includes(alertKey)) return null;
               const posterUrls = getPosterUrlsForAlert(alert.movieIds);

@@ -38,6 +38,9 @@ export default function Footer() {
 							<Link href="/help" className="text-sm text-gray-400 hover:text-gray-200 transition-colors">
 								Help
 							</Link>
+							<Link href="/guides" className="text-sm text-gray-400 hover:text-gray-200 transition-colors">
+								Guides
+							</Link>
 							<Link href="/legal/privacy" className="text-sm text-gray-400 hover:text-gray-200 transition-colors">
 								Privacy Policy
 							</Link>

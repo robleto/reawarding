@@ -16,7 +16,7 @@ interface YearData {
 export default function ProfileAwardsPage() {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
-  const { movies, loading } = usePublicProfile(username);
+  const { movies, awards, loading } = usePublicProfile(username);
 
   const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -42,22 +42,41 @@ export default function ProfileAwardsPage() {
           (a, b) => (b.rankings[0]?.ranking ?? 0) - (a.rankings[0]?.ranking ?? 0)
         );
 
+        // Winner is always the highest-rated film — decoupled from however
+        // defaultNominees below ends up sorted for display.
+        const defaultWinner = sorted[0];
+
+        // Display order defaults to alphabetical; rating only determines who
+        // qualifies (7+) and the top-10 cutoff.
         const defaultNominees = sorted
           .filter((movie) => (movie.rankings[0]?.ranking ?? 0) >= 7)
-          .slice(0, 10);
+          .slice(0, 10)
+          .sort((a, b) => a.title.localeCompare(b.title));
 
-        const defaultWinner = defaultNominees.length > 0 ? defaultNominees[0] : sorted[0];
+        const savedAward = awards.find((a) => a.year === Number(year));
+
+        // Movie ids are UUID strings at runtime; Number(uuid) → NaN, which
+        // silently breaks saved-winner/nominee lookups. Compare as strings.
+        const savedNominees = savedAward?.nominee_ids?.length
+          ? (savedAward.nominee_ids
+              .map((id) => sorted.find((m) => String(m.id) === String(id)))
+              .filter((m): m is Movie => Boolean(m)))
+          : null;
+
+        const savedWinner = savedAward?.winner_id
+          ? (sorted.find((m) => String(m.id) === String(savedAward.winner_id)) ?? null)
+          : null;
 
         return {
           year,
-          winner: defaultWinner,
-          nominees: defaultNominees,
+          winner: savedWinner ?? defaultWinner,
+          nominees: savedNominees?.length ? savedNominees : defaultNominees,
           allMovies: sorted,
         };
       })
       .filter((yearData) => yearData.allMovies.length >= 1)
       .sort((a, b) => Number(b.year) - Number(a.year));
-  }, [movies]);
+  }, [movies, awards]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

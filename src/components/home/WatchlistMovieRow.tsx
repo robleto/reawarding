@@ -37,11 +37,16 @@ export default function WatchlistMovieRow({ userId, username }: WatchlistMovieRo
       .from("movies")
       .select("*, rankings(id, seen_it, ranking, user_id)")
       .in("id", ids)
-      .eq("rankings.user_id", userId)
       .then(
         ({ data }) => {
           if (!data) return;
-          const fetched = data as Movie[];
+          // Filtering the embed with .eq("rankings.user_id", ...) would force
+          // an inner join and drop every movie with no ranking at all — the
+          // watchlist's common case. Keep the left join, scope client-side.
+          const fetched = (data as Movie[]).map((m) => ({
+            ...m,
+            rankings: (m.rankings ?? []).filter((r) => r.user_id === userId),
+          }));
           // Silently clean up any stale seen-but-watchlisted entries
           fetched.forEach((m) => {
             if (m.rankings?.[0]?.seen_it) removeIfWatchedRef.current(m.id).catch(() => {});

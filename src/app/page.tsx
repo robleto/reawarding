@@ -23,7 +23,6 @@ import AlternateOscarHistoryPanel from "@/components/home/AlternateOscarHistoryP
 import EditableYearSection from "@/components/award/EditableYearSection";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import useOnboardingState from "@/hooks/useOnboardingState";
-import SessionCoach from "@/components/onboarding/SessionCoach";
 import LoggedInOnboardingExperience from "@/components/onboarding/LoggedInOnboardingExperience";
 import OnboardingPickFlow from "@/components/onboarding/OnboardingPickFlow";
 import { useSmartListAlerts } from "@/hooks/useSmartListAlerts";
@@ -84,7 +83,6 @@ export default function HomePage() {
   // Replaces the "drop them into YearExplorer with auto-seed + tour" approach.
   const [onboardingPickFlowMovie, setOnboardingPickFlowMovie] = useState<Movie | null>(null);
   const [selectedSearchMovie, setSelectedSearchMovie] = useState<Movie | null>(null);
-  const [sessionCoachDismissed, setSessionCoachDismissed] = useState(false);
   const [savePromptDismissed, setSavePromptDismissed] = useState(false);
   const [suggestedQuery, setSuggestedQuery] = useState<string | undefined>(undefined);
 
@@ -116,34 +114,6 @@ export default function HomePage() {
     recordOnboardingSession();
   }, [recordOnboardingSession]);
 
-  // Compute best year data for session coaching
-  const bestYearData = useMemo(() => {
-    const ranked = movies.filter(
-      (m) => typeof m.rankings?.[0]?.ranking === "number" && m.rankings[0].ranking >= 1
-    );
-    const byYear = new Map<number, Movie[]>();
-    for (const m of ranked) {
-      if (!m.release_year) continue;
-      const arr = byYear.get(m.release_year) ?? [];
-      arr.push(m);
-      byYear.set(m.release_year, arr);
-    }
-    let bestYear: number | null = null;
-    let bestCount = 0;
-    let leaderTitle: string | null = null;
-    for (const [year, yearMovies] of byYear.entries()) {
-      if (yearMovies.length > bestCount) {
-        bestCount = yearMovies.length;
-        bestYear = year;
-        const sorted = [...yearMovies].sort(
-          (a, b) => (b.rankings?.[0]?.ranking ?? 0) - (a.rankings?.[0]?.ranking ?? 0)
-        );
-        leaderTitle = sorted[0]?.title ?? null;
-      }
-    }
-    return { bestYear, bestCount, leaderTitle };
-  }, [movies]);
-
   // Full year timeline (ported from /awards) — every year with at least one
   // rated film, rendered as an editable ballot section. This is what makes
   // Home the actual archive rather than a preview of it.
@@ -170,11 +140,16 @@ export default function HomePage() {
           (a, b) => (b.rankings[0]?.ranking ?? 0) - (a.rankings[0]?.ranking ?? 0)
         );
 
+        // Winner is always the highest-rated film — decoupled from however
+        // defaultNominees below ends up sorted for display.
+        const defaultWinner = sorted[0];
+
+        // Display order defaults to alphabetical; rating only determines who
+        // qualifies (7+) and the top-10 cutoff.
         const defaultNominees = sorted
           .filter((movie) => (movie.rankings[0]?.ranking ?? 0) >= 7)
-          .slice(0, 10);
-
-        const defaultWinner = defaultNominees.length > 0 ? defaultNominees[0] : sorted[0];
+          .slice(0, 10)
+          .sort((a, b) => a.title.localeCompare(b.title));
 
         const savedAward = awards.find((a) => a.year === Number(year));
 
@@ -679,23 +654,10 @@ export default function HomePage() {
             ))}
           </aside>
 
-            {/* ── Returning-guest surfaces: session coach + save prompt ──────────
-              Both are invisible to first-time guests (SessionCoach returns null
-              when totalRated === 0; Banner gates on ratedMovies.length > 0).
-              Returning guests see these before the hero so they land on context,
-              not a marketing pitch they've already seen. */}
-          {!sessionCoachDismissed && (
-            <div className="relative z-10 px-4 pt-4">
-              <SessionCoach
-                movies={movies}
-                bestYear={bestYearData.bestYear}
-                bestYearRatedCount={bestYearData.bestCount}
-                leaderTitle={bestYearData.leaderTitle}
-                onOpenYear={(year) => router.push(`/year/${year}`)}
-                onDismiss={() => setSessionCoachDismissed(true)}
-              />
-            </div>
-          )}
+            {/* ── Returning-guest surface: save prompt ──────────
+              Gates on ratedMovies.length > 0. Returning guests see this
+              before the hero so they land on context, not a marketing
+              pitch they've already seen. */}
           {ratedMovies.length > 0 && !savePromptDismissed && (
             <div className="relative z-10 px-4 pt-2 pb-2">
               <Banner
@@ -908,20 +870,6 @@ export default function HomePage() {
             />
           </div>
         </section>
-
-        {/* ─── Session coach ─── */}
-        {!onboardingFlow.shouldShow && !sessionCoachDismissed && (
-          <div className="mb-8">
-            <SessionCoach
-              movies={movies}
-              bestYear={bestYearData.bestYear}
-              bestYearRatedCount={bestYearData.bestCount}
-              leaderTitle={bestYearData.leaderTitle}
-              onOpenYear={(year) => router.push(`/year/${year}`)}
-              onDismiss={() => setSessionCoachDismissed(true)}
-            />
-          </div>
-        )}
 
         {/* ═══════════════════════════════════════════════════════
             THE ARCHIVE — sticky year scrubber + every year's editable

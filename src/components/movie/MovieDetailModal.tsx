@@ -412,24 +412,30 @@ export default function MovieDetailModal({
 
                     {/* Watchlist Toggle — want to watch but haven't yet; a
                         separate concept from Seen/Rate, so it gets its own
-                        row rather than folding into Status. */}
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-0">
-                      <span className="text-xs md:text-sm font-medium text-gray-400 md:text-gray-200">Watchlist</span>
-                      <button
-                        type="button"
-                        onClick={() => toggleWatchlist(movie.id)}
-                        className={`
-                          flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-sm font-medium transition-colors self-start
-                          ${isOnWatchlist
-                            ? 'bg-amber-800/40 text-amber-300 hover:bg-amber-700/40'
-                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
-                          }
-                        `}
-                      >
-                        <Bookmark className={`w-3.5 h-3.5 ${isOnWatchlist ? 'fill-current' : ''}`} />
-                        {isOnWatchlist ? "On Watchlist" : "Add to Watchlist"}
-                      </button>
-                    </div>
+                        row rather than folding into Status. Hidden once seen:
+                        a watchlist entry for a film you've already watched
+                        doesn't make sense, and this row otherwise let already-
+                        seen films get bookmarked with no way to explain why
+                        they'd vanish again on the next watchlist load. */}
+                    {!seenIt && (
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-0">
+                        <span className="text-xs md:text-sm font-medium text-gray-400 md:text-gray-200">Watchlist</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleWatchlist(movie.id)}
+                          className={`
+                            flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-sm font-medium transition-colors self-start
+                            ${isOnWatchlist
+                              ? 'bg-amber-800/40 text-amber-300 hover:bg-amber-700/40'
+                              : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                            }
+                          `}
+                        >
+                          <Bookmark className={`w-3.5 h-3.5 ${isOnWatchlist ? 'fill-current' : ''}`} />
+                          {isOnWatchlist ? "On Watchlist" : "Add to Watchlist"}
+                        </button>
+                      </div>
+                    )}
 
                     {/* Seen It Toggle */}
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-0">
