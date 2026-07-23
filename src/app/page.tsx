@@ -19,6 +19,7 @@ import { useUserAwards } from "@/hooks/useUserAwards";
 import { buildTasteProfile, getYearLeaders } from "@/utils/tasteInsights";
 import { ArrowRight, Trophy, X } from "lucide-react";
 import MuseumYearTimeline from "@/components/home/MuseumYearTimeline";
+import AlternateOscarHistoryPanel from "@/components/home/AlternateOscarHistoryPanel";
 import EditableYearSection from "@/components/award/EditableYearSection";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import useOnboardingState from "@/hooks/useOnboardingState";
@@ -1155,6 +1156,17 @@ export default function HomePage() {
                 );
               })()}
             </div>
+          )}
+
+          {/* Alternate Oscar History — Mature-tier only (CLAUDE.md homepage
+              states table), strictly additive to the established Canon block
+              above rather than replacing it. */}
+          {isMature && (
+            <AlternateOscarHistoryPanel
+              movies={movies}
+              currentUserId={userId}
+              onUpdateMovie={handleUpdateMovieRanking}
+            />
           )}
         </div>
     </section>
