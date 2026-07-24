@@ -648,7 +648,7 @@ async function saveList(formData: FormData) {
     redirect('/login');
   }
   if (!(await isPremiumUser(supabase, user.id))) {
-    redirect('/?upgrade=required');
+    redirect('/premium');
   }
 
   // Fallback: if no ids were posted, rebuild from server-side query
@@ -802,7 +802,7 @@ async function saveActorList(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  if (!(await isPremiumUser(supabase, user.id))) redirect('/?upgrade=required');
+  if (!(await isPremiumUser(supabase, user.id))) redirect('/premium');
   // Fallback derive actor movie IDs
   if (ids.length === 0 && actor) {
     const { data: movieRows } = await supabase.from('movies').select('id, cast_list');
@@ -861,7 +861,7 @@ async function saveGenreList(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  if (!(await isPremiumUser(supabase, user.id))) redirect('/?upgrade=required');
+  if (!(await isPremiumUser(supabase, user.id))) redirect('/premium');
   if (ids.length === 0 && genre) {
     const { data: movieRows } = await supabase.from('movies').select('id, genres');
     const candidateIds = (movieRows || []).filter((m: any) => Array.isArray(m.genres) && m.genres.includes(genre)).map((m: any) => m.id as string);
@@ -922,7 +922,7 @@ async function saveDecadeList(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  if (!(await isPremiumUser(supabase, user.id))) redirect('/?upgrade=required');
+  if (!(await isPremiumUser(supabase, user.id))) redirect('/premium');
   if (ids.length === 0 && startYear) {
     const { data: movieRows } = await supabase
       .from('movies')
@@ -977,7 +977,7 @@ async function saveDecadeList(formData: FormData) {
 function PremiumLockBadge() {
   return (
     <Link
-      href="/?upgrade=required"
+      href="/premium"
       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 bg-gray-800 border border-gray-700 rounded hover:text-gray-300 hover:border-gray-600"
       title="Saving Ready-Made lists is a premium feature"
     >

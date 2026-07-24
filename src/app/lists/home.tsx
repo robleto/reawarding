@@ -416,7 +416,7 @@ export default function ListsHomePage() {
                         <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
                       ) : !isPremium ? (
                         <Link
-                          href="/?upgrade=required"
+                          href="/premium"
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 bg-gray-800 border border-gray-700 rounded hover:text-gray-300 hover:border-gray-600"
                           title="Saving Ready-Made lists is a premium feature"
                         >

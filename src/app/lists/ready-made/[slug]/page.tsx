@@ -37,7 +37,7 @@ function formatDecadeListName(decade: string, count: number) { return `Decade - 
 function PremiumLockLink() {
   return (
     <Link
-      href="/?upgrade=required"
+      href="/premium"
       className="inline-flex items-center gap-1.5 px-4 py-2 text-gray-400 bg-gray-800 border border-gray-700 rounded hover:text-gray-300 hover:border-gray-600"
       title="Saving Ready-Made lists is a premium feature"
     >
@@ -173,7 +173,7 @@ async function saveDirectorList(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  if (!(await isPremiumUser(supabase, user.id))) redirect('/?upgrade=required');
+  if (!(await isPremiumUser(supabase, user.id))) redirect('/premium');
 
   // Fallback: if no ids were posted, re-collect on server
   if (ids.length === 0 && director) {
@@ -263,7 +263,7 @@ async function saveGenreList(formData: FormData) {
   );
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  if (!(await isPremiumUser(supabase, user.id))) redirect('/?upgrade=required');
+  if (!(await isPremiumUser(supabase, user.id))) redirect('/premium');
 
   if (ids.length === 0 && genre) {
     const { data: movieRows } = await supabase.from('movies').select('id, genres');
@@ -330,7 +330,7 @@ async function saveDecadeList(formData: FormData) {
   );
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  if (!(await isPremiumUser(supabase, user.id))) redirect('/?upgrade=required');
+  if (!(await isPremiumUser(supabase, user.id))) redirect('/premium');
   if (ids.length === 0 && startYear) {
     const { data: movieRows } = await supabase.from('movies').select('id, release_year');
     const candidateIds = (movieRows || [])
