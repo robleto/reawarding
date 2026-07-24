@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import type { Database } from "@/types/supabase";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { isPremiumUser } from "@/lib/premium";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -33,7 +32,7 @@ export type ImportResult = {
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const supabase = createRouteHandlerClient<Database>({ cookies });
+  const supabase = await createSupabaseServerClient();
 
   // Auth check
   const {
@@ -41,6 +40,16 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+
+  // Importing your watch history is the "automation" premium pillar —
+  // free users can still upload/preview (that happens client-side before
+  // this route is ever called); only the actual write is gated.
+  if (!(await isPremiumUser(supabase, user.id))) {
+    return NextResponse.json(
+      { error: "Importing your library is a premium feature. Unlock premium to continue." },
+      { status: 403 }
+    );
   }
 
   const body = (await req.json()) as ImportRequestBody;

@@ -12,6 +12,7 @@ import Link from "next/link";
 import { List, X } from "lucide-react";
 import { useAuthState } from "@/hooks/useAuthState";
 import { useSmartListAlerts } from "@/hooks/useSmartListAlerts";
+import { useIsPremium } from "@/hooks/useIsPremium";
 import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
 import { slugifyTitle } from "@/utils/slug";
 import type { Movie } from "@/types/types";
@@ -243,31 +244,29 @@ export default function ListsHomePage() {
 
   // Smart list alerts derived from seen movies
   const smartAlerts = useSmartListAlerts(seenMovies);
+  const isPremium = useIsPremium();
   const [savingAlertKey, setSavingAlertKey] = useState<string | null>(null);
   const [savedAlertKeys, setSavedAlertKeys] = useState<string[]>([]);
   const [dismissedAlertKeys, setDismissedAlertKeys] = useState<string[]>([]);
+  const [saveAlertErrors, setSaveAlertErrors] = useState<Record<string, string>>({});
 
   const handleSaveSmartList = async (alert: { type: string; label: string; movieIds: string[] }) => {
     if (!userId) return;
     const key = `${alert.type}:${alert.label}`;
     setSavingAlertKey(key);
+    setSaveAlertErrors((prev) => ({ ...prev, [key]: "" }));
     try {
-      const { data: list, error } = await supabase
-        .from("movie_lists")
-        .insert({
-          user_id: userId,
-          name: alert.label,
-          description: `Auto-generated from your seen films • ${alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}`,
-          is_public: false,
-        })
-        .select("id")
-        .single();
-      if (error || !list) throw error ?? new Error("No list returned");
-      const items = alert.movieIds.map((id: string, idx: number) => ({ list_id: list.id, movie_id: id, ranking: idx + 1 }));
-      await supabase.from("movie_list_items").insert(items);
+      const res = await fetch("/api/lists/ready-made/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: alert.type, label: alert.label, movieIds: alert.movieIds }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to save list");
       setSavedAlertKeys((prev) => [...prev, key]);
     } catch (e) {
       console.error("Failed to save smart list:", e);
+      setSaveAlertErrors((prev) => ({ ...prev, [key]: e instanceof Error ? e.message : "Failed to save list" }));
     } finally {
       setSavingAlertKey(null);
     }
@@ -415,6 +414,15 @@ export default function ListsHomePage() {
                     headerRight={
                       isSaved ? (
                         <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
+                      ) : !isPremium ? (
+                        <Link
+                          href="/?upgrade=required"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 bg-gray-800 border border-gray-700 rounded hover:text-gray-300 hover:border-gray-600"
+                          title="Saving Ready-Made lists is a premium feature"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
+                          Premium
+                        </Link>
                       ) : (
                         <button
                           type="button"
@@ -439,6 +447,9 @@ export default function ListsHomePage() {
                       )
                     }
                   />
+                  {saveAlertErrors[alertKey] && (
+                    <p className="mt-2 text-xs text-red-400">{saveAlertErrors[alertKey]}</p>
+                  )}
                 </div>
               );
             })}
