@@ -449,18 +449,29 @@ export function useMovieDataWithGuest() {
 								.map((r: any) => r.movie_id as string)
 								.filter((id: string) => !enrichedIds.has(id));
 							if (missingIds.length > 0) {
-								const { data: extraMovies } = await supabase
-									.from("movies")
-									.select(MOVIE_LIST_FIELDS)
-									.in("id", missingIds);
-								if (extraMovies) {
-									for (const movie of extraMovies) {
-										const ranking = rankingsMap.get(movie.id);
-										enriched.push({
-											...movie,
-											rankings: ranking ? [ranking] : [],
-											thumb_url: movie.thumb_url ?? "",
-										} as Movie);
+								// Chunk to keep the `.in()` filter's query string well under any
+								// gateway URL-length limit — a single request for hundreds of
+								// UUIDs can silently fail with no error surfaced otherwise.
+								const RESCUE_CHUNK_SIZE = 50;
+								for (let i = 0; i < missingIds.length; i += RESCUE_CHUNK_SIZE) {
+									const chunk = missingIds.slice(i, i + RESCUE_CHUNK_SIZE);
+									const { data: extraMovies, error: rescueError } = await supabase
+										.from("movies")
+										.select(MOVIE_LIST_FIELDS)
+										.in("id", chunk);
+									if (rescueError) {
+										console.warn("Rescue fetch for ranked movies failed:", rescueError.message, chunk);
+										continue;
+									}
+									if (extraMovies) {
+										for (const movie of extraMovies) {
+											const ranking = rankingsMap.get(movie.id);
+											enriched.push({
+												...movie,
+												rankings: ranking ? [ranking] : [],
+												thumb_url: movie.thumb_url ?? "",
+											} as Movie);
+										}
 									}
 								}
 							}

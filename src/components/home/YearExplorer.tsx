@@ -121,11 +121,15 @@ export default function YearExplorer({
   const rankedSorted = [...moviesWithRankings].sort(
     (a, b) => (b.rankings?.[0]?.ranking ?? 0) - (a.rankings?.[0]?.ranking ?? 0)
   );
+  // Winner is always the highest-rated film — decoupled from however
+  // defaultNominees below ends up sorted for display.
+  const defaultWinner = rankedSorted[0] ?? null;
+  // Display order defaults to alphabetical; rating only determines who
+  // qualifies (7+) and the top-10 cutoff.
   const defaultNominees = rankedSorted
     .filter((m) => (m.rankings?.[0]?.ranking ?? 0) >= 7)
-    .slice(0, 10);
-  const defaultWinner =
-    defaultNominees.length > 0 ? defaultNominees[0] : rankedSorted[0] ?? null;
+    .slice(0, 10)
+    .sort((a, b) => a.title.localeCompare(b.title));
 
   // Full movie pool for the year (for edit sidebar — all movies, not just ranked)
   const allMoviesForYear = allMovies.filter((m) => m.release_year === year);

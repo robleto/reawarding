@@ -8,19 +8,23 @@ interface HorizontalListRowProps {
   seeAllHref?: string;
   readOnly?: boolean;
   onAdd?: () => void;
+  headerActions?: React.ReactNode;
 }
 
-const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, seeAllHref, readOnly, onAdd }) => {
+const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, seeAllHref, readOnly, onAdd, headerActions }) => {
   if (!lists || lists.length === 0) return null;
   return (
     <div className="mb-10">
       <div className="flex items-center justify-between mb-3 px-1">
         <h2 className="text-xl font-bold text-white tracking-wide">{title}</h2>
-        {seeAllHref && (
-          <Link href={seeAllHref} className="text-gold-500 hover:text-gold-400 text-sm font-medium transition-colors">
-            See All
-          </Link>
-        )}
+        <div className="flex items-center gap-4">
+          {headerActions && <div className="hidden md:flex items-center gap-2">{headerActions}</div>}
+          {seeAllHref && (
+            <Link href={seeAllHref} className="text-gold-500 hover:text-gold-400 text-sm font-medium transition-colors">
+              See All
+            </Link>
+          )}
+        </div>
       </div>
       <div className="relative overflow-visible">
         <div className="flex gap-5 overflow-x-auto pb-4 pt-4 pr-3 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">

@@ -1057,6 +1057,9 @@ export type Database = {
           preferred_genres: string[] | null
           preferred_name: string | null
           signature_picks: Json | null
+          stripe_customer_id: string | null
+          subscription_current_period_end: string | null
+          subscription_status: string | null
           updated_at: string | null
           username: string
         }
@@ -1076,6 +1079,9 @@ export type Database = {
           preferred_genres?: string[] | null
           preferred_name?: string | null
           signature_picks?: Json | null
+          stripe_customer_id?: string | null
+          subscription_current_period_end?: string | null
+          subscription_status?: string | null
           updated_at?: string | null
           username: string
         }
@@ -1095,6 +1101,9 @@ export type Database = {
           preferred_genres?: string[] | null
           preferred_name?: string | null
           signature_picks?: Json | null
+          stripe_customer_id?: string | null
+          subscription_current_period_end?: string | null
+          subscription_status?: string | null
           updated_at?: string | null
           username?: string
         }

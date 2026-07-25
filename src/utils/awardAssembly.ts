@@ -45,11 +45,16 @@ export function getAwardsDataForYear(
     (a, b) => (b.rankings?.[0]?.ranking ?? 0) - (a.rankings?.[0]?.ranking ?? 0)
   );
 
+  // Winner is the highest-rated movie regardless of how `nominees` below
+  // gets displayed/sorted — never derive it from nominees[0].
+  const winner = sortedMovies[0] ?? null;
+
+  // Display order defaults to alphabetical; rating only determines who
+  // qualifies as a nominee (7+) and the top-10 cutoff.
   const nominees = sortedMovies
     .filter((movie) => (movie.rankings?.[0]?.ranking ?? 0) >= 7)
-    .slice(0, 10);
-
-  const winner = nominees[0] ?? sortedMovies[0] ?? null;
+    .slice(0, 10)
+    .sort((a, b) => a.title.localeCompare(b.title));
 
   return {
     rankedCount: rankedMoviesForYear.length,

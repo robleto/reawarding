@@ -12,6 +12,7 @@ import Link from "next/link";
 import { List, X } from "lucide-react";
 import { useAuthState } from "@/hooks/useAuthState";
 import { useSmartListAlerts } from "@/hooks/useSmartListAlerts";
+import { useIsPremium } from "@/hooks/useIsPremium";
 import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
 import { slugifyTitle } from "@/utils/slug";
 import type { Movie } from "@/types/types";
@@ -33,6 +34,7 @@ export default function ListsHomePage() {
   const [createIsPublic, setCreateIsPublic] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [readyMadeBannerDismissed, setReadyMadeBannerDismissed] = useState(false);
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -242,31 +244,29 @@ export default function ListsHomePage() {
 
   // Smart list alerts derived from seen movies
   const smartAlerts = useSmartListAlerts(seenMovies);
+  const isPremium = useIsPremium();
   const [savingAlertKey, setSavingAlertKey] = useState<string | null>(null);
   const [savedAlertKeys, setSavedAlertKeys] = useState<string[]>([]);
   const [dismissedAlertKeys, setDismissedAlertKeys] = useState<string[]>([]);
+  const [saveAlertErrors, setSaveAlertErrors] = useState<Record<string, string>>({});
 
   const handleSaveSmartList = async (alert: { type: string; label: string; movieIds: string[] }) => {
     if (!userId) return;
     const key = `${alert.type}:${alert.label}`;
     setSavingAlertKey(key);
+    setSaveAlertErrors((prev) => ({ ...prev, [key]: "" }));
     try {
-      const { data: list, error } = await supabase
-        .from("movie_lists")
-        .insert({
-          user_id: userId,
-          name: alert.label,
-          description: `Auto-generated from your seen films • ${alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}`,
-          is_public: false,
-        })
-        .select("id")
-        .single();
-      if (error || !list) throw error ?? new Error("No list returned");
-      const items = alert.movieIds.map((id: string, idx: number) => ({ list_id: list.id, movie_id: id, ranking: idx + 1 }));
-      await supabase.from("movie_list_items").insert(items);
+      const res = await fetch("/api/lists/ready-made/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: alert.type, label: alert.label, movieIds: alert.movieIds }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to save list");
       setSavedAlertKeys((prev) => [...prev, key]);
     } catch (e) {
       console.error("Failed to save smart list:", e);
+      setSaveAlertErrors((prev) => ({ ...prev, [key]: e instanceof Error ? e.message : "Failed to save list" }));
     } finally {
       setSavingAlertKey(null);
     }
@@ -281,6 +281,10 @@ export default function ListsHomePage() {
       .map((m) => (m as { poster_url?: string | null }).poster_url ?? "")
       .filter(Boolean),
   [seenMovies]);
+
+  const visibleSmartAlerts = smartAlerts.filter(
+    (a) => !a.nearMiss && !dismissedAlertKeys.includes(`${a.type}:${a.label}`)
+  );
 
   if (loading) return <Loader message="Loading lists..." />;
 
@@ -317,6 +321,32 @@ export default function ListsHomePage() {
         </>
       )}
 
+      {/* Ready-Made Lists fallback banner — sits at the top, above My Lists, so
+          it's the first thing seen; only shown when the personalized rail below
+          isn't (no qualifying alerts), and can be dismissed for this visit. */}
+      {user &&
+        visibleSmartAlerts.length === 0 &&
+        !(myLists.length === 0 && publicLists.length === 0) &&
+        !readyMadeBannerDismissed && (
+          <div className="relative p-5 mb-8 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
+            <button
+              type="button"
+              onClick={() => setReadyMadeBannerDismissed(true)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-200 transition-colors"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex items-center justify-between pr-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gold-200">Ready-Made Lists</h3>
+                <p className="text-sm text-gray-300">Pre-built from your ratings — directors, decades, genres and more.</p>
+              </div>
+              <a href="/lists/ready-made" className="px-3 py-2 text-black bg-gold-500 rounded hover:bg-gold-400">Explore</a>
+            </div>
+          </div>
+        )}
+
       {/* My Lists — always first, primary */}
       {user && myLists.length > 0 && (
         <HorizontalListRow
@@ -324,6 +354,23 @@ export default function ListsHomePage() {
           lists={myLists.slice(0, 8)}
           seeAllHref={myLists.length > 3 ? "/lists/mine" : undefined}
           onAdd={handleCreateListClick}
+          headerActions={
+            <>
+              <button
+                type="button"
+                onClick={handleCreateListClick}
+                className="px-3 py-1.5 text-sm font-medium text-black bg-gold-500 rounded hover:bg-gold-400 transition-colors whitespace-nowrap"
+              >
+                Create New List
+              </button>
+              <Link
+                href="/lists/ready-made"
+                className="px-3 py-1.5 text-sm font-medium text-gold-300 border border-gold-500/40 rounded hover:bg-gold-500/10 transition-colors whitespace-nowrap"
+              >
+                Find Ready-Made List
+              </Link>
+            </>
+          }
         />
       )}
 
@@ -337,9 +384,7 @@ export default function ListsHomePage() {
         />
       )}
 
-      {/* Ready-Made Lists — horizontal scroll rail, mirrors the home page.
-          Terminates in the gold dashed "Browse all" CTA. */}
-      {smartAlerts.filter((a) => !a.nearMiss && !dismissedAlertKeys.includes(`${a.type}:${a.label}`)).length > 0 && (
+      {visibleSmartAlerts.length > 0 && (
         <section className="mb-10">
           <div className="flex items-center justify-between mb-5 px-1">
             <div>
@@ -351,7 +396,7 @@ export default function ListsHomePage() {
             </a>
           </div>
           <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-            {smartAlerts.filter((a) => !a.nearMiss).slice(0, 6).map((alert) => {
+            {visibleSmartAlerts.slice(0, 6).map((alert) => {
               const alertKey = `${alert.type}:${alert.label}`;
               if (dismissedAlertKeys.includes(alertKey)) return null;
               const posterUrls = getPosterUrlsForAlert(alert.movieIds);
@@ -369,6 +414,15 @@ export default function ListsHomePage() {
                     headerRight={
                       isSaved ? (
                         <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
+                      ) : !isPremium ? (
+                        <Link
+                          href="/premium"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 bg-gray-800 border border-gray-700 rounded hover:text-gray-300 hover:border-gray-600"
+                          title="Saving Ready-Made lists is a premium feature"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
+                          Premium
+                        </Link>
                       ) : (
                         <button
                           type="button"
@@ -393,6 +447,9 @@ export default function ListsHomePage() {
                       )
                     }
                   />
+                  {saveAlertErrors[alertKey] && (
+                    <p className="mt-2 text-xs text-red-400">{saveAlertErrors[alertKey]}</p>
+                  )}
                 </div>
               );
             })}

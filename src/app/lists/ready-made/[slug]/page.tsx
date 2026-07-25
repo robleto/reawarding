@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import type { Database } from '@/types/supabase';
+import { isPremiumUser } from '@/lib/premium';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,6 +21,7 @@ type MovieItem = {
 type ReadyCategory = 'director' | 'genre' | 'decade';
 type ReadyMadeData = {
   user: any | null;
+  isPremium: boolean;
   category: ReadyCategory | null;
   label: string | null; // director name, genre name or decade label
   decadeStart?: number | null;
@@ -31,6 +33,19 @@ type ReadyMadeData = {
 function formatDirectorListName(director: string, count: number) { return `${director}: ${count} You’ve Seen`; }
 function formatGenreListName(genre: string, count: number) { return `Genre - ${genre}: ${count} You’ve Seen`; }
 function formatDecadeListName(decade: string, count: number) { return `Decade - ${decade}: ${count} You’ve Seen`; }
+
+function PremiumLockLink() {
+  return (
+    <Link
+      href="/premium"
+      className="inline-flex items-center gap-1.5 px-4 py-2 text-gray-400 bg-gray-800 border border-gray-700 rounded hover:text-gray-300 hover:border-gray-600"
+      title="Saving Ready-Made lists is a premium feature"
+    >
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
+      Unlock Premium
+    </Link>
+  );
+}
 
 async function getData(slug: string): Promise<ReadyMadeData> {
   const cookieStore = await cookies();
@@ -49,7 +64,8 @@ async function getData(slug: string): Promise<ReadyMadeData> {
 
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
-  if (!user) return { user: null, category: null, label: null, count: 0, totalCount: 0, movies: [] };
+  if (!user) return { user: null, isPremium: false, category: null, label: null, count: 0, totalCount: 0, movies: [] };
+  const isPremium = await isPremiumUser(supabase, user.id);
 
   // Build maps from seen movies and match by slug across director/genre/decade
   const { data: rows } = await supabase
@@ -108,7 +124,7 @@ async function getData(slug: string): Promise<ReadyMadeData> {
   for (const d of byDirector.keys()) {
     if (slugifyTitle(d) === slug) {
       const list = (byDirector.get(d) || []).sort((a, b) => (b.ranking ?? 0) - (a.ranking ?? 0));
-      return { user, category: 'director', label: d, count: list.length, totalCount: list.length, movies: list };
+      return { user, isPremium, category: 'director', label: d, count: list.length, totalCount: list.length, movies: list };
     }
   }
   // Try genre match
@@ -116,7 +132,7 @@ async function getData(slug: string): Promise<ReadyMadeData> {
     if (slugifyTitle(g) === slug) {
       const all = (byGenre.get(g) || []).sort((a, b) => (b.ranking ?? 0) - (a.ranking ?? 0));
       const filtered = all.length > 100 ? all.filter((m) => (m.ranking ?? 0) >= 9) : all;
-      return { user, category: 'genre', label: g, count: filtered.length, totalCount: all.length, movies: filtered };
+      return { user, isPremium, category: 'genre', label: g, count: filtered.length, totalCount: all.length, movies: filtered };
     }
   }
   // Try decade match
@@ -125,10 +141,10 @@ async function getData(slug: string): Promise<ReadyMadeData> {
     if (slugifyTitle(label) === slug) {
       const all = (byDecade.get(start) || []).sort((a, b) => (b.ranking ?? 0) - (a.ranking ?? 0));
       const filtered = all.length > 100 ? all.filter((m) => (m.ranking ?? 0) >= 9) : all;
-      return { user, category: 'decade', label, decadeStart: start, count: filtered.length, totalCount: all.length, movies: filtered };
+      return { user, isPremium, category: 'decade', label, decadeStart: start, count: filtered.length, totalCount: all.length, movies: filtered };
     }
   }
-  return { user, category: null, label: null, count: 0, totalCount: 0, movies: [] };
+  return { user, isPremium, category: null, label: null, count: 0, totalCount: 0, movies: [] };
 }
 async function saveDirectorList(formData: FormData) {
   'use server';
@@ -157,6 +173,7 @@ async function saveDirectorList(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+  if (!(await isPremiumUser(supabase, user.id))) redirect('/premium');
 
   // Fallback: if no ids were posted, re-collect on server
   if (ids.length === 0 && director) {
@@ -246,6 +263,7 @@ async function saveGenreList(formData: FormData) {
   );
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+  if (!(await isPremiumUser(supabase, user.id))) redirect('/premium');
 
   if (ids.length === 0 && genre) {
     const { data: movieRows } = await supabase.from('movies').select('id, genres');
@@ -312,6 +330,7 @@ async function saveDecadeList(formData: FormData) {
   );
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+  if (!(await isPremiumUser(supabase, user.id))) redirect('/premium');
   if (ids.length === 0 && startYear) {
     const { data: movieRows } = await supabase.from('movies').select('id, release_year');
     const candidateIds = (movieRows || [])
@@ -364,7 +383,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function ReadyMadeDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { user, category, label, count, totalCount, movies, decadeStart } = await getData(slug);
+  const { user, isPremium, category, label, count, totalCount, movies, decadeStart } = await getData(slug);
 
   if (!user) {
     return (
@@ -411,7 +430,9 @@ export default async function ReadyMadeDetailPage({ params }: { params: Promise<
           )}
         </div>
         <div className="flex items-center gap-2">
-          {count >= threshold ? (
+          {!isPremium ? (
+            <PremiumLockLink />
+          ) : count >= threshold ? (
             category === 'director' ? (
               <form action={saveDirectorList}>
                 <input type="hidden" name="director" value={label} />

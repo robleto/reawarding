@@ -22,7 +22,11 @@ interface Profile {
   bio: string | null;
   created_at: string;
   updated_at: string;
+  subscription_status: string | null;
+  subscription_current_period_end: string | null;
 }
+
+const ENTITLED_STATUSES = new Set(["active", "trialing"]);
 
 export default function SettingsPage() {
   const { user, status: authStatus } = useAuthState();
@@ -55,6 +59,10 @@ export default function SettingsPage() {
     useUsername: false,
     customNickname: "",
   });
+
+  // Premium/billing section
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
 
   // Password section
   const [newPassword, setNewPassword] = useState("");
@@ -212,6 +220,29 @@ export default function SettingsPage() {
       setPasswordError(err instanceof Error ? err.message : "Failed to update password");
     } finally {
       setPasswordSaving(false);
+    }
+  };
+
+  const isPremium = Boolean(
+    profile?.subscription_status && ENTITLED_STATUSES.has(profile.subscription_status)
+  );
+
+  const handleManageBilling = async () => {
+    setBillingLoading(true);
+    setBillingError(null);
+    try {
+      const endpoint = isPremium ? "/api/stripe/portal" : "/api/stripe/checkout";
+      const res = await fetch(endpoint, { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setBillingError(data.error ?? "Something went wrong");
+        setBillingLoading(false);
+      }
+    } catch (err) {
+      setBillingError(err instanceof Error ? err.message : "Something went wrong");
+      setBillingLoading(false);
     }
   };
 
@@ -538,6 +569,42 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Premium */}
+      <div className="dark-glass rounded-xl shadow-lg p-6 mb-6 border border-gray-600/50">
+        <h2 className="text-xl font-semibold text-white mb-4">Premium</h2>
+
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            {isPremium ? (
+              <>
+                <p className="text-sm text-white">You&apos;re on Premium — $19/yr</p>
+                {profile?.subscription_current_period_end && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Renews {new Date(profile.subscription_current_period_end).toLocaleDateString()}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-white">Free plan</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Unlock lifetime Alternate Oscar History stats and Ready-Made list automation.
+                </p>
+              </>
+            )}
+          </div>
+          <button
+            onClick={handleManageBilling}
+            disabled={billingLoading}
+            className="px-4 py-2 text-sm font-medium text-black bg-gold-500 rounded-lg hover:bg-gold-400 disabled:opacity-50 transition-colors whitespace-nowrap"
+          >
+            {billingLoading ? "Redirecting…" : isPremium ? "Manage subscription" : "Unlock Premium — $19/yr"}
+          </button>
+        </div>
+
+        {billingError && <p className="mt-3 text-sm text-red-400">{billingError}</p>}
       </div>
 
       {/* Import */}

@@ -7,6 +7,11 @@ import type { Viewport } from 'next';
 export const metadata = {
   title: 'Reawarding',
   description: 'Reawarding lets you rewrite film award history based on what you actually watched and how films aged over time.',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Reawarding',
+  },
 };
 
 // viewportFit: 'cover' is required for env(safe-area-inset-*) to be non-zero

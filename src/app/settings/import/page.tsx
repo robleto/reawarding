@@ -175,8 +175,12 @@ export default function ImportPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rows: parsedRows, source }),
       });
-      const data = (await res.json()) as ImportResult;
-      setResult(data);
+      const data = await res.json();
+      if (!res.ok) {
+        setParseError(data.error ?? "Something went wrong during import. Please try again.");
+        return;
+      }
+      setResult(data as ImportResult);
       setStep("done");
     } catch {
       setParseError("Something went wrong during import. Please try again.");

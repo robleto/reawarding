@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
+import { isPremiumUser } from '@/lib/premium';
 import { redirect } from 'next/navigation';
 import { normalizeImageUrl } from '@/utils/imageUrl';
 import Image from 'next/image';
@@ -371,6 +372,7 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
   const sp = await searchParams;
   const activeTab = (sp?.tab ?? 'all') as 'all' | 'directors' | 'actors' | 'genres' | 'decades';
   const { user, suggestions, almost, actorSuggestions, actorAlmost, genreSuggestions, genreAlmost, decadeSuggestions, decadeAlmost } = await getSuggestions();
+  const isPremium = user ? await isPremiumUser(await createSupabaseServerClient(), user.id) : false;
 
   return (
     <div className="space-y-8">
@@ -412,7 +414,7 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
               <p className="mb-3 text-sm text-gray-400">Unlocks at 10 seen. Large genres show 9–10 only.</p>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                 {genreSuggestions.map((g) => (
-                  <GenreSuggestionCard key={g.genre} suggestion={g} />
+                  <GenreSuggestionCard key={g.genre} suggestion={g} isPremium={isPremium} />
                 ))}
               </div>
             </div>
@@ -433,7 +435,7 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
               <p className="mb-3 text-sm text-gray-400">Unlocks at 12 seen. Large decades show 9–10 only.</p>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                 {decadeSuggestions.map((d) => (
-                  <DecadeSuggestionCard key={d.decade} suggestion={d} />
+                  <DecadeSuggestionCard key={d.decade} suggestion={d} isPremium={isPremium} />
                 ))}
               </div>
             </div>
@@ -510,7 +512,7 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
           {(activeTab === 'all' || activeTab === 'directors') && suggestions.length > 0 && (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
               {suggestions.map((s) => (
-                <SuggestionCard key={s.director} suggestion={s} />
+                <SuggestionCard key={s.director} suggestion={s} isPremium={isPremium} />
               ))}
             </div>
           )}
@@ -529,7 +531,7 @@ export default async function ReadyMadeListsPage({ searchParams }: { searchParam
               <h2 className="mb-3 text-xl font-semibold">Actor Ready‑Made Lists</h2>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                 {actorSuggestions.map((a) => (
-                  <ActorSuggestionCard key={a.actor} suggestion={a} />
+                  <ActorSuggestionCard key={a.actor} suggestion={a} isPremium={isPremium} />
                 ))}
               </div>
             </div>
@@ -644,6 +646,9 @@ async function saveList(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) {
     redirect('/login');
+  }
+  if (!(await isPremiumUser(supabase, user.id))) {
+    redirect('/premium');
   }
 
   // Fallback: if no ids were posted, rebuild from server-side query
@@ -797,6 +802,7 @@ async function saveActorList(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+  if (!(await isPremiumUser(supabase, user.id))) redirect('/premium');
   // Fallback derive actor movie IDs
   if (ids.length === 0 && actor) {
     const { data: movieRows } = await supabase.from('movies').select('id, cast_list');
@@ -855,6 +861,7 @@ async function saveGenreList(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+  if (!(await isPremiumUser(supabase, user.id))) redirect('/premium');
   if (ids.length === 0 && genre) {
     const { data: movieRows } = await supabase.from('movies').select('id, genres');
     const candidateIds = (movieRows || []).filter((m: any) => Array.isArray(m.genres) && m.genres.includes(genre)).map((m: any) => m.id as string);
@@ -915,6 +922,7 @@ async function saveDecadeList(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+  if (!(await isPremiumUser(supabase, user.id))) redirect('/premium');
   if (ids.length === 0 && startYear) {
     const { data: movieRows } = await supabase
       .from('movies')
@@ -966,7 +974,20 @@ async function saveDecadeList(formData: FormData) {
   redirect('/lists');
 }
 
-function SuggestionCard({ suggestion }: { suggestion: DirectorSuggestion }) {
+function PremiumLockBadge() {
+  return (
+    <Link
+      href="/premium"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 bg-gray-800 border border-gray-700 rounded hover:text-gray-300 hover:border-gray-600"
+      title="Saving Ready-Made lists is a premium feature"
+    >
+      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
+      Premium
+    </Link>
+  );
+}
+
+function SuggestionCard({ suggestion, isPremium }: { suggestion: DirectorSuggestion; isPremium: boolean }) {
   const ids = suggestion.movies.map((m) => m.id).join(',');
   const posterUrls = suggestion.movies
     .map((m) => m.poster_url)
@@ -979,13 +1000,15 @@ function SuggestionCard({ suggestion }: { suggestion: DirectorSuggestion }) {
       count={suggestion.seen_count}
       posterUrls={posterUrls}
       subtitle={<span>Director</span>}
-      headerRight={(
+      headerRight={isPremium ? (
         <form action={saveList}>
           <input type="hidden" name="director" value={suggestion.director} />
           <input type="hidden" name="count" value={suggestion.seen_count} />
           <input type="hidden" name="movie_ids" value={ids} />
           <button className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400" type="submit">Save</button>
         </form>
+      ) : (
+        <PremiumLockBadge />
       )}
       viewHref={href}
       dismissForm={(
@@ -998,7 +1021,7 @@ function SuggestionCard({ suggestion }: { suggestion: DirectorSuggestion }) {
   );
 }
 
-function ActorSuggestionCard({ suggestion }: { suggestion: ActorSuggestion }) {
+function ActorSuggestionCard({ suggestion, isPremium }: { suggestion: ActorSuggestion; isPremium: boolean }) {
   const ids = suggestion.movies.map((m) => m.id).join(',');
   const posterUrls = suggestion.movies
     .map((m) => m.poster_url)
@@ -1010,13 +1033,15 @@ function ActorSuggestionCard({ suggestion }: { suggestion: ActorSuggestion }) {
       count={suggestion.seen_count}
       posterUrls={posterUrls}
       subtitle={<span>Actor</span>}
-      headerRight={(
+      headerRight={isPremium ? (
         <form action={saveActorList}>
           <input type="hidden" name="actor" value={suggestion.actor} />
           <input type="hidden" name="count" value={suggestion.seen_count} />
           <input type="hidden" name="movie_ids" value={ids} />
           <button className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400" type="submit">Save</button>
         </form>
+      ) : (
+        <PremiumLockBadge />
       )}
       viewHref={`/lists/ready-made/${slugifyTitle(suggestion.actor)}`}
       dismissForm={(
@@ -1029,7 +1054,7 @@ function ActorSuggestionCard({ suggestion }: { suggestion: ActorSuggestion }) {
   );
 }
 
-function GenreSuggestionCard({ suggestion }: { suggestion: GenreSuggestion }) {
+function GenreSuggestionCard({ suggestion, isPremium }: { suggestion: GenreSuggestion; isPremium: boolean }) {
   const totalSeen = suggestion.seen_count;
   const filteredCount = suggestion.movies.length;
   const ids = suggestion.movies.map((m) => m.id).join(',');
@@ -1052,7 +1077,7 @@ function GenreSuggestionCard({ suggestion }: { suggestion: GenreSuggestion }) {
           <span>only</span>
         </>
       )}
-      headerRight={(
+      headerRight={isPremium ? (
         <form action={saveGenreList} className="shrink-0">
           <input type="hidden" name="genre" value={suggestion.genre} />
           <input type="hidden" name="count" value={filteredCount} />
@@ -1060,6 +1085,8 @@ function GenreSuggestionCard({ suggestion }: { suggestion: GenreSuggestion }) {
           <input type="hidden" name="movie_ids" value={ids} />
           <button className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400" type="submit">Save</button>
         </form>
+      ) : (
+        <PremiumLockBadge />
       )}
       viewHref={href}
       dismissForm={(
@@ -1072,7 +1099,7 @@ function GenreSuggestionCard({ suggestion }: { suggestion: GenreSuggestion }) {
   );
 }
 
-function DecadeSuggestionCard({ suggestion }: { suggestion: DecadeSuggestion }) {
+function DecadeSuggestionCard({ suggestion, isPremium }: { suggestion: DecadeSuggestion; isPremium: boolean }) {
   const totalSeen = suggestion.seen_count;
   const filteredCount = suggestion.movies.length;
   const ids = suggestion.movies.map((m) => m.id).join(',');
@@ -1095,7 +1122,7 @@ function DecadeSuggestionCard({ suggestion }: { suggestion: DecadeSuggestion }) 
           <span>only</span>
         </>
       )}
-      headerRight={(
+      headerRight={isPremium ? (
         <form action={saveDecadeList} className="shrink-0">
           <input type="hidden" name="decade" value={suggestion.decade} />
           <input type="hidden" name="start_year" value={suggestion.startYear} />
@@ -1104,6 +1131,8 @@ function DecadeSuggestionCard({ suggestion }: { suggestion: DecadeSuggestion }) 
           <input type="hidden" name="movie_ids" value={ids} />
           <button className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400" type="submit">Save</button>
         </form>
+      ) : (
+        <PremiumLockBadge />
       )}
       viewHref={href}
       dismissForm={(

@@ -1,0 +1,103 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { Lock, Sparkles } from "lucide-react";
+import { useAuthState } from "@/hooks/useAuthState";
+import { useIsPremium } from "@/hooks/useIsPremium";
+
+export default function PremiumPage() {
+  const { status, isAuthenticated } = useAuthState();
+  const isPremium = useIsPremium();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleUpgrade = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.error ?? "Something went wrong");
+        setLoading(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-12">
+      <div className="text-center mb-10">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold-400 mb-3">
+          Reawarding Premium
+        </p>
+        <h1 className="text-3xl md:text-4xl font-unbounded font-semibold text-white mb-3">
+          Bigger, not faster.
+        </h1>
+        <p className="text-gray-400 max-w-md mx-auto">
+          Premium never skips a step the free tier already earns through your own ratings — it
+          expands what you can reach.
+        </p>
+      </div>
+
+      <div className="dark-glass rounded-xl border border-gray-700/40 p-6 mb-6">
+        <h2 className="text-lg font-semibold text-white mb-1">Your Alternate Oscar History</h2>
+        <p className="text-sm text-gray-400 mb-3">
+          Your per-year Upheld/Reawarded/Unscreened verdict against the Academy is free on every
+          year card. Premium unlocks the lifetime picture: your overall Upheld rate, trends by
+          decade, and your most controversial calls against real Oscar history.
+        </p>
+      </div>
+
+      <div className="dark-glass rounded-xl border border-gray-700/40 p-6 mb-8">
+        <h2 className="text-lg font-semibold text-white mb-1">Automation</h2>
+        <p className="text-sm text-gray-400 mb-3">
+          Ready-Made Lists (auto-built collections by director, actor, genre, and decade) and
+          importing your Letterboxd or IMDb history — both free to detect and preview, premium to
+          actually save or import.
+        </p>
+      </div>
+
+      {status === "loading" ? null : !isAuthenticated ? (
+        <div className="text-center">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 px-6 py-3 text-black bg-gold-500 rounded-lg hover:bg-gold-400 font-medium"
+          >
+            Sign in to unlock Premium
+          </Link>
+        </div>
+      ) : isPremium ? (
+        <div className="text-center">
+          <p className="inline-flex items-center gap-2 text-emerald-300 font-medium mb-3">
+            <Sparkles className="w-4 h-4" /> You&apos;re already Premium
+          </p>
+          <p className="text-sm text-gray-500">
+            Manage your subscription anytime from{" "}
+            <Link href="/settings" className="text-gold-300 underline">
+              Settings
+            </Link>
+            .
+          </p>
+        </div>
+      ) : (
+        <div className="text-center">
+          <button
+            onClick={handleUpgrade}
+            disabled={loading}
+            className="inline-flex items-center gap-2 px-6 py-3 text-black bg-gold-500 rounded-lg hover:bg-gold-400 disabled:opacity-50 font-medium"
+          >
+            <Lock className="w-4 h-4" />
+            {loading ? "Redirecting…" : "Unlock Premium — $19/yr"}
+          </button>
+          {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
