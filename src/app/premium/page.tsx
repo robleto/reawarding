@@ -5,12 +5,14 @@ import Link from "next/link";
 import { Lock, Sparkles } from "lucide-react";
 import { useAuthState } from "@/hooks/useAuthState";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { isNativeApp } from "@/lib/platform";
 
 export default function PremiumPage() {
   const { status, isAuthenticated } = useAuthState();
   const isPremium = useIsPremium();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isNative = isNativeApp();
 
   const handleUpgrade = async () => {
     setLoading(true);
@@ -83,6 +85,14 @@ export default function PremiumPage() {
               Settings
             </Link>
             .
+          </p>
+        </div>
+      ) : isNative ? (
+        <div className="text-center">
+          <p className="text-sm text-gray-400">
+            Premium is available at{" "}
+            <span className="text-gold-300">reawarding.com</span> — manage your subscription from
+            a web browser.
           </p>
         </div>
       ) : (

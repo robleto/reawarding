@@ -5,13 +5,13 @@ export default function DataDeletionPage() {
         <div className="bg-white rounded-lg shadow-sm p-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Data Deletion Instructions</h1>
-            <p className="text-gray-600">How to delete your account and personal data from Oscar Worthy</p>
+            <p className="text-gray-600">How to delete your account and personal data from Reawarding</p>
           </div>
 
           <div className="prose prose-lg max-w-none">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Account Deletion</h2>
             <p className="text-gray-700 mb-6">
-              You can delete your Oscar Worthy account and all associated data at any time. This action is permanent and cannot be undone.
+              You can delete your Reawarding account and all associated data at any time. This action is permanent and cannot be undone.
             </p>
 
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">What Gets Deleted</h2>
@@ -42,9 +42,9 @@ export default function DataDeletionPage() {
             
             <h3 className="text-xl font-semibold text-gray-900 mb-3">Method 1: Through Your Account Settings</h3>
             <div className="bg-blue-50 p-4 rounded-lg mb-6">
-              <p className="text-blue-800 font-medium mb-2">Coming Soon:</p>
               <p className="text-blue-700">
-                We&apos;re currently developing an in-app account deletion feature. This will be available in your account settings page.
+                Go to <a href="/settings" className="underline">Settings</a>, scroll to &quot;Delete account&quot; near
+                the bottom, and confirm. This immediately and permanently deletes your account.
               </p>
             </div>
 
@@ -68,10 +68,10 @@ export default function DataDeletionPage() {
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3">Method 3: Social Media Account Deletion</h3>
             <p className="text-gray-700 mb-4">
-              If you signed up using Facebook, Google, or GitHub, you can also:
+              If you signed up using Apple or GitHub, you can also:
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-6 space-y-2">
-              <li>Remove Oscar Worthy from your connected apps in your social media settings</li>
+              <li>Remove Reawarding from your connected apps in your social media settings</li>
               <li>Email us to confirm account deletion (recommended)</li>
               <li>This will prevent future access but may not delete all stored data</li>
             </ul>

@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
-import { LogOut, Mail, Upload, Lock, Eye, EyeOff, Save } from "lucide-react";
+import { LogOut, Mail, Upload, Lock, Eye, EyeOff, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import type { Database } from "@/types/supabase";
 import { signOutEverywhere } from "@/utils/signOut";
 import { useAuthState } from "@/hooks/useAuthState";
+import { isNativeApp } from "@/lib/platform";
 import UserAvatar from "@/components/ui/UserAvatar";
 import StatsSummary from "@/components/stats/StatsSummary";
 
@@ -35,6 +36,10 @@ export default function SettingsPage() {
 
   const [signOutLoading, setSignOutLoading] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
+
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Profile section
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -226,6 +231,7 @@ export default function SettingsPage() {
   const isPremium = Boolean(
     profile?.subscription_status && ENTITLED_STATUSES.has(profile.subscription_status)
   );
+  const isNative = isNativeApp();
 
   const handleManageBilling = async () => {
     setBillingLoading(true);
@@ -259,6 +265,24 @@ export default function SettingsPage() {
       setSignOutError("Failed to sign out. Please try again.");
       setSignOutLoading(false);
       return;
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch("/api/account/delete", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to delete account");
+      }
+      await signOutEverywhere(supabase);
+      router.replace("/");
+      router.refresh();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete account");
+      setDeleteLoading(false);
     }
   };
 
@@ -595,13 +619,19 @@ export default function SettingsPage() {
               </>
             )}
           </div>
-          <button
-            onClick={handleManageBilling}
-            disabled={billingLoading}
-            className="px-4 py-2 text-sm font-medium text-black bg-gold-500 rounded-lg hover:bg-gold-400 disabled:opacity-50 transition-colors whitespace-nowrap"
-          >
-            {billingLoading ? "Redirecting…" : isPremium ? "Manage subscription" : "Unlock Premium — $19/yr"}
-          </button>
+          {isNative && !isPremium ? (
+            <p className="text-xs text-gray-400 whitespace-nowrap">
+              Unlock Premium at reawarding.com
+            </p>
+          ) : (
+            <button
+              onClick={handleManageBilling}
+              disabled={billingLoading}
+              className="px-4 py-2 text-sm font-medium text-black bg-gold-500 rounded-lg hover:bg-gold-400 disabled:opacity-50 transition-colors whitespace-nowrap"
+            >
+              {billingLoading ? "Redirecting…" : isPremium ? "Manage subscription" : "Unlock Premium — $19/yr"}
+            </button>
+          )}
         </div>
 
         {billingError && <p className="mt-3 text-sm text-red-400">{billingError}</p>}
@@ -624,6 +654,47 @@ export default function SettingsPage() {
             Import →
           </Link>
         </div>
+      </div>
+
+      {/* Danger zone */}
+      <div className="dark-glass rounded-xl border border-red-900/40 p-5 mt-6">
+        <h2 className="text-sm font-semibold text-red-300 mb-1">Delete account</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Permanently deletes your profile, ratings, lists, and reviews. This cannot be undone.
+        </p>
+
+        {!deleteConfirming ? (
+          <button
+            onClick={() => setDeleteConfirming(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-300 border border-red-900/60 rounded-lg hover:bg-red-900/20 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete account
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-white">Are you sure? This is permanent.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-700 rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                {deleteLoading ? "Deleting…" : "Yes, delete my account"}
+              </button>
+              <button
+                onClick={() => setDeleteConfirming(false)}
+                disabled={deleteLoading}
+                className="px-4 py-2 text-sm font-medium text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {deleteError && <p className="mt-3 text-sm text-red-400">{deleteError}</p>}
       </div>
     </div>
   );

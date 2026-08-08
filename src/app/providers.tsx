@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseBrowser';
 import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { ToastProvider } from '@/components/providers/ToastProvider';
+import { NativeStatusBarBridge } from '@/components/providers/NativeStatusBarBridge';
 import { ErrorBoundary } from '@/components/error/ErrorBoundary';
 import { setupGlobalErrorHandlers } from '@/utils/errorLogger';
 import { useAuthMigration } from '@/utils/authMigration';
@@ -27,6 +28,7 @@ export function Providers({ children }: ProvidersProps) {
       <SessionContextProvider supabaseClient={supabase}>
         <AuthMigrationBridge />
         <PersistenceBoundaryBridge />
+        <NativeStatusBarBridge />
         <ThemeProvider>
           <ToastProvider>
             <WatchlistProvider>

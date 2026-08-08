@@ -53,3 +53,11 @@ node_modules/
 
 # AI-session scratch files (safe to delete anytime)
 .tmp-*
+
+# Capacitor iOS (Xcode project itself is committed; build artifacts are not)
+/ios/App/Pods/
+/ios/App/build/
+/ios/App/DerivedData/
+/ios/.build/
+*.xcuserstate
+xcuserdata/

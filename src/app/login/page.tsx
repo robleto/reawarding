@@ -162,6 +162,27 @@ export default function LoginPage() {
     }
   };
 
+  const handleAppleSignIn = async () => {
+    setLoading('apple');
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: buildSiteUrl('/auth/callback?next=/') || undefined,
+        },
+      });
+      if (error) {
+        console.error('Apple sign-in error:', error);
+        setError('Failed to sign in with Apple. Please try again.');
+      }
+    } catch (error) {
+      console.error('Apple sign-in error:', error);
+      setError('Failed to sign in with Apple. Please try again.');
+    } finally {
+      setLoading(null);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4">
       <div className="w-full max-w-md">
@@ -365,6 +386,22 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-3">
+            {/* Apple Sign In */}
+            <button
+              onClick={handleAppleSignIn}
+              disabled={loading !== null}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              {loading === 'apple' ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-3.014 1.57-.12 0-.23-.02-.3-.03-.014-.1-.04-.32-.04-.55 0-1.14.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.077.36.077.59zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.4-1.25-3.4-2.6-1.55-2.11-2.75-5.55-2.75-8.5 0-4.36 2.63-6.67 5.24-6.67 1.398 0 2.55.94 3.42.94.84 0 2.02-1 3.62-1 .53 0 2.36.05 3.6 1.72-.09.06-2.15 1.29-2.15 3.83 0 3.05 2.67 4.13 2.67 4.13z" />
+                </svg>
+              )}
+              Continue with Apple
+            </button>
+
             {/* GitHub Sign In */}
             <button
               onClick={handleGitHubSignIn}
