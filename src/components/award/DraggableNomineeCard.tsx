@@ -72,13 +72,10 @@ export default function DraggableNomineeCard({
           <GripVertical className="w-5 h-5" />
         </button>
 
-        {typeof rank === "number" && (
-          <div className="w-5 flex items-center justify-end text-xs font-mono font-bold text-gray-400 tabular-nums select-none pr-1">
-            {rank}
-          </div>
-        )}
-
-        <div className="flex-shrink-0">
+        {/* Rank sits on the poster corner, not its own column — reclaims
+            width for the title, which was breaking mid-word on narrow
+            phones (see the "Thunderbolts*" case). */}
+        <div className="relative flex-shrink-0">
           {hasValidImage ? (
             <Image
               src={posterSrc}
@@ -100,6 +97,11 @@ export default function DraggableNomineeCard({
           >
             <Film className="w-4 h-4 text-gray-600" />
           </div>
+          {typeof rank === "number" && (
+            <span className="absolute top-0.5 left-0.5 min-w-[16px] h-4 px-0.5 flex items-center justify-center rounded-full bg-always-black/70 backdrop-blur-sm text-[9px] font-mono font-bold text-always-white tabular-nums leading-none">
+              {rank}
+            </span>
+          )}
         </div>
 
         <div className="flex-1 min-w-0 px-2">

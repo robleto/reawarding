@@ -204,12 +204,33 @@ export default function HomePage() {
         return next.size === prev.size ? prev : next;
       });
       setArrivedYears((prev) => (prev.has(String(year)) ? prev : new Set(prev).add(String(year))));
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const el = yearElementsRef.current[String(year)];
-          el?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+
+      const yearKey = String(year);
+      const behavior = reducedMotion ? "auto" : "smooth";
+
+      // Making every year visible above swaps a lot of 600px placeholders for
+      // real EditableYearSection content — each one fetches its own saved
+      // award and settles its true height on its own schedule, well after
+      // this fires. The more years sit above the target, the more sections
+      // are still resizing after a single scrollIntoView call, so the initial
+      // aim drifts further the deeper the jump (barely-there for nearby
+      // years, way off for something like 1986). Re-aim (snapping, not
+      // animating, so corrections don't fight the initial smooth scroll)
+      // whenever the page's height changes for a beat after the jump.
+      let firstAlign = true;
+      const align = () => {
+        yearElementsRef.current[yearKey]?.scrollIntoView({
+          behavior: firstAlign ? behavior : "auto",
+          block: "start",
         });
-      });
+        firstAlign = false;
+      };
+
+      align();
+
+      const ro = new ResizeObserver(align);
+      ro.observe(document.body);
+      window.setTimeout(() => ro.disconnect(), 2000);
     },
     [reducedMotion]
   );
@@ -886,6 +907,7 @@ export default function HomePage() {
                 }))}
                 activeYear={activeScrollYear ?? Number(formattedYears[0].year)}
                 onSelectYear={scrollToYear}
+                showSubLabel={false}
               />
             </div>
           )}

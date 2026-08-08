@@ -5,6 +5,7 @@ import { Lock } from "lucide-react";
 import type { Movie } from "@/types/types";
 import { useAlternateOscarHistory } from "@/hooks/useAlternateOscarHistory";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { isNativeApp } from "@/lib/platform";
 import MovieRowCard from "@/components/movie/MovieRowCard";
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
 export default function AlternateOscarHistoryPanel({ movies, currentUserId, onUpdateMovie }: Props) {
   const history = useAlternateOscarHistory(movies);
   const isPremium = useIsPremium();
+  const isNative = isNativeApp();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
@@ -143,13 +145,17 @@ export default function AlternateOscarHistoryPanel({ movies, currentUserId, onUp
             <p className="text-xs text-gray-500 max-w-[240px]">
               See your lifetime Upheld rate, decade trends, and your most controversial calls against the Academy.
             </p>
-            <button
-              onClick={handleUpgrade}
-              disabled={checkoutLoading}
-              className="mt-1 px-4 py-1.5 text-xs font-medium text-black bg-gold-500 rounded hover:bg-gold-400 disabled:opacity-50"
-            >
-              {checkoutLoading ? "Redirecting…" : "Unlock Premium"}
-            </button>
+            {isNative ? (
+              <p className="mt-1 text-xs text-gray-500">Unlock Premium at reawarding.com</p>
+            ) : (
+              <button
+                onClick={handleUpgrade}
+                disabled={checkoutLoading}
+                className="mt-1 px-4 py-1.5 text-xs font-medium text-black bg-gold-500 rounded hover:bg-gold-400 disabled:opacity-50"
+              >
+                {checkoutLoading ? "Redirecting…" : "Unlock Premium"}
+              </button>
+            )}
             {checkoutError && (
               <p className="text-xs text-red-400 max-w-[240px]">{checkoutError}</p>
             )}

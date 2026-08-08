@@ -322,10 +322,16 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 									</p>
 								</div>
 							) : (
-								<div className="flex items-center rounded-b-lg w-full px-3 py-2 gap-2 justify-between">
+								<div className="flex items-center rounded-b-lg w-full px-2 py-2 gap-1.5 justify-between">
+									{/* Icon-only: at 3-up mobile grid width, "Unseen" + a Rate
+									    pill side by side overflow the card and get clipped by
+									    the card's overflow-hidden. Same icon-only treatment as
+									    CompactCard's mobile row. */}
 									<SeenItButton
 										seenIt={seenIt ?? false}
-										showText={!footerAction}
+										showText={false}
+										size="sm"
+										variant="compact"
 										className="shrink-0"
 										onClick={() => {
 											const newSeenIt = !(seenIt ?? false);
@@ -337,10 +343,10 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 										<button
 											type="button"
 											onClick={() => setShowRatingModal(true)}
-											className={`font-bold px-2 py-1 min-h-[44px] rounded-lg border transition-colors active:scale-95 ${
+											className={`font-bold px-1 py-0.5 min-h-[32px] rounded-lg border transition-colors active:scale-95 ${
 												rating
-													? "text-sm min-w-[44px] border-gray-700"
-													: "text-xs min-w-[48px] border-gray-600/50 hover:border-gray-500/70 hover:brightness-125"
+													? "text-sm min-w-[28px] border-gray-700"
+													: "text-xs min-w-[32px] border-gray-600/50 hover:border-gray-500/70 hover:brightness-125"
 											}`}
 											style={rating
 												? { backgroundColor: style.background, color: style.text }
@@ -372,7 +378,14 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 				{/* Title beneath poster (only when NOT in ratingOnly mode, which shows title in overlay) */}
 				{!ratingOnly && (
 					<div className="px-2.5 py-2">
-						<p className="text-xs font-medium text-always-white leading-snug line-clamp-2">
+						{/* min-h reserves space for a full 2-line title (line-clamp-2's
+						    cap) even when this particular title is one line — otherwise
+						    a short title on the carousel's measured sample card understates
+						    the caption height, and a longer, wrapped title on another page
+						    gets its second line clipped by the carousel's shared frame
+						    height (see NomineeCardCarousel). Also keeps grid rows level
+						    when title lengths vary. */}
+						<p className="text-xs font-medium text-always-white leading-snug line-clamp-2 min-h-[33px]">
 							{movie.title}
 						</p>
 					</div>
@@ -387,6 +400,7 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 					posterUrl={movie.poster_url}
 					currentRating={rating || null}
 					movieId={movie.id}
+					movieYear={movie.release_year ?? undefined}
 					onRate={(value) => onUpdate?.(movie.id, { ranking: value })}
 					onClose={() => setShowRatingModal(false)}
 				/>
@@ -820,6 +834,7 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 					posterUrl={movie.poster_url}
 					currentRating={rating || null}
 					movieId={movie.id}
+					movieYear={movie.release_year ?? undefined}
 					onRate={(value) => onUpdate?.(movie.id, { ranking: value })}
 					onClose={() => setShowRatingModal(false)}
 				/>

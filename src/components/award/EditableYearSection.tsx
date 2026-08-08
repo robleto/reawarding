@@ -7,6 +7,7 @@ import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } 
 import { CSS } from "@dnd-kit/utilities";
 import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, GripVertical, Star, Check, Trophy, Plus } from "lucide-react";
 import MovieCard from "./MovieCard";
+import NomineeCardCarousel from "./NomineeCardCarousel";
 import WinnerCard from "./WinnerCard";
 import AwardCard from "@/components/home/AwardCard";
 import AcademyStamp from "./AcademyStamp";
@@ -1209,10 +1210,12 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                 </div>
                 {displayWinner ? (
                   <>
-                    {/* Mobile: the canonical gilt award artifact — full width
-                        so it reads as the marquee piece, not a card the same
-                        size as (or smaller than) the nominee grid beneath it. */}
-                    <div className="flex justify-center md:hidden">
+                    {/* Mobile: the canonical gilt award artifact, fixed above
+                        the nominee shelf — the winner doesn't swipe away as
+                        part of a carousel; it gets its own standalone reveal,
+                        and the nominees below are a separate, uniform-size
+                        browsing shelf (see NomineeCardCarousel). */}
+                    <div className="md:hidden flex justify-center mb-4">
                       <AwardCard
                         year={Number(year)}
                         winnerTitle={displayWinner.title}
@@ -1224,6 +1227,11 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         academyStatus={academyStatus}
                       />
                     </div>
+                    <NomineeCardCarousel
+                      nominees={displayNominees}
+                      winnerId={displayWinner.id}
+                      onSelect={handleOpenModal}
+                    />
                     {/* Desktop: full-column featured poster beside the grid */}
                     <div className="hidden md:block">
                       <WinnerCard
@@ -1246,14 +1254,31 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
               {/* Nominees */}
               <div className={`w-full ${compact ? "" : "md:w-2/3"}`}>
-                {/* Section header row — nominees label + count. On desktop
-                    Edit ballot lives in the card's lower-right instead (see
-                    below); mobile keeps it here since there's no separate
-                    lower-right slot on the stacked mobile layout. items-start
-                    (not items-center) keeps "Nominees" aligned with "Best
-                    Picture" regardless of what renders in this row. */}
-                <div className="flex flex-wrap items-start justify-between gap-y-2 mb-3">
-                  <div className="flex items-baseline gap-3">
+                {/* Section header row. On mobile, read mode has already
+                    shown the nominees as carousel slides above — repeating
+                    a "Nominees" label + ballot-completeness badge here reads
+                    as introducing content that isn't there, and ballot
+                    talk (Full Ballot, N more films) is an editing concern,
+                    not a reading one. The label/count stays desktop-only,
+                    where it genuinely introduces the grid that follows.
+                    Workshop (editing) keeps the label/count on every
+                    breakpoint — actively building the ballot is exactly
+                    when that count matters. items-start (not items-center)
+                    keeps "Nominees" aligned with "Best Picture" regardless
+                    of what renders in this row.
+                    Edit ballot itself only lives here in compact mode
+                    (no outer year heading to flank it there). Non-compact
+                    mobile puts it beside the year heading instead — see the
+                    bottom return statement — so it isn't stranded on its
+                    own line below the carousel. */}
+                {/* justify-center (mobile) assumed a single centered "Edit
+                    ballot" button; workshop mode always shows two separate
+                    status groups here (ballot progress, save state) that
+                    read as unrelated floating badges when centered together
+                    instead of anchored to opposite edges like the ballot
+                    rows below them. */}
+                <div className={`flex flex-wrap items-start gap-y-2 mb-3 ${isWorkshop ? "justify-between" : "justify-center md:justify-between"}`}>
+                  <div className={`items-baseline gap-3 ${isWorkshop ? "flex" : "hidden md:flex"}`}>
                     <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-gray-500">Nominees</p>
                     {(() => {
                       const count = isWorkshop ? activeWorkshopNominees.length : nomineeCount;
@@ -1264,7 +1289,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     })()}
                   </div>
                   <div className="flex items-center gap-2">
-                    {user && !isEditing && !isWorkshop && (
+                    {compact && user && !isEditing && !isWorkshop && (
                       <button
                         onClick={onEditRequest ?? handleStartEditing}
                         className="md:hidden flex items-center gap-1.5 min-h-[44px] px-3.5 text-sm font-medium text-gray-300 border border-gray-700/40 rounded-lg hover:text-white hover:border-gray-600 hover:bg-gray-800/60 transition-all"
@@ -1360,41 +1385,31 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                   </>
                 ) : (
                   /* Responsive nominee grid using unified MovieCard:
-                     mobile  → 2-col nomination-card poster grid
+                     mobile  → free-scrolling shelf (NomineeCardCarousel)
                      desktop → 5-column poster grid (2 rows of 5) */
                   <>
-                    {/* Desktop: 5-col poster grid */}
+                    {/* Desktop: 5-col poster grid — alphabetical, matching
+                        the mobile shelf (NomineeCardCarousel): this is a
+                        ballot to browse, not a leaderboard, so rank order
+                        shouldn't leak into read mode and put the winner in
+                        the first slot every time. Winner stays in the list,
+                        trophy-badged, for the same reason the shelf
+                        keeps it — same rationale, same behavior on both. */}
                     <div className="hidden md:grid md:grid-cols-5 gap-2">
-                      {displayNominees.map((movie, index) => (
-                        <MovieCard
-                          key={movie.id}
-                          movie={movie}
-                          variant="grid"
-                          isWinner={displayWinner?.id === movie.id}
-                          onClick={() => handleOpenModal(movie)}
-                        />
-                      ))}
-                    </div>
-                    {/* Mobile: nomination-card poster grid. Every card keeps
-                        its rating badge in the lower-right — that number is
-                        still real, useful information. The winner is marked
-                        by a small cup icon in the lower-left instead, so the
-                        two corners never compete. */}
-                    <div className="grid grid-cols-2 gap-2.5 md:hidden">
-                      {displayNominees.map((movie) => {
-                        const isTheWinner = displayWinner?.id === movie.id;
-                        return (
+                      {[...displayNominees]
+                        .sort((a, b) => a.title.localeCompare(b.title))
+                        .map((movie) => (
                           <MovieCard
                             key={movie.id}
                             movie={movie}
                             variant="grid"
-                            isWinner={isTheWinner}
-                            winnerLabel
+                            isWinner={displayWinner?.id === movie.id}
                             onClick={() => handleOpenModal(movie)}
                           />
-                        );
-                      })}
+                        ))}
                     </div>
+                    {/* Mobile nominees now live in the shelf above (see the
+                        winner column) — nothing to render here below md. */}
                     {displayNominees.length === 0 && (
                       <p className="text-xs text-gray-500 py-3 text-center">No nominees yet.</p>
                     )}
@@ -1406,9 +1421,10 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         render — in-flow (not absolutely positioned) so it always
                         claims its own space, instead of floating over the grid
                         when a short winner title leaves the poster column
-                        shorter than the nominees column. Desktop only; mobile
-                        keeps its own Edit ballot copy in the header above. */}
-                    <div className="mt-4 flex items-center justify-between gap-2">
+                        shorter than the nominees column. Desktop only (hidden
+                        md:flex) — mobile gets the single consolidated line
+                        above instead of this whole stack. */}
+                    <div className="hidden md:flex mt-4 items-center justify-between gap-2">
                       <div className="space-y-0.5">
                         {nomineeCount < 10 && nomineeCount >= 5 && (
                           <p className="text-sm text-gray-500">
@@ -1647,10 +1663,27 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
       <div className="relative flex flex-col gap-3 md:flex-row md:gap-10">
         {/* Year label — bright section header on mobile (it's the only header
             there); reverts to the dim rotated watermark beside the desktop
-            timeline where the card carries the visual weight. */}
-        <h2 className="md:absolute block top-0 md:top-[120px] left-0 text-2xl md:text-3xl font-bold text-gray-100 md:text-gray-600/60 mt-0 md:mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-[0.25em]">
-          {year}
-        </h2>
+            timeline where the card carries the visual weight. Edit ballot
+            flanks it on mobile (display:contents so the wrapper itself
+            doesn't disturb h2's md:absolute escape from this flex row) —
+            one line with the year instead of a stranded line of its own
+            below the carousel. Desktop keeps its own Edit ballot placement
+            beside the nominee grid (see contentBlock), so the button here
+            is mobile-only. */}
+        <div className="flex items-center justify-between gap-3 md:contents">
+          <h2 className="md:absolute block top-0 md:top-[120px] left-0 text-2xl md:text-3xl font-bold text-gray-100 md:text-gray-600/60 mt-0 md:mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-[0.25em]">
+            {year}
+          </h2>
+          {user && !isEditing && !isWorkshop && (
+            <button
+              onClick={onEditRequest ?? handleStartEditing}
+              className="md:hidden flex items-center gap-1.5 min-h-[44px] px-3.5 text-sm font-medium text-gray-300 border border-gray-700/40 rounded-lg hover:text-white hover:border-gray-600 hover:bg-gray-800/60 transition-all flex-shrink-0"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              Edit ballot
+            </button>
+          )}
+        </div>
         <div className="top-0 bottom-0 flex-col items-center hidden md:absolute md:flex left-4">
           <div className="w-4 h-4 mt-2 bg-gray-600 border-2 border-gray-900 rounded-full" />
           <div className="w-px flex-1 bg-gray-700/50" />
@@ -1719,30 +1752,35 @@ function WorkshopNomineeRow({
           <GripVertical className="w-5 h-5" />
         </button>
 
-        {/* Rank number — the ballot is ordered, same column as the display rows */}
-        <div className="w-5 flex items-center justify-end text-xs font-mono font-bold text-gray-400 tabular-nums select-none pr-1">
-          {rank}
-        </div>
-
-        {/* Thumbnail — matches MovieCard compact variant (fixed 2:3 poster crop) */}
+        {/* Thumbnail — matches MovieCard compact variant (fixed 2:3 poster
+            crop). Rank sits on its corner rather than its own column — that
+            column was stealing ~24px from the title, which is what made
+            titles like "Thunderbolts*" break mid-word on narrow phones. */}
         <div className="relative flex-shrink-0 overflow-hidden bg-gray-800 rounded-md shadow-md" style={{ width: 48, height: 72 }}>
           {thumbSrc ? (
             <img src={thumbSrc} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="flex items-center justify-center w-full h-full"><Film className="w-4 h-4 text-gray-600" /></div>
           )}
+          <span className="absolute top-0.5 left-0.5 min-w-[16px] h-4 px-0.5 flex items-center justify-center rounded-full bg-always-black/70 backdrop-blur-sm text-[9px] font-mono font-bold text-always-white tabular-nums leading-none">
+            {rank}
+          </span>
         </div>
 
         {/* Title — matches MovieCard compact variant */}
         <p className="flex-1 min-w-0 px-2 text-sm font-semibold text-white leading-tight line-clamp-2 break-words">{movie.title}</p>
 
-        {/* Rating badge — same 44px labeled chip as the display rows */}
+        {/* Rating badge — on this row it's mostly read, not set (winner
+            pick and nominee promotion read off it; the drag handle, trophy
+            and remove buttons are the actual editing controls here), so it
+            doesn't need the same size as a primary tap target. Still opens
+            the rating modal on tap. */}
         <div className="flex-shrink-0 flex flex-col items-center">
           <button
             type="button"
             onClick={() => setShowRatingModal(true)}
             data-tour-target="rating-badge"
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center text-base font-mono font-bold tabular-nums rounded-md shadow-sm transition-transform active:scale-95"
+            className="min-w-[32px] min-h-[32px] px-1 flex items-center justify-center text-sm font-mono font-bold tabular-nums rounded-md shadow-sm transition-transform active:scale-95"
             style={ranking > 0 ? { backgroundColor: ratingStyle.background, color: ratingStyle.text } : { backgroundColor: 'rgba(75,85,99,0.4)', color: '#9ca3af' }}
           >
             {ranking > 0 ? ranking : <span className="text-sm font-sans">Rate</span>}
@@ -1752,29 +1790,32 @@ function WorkshopNomineeRow({
           )}
         </div>
 
-        {/* Winner toggle */}
-        <button
-          type="button"
-          onClick={onSetWinner}
-          className={`flex-shrink-0 p-2 rounded-full border transition-colors ${
-            isWinner
-              ? "bg-gold-400 text-black border-gold-300"
-              : "text-gray-500 border-gray-600 hover:text-gold-300 hover:border-gold-400/60"
-          }`}
-          aria-label={isWinner ? "Current winner" : "Set as winner"}
-        >
-          <Trophy className="w-3 h-3" />
-        </button>
+        {/* Winner toggle + remove — stacked, not side-by-side (same layout
+            as DraggableNomineeCard's sibling row), so the two buttons cost
+            one column of width instead of two. */}
+        <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+          <button
+            type="button"
+            onClick={onSetWinner}
+            className={`p-1.5 rounded-full border transition-colors ${
+              isWinner
+                ? "bg-gold-400 text-black border-gold-300"
+                : "text-gray-500 border-gray-600 hover:text-gold-300 hover:border-gold-400/60"
+            }`}
+            aria-label={isWinner ? "Current winner" : "Set as winner"}
+          >
+            <Trophy className="w-3 h-3" />
+          </button>
 
-        {/* Remove */}
-        <button
-          type="button"
-          onClick={onRemove}
-          className="flex-shrink-0 p-2 text-gray-500 hover:text-red-400 transition-colors"
-          aria-label="Remove nominee"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="p-1.5 text-gray-500 hover:text-red-400 transition-colors"
+            aria-label="Remove nominee"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       <RatingModal
@@ -1783,6 +1824,7 @@ function WorkshopNomineeRow({
         posterUrl={movie.poster_url}
         currentRating={ranking || null}
         movieId={movie.id}
+        movieYear={movie.release_year ?? undefined}
         onRate={(value) => onRankingChange(value)}
         onClose={() => setShowRatingModal(false)}
       />

@@ -725,7 +725,11 @@ export default function YearExplorer({
   const ratedFilmsForYearCount = moviesWithRankings.length;
   const showBallotFraming = ratedFilmsForYearCount >= 3;
   return (
-    <div className="p-4 md:p-6 min-h-[70vh] animate-in fade-in slide-in-from-top-2 duration-300">
+    // Horizontal padding is AppShell's job (main has px-4 sm:px-6) — adding
+    // our own here double-padded phones, shrinking every ballot row ~32px
+    // for no visual reason (see the .award-editable-section full-bleed
+    // fix in globals.css, which fixed the same problem one layer down).
+    <div className="py-4 md:p-6 min-h-[70vh] animate-in fade-in slide-in-from-top-2 duration-300">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div>
@@ -770,10 +774,16 @@ export default function YearExplorer({
         </div>
       </div>
 
-      {/* Instructional sub-header */}
-      <p className="text-xs text-gray-500 mb-1">
-        Rate films to build your ballot. Rate 7+ to auto-nominate. Your highest-ranked film becomes Best Picture.
-      </p>
+      {/* Instructional sub-header — same earned-framing gate as the title
+          above and the "Will your ballot agree?" line below: once there's
+          enough signal that this user already knows the mechanic, stop
+          repeating it. This one had been left unconditional by oversight,
+          so it kept showing even on a fully-built 10/10 ballot. */}
+      {!showBallotFraming && (
+        <p className="text-xs text-gray-500 mb-1">
+          Rate films to build your ballot. Rate 7+ to auto-nominate. Your highest-ranked film becomes Best Picture.
+        </p>
+      )}
       {actualWinner && (
         <p className="text-xs text-gray-400 mb-4">
           The Academy chose{" "}
@@ -826,17 +836,8 @@ export default function YearExplorer({
             <div className="flex items-center gap-2 mb-2">
               <Trophy className={`w-3.5 h-3.5 ${liveNomineeCount >= 5 ? "text-gold-400" : "text-gold-400/70"}`} />
               <span className="text-xs font-medium text-gray-400">
-                {liveNomineeCount} of 10 nominees
+                {liveNomineeCount}/10 nominees
               </span>
-              {liveNomineeCount >= 10 ? (
-                <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">
-                  Ballot full
-                </span>
-              ) : liveNomineeCount >= 5 ? (
-                <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">
-                  Minimum reached
-                </span>
-              ) : null}
             </div>
             {/* Progress bar — 10 segments with a subtle gap after the 5th to mark the minimum */}
             <div className="flex gap-1">
@@ -851,28 +852,6 @@ export default function YearExplorer({
                 />
               ))}
             </div>
-            {/* Labels positioned to sit under the 5th and 10th segments, not the
-                far-left and far-right of the row. Each span takes 50% of the width
-                with right-aligned text. */}
-            <div className="mt-1 flex text-[10px] text-gray-500">
-              <span className="flex-1 text-right pr-1.5">5 minimum</span>
-              <span className="flex-1 text-right">10 maximum</span>
-            </div>
-            {/* Close race indicator */}
-            {displayNominees.length >= 2 && (() => {
-              const top = displayNominees[0];
-              const runner = displayNominees[1];
-              const topRating = top.rankings?.[0]?.ranking ?? 0;
-              const runnerRating = runner.rankings?.[0]?.ranking ?? 0;
-              if (topRating > 0 && runnerRating > 0 && topRating - runnerRating <= 1) {
-                return (
-                  <p className="mt-2 text-[11px] text-amber-400/80 font-medium">
-                    Close race — {runner.title} is right behind {top.title}
-                  </p>
-                );
-              }
-              return null;
-            })()}
           </div>
 
           {/* Contextual tips */}

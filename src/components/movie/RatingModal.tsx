@@ -3,16 +3,16 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@supabase/auth-helpers-react";
-import { Check, PenLine, Star, X } from "lucide-react";
+import { Check, PenLine, Star, Trophy, X } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import { slugifyTitle } from "@/utils/slug";
 
 // ─── Timing constants ─────────────────────────────────────────────────────────
 const DWELL_MS        = 500;  // confirmation visible before fade begins
-const INVITE_DWELL_MS = 2200; // longer beat when the take invite is shown (7+, logged in)
+const INVITE_DWELL_MS = 2200; // longer beat for any 7+ rating — the ballot link (and, for logged-in users, the take invite) needs time to be read and acted on
 const FADE_MS         = 200;  // modal fade-out animation duration
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -60,6 +60,7 @@ export default function RatingModal({
   onClose,
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
   const user = useUser();
   const panelRef    = useRef<HTMLDivElement>(null);
   const dwellTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,15 +73,21 @@ export default function RatingModal({
   // Without this, the tap closes RatingModal instantly with nothing else
   // visibly happening in that gap, which reads as broken.
   const [navigatingToTake, setNavigatingToTake] = useState(false);
+  // Separate from navigatingToTake: rating and take are different followups
+  // (write a review vs. check the year's race) and can both be offered, so
+  // each needs its own loading state.
+  const [navigatingToBallot, setNavigatingToBallot] = useState(false);
 
-  // Reset on every open — including navigatingToTake, since this component
-  // stays mounted across close/reopen (visibility is gated by `isOpen` below,
-  // not by unmounting) rather than clearing its own state on close.
+  // Reset on every open — including navigatingToTake/navigatingToBallot,
+  // since this component stays mounted across close/reopen (visibility is
+  // gated by `isOpen` below, not by unmounting) rather than clearing its
+  // own state on close.
   useEffect(() => {
     if (isOpen) {
       setPhase("idle");
       setSelected(null);
       setNavigatingToTake(false);
+      setNavigatingToBallot(false);
     }
   }, [isOpen]);
 
@@ -90,12 +97,20 @@ export default function RatingModal({
     if (closeTimer.current) clearTimeout(closeTimer.current);
   }, []);
 
-  // The invite only appears for logged-in users when the caller supplied a
-  // movie id; guests land on the film page's entry panel, not the editor.
+  // The take invite only appears for logged-in users when the caller
+  // supplied a movie id; guests land on the film page's entry panel, not
+  // the editor. The ballot link has no such requirement — checking whether
+  // a film just became a nominee (or the frontrunner) doesn't need an
+  // account, so it's offered to everyone on a 7+ rating.
   const canInvite = !!movieId && !!user;
+  const isNominee = selectedRating != null && selectedRating >= 7;
+  // Computed early (not in the render tail below) so handleViewBallot can
+  // depend on it.
+  const confirmYear = movieYear ?? new Date().getFullYear();
 
-  // Skip the remaining dwell and close now — used when the invite beat is
-  // showing and the user wants to keep moving.
+  // Skip the remaining dwell and close now — used when the extended beat
+  // (take invite and/or ballot link) is showing and the user wants to keep
+  // moving.
   const dismissEarly = useCallback(() => {
     if (dwellTimer.current) clearTimeout(dwellTimer.current);
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -103,12 +118,12 @@ export default function RatingModal({
     closeTimer.current = setTimeout(onClose, FADE_MS);
   }, [onClose]);
 
-  // Escape — during idle closes immediately; during the invite beat it
+  // Escape — during idle closes immediately; during the extended beat it
   // dismisses early (the short standard confirmation finishes naturally)
   useEffect(() => {
     if (!isOpen) return;
-    const inInviteBeat = phase === "confirmed" && canInvite;
-    if (phase !== "idle" && !inInviteBeat) return;
+    const inExtendedBeat = phase === "confirmed" && isNominee;
+    if (phase !== "idle" && !inExtendedBeat) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (phase === "idle") onClose();
@@ -116,7 +131,7 @@ export default function RatingModal({
     };
     document.addEventListener("keydown", handler, true);
     return () => document.removeEventListener("keydown", handler, true);
-  }, [isOpen, phase, canInvite, onClose, dismissEarly]);
+  }, [isOpen, phase, isNominee, onClose, dismissEarly]);
 
   // Body scroll lock
   useEffect(() => {
@@ -139,12 +154,13 @@ export default function RatingModal({
     setSelected(num);
     setPhase("confirmed");
 
-    // Nominee ratings with the invite hold the beat longer so it can be acted
-    // on; everything else keeps the fast-loop rhythm.
-    const dwell = canInvite && num >= 7 ? INVITE_DWELL_MS : DWELL_MS;
+    // Nominee ratings hold the beat longer so the ballot link (and, when
+    // offered, the take invite) can actually be read and acted on;
+    // everything else keeps the fast-loop rhythm.
+    const dwell = num >= 7 ? INVITE_DWELL_MS : DWELL_MS;
     dwellTimer.current = setTimeout(() => setPhase("closing"), dwell);
     closeTimer.current = setTimeout(onClose, dwell + FADE_MS);
-  }, [onRate, onClose, canInvite]);
+  }, [onRate, onClose]);
 
   // Navigate to the film page's Your Take editor. Deliberately does NOT call
   // onClose() — the film page is a server component with its own data fetch,
@@ -158,6 +174,26 @@ export default function RatingModal({
     router.push(`/films/${slugifyTitle(movieTitle)}/${movieId}`);
   }, [router, movieTitle, movieId]);
 
+  // Navigate to that year's ballot — same "stay mounted through the gap"
+  // reasoning as handleAddTake. No login/movieId requirement: this is the
+  // one followup available to guests too.
+  //
+  // Ratings often happen from inside that year's own page already (e.g. the
+  // discovery grid below the ballot) — pushing to the URL you're already on
+  // is a no-op navigation, so the modal would sit on "Opening…" forever
+  // with nothing to unmount it. Just close instead when there's nowhere to go.
+  const handleViewBallot = useCallback(() => {
+    if (dwellTimer.current) clearTimeout(dwellTimer.current);
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    const target = `/year/${confirmYear}`;
+    if (pathname === target) {
+      onClose();
+      return;
+    }
+    setNavigatingToBallot(true);
+    router.push(target);
+  }, [router, pathname, confirmYear, onClose]);
+
   if (!isOpen) return null;
 
   const normalized = normalizeImageUrl(posterUrl ?? "");
@@ -168,8 +204,6 @@ export default function RatingModal({
   );
 
   const isConfirming = phase !== "idle";
-  const isNominee    = selectedRating != null && selectedRating >= 7;
-  const confirmYear  = movieYear ?? new Date().getFullYear();
   const showInvite   = isNominee && canInvite;
 
   return createPortal(
@@ -183,7 +217,7 @@ export default function RatingModal({
       <button
         type="button"
         aria-label="Close rating"
-        disabled={isConfirming && !showInvite}
+        disabled={isConfirming && !isNominee}
         className={`absolute inset-0 bg-black/70 backdrop-blur-sm ${
           phase === "closing"
             ? "animate-out fade-out duration-200"
@@ -192,7 +226,7 @@ export default function RatingModal({
         onClick={
           phase === "idle"
             ? onClose
-            : phase === "confirmed" && showInvite
+            : phase === "confirmed" && isNominee
             ? dismissEarly
             : undefined
         }
@@ -230,12 +264,30 @@ export default function RatingModal({
                 : `Rated ${selectedRating}. Keep rating to build the field.`
               }
             </p>
+            {/* Ballot link — no login/movieId gate, unlike "Add your take"
+                below: checking whether this just became a nominee (or the
+                frontrunner) is core to the app's loop for every user. */}
+            {isNominee && (
+              <button
+                type="button"
+                onClick={handleViewBallot}
+                disabled={navigatingToBallot}
+                className="mt-2.5 flex items-center gap-1.5 text-sm font-medium text-gold-300 hover:text-gold-200 transition-colors animate-in fade-in duration-300 disabled:opacity-70"
+              >
+                {navigatingToBallot ? (
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-gold-300/30 border-t-gold-300 animate-spin" />
+                ) : (
+                  <Trophy className="w-3.5 h-3.5" />
+                )}
+                {navigatingToBallot ? "Opening…" : `View ${confirmYear} ballot`}
+              </button>
+            )}
             {showInvite && (
               <button
                 type="button"
                 onClick={handleAddTake}
                 disabled={navigatingToTake}
-                className="mt-2.5 inline-flex items-center gap-1.5 text-sm font-medium text-gold-300 hover:text-gold-200 transition-colors animate-in fade-in duration-300 disabled:opacity-70"
+                className="mt-1.5 flex items-center gap-1.5 text-sm font-medium text-gold-300 hover:text-gold-200 transition-colors animate-in fade-in duration-300 disabled:opacity-70"
               >
                 {navigatingToTake ? (
                   <span className="w-3.5 h-3.5 rounded-full border-2 border-gold-300/30 border-t-gold-300 animate-spin" />

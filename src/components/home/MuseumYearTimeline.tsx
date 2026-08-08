@@ -13,6 +13,11 @@ interface Props {
   onSelectYear: (year: number) => void;
   /** Text appended after the count (e.g. "/10" for nominee slots). Pass "" to show a bare count. Defaults to "/10". */
   subLabelSuffix?: string;
+  /** Set false to omit the count line under the year entirely — for
+      contexts (e.g. the awards archive scrubber) where ballot-slot
+      completion isn't relevant to what the timeline is navigating.
+      Defaults to true. */
+  showSubLabel?: boolean;
 }
 
 /**
@@ -22,7 +27,7 @@ interface Props {
  * skipped years. Sorted newest → oldest. The active chip scrolls into
  * view when activeYear changes.
  */
-export default function MuseumYearTimeline({ years, activeYear, onSelectYear, subLabelSuffix = "/10" }: Props) {
+export default function MuseumYearTimeline({ years, activeYear, onSelectYear, subLabelSuffix = "/10", showSubLabel = true }: Props) {
   const activeChipRef = useRef<HTMLButtonElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
   const sorted = [...years].sort((a, b) => b.year - a.year);
@@ -76,13 +81,15 @@ export default function MuseumYearTimeline({ years, activeYear, onSelectYear, su
                 >
                   {yl.year}
                 </span>
-                <span
-                  className={`text-[10px] tabular-nums leading-none ${
-                    isActive ? "text-gold-500/60" : "text-gray-700"
-                  }`}
-                >
-                  {yl.nomineeCount}{subLabelSuffix}
-                </span>
+                {showSubLabel && (
+                  <span
+                    className={`text-[10px] tabular-nums leading-none ${
+                      isActive ? "text-gold-500/60" : "text-gray-700"
+                    }`}
+                  >
+                    {yl.nomineeCount}{subLabelSuffix}
+                  </span>
+                )}
               </button>
 
               {nextYl && (
