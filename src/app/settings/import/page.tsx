@@ -435,6 +435,12 @@ export default function ImportPage() {
                   <p key={i} className="text-sm text-gray-500 px-1">{title}</p>
                 ))}
               </div>
+              {!!result.backfillCapped && (
+                <p className="mt-3 text-xs text-gray-600">
+                  {result.backfillCapped} of these weren&apos;t checked against our catalog source this
+                  run — re-import the file to pick up more of them.
+                </p>
+              )}
             </details>
           )}
 

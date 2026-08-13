@@ -43,7 +43,9 @@ interface TMDBDiscoverResult {
 interface DiscoverOptions {
   pages: number;
   revenuePages: number;
+  qualityPages: number;
   yearFrom?: number;
+  year?: number;
   minVotes?: number;
 }
 
@@ -54,7 +56,7 @@ function parseNumberArg(value: string | undefined) {
 }
 
 function parseArgs(argv: string[]): DiscoverOptions {
-  const opts: DiscoverOptions = { pages: 10, revenuePages: 5 };
+  const opts: DiscoverOptions = { pages: 10, revenuePages: 5, qualityPages: 0 };
 
   for (const arg of argv) {
     if (arg === '--help' || arg === '-h') {
@@ -72,8 +74,14 @@ function parseArgs(argv: string[]): DiscoverOptions {
       case '--revenue-pages':
         opts.revenuePages = parseNumberArg(value) ?? opts.revenuePages;
         break;
+      case '--quality-pages':
+        opts.qualityPages = parseNumberArg(value) ?? opts.qualityPages;
+        break;
       case '--year-from':
         opts.yearFrom = parseNumberArg(value);
+        break;
+      case '--year':
+        opts.year = parseNumberArg(value);
         break;
       case '--min-votes':
         opts.minVotes = parseNumberArg(value);
@@ -90,10 +98,15 @@ function printHelp() {
   console.log(`\nTMDB Discover Importer\n`);
   console.log(`Usage:`);
   console.log(`  tsx scripts/import_tmdb_discover.ts --pages=10 --revenue-pages=5 --year-from=2018 --min-votes=200`);
+  console.log(`  tsx scripts/import_tmdb_discover.ts --pages=0 --revenue-pages=0 --quality-pages=5 --year=2023 --min-votes=300`);
   console.log(`\nOptions:`);
-  console.log(`  --pages           Number of popularity pages to fetch (default: 10)`);
-  console.log(`  --revenue-pages   Number of revenue pages to fetch (default: 5)`);
+  console.log(`  --pages           Number of popularity.desc pages to fetch (default: 10)`);
+  console.log(`  --revenue-pages   Number of revenue.desc pages to fetch (default: 5)`);
+  console.log(`  --quality-pages   Number of vote_count.desc pages to fetch (default: 0 — opt-in)`);
+  console.log(`                    Surfaces acclaimed/limited-release titles that never chart on`);
+  console.log(`                    today's popularity or revenue (e.g. festival/awards films).`);
   console.log(`  --year-from       Filter releases on/after Jan 1 of this year`);
+  console.log(`  --year            Filter to an exact release year (primary_release_year)`);
   console.log(`  --min-votes       Minimum TMDB vote_count to include`);
 }
 
@@ -107,7 +120,9 @@ function buildDiscoverUrl(sortBy: string, page: number, opts: DiscoverOptions) {
     page: String(page),
   });
 
-  if (opts.yearFrom) {
+  if (opts.year) {
+    params.set('primary_release_year', String(opts.year));
+  } else if (opts.yearFrom) {
     params.set('primary_release_date.gte', `${opts.yearFrom}-01-01`);
   }
 
@@ -189,6 +204,8 @@ async function run() {
   console.log(`\n🔎 TMDB discover import`);
   console.log(`  Popularity pages: ${opts.pages}`);
   console.log(`  Revenue pages: ${opts.revenuePages}`);
+  if (opts.qualityPages) console.log(`  Quality (vote_count) pages: ${opts.qualityPages}`);
+  if (opts.year) console.log(`  Year: ${opts.year}`);
   if (opts.yearFrom) console.log(`  Year from: ${opts.yearFrom}`);
   if (opts.minVotes) console.log(`  Min votes: ${opts.minVotes}`);
 
@@ -202,6 +219,11 @@ async function run() {
   const batches: Array<{ label: string; sortBy: string; pages: number }> = [
     { label: 'popularity', sortBy: 'popularity.desc', pages: opts.pages },
     { label: 'revenue', sortBy: 'revenue.desc', pages: opts.revenuePages },
+    // Surfaces acclaimed/limited-release titles (festival films, awards
+    // contenders) that never top today's popularity or revenue charts but
+    // accumulate real vote counts over time — the coverage gap that made
+    // e.g. Poor Things / Past Lives / Anatomy of a Fall (2023) missing.
+    { label: 'quality', sortBy: 'vote_count.desc', pages: opts.qualityPages },
   ];
 
   for (const batch of batches) {

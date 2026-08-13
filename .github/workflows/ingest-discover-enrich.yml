@@ -24,6 +24,14 @@ on:
         description: 'Minimum TMDB vote_count (optional)'
         required: false
         default: ''
+      quality_pages:
+        description: 'vote_count-sorted pages to fetch for the current/prior year (catches acclaimed titles that never chart on popularity/revenue)'
+        required: false
+        default: '3'
+      quality_min_votes:
+        description: 'Minimum TMDB vote_count for the quality pass'
+        required: false
+        default: '150'
       limit:
         description: 'Max movies to enrich'
         required: false
@@ -79,6 +87,22 @@ jobs:
           if [ -n "$MIN_VOTES" ]; then ARGS+=("--min-votes=$MIN_VOTES"); fi
 
           npm run ingest:discover -- "${ARGS[@]}"
+
+      - name: Discover acclaimed titles missed by popularity/revenue (current + prior year)
+        run: |
+          QUALITY_PAGES=${{ github.event.inputs.quality_pages || '3' }}
+          QUALITY_MIN_VOTES=${{ github.event.inputs.quality_min_votes || '150' }}
+          CURRENT_YEAR=$(date +%Y)
+          PRIOR_YEAR=$((CURRENT_YEAR - 1))
+
+          # Sorts by vote_count instead of today's popularity/revenue, so
+          # limited-release/festival/awards titles that build up votes over
+          # time (e.g. Poor Things, Past Lives, Anatomy of a Fall) get caught
+          # instead of only ever surfacing via the historical backfill.
+          npm run ingest:discover -- --pages=0 --revenue-pages=0 \
+            --quality-pages="$QUALITY_PAGES" --year="$CURRENT_YEAR" --min-votes="$QUALITY_MIN_VOTES"
+          npm run ingest:discover -- --pages=0 --revenue-pages=0 \
+            --quality-pages="$QUALITY_PAGES" --year="$PRIOR_YEAR" --min-votes="$QUALITY_MIN_VOTES"
 
       - name: Enrich movies
         run: npm run ingest:enrich

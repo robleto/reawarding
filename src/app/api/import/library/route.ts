@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { isPremiumUser } from "@/lib/premium";
+import { findTmdbIdByImdbId, importTmdbMovie, searchTmdbMovies } from "@/lib/tmdbImport";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -27,7 +28,19 @@ export type ImportResult = {
   skipped: number;
   watchlistAdded: number;
   notFound: string[];
+  /** Set when more unmatched rows existed than the live-backfill cap could attempt this request. */
+  backfillCapped?: number;
 };
+
+// Netlify function time limits make unbounded sequential TMDB calls risky for
+// large Letterboxd exports — cap how many unmatched rows get a live lookup
+// per request. Anything beyond the cap still reports as notFound.
+const LIVE_BACKFILL_CAP = 75;
+const BACKFILL_CONCURRENCY = 5;
+
+function rowKey(row: Pick<ImportRow, "title" | "year" | "imdbId">) {
+  return row.imdbId || `${row.title.toLowerCase()}::${row.year}`;
+}
 
 // ── Route handler ─────────────────────────────────────────────────────────────
 
@@ -115,6 +128,44 @@ export async function POST(req: NextRequest) {
     ])
   );
 
+  const findLocalMatch = (row: ImportRow) =>
+    row.imdbId ? byImdbId.get(row.imdbId) : byTitleYear.get(rowKey(row));
+
+  // ── 2.5 Live TMDB backfill for rows with no local match ──
+  const unmatchedRows = rows.filter((row) => !findLocalMatch(row));
+  const toBackfill = unmatchedRows.slice(0, LIVE_BACKFILL_CAP);
+  const backfillCapped = Math.max(0, unmatchedRows.length - LIVE_BACKFILL_CAP);
+
+  const backfilledByKey = new Map<string, MovieMatch>();
+
+  async function backfillRow(row: ImportRow) {
+    try {
+      let tmdbId: number | null = null;
+      if (row.imdbId) {
+        tmdbId = await findTmdbIdByImdbId(row.imdbId);
+      } else {
+        const hits = await searchTmdbMovies(row.title);
+        tmdbId = hits.find((h) => h.releaseYear === row.year)?.tmdbId ?? null;
+      }
+      if (!tmdbId) return;
+
+      const imported = await importTmdbMovie(tmdbId, "csv-import");
+      backfilledByKey.set(rowKey(row), {
+        id: imported.id,
+        title: imported.title,
+        release_year: imported.release_year ?? row.year,
+        imdb_id: row.imdbId ?? null,
+      });
+    } catch (e) {
+      console.error(`Live backfill failed for "${row.title}" (${row.year})`, e);
+    }
+  }
+
+  for (let i = 0; i < toBackfill.length; i += BACKFILL_CONCURRENCY) {
+    const chunk = toBackfill.slice(i, i + BACKFILL_CONCURRENCY);
+    await Promise.all(chunk.map(backfillRow));
+  }
+
   // ── 3. Build rankings upsert payload ──
   const rankingsToUpsert: Array<{
     user_id: string;
@@ -129,9 +180,7 @@ export async function POST(req: NextRequest) {
   let watchlistAdded = 0;
 
   for (const row of rows) {
-    const movie = row.imdbId
-      ? byImdbId.get(row.imdbId)
-      : byTitleYear.get(`${row.title.toLowerCase()}::${row.year}`);
+    const movie = findLocalMatch(row) || backfilledByKey.get(rowKey(row));
 
     if (!movie) {
       notFound.push(`${row.title} (${row.year})`);
@@ -174,5 +223,6 @@ export async function POST(req: NextRequest) {
     skipped: Math.max(0, skipped),
     watchlistAdded,
     notFound,
+    backfillCapped: backfillCapped > 0 ? backfillCapped : undefined,
   } satisfies ImportResult);
 }

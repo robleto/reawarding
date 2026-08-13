@@ -1,9 +1,15 @@
 "use client";
 
 import React, { useRef, useState, useCallback } from "react";
-import { Search, X } from "lucide-react";
-import { supabase } from "@/lib/supabaseBrowser";
+import { Search, X, Plus, Loader2 } from "lucide-react";
 import type { Movie } from "@/types/types";
+
+type RemoteHit = {
+  tmdbId: number;
+  title: string;
+  releaseYear: number | null;
+  posterUrl: string | null;
+};
 
 interface Props {
   onSelect: (movie: Movie) => void;
@@ -37,9 +43,12 @@ export default function MovieSearchPicker({
 }: Props) {
   const [term, setTerm] = useState("");
   const [suggestions, setSuggestions] = useState<Movie[]>([]);
+  const [remoteSuggestions, setRemoteSuggestions] = useState<RemoteHit[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [importingTmdbId, setImportingTmdbId] = useState<number | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -47,25 +56,27 @@ export default function MovieSearchPicker({
     async (value: string) => {
       if (!value.trim()) {
         setSuggestions([]);
+        setRemoteSuggestions([]);
         setIsSearching(false);
         return;
       }
 
       setIsSearching(true);
+      setImportError(null);
 
-      let query = supabase
-        .from("movies")
-        .select("id, title, release_year, thumb_url, poster_url")
-        .ilike("title", `%${value}%`);
-
-      if (filterByYear) {
-        query = query.eq("release_year", filterByYear);
-      }
-
-      const { data, error } = await query.limit(7);
-
-      if (!error) {
-        setSuggestions((data || []) as Movie[]);
+      try {
+        const res = await fetch("/api/movies/search-live", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: value, year: filterByYear }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setSuggestions((data.local || []) as Movie[]);
+          setRemoteSuggestions((data.remote || []) as RemoteHit[]);
+        }
+      } catch {
+        // leave prior suggestions in place on transient network errors
       }
       setIsSearching(false);
     },
@@ -94,7 +105,30 @@ export default function MovieSearchPicker({
     setShowSuggestions(false);
     setTerm("");
     setSuggestions([]);
+    setRemoteSuggestions([]);
     onSelect(movie);
+  };
+
+  const handleSelectRemote = async (hit: RemoteHit) => {
+    setImportingTmdbId(hit.tmdbId);
+    setImportError(null);
+    try {
+      const res = await fetch("/api/movies/import-live", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tmdbId: hit.tmdbId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setImportError(data?.error || "Couldn't add that film. Try again.");
+        setImportingTmdbId(null);
+        return;
+      }
+      handleSelect({ ...data.movie, rankings: [] } as Movie);
+    } catch {
+      setImportError("Couldn't add that film. Try again.");
+      setImportingTmdbId(null);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -160,7 +194,10 @@ export default function MovieSearchPicker({
         </div>
       </form>
 
-      {showSuggestions && (suggestions.length > 0 || (term && !isSearching)) && (
+      {showSuggestions &&
+        (suggestions.length > 0 ||
+          remoteSuggestions.length > 0 ||
+          (term && !isSearching)) && (
         <ul className="movie-search-picker__menu absolute left-0 right-0 mt-2 bg-charcoal-900 border border-gray-700 rounded-xl shadow-lg z-[60] max-h-80 overflow-y-auto">
           {suggestions.map((m) => (
             <li
@@ -187,17 +224,63 @@ export default function MovieSearchPicker({
               </div>
             </li>
           ))}
-          {suggestions.length === 0 && term && !isSearching && (
-            <li className="px-3 py-3 text-sm text-gray-500 text-center">
-              No movies found for &ldquo;{term}&rdquo;
-            </li>
+
+          {remoteSuggestions.length > 0 && (
+            <>
+              <li className="px-3 py-1.5 text-[11px] uppercase tracking-wide text-gray-500 bg-gray-800/60">
+                Not in your library yet
+              </li>
+              {remoteSuggestions.map((hit) => {
+                const isImporting = importingTmdbId === hit.tmdbId;
+                return (
+                  <li
+                    key={`tmdb-${hit.tmdbId}`}
+                    className="px-3 py-2.5 cursor-pointer hover:bg-gray-800 border-b last:border-b-0 border-gray-800"
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      if (!isImporting) void handleSelectRemote(hit);
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      {hit.posterUrl ? (
+                        <img
+                          src={hit.posterUrl}
+                          alt={hit.title}
+                          className="w-10 h-14 object-cover rounded border border-gray-700 bg-gray-800 opacity-80"
+                        />
+                      ) : (
+                        <div className="w-10 h-14 rounded bg-gray-800 border border-gray-700" />
+                      )}
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-300">
+                          {hit.title}
+                        </div>
+                        <div className="text-xs text-gray-500">{hit.releaseYear}</div>
+                      </div>
+                      {isImporting ? (
+                        <Loader2 className="w-4 h-4 text-gray-400 animate-spin flex-shrink-0" />
+                      ) : (
+                        <Plus className="w-4 h-4 text-gold-500 flex-shrink-0" />
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </>
           )}
-          <li className="px-3 py-2 text-xs text-gray-500 bg-gray-800 rounded-b-xl">
-            Can&apos;t find it?{" "}
-            <a href="/help/add-movie" className="text-blue-400 underline">
-              Add by TMDB ID
-            </a>
-          </li>
+
+          {suggestions.length === 0 &&
+            remoteSuggestions.length === 0 &&
+            term &&
+            !isSearching && (
+              <li className="px-3 py-3 text-sm text-gray-500 text-center">
+                {importError || <>No movies found for &ldquo;{term}&rdquo;</>}
+              </li>
+            )}
+
+          {importError && (suggestions.length > 0 || remoteSuggestions.length > 0) && (
+            <li className="px-3 py-2 text-xs text-red-400 bg-gray-800">{importError}</li>
+          )}
         </ul>
       )}
     </div>
