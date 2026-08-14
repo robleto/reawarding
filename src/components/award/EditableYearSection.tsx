@@ -8,6 +8,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, GripVertical, Star, Check, Trophy, Plus } from "lucide-react";
 import MovieCard from "./MovieCard";
 import NomineeCardCarousel from "./NomineeCardCarousel";
+import { hapticSuccess } from "@/lib/haptics";
 import WinnerCard from "./WinnerCard";
 import AwardCard from "@/components/home/AwardCard";
 import AcademyStamp from "./AcademyStamp";
@@ -496,6 +497,8 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   };
 
   const handleSetWinner = (movie: Movie) => {
+    // Crowning (not un-crowning) is the ceremony's peak — success haptic.
+    if (selectedWinner?.id !== movie.id) void hapticSuccess();
     setSelectedWinner(selectedWinner?.id === movie.id ? null : movie);
   };
 

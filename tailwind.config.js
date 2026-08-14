@@ -1,8 +1,15 @@
 import typography from "@tailwindcss/typography";
+// Powers the animate-in/animate-out enter-exit classes already authored
+// across the codebase (RatingModal, toasts, dropdowns) — they were inert
+// until this plugin was installed (2026-08-14, audit item 12).
+import tailwindcssAnimate from "tailwindcss-animate";
 
 const config = {
 	content: ["./src/**/*.{js,ts,jsx,tsx}"],
 	darkMode: "class",
+	// Compile every hover: utility inside @media (hover:hover) so touch
+	// devices never get "stuck" hover states on tap (iPhone wrapper).
+	future: { hoverOnlyWhenSupported: true },
 	theme: {
 		extend: {
 			fontFamily: {
@@ -79,7 +86,7 @@ const config = {
 			},
 		},
 	},
-	plugins: [typography],
+	plugins: [typography, tailwindcssAnimate],
 };
 
 export default config;

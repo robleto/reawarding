@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@supabase/auth-helpers-react";
 import { Check, PenLine, Star, Trophy, X } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
+import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import { slugifyTitle } from "@/utils/slug";
 
@@ -150,6 +151,8 @@ export default function RatingModal({
     if (dwellTimer.current) clearTimeout(dwellTimer.current);
     if (closeTimer.current) clearTimeout(closeTimer.current);
 
+    // 7+ is the emergence moment — the film becomes a nominee (firmer thunk).
+    void (num >= 7 ? hapticMedium() : hapticLight());
     onRate(num);
     setSelected(num);
     setPhase("confirmed");
@@ -208,7 +211,7 @@ export default function RatingModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[220] flex items-center justify-center"
+      className="fixed inset-0 z-[220] flex items-end justify-center md:items-center"
       role="dialog"
       aria-modal="true"
       aria-label={`Rate ${movieTitle}`}
@@ -218,7 +221,7 @@ export default function RatingModal({
         type="button"
         aria-label="Close rating"
         disabled={isConfirming && !isNominee}
-        className={`absolute inset-0 bg-black/70 backdrop-blur-sm ${
+        className={`absolute inset-0 bg-black/70 backdrop-blur-sm motion-reduce:animate-none ${
           phase === "closing"
             ? "animate-out fade-out duration-200"
             : "animate-in fade-in duration-200"
@@ -232,15 +235,20 @@ export default function RatingModal({
         }
       />
 
-      {/* Panel */}
+      {/* Panel — bottom sheet on phones (iOS convention for a quick action),
+          centered dialog at md+. See docs/IPHONE_FEEL_AUDIT.md item 12. */}
       <div
         ref={panelRef}
-        className={`relative z-10 w-[340px] max-w-[92vw] max-h-[88vh] overflow-hidden rounded-2xl border border-gray-700/60 bg-charcoal-900 shadow-2xl ${
+        className={`relative z-10 w-full max-h-[88vh] overflow-hidden rounded-t-2xl border border-b-0 border-gray-700/60 bg-charcoal-900 shadow-2xl pb-[env(safe-area-inset-bottom)] md:w-[340px] md:max-w-[92vw] md:rounded-2xl md:border-b md:pb-0 motion-reduce:animate-none ${
           phase === "closing"
-            ? "animate-out fade-out zoom-out-95 duration-200"
-            : "animate-in fade-in zoom-in-95 duration-200"
+            ? "animate-out fade-out slide-out-to-bottom-full duration-300 md:slide-out-to-bottom-0 md:zoom-out-95 md:duration-200"
+            : "animate-in fade-in slide-in-from-bottom-full duration-300 md:slide-in-from-bottom-0 md:zoom-in-95 md:duration-200"
         }`}
       >
+        {/* Sheet grabber — phones only */}
+        <div className="md:hidden pt-2.5 pb-1 flex justify-center" aria-hidden="true">
+          <div className="h-1 w-9 rounded-full bg-gray-600/80" />
+        </div>
         {/* ── Header ──────────────────────────────────────────────────────── */}
         {isConfirming ? (
           // Confirmation header — header switches first, before anything else
@@ -346,7 +354,7 @@ export default function RatingModal({
         {/* During confirmation: only the selected row is rendered            */}
         {/* During idle: full list, fully interactive                         */}
         <div
-          className="overflow-y-auto px-3 py-3 space-y-1.5"
+          className="overflow-y-auto overscroll-contain px-3 py-3 space-y-1.5"
           style={{ maxHeight: "calc(88vh - 120px)" }}
           aria-hidden={isConfirming}
         >

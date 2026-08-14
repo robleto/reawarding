@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Eye, EyeOff, Bookmark } from "lucide-react";
+import { hapticLight } from "@/lib/haptics";
 
 interface SeenItButtonProps {
   seenIt: boolean;
@@ -44,8 +45,8 @@ export default function SeenItButton({
 
   const baseVariant =
     variant === "compact"
-      ? "flex items-center justify-center p-2.5 rounded transition-colors focus:outline-none"
-      : "flex items-center gap-1 text-sm font-medium focus:outline-none";
+      ? "flex items-center justify-center p-2.5 rounded transition-all active:scale-95 focus:outline-none"
+      : "flex items-center gap-1 text-sm font-medium transition-all active:scale-95 focus:outline-none";
 
   // Derive current watch-state
   const isThreeState = onWatchlistToggle !== undefined;
@@ -86,6 +87,7 @@ export default function SeenItButton({
 
   function handleClick(e: React.MouseEvent) {
     e.stopPropagation();
+    void hapticLight();
     if (watchState === "unseen") {
       if (isThreeState) {
         // unseen → watchlist: add to watchlist only

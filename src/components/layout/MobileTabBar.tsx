@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Trophy, Film, List, LineChart } from "lucide-react";
+import { hapticLight } from "@/lib/haptics";
 
 // Bottom-nav destinations are intentionally 4: Awards, Films, Rankings, Lists —
 // the surfaces someone returns to daily. Home is still reachable via the
@@ -84,7 +85,10 @@ export default function MobileTabBar() {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`mobile-tab-link flex flex-col items-center justify-center gap-1 min-h-[56px] w-full px-2 py-2 text-xs transition-colors ${
+                onClick={() => {
+                  if (!active) void hapticLight();
+                }}
+                className={`mobile-tab-link flex flex-col items-center justify-center gap-1 min-h-[56px] w-full px-2 py-2 text-xs transition-all active:scale-90 ${
                   active
                     ? "text-gold-300"
                     : "text-gray-400 hover:text-gold-300"

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<!-- Native-shell cold-start offline page (docs/IPHONE_FEEL_AUDIT.md item 7
+     follow-up). Loaded by Capacitor via server.errorPath when the remote
+     site (capacitor.config.ts server.url) fails to load — typically a cold
+     launch with no connection, where the app's own JS (NativeOfflineGate)
+     never gets to run. Served from the bundled webDir, so it must be fully
+     self-contained: inline styles, system fonts, local assets only. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Reawarding — Offline</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background-color: #0C0A08; /* app canvas */
+      overscroll-behavior: none;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: calc(24px + env(safe-area-inset-top)) 32px calc(24px + env(safe-area-inset-bottom));
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      text-align: center;
+      color: #9CA3AF; /* gray-400 */
+    }
+    .logo {
+      width: 180px;
+      max-width: 60vw;
+      opacity: 0.95;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #FFFFFF;
+    }
+    p {
+      margin: 0 auto;
+      max-width: 320px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    button {
+      margin-top: 4px;
+      padding: 11px 26px;
+      border: 0;
+      border-radius: 10px;
+      background-color: #D4AF37; /* gold-500 (dark theme) */
+      color: #000000;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      transition: transform 100ms ease, opacity 150ms ease;
+    }
+    button:active { transform: scale(0.97); }
+    button:disabled { opacity: 0.6; }
+    .status {
+      min-height: 18px;
+      font-size: 12px;
+      color: #6B7280; /* gray-500 */
+    }
+  </style>
+</head>
+<body>
+  <img class="logo" src="/reawarding-logo-on-black.svg" alt="Reawarding" />
+  <div>
+    <h1>You&rsquo;re offline</h1>
+    <p>Reawarding needs a connection to load your ballots. Everything you&rsquo;ve saved is safe.</p>
+  </div>
+  <button id="retry" type="button">Try again</button>
+  <div class="status" id="status" role="status"></div>
+  <script>
+    // Must match capacitor.config.ts server.url.
+    var APP_URL = "https://reawarding.com";
+    var retryBtn = document.getElementById("retry");
+    var statusEl = document.getElementById("status");
+    var checking = false;
+
+    function goHome() {
+      window.location.replace(APP_URL);
+    }
+
+    function tryReconnect(manual) {
+      if (checking) return;
+      checking = true;
+      if (manual) {
+        retryBtn.disabled = true;
+        retryBtn.textContent = "Checking…";
+      }
+      // no-cors probe: resolves on any reachable response, throws while offline.
+      fetch(APP_URL + "/favicon.ico?t=" + Date.now(), { mode: "no-cors", cache: "no-store" })
+        .then(goHome)
+        .catch(function () {
+          checking = false;
+          if (manual) {
+            retryBtn.disabled = false;
+            retryBtn.textContent = "Try again";
+            statusEl.textContent = "Still offline — we’ll keep checking.";
+          }
+        });
+    }
+
+    retryBtn.addEventListener("click", function () { tryReconnect(true); });
+    window.addEventListener("online", function () { tryReconnect(false); });
+    // Gentle auto-recover: cold-start offline usually resolves on its own
+    // (elevator, tunnel) — don't make the user babysit the retry button.
+    setInterval(function () {
+      if (navigator.onLine !== false) tryReconnect(false);
+    }, 8000);
+  </script>
+</body>
+</html>

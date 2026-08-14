@@ -1,0 +1,9 @@
+/* Storybook doesn't run next/font (which supplies these vars on <html> in the
+   app — see src/app/layout.tsx), so define name-only fallbacks here. Without
+   them, font-family: var(--font-inter), ... is invalid at computed-value time
+   and the browser falls back to its default serif. */
+:root {
+  --font-inter: "Inter";
+  --font-unbounded: "Unbounded";
+  --font-mono: "Spline Sans Mono";
+}

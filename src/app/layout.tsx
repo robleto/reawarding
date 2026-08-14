@@ -3,6 +3,28 @@ import { Providers } from './providers';
 import { NetflixGlow } from '@/components/ui/NetflixGlow';
 import AppShell from '@/components/layout/AppShell';
 import type { Viewport } from 'next';
+import { Inter, Unbounded, Spline_Sans_Mono } from 'next/font/google';
+
+// Self-hosted at build time via next/font (docs/IPHONE_FEEL_AUDIT.md item 8):
+// no runtime Google CDN fetch, no fallback-type flash on native cold start,
+// brand type survives offline. Variable names match tailwind.config.js.
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+const unbounded = Unbounded({
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800'],
+  variable: '--font-unbounded',
+  display: 'swap',
+});
+const splineSansMono = Spline_Sans_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-mono',
+  display: 'swap',
+});
 
 export const metadata = {
   title: 'Reawarding',
@@ -19,6 +41,10 @@ export const metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // App chrome must not pinch-zoom like a web page (iPhone wrapper feel);
+  // iOS text-size accessibility settings still apply inside WKWebView.
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: 'cover',
   themeColor: '#0C0A08',
 };
@@ -29,14 +55,12 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${unbounded.variable} ${splineSansMono.variable}`}
+    >
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Unbounded:wght@400;600;700;800&family=Spline+Sans+Mono:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
         <script
           dangerouslySetInnerHTML={{
             __html: `

@@ -2,6 +2,7 @@ import React from "react";
 import type { Preview } from "@storybook/react";
 import { StorybookAppFrame } from "./StorybookAppFrame";
 import "../src/app/globals.css";
+import "./fonts-fallback.css";
 
 const preview: Preview = {
   globalTypes: {

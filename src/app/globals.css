@@ -13,10 +13,13 @@
   border-color: rgba(17, 24, 39, 0.08);
   box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.08), 0 1.5px 6px 0 rgba(0, 0, 0, 0.04) inset;
 }
-.light-glass:hover {
-  background-color: rgba(255, 255, 255, 0.75);
-  border-color: rgba(17, 24, 39, 0.16);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -4px rgba(0, 0, 0, 0.12);
+/* Hover-capable pointers only — touch would "stick" this state on tap */
+@media (hover: hover) {
+  .light-glass:hover {
+    background-color: rgba(255, 255, 255, 0.75);
+    border-color: rgba(17, 24, 39, 0.16);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -4px rgba(0, 0, 0, 0.12);
+  }
 }
 
 /* When in dark mode, neutralize light-glass background so dark glass can show */
@@ -33,10 +36,13 @@
   border-color: rgba(75, 85, 99, 0.2);
   box-shadow: 0 4px 24px 0 rgba(17, 24, 39, 0.15), 0 1.5px 6px 0 rgba(255, 255, 255, 0.08) inset;
 }
-.dark .dark-glass:hover {
-  background-color: rgba(55, 65, 81, 0.6);
-  border-color: rgba(107, 114, 128, 0.4);
-  box-shadow: 0 10px 15px -3px rgba(17, 24, 39, 0.7), 0 4px 6px -4px rgba(17, 24, 39, 0.7);
+/* Hover-capable pointers only — touch would "stick" this state on tap */
+@media (hover: hover) {
+  .dark .dark-glass:hover {
+    background-color: rgba(55, 65, 81, 0.6);
+    border-color: rgba(107, 114, 128, 0.4);
+    box-shadow: 0 10px 15px -3px rgba(17, 24, 39, 0.7), 0 4px 6px -4px rgba(17, 24, 39, 0.7);
+  }
 }
 
 /* Nominee promotion glow — gold ring + scale-in, fades over 2000ms (YearExplorer grid) */
@@ -100,21 +106,47 @@
   border-color: rgba(75, 85, 99, 0.2);
   box-shadow: 0 4px 24px 0 rgba(17, 24, 39, 0.15), 0 1.5px 6px 0 rgba(255, 255, 255, 0.08) inset;
 }
-.dark .dark\:dark-glass:hover {
-  background-color: rgba(55, 65, 81, 0.6);
-  border-color: rgba(107, 114, 128, 0.4);
-  box-shadow: 0 10px 15px -3px rgba(17, 24, 39, 0.7), 0 4px 6px -4px rgba(17, 24, 39, 0.7);
+/* Hover-capable pointers only — touch would "stick" this state on tap */
+@media (hover: hover) {
+  .dark .dark\:dark-glass:hover {
+    background-color: rgba(55, 65, 81, 0.6);
+    border-color: rgba(107, 114, 128, 0.4);
+    box-shadow: 0 10px 15px -3px rgba(17, 24, 39, 0.7), 0 4px 6px -4px rgba(17, 24, 39, 0.7);
+  }
 }
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-inter: "Inter";
-  --font-unbounded: "Unbounded";
-  /* Tabulation face — ballot data only (ratings, ranks, counts). */
-  --font-mono: "Spline Sans Mono";
+/* ── Touch feel (native wrapper) ──────────────────────────────────────────
+   Kill the iOS gray tap flash and web long-press behaviors on UI chrome.
+   Content text (review blurbs, descriptions) stays selectable — only
+   controls and imagery opt out. See docs/IPHONE_FEEL_AUDIT.md items 1 & 5. */
+html {
+  -webkit-tap-highlight-color: transparent;
 }
+/* Page-level rubber-banding chains into modal backdrops and reads as
+   browser, not app (audit item 6). Scroll containers (rows, modals)
+   keep their own bounce. */
+html, body {
+  overscroll-behavior-y: none;
+}
+button, a, nav, header, label, summary,
+[role="button"], [role="tab"] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+img {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+/* Font variables (--font-inter / --font-unbounded / --font-mono) are supplied
+   by next/font on <html> — see src/app/layout.tsx. Storybook gets fallback
+   values from .storybook/fonts-fallback.css instead. */
 
 /* ── Theme tokens ─────────────────────────────────────────────────────────
    The site is authored dark-first: components say bg-gray-950, text-white,
@@ -221,8 +253,11 @@
   -webkit-backdrop-filter: blur(8px);
   border-color: rgba(20, 20, 19, 0.08);
 }
-.light .dark-background:hover {
-  background-color: rgba(251, 251, 250, 0.97);
+/* Hover-capable pointers only — touch would "stick" this state on tap */
+@media (hover: hover) {
+  .light .dark-background:hover {
+    background-color: rgba(251, 251, 250, 0.97);
+  }
 }
 
 /* Sliding hover/active pill in the desktop nav. Dark: frosted white
@@ -251,8 +286,11 @@
 .light .mobile-tab-link {
   color: rgba(60, 59, 56, 0.9);
 }
-.light .mobile-tab-link:hover {
-  color: rgb(var(--tone-gold-400));
+/* Hover-capable pointers only — touch would "stick" this state on tap */
+@media (hover: hover) {
+  .light .mobile-tab-link:hover {
+    color: rgb(var(--tone-gold-400));
+  }
 }
 .light .mobile-tab-link[aria-current="page"] {
   color: rgb(var(--tone-gold-400));
@@ -265,10 +303,13 @@
     0 0 15px rgba(212, 175, 55, 0.18),
     0 4px 16px rgba(20, 20, 19, 0.10);
 }
-.light .award-card-glow:hover {
-  box-shadow:
-    0 0 20px rgba(212, 175, 55, 0.30),
-    0 6px 20px rgba(20, 20, 19, 0.14);
+/* Hover-capable pointers only — touch would "stick" this state on tap */
+@media (hover: hover) {
+  .light .award-card-glow:hover {
+    box-shadow:
+      0 0 20px rgba(212, 175, 55, 0.30),
+      0 6px 20px rgba(20, 20, 19, 0.14);
+  }
 }
 
 /* dark-glass is used standalone on real pages (settings, profile, award
@@ -282,9 +323,12 @@
   border-color: rgba(20, 20, 19, 0.08);
   box-shadow: 0 4px 24px 0 rgba(20, 20, 19, 0.06);
 }
-.light .dark-glass:hover {
-  background-color: rgba(255, 255, 255, 0.8);
-  border-color: rgba(20, 20, 19, 0.14);
+/* Hover-capable pointers only — touch would "stick" this state on tap */
+@media (hover: hover) {
+  .light .dark-glass:hover {
+    background-color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(20, 20, 19, 0.14);
+  }
 }
 
 body {
@@ -318,9 +362,12 @@ body {
   backdrop-filter: blur(4px);
 }
 
-.year-card-dark:hover {
-  background-image: linear-gradient(to bottom right, rgba(55, 65, 81, 0.7), rgba(31, 41, 55, 0.7));
-  border-color: rgba(107, 114, 128, 0.4);
+/* Hover-capable pointers only — touch would "stick" this state on tap */
+@media (hover: hover) {
+  .year-card-dark:hover {
+    background-image: linear-gradient(to bottom right, rgba(55, 65, 81, 0.7), rgba(31, 41, 55, 0.7));
+    border-color: rgba(107, 114, 128, 0.4);
+  }
 }
 
 /* Remove duplicate dark-glass rules; now scoped above under .dark */
@@ -332,8 +379,11 @@ body {
   border-color: rgba(75, 85, 99, 0.2);
 }
  
-.dark .dark-background:hover {
-  background-color: rgba(28, 28, 30, 1);
+/* Hover-capable pointers only — touch would "stick" this state on tap */
+@media (hover: hover) {
+  .dark .dark-background:hover {
+    background-color: rgba(28, 28, 30, 1);
+  }
 }
 
 /* Light mode sticky header background (base); neutralized under .dark */
@@ -344,8 +394,11 @@ body {
   border-color: rgba(17, 24, 39, 0.12);
 }
 
-.light-background:hover {
-  background-color: rgba(255, 255, 255, 0.85);
+/* Hover-capable pointers only — touch would "stick" this state on tap */
+@media (hover: hover) {
+  .light-background:hover {
+    background-color: rgba(255, 255, 255, 0.85);
+  }
 }
 
 /* Neutralize light header background in dark mode so dark-background shows */
@@ -386,17 +439,20 @@ body {
   animation: award-shimmer 4s ease-in-out infinite;
 }
 
-.award-card-frame:hover {
-  background: linear-gradient(
-    135deg,
-    rgba(234, 179, 8, 0.5) 0%,
-    rgba(250, 204, 21, 0.2) 25%,
-    rgba(234, 179, 8, 0.6) 50%,
-    rgba(250, 204, 21, 0.2) 75%,
-    rgba(234, 179, 8, 0.5) 100%
-  );
-  background-size: 200% 200%;
-  animation: award-shimmer 2s ease-in-out infinite;
+/* Hover-capable pointers only — touch would "stick" this state on tap */
+@media (hover: hover) {
+  .award-card-frame:hover {
+    background: linear-gradient(
+      135deg,
+      rgba(234, 179, 8, 0.5) 0%,
+      rgba(250, 204, 21, 0.2) 25%,
+      rgba(234, 179, 8, 0.6) 50%,
+      rgba(250, 204, 21, 0.2) 75%,
+      rgba(234, 179, 8, 0.5) 100%
+    );
+    background-size: 200% 200%;
+    animation: award-shimmer 2s ease-in-out infinite;
+  }
 }
 
 .award-card-glow {
@@ -407,12 +463,15 @@ body {
   transition: box-shadow 0.4s ease;
 }
 
-.award-card-glow:hover {
-  box-shadow:
-    0 0 20px rgba(234, 179, 8, 0.3),
-    0 0 40px rgba(234, 179, 8, 0.15),
-    0 0 60px rgba(234, 179, 8, 0.05),
-    0 8px 30px rgba(0, 0, 0, 0.4);
+/* Hover-capable pointers only — touch would "stick" this state on tap */
+@media (hover: hover) {
+  .award-card-glow:hover {
+    box-shadow:
+      0 0 20px rgba(234, 179, 8, 0.3),
+      0 0 40px rgba(234, 179, 8, 0.15),
+      0 0 60px rgba(234, 179, 8, 0.05),
+      0 8px 30px rgba(0, 0, 0, 0.4);
+  }
 }
 
 .award-card-inner {
@@ -637,8 +696,11 @@ body {
   color: rgba(156, 163, 175, 0.45);
 }
 
-.home-scroll-hint:hover {
-  color: #d4af37;
+/* Hover-capable pointers only — touch would "stick" this state on tap */
+@media (hover: hover) {
+  .home-scroll-hint:hover {
+    color: #d4af37;
+  }
 }
 
 .home-scroll-hint__icon {

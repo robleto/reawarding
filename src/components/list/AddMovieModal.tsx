@@ -211,7 +211,7 @@ export default function AddMovieModal({
             
             {/* Autocomplete Suggestions */}
             {showSuggestions && suggestions.length > 0 && (
-              <ul className="absolute z-30 left-0 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 shadow-lg max-h-64 overflow-y-auto">
+              <ul className="absolute z-30 left-0 w-full bg-gray-800 border border-gray-700 rounded-lg mt-1 shadow-lg max-h-64 overflow-y-auto overscroll-contain">
                 {suggestions.map((movie) => {
                   const isSelected = selectedMovies.some(m => m.id === movie.id);
                   const hasValidImage = movie.thumb_url && movie.thumb_url !== "";
@@ -290,7 +290,7 @@ export default function AddMovieModal({
         </div>
 
         {/* Selected Movies */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto overscroll-contain">
           {selectedMovies.length === 0 ? (
             <div className="p-8 text-center">
               <div className="w-16 h-16 mx-auto mb-4 text-gray-600">
