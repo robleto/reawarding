@@ -68,7 +68,7 @@ export default function DataDeletionPage() {
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3">Method 3: Social Media Account Deletion</h3>
             <p className="text-gray-700 mb-4">
-              If you signed up using Apple or GitHub, you can also:
+              If you signed up using Apple, you can also:
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-6 space-y-2">
               <li>Remove Reawarding from your connected apps in your social media settings</li>

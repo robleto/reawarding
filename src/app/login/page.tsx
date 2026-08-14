@@ -2,13 +2,12 @@
 
 import { useState } from 'react';
 import { supabase } from "@/lib/supabaseBrowser";
-import { Github, Mail, Eye, EyeOff, User, Lock } from 'lucide-react';
+import { Mail, Eye, EyeOff, User, Lock } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { buildSiteUrl } from '@/utils/siteUrl';
 import { startOAuthSignIn, type OAuthProvider } from '@/utils/oauthSignIn';
 
 const providerLabels: Record<OAuthProvider, string> = {
-  github: 'GitHub',
   apple: 'Apple',
   google: 'Google',
   facebook: 'Facebook',
@@ -165,7 +164,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleGitHubSignIn = () => handleOAuthSignIn('github');
   const handleAppleSignIn = () => handleOAuthSignIn('apple');
   const handleGoogleSignIn = () => handleOAuthSignIn('google');
   const handleFacebookSignIn = () => handleOAuthSignIn('facebook');
@@ -387,20 +385,6 @@ export default function LoginPage() {
                 </svg>
               )}
               Continue with Apple
-            </button>
-
-            {/* GitHub Sign In */}
-            <button
-              onClick={handleGitHubSignIn}
-              disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              {loading === 'github' ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Github className="w-5 h-5" />
-              )}
-              Continue with GitHub
             </button>
 
             {/* Google Sign In */}

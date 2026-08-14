@@ -24,7 +24,7 @@ export default function PrivacyPolicyPage() {
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3">Information from Third Parties</h3>
             <p className="text-gray-700 mb-4">
-              When you sign in through third-party services (Google, Facebook, GitHub), we receive:
+              When you sign in through third-party services (Apple, Google, Facebook), we receive:
             </p>
             <ul className="list-disc list-inside text-gray-700 mb-6 space-y-2">
               <li>Basic profile information (name, email, profile picture)</li>

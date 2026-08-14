@@ -3,7 +3,7 @@ import type { Database } from "@/types/supabase";
 import { isNativeApp } from "@/lib/platform";
 import { buildSiteUrl } from "@/utils/siteUrl";
 
-export type OAuthProvider = "github" | "apple" | "google" | "facebook";
+export type OAuthProvider = "apple" | "google" | "facebook";
 
 const NATIVE_REDIRECT_URL = "com.reawarding.app://auth/callback?next=/";
 
