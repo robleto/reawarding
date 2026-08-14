@@ -118,16 +118,23 @@ function CollapseIn({
 }) {
   const [mounted, setMounted] = useState(show);
   const [expanded, setExpanded] = useState(show);
+  // Only clip while the grid-template-rows transition is actually animating.
+  // Once settled+expanded, overflow must go visible or anything absolutely
+  // positioned inside (e.g. the search dropdown) gets clipped to the
+  // collapsed track's own content height instead of overlaying what's below.
+  const [overflowVisible, setOverflowVisible] = useState(show);
 
   useEffect(() => {
     if (show) {
       setMounted(true);
+      setOverflowVisible(false);
       const raf1 = requestAnimationFrame(() => {
         requestAnimationFrame(() => setExpanded(true));
       });
       return () => cancelAnimationFrame(raf1);
     }
     setExpanded(false);
+    setOverflowVisible(false);
     const t = window.setTimeout(() => setMounted(false), durationMs);
     return () => window.clearTimeout(t);
   }, [show, durationMs]);
@@ -142,8 +149,11 @@ function CollapseIn({
         opacity: expanded ? 1 : 0,
         transition: `grid-template-rows ${durationMs}ms cubic-bezier(0.22,1,0.36,1), opacity ${durationMs}ms ease`,
       }}
+      onTransitionEnd={(e) => {
+        if (e.propertyName === "grid-template-rows" && expanded) setOverflowVisible(true);
+      }}
     >
-      <div style={{ overflow: "hidden", minHeight: 0 }}>{children}</div>
+      <div style={{ overflow: overflowVisible ? "visible" : "hidden", minHeight: 0 }}>{children}</div>
     </div>
   );
 }

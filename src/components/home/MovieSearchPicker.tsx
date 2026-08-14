@@ -198,7 +198,7 @@ export default function MovieSearchPicker({
         (suggestions.length > 0 ||
           remoteSuggestions.length > 0 ||
           (term && !isSearching)) && (
-        <ul className="movie-search-picker__menu absolute left-0 right-0 mt-2 bg-charcoal-900 border border-gray-700 rounded-xl shadow-lg z-[60] max-h-80 overflow-y-auto">
+        <ul className="movie-search-picker__menu absolute left-0 right-0 mt-2 bg-charcoal-900 border border-gray-700 rounded-xl shadow-lg z-[210] max-h-80 overflow-y-auto">
           {suggestions.map((m) => (
             <li
               key={m.id}

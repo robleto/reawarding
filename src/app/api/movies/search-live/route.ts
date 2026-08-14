@@ -4,12 +4,6 @@ import { searchTmdbMovies, type TmdbSearchHit } from "@/lib/tmdbImport";
 
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-  }
 
   const { query, year } = (await req.json()) as { query?: string; year?: number };
   if (!query || !query.trim()) {
