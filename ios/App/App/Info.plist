@@ -8,6 +8,12 @@
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
         <string>Reawarding</string>
+	<!-- Export compliance: the app uses only standard HTTPS/TLS to reach
+	     reawarding.com and Supabase, which is exempt encryption. Declaring
+	     this here stops App Store Connect asking about export compliance on
+	     every upload (which otherwise blocks the build from reaching testers). -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
