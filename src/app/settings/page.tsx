@@ -11,6 +11,7 @@ import { useAuthState } from "@/hooks/useAuthState";
 import { isNativeApp } from "@/lib/platform";
 import UserAvatar from "@/components/ui/UserAvatar";
 import StatsSummary from "@/components/stats/StatsSummary";
+import BuildInfo from "@/components/settings/BuildInfo";
 
 interface Profile {
   id: string;
@@ -696,6 +697,8 @@ export default function SettingsPage() {
 
         {deleteError && <p className="mt-3 text-sm text-red-400">{deleteError}</p>}
       </div>
+
+      <BuildInfo />
     </div>
   );
 }
