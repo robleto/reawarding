@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getRatingStyle } from "@/utils/getRatingStyle";
+import { hapticLight, hapticMedium } from "@/lib/haptics";
 
 interface RankingDropdownProps {
   ranking: number | null;
@@ -27,6 +28,15 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
   const [isMobile, setIsMobile] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const style = getRatingStyle(ranking ?? 0);
+
+  // This control sets ratings without going through RatingModal, so it needs
+  // its own haptics — same vocabulary as the modal: 7+ is the emergence
+  // moment (firmer thunk), everything else is a light tick.
+  const commitRating = (value: number | null) => {
+    void (value !== null && value >= 7 ? hapticMedium() : hapticLight());
+    onChange(value);
+    setShowDropdown(false);
+  };
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 767px)");
@@ -77,8 +87,7 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
           <div
             onClick={e => {
               e.stopPropagation();
-              onChange(null);
-              setShowDropdown(false);
+              commitRating(null);
             }}
             className="mx-auto my-2 text-sm font-semibold text-center cursor-pointer hover:bg-gray-700 text-gray-400 border border-gray-600 rounded w-8 h-8 flex items-center justify-center"
           >
@@ -92,8 +101,7 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
                   key={num}
                   onClick={e => {
                     e.stopPropagation();
-                    onChange(num);
-                    setShowDropdown(false);
+                    commitRating(num);
                   }}
                   className="w-8 h-8 flex items-center justify-center text-sm font-semibold text-center cursor-pointer hover:brightness-110 rounded"
                   style={{ backgroundColor: optionStyle.background, color: optionStyle.text }}
@@ -134,10 +142,7 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
                     <button
                       type="button"
                       key={num}
-                      onClick={() => {
-                        onChange(num);
-                        setShowDropdown(false);
-                      }}
+                      onClick={() => commitRating(num)}
                       className={`w-full rounded-xl px-3 py-3 text-left transition-colors ${
                         isSelected ? "ring-2 ring-gold-400/70" : "ring-1 ring-gray-700"
                       }`}
@@ -155,10 +160,7 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  onChange(null);
-                  setShowDropdown(false);
-                }}
+                onClick={() => commitRating(null)}
                 className="mt-1 w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm font-medium text-gray-200 hover:bg-gray-700"
               >
                 Clear rating
