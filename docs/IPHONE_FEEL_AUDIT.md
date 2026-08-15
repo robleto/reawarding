@@ -146,6 +146,33 @@ promotion, success notification on setting a winner. Guard behind
 `Capacitor.isNativePlugin` checks so web is unaffected. **Effort: ~2 hours,
 outsized payoff — this is the "oh, it's a real app" moment.**
 
+**On-device verification (2026-08-15) surfaced a real bug, twice:**
+
+1. **`RankingDropdown` had no haptics.** It sets ratings directly and never
+   goes through `RatingModal` — a second, pre-existing rating entry point
+   (its own mobile bottom sheet, grabber included) that the original pass
+   missed. Fixed: all four commit points now route through one
+   `commitRating()` helper firing the same light/medium vocabulary.
+2. **The real blocker wasn't haptics at all — it was OAuth.** Testing
+   "in-app" was actually happening inside the `@capacitor/browser` sheet
+   used for sign-in, which never handed back to the app. Root cause:
+   Supabase's Redirect URLs allowlist was missing
+   `com.reawarding.app://auth/callback` (fixed in the Supabase dashboard,
+   no app change needed). Until that was added, *every* native OAuth
+   sign-in silently stranded the user in a signed-in browser sheet with no
+   session in the app itself — worse than any polish item on this list,
+   since it blocks a tester from ever reaching the product. `getPlatform`
+   correctly reported `web` inside that sheet, which is what made the
+   symptom look like a haptics/detection bug until the sheet itself was
+   identified as the culprit.
+
+Confirmed working end-to-end once both were fixed: `isNativePlatform: true`,
+`Haptics registered: true`, `CALL SUCCEEDED` on light and medium impacts, via
+a temporary on-screen diagnostic (`src/components/settings/BuildInfo.tsx` →
+Run diagnostics) built specifically because `alert()` inside the OAuth-sheet
+confusion produced no visible signal — worth reaching for on-screen output
+over alerts sooner next time.
+
 ### 10. White flash possible between splash and first paint — ✅ DONE 2026-08-14
 Splash background is set, but there's no top-level `backgroundColor` in
 `capacitor.config.ts`, so the WKWebView itself defaults to white while
