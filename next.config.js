@@ -1,7 +1,17 @@
 const { withSentryConfig } = require("@sentry/nextjs");
 
+// Identifies this deploy. Netlify sets COMMIT_REF at build time; the Date
+// fallback only applies to local dev, where staleness doesn't matter.
+// Baked into the client bundle AND served by /api/build-id at runtime, so a
+// running app can tell it's outdated — see NativeUpdateBridge.tsx.
+const BUILD_ID = process.env.COMMIT_REF || `dev-${Date.now()}`;
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: {
+    NEXT_PUBLIC_BUILD_ID: BUILD_ID,
+  },
+  generateBuildId: () => BUILD_ID,
   experimental: {
     instrumentationHook: true,
   },
