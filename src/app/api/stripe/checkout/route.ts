@@ -16,8 +16,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
   }
 
+  // profiles_self (id = auth.uid()) — authenticated no longer has a blanket
+  // grant on this column, only for its own row via this view.
   const { data: profile, error: profileFetchError } = await supabase
-    .from("profiles")
+    .from("profiles_self")
     .select("stripe_customer_id")
     .eq("id", user.id)
     .single();

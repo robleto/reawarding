@@ -83,8 +83,11 @@ export default function SettingsPage() {
     if (!user) return;
 
     try {
+      // profiles_self is pre-filtered to id = auth.uid(), which is what
+      // lets authenticated read privileged columns (subscription_status,
+      // stripe_customer_id, ...) for this page's own-profile display.
       const { data, error } = await supabase
-        .from("profiles")
+        .from("profiles_self")
         .select("*")
         .eq("id", user.id)
         .single();

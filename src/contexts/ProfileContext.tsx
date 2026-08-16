@@ -62,11 +62,15 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
 
-      // 1. Check for existing profile
+      // 1. Check for existing profile. Reads via `profiles_self`, not the
+      // base `profiles` table — that view is pre-filtered to `id =
+      // auth.uid()`, which is how `authenticated` can see privileged
+      // columns (is_admin, subscription_status, ...) for their OWN row
+      // without a table-wide grant. See
+      // supabase/migrations/20260816000000_restrict_profiles_authenticated_select.sql.
       const { data, error: selectError } = await supabase
-        .from("profiles")
+        .from("profiles_self")
         .select("*")
-        .eq("id", user.id)
         .single();
 
       if (cancelled) return;
@@ -84,22 +88,37 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // 2. If not found, create it
-      const { data: newProfile, error: insertError } = await supabase
-        .from("profiles")
-        .insert({
-          id: user.id,
-          username: user.email?.split("@")[0] || user.id,
-          full_name: user.user_metadata?.full_name || null,
-          avatar_url: user.user_metadata?.avatar_url || null,
-        })
-        .select()
-        .single();
+      // 2. If not found, create it. Deliberately NOT chaining `.select()`
+      // on the insert: that would request `RETURNING *`, which needs
+      // table-wide SELECT on every column (including privileged ones)
+      // regardless of who inserted the row — `authenticated` no longer has
+      // that. Re-fetch via `profiles_self` instead, which picks up the
+      // freshly inserted row (with its column defaults for is_admin /
+      // subscription_status / etc.) under the same privilege as step 1.
+      const { error: insertError } = await supabase.from("profiles").insert({
+        id: user.id,
+        username: user.email?.split("@")[0] || user.id,
+        full_name: user.user_metadata?.full_name || null,
+        avatar_url: user.user_metadata?.avatar_url || null,
+      });
 
       if (cancelled) return;
 
       if (insertError) {
         setError(insertError.message);
+        setLoading(false);
+        return;
+      }
+
+      const { data: newProfile, error: refetchError } = await supabase
+        .from("profiles_self")
+        .select("*")
+        .single();
+
+      if (cancelled) return;
+
+      if (refetchError) {
+        setError(refetchError.message);
         setLoading(false);
         return;
       }

@@ -32,20 +32,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Username already taken' }, { status: 409 });
     }
 
-    // Create the profile
+    // Create the profile. Deliberately not chaining `.select()` on the
+    // insert — that requests `RETURNING *`, which needs table-wide SELECT
+    // on every column including privileged ones; `authenticated` no longer
+    // has that (see 20260816000000_restrict_profiles_authenticated_select.sql).
+    // Re-fetch via profiles_self instead, scoped to id = auth.uid().
+    const { error: insertError } = await supabase.from('profiles').insert({
+      id: user.id,
+      username,
+      full_name: full_name || null,
+      avatar_url: avatar_url || null,
+    });
+
+    if (insertError) {
+      console.error('Error creating profile:', insertError);
+      return NextResponse.json({ error: 'Error creating profile' }, { status: 500 });
+    }
+
     const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: user.id,
-        username,
-        full_name: full_name || null,
-        avatar_url: avatar_url || null,
-      })
-      .select()
+      .from('profiles_self')
+      .select('*')
+      .eq('id', user.id)
       .single();
 
     if (profileError) {
-      console.error('Error creating profile:', profileError);
+      console.error('Error fetching newly created profile:', profileError);
       return NextResponse.json({ error: 'Error creating profile' }, { status: 500 });
     }
 

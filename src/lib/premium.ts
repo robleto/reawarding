@@ -3,9 +3,16 @@
  * set in src/hooks/useIsPremium.ts (the client-side equivalent) — active and
  * trialing both count as premium.
  *
- * Takes any Supabase client with a .from() — a session-scoped client (RLS
- * applies, reads the caller's own row) or supabaseAdmin, whichever the
- * caller already has on hand.
+ * Reads via the `profiles_self` view (id = auth.uid()), since `authenticated`
+ * no longer has a blanket grant on `subscription_status` — see
+ * supabase/migrations/20260816000000_restrict_profiles_authenticated_select.sql.
+ * That means `supabase` MUST be a session-scoped client authenticated as
+ * `userId` itself (every current caller passes a request-scoped server
+ * client checking its own session's user). Passing `supabaseAdmin`, or a
+ * session-scoped client checking a DIFFERENT user's id, will always return
+ * false here (auth.uid() won't match `userId`) — for an admin-style lookup
+ * of an arbitrary user's entitlement, query `profiles` directly with
+ * supabaseAdmin instead of calling this function.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
@@ -17,7 +24,7 @@ export async function isPremiumUser(
   userId: string
 ): Promise<boolean> {
   const { data } = await supabase
-    .from('profiles')
+    .from('profiles_self')
     .select('subscription_status')
     .eq('id', userId)
     .single();

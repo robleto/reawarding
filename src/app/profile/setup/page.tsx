@@ -47,14 +47,14 @@ export default function ProfileSetupPage() {
     
     // Check if profile already exists
     const { data: profile } = await supabase
-      .from('profiles')
+      .from('profiles_self')
       .select('*')
       .eq('id', user.id)
       .single();
     
     if (profile) {
       setProfile(profile as Profile);
-      setUsername(profile.username);
+      setUsername(profile.username || '');
       setFullName(profile.full_name || '');
       setBio(profile.bio || '');
       setAvatarUrl(profile.avatar_url || '');

@@ -1290,6 +1290,31 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles_self: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          full_name: string | null
+          id: string | null
+          is_admin: boolean | null
+          last_login: string | null
+          last_name: string | null
+          onboarding_complete: boolean | null
+          preferred_era: string | null
+          preferred_genres: string[] | null
+          preferred_name: string | null
+          signature_picks: Json | null
+          stripe_customer_id: string | null
+          subscription_current_period_end: string | null
+          subscription_status: string | null
+          updated_at: string | null
+          username: string | null
+        }
+        Relationships: []
+      }
       user_collection_progress_view: {
         Row: {
           badge_color: string | null

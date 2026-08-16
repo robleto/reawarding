@@ -38,8 +38,10 @@ export async function isUserAdmin(): Promise<boolean> {
     return false;
   }
 
+  // profiles_self (id = auth.uid()) — authenticated no longer has a blanket
+  // grant on is_admin, only for its own row via this view.
   const { data: profile, error } = await supabase
-    .from('profiles')
+    .from('profiles_self')
     .select('is_admin')
     .eq('id', user.id)
     .single();
@@ -86,7 +88,7 @@ export async function getCurrentUserWithAdmin(): Promise<{
   }
 
   const { data: profile } = await supabase
-    .from('profiles')
+    .from('profiles_self')
     .select('is_admin')
     .eq('id', user.id)
     .single();
