@@ -358,7 +358,7 @@ export default function MovieDetailModal({
             </>
           )}
           <div className="relative">
-            <h2 className="text-2xl font-bold text-gold-400">
+            <h2 className="text-2xl sm:text-3xl font-unbounded font-bold text-gold-400">
               {movie.title}
             </h2>
             <p className="text-gray-400 text-sm">{movie.release_year}</p>
@@ -392,7 +392,7 @@ export default function MovieDetailModal({
 
                 {/* Poster — 2/3 width on mobile, full on desktop */}
                 <div className="w-2/3 flex-shrink-0 md:w-full">
-                  <div className="aspect-[2/3] relative bg-gray-800 rounded-lg overflow-hidden shadow-lg">
+                  <div className="aspect-[2/3] relative bg-gray-900/60 rounded-xl overflow-hidden border border-gold-500/20 shadow-2xl">
                     {hasValidImage ? (
                       <Image
                         src={normalizeImageUrl((movie.poster_url || '').trim())}
@@ -404,7 +404,7 @@ export default function MovieDetailModal({
                     ) : (
                       <PosterFallback
                         title={movie.title}
-                        className="rounded-lg"
+                        className="rounded-xl"
                       />
                     )}
                   </div>
@@ -508,7 +508,7 @@ export default function MovieDetailModal({
               {/* Overview */}
               {film.overview && (
                 <div>
-                  <h4 className="mb-2 font-semibold text-gold-400">Overview</h4>
+                  <h4 className="mb-2 font-unbounded font-semibold text-gold-400">Overview</h4>
                   <p className="text-sm leading-relaxed text-gray-300">
                     {film.overview}
                   </p>
@@ -525,31 +525,32 @@ export default function MovieDetailModal({
                 </div>
               )}
 
-              {/* Quick Info Grid */}
-              <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
+              {/* Quick Info — bordered chips, matching the full film page's
+                  quick-stat pills (same gray-800/60 + gold-500/10 treatment). */}
+              <div className="flex flex-wrap gap-2 sm:gap-3 text-sm">
                 {film.runtime && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-gold-500/80" />
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/60 border border-gold-500/10">
+                    <Clock className="w-4 h-4 text-gold-400" />
                     <span className="text-gray-300">{film.runtime} min</span>
                   </div>
                 )}
                 {film.mpaa_rating && (
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-gold-500/80" />
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/60 border border-gold-500/10">
+                    <Users className="w-4 h-4 text-gold-400" />
                     <span className="text-gray-300">Rated {film.mpaa_rating}</span>
                   </div>
                 )}
                 {film.director && (
-                  <div className="flex items-center col-span-2 gap-2 sm:col-span-1">
-                    <Clapperboard className="w-4 h-4 text-gold-500/80" />
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/60 border border-gold-500/10 max-w-full">
+                    <Clapperboard className="w-4 h-4 text-gold-400 flex-shrink-0" />
                     <span className="text-gray-300 truncate" title={`Directed by ${film.director}`}>
                       {film.director}
                     </span>
                   </div>
                 )}
                 {film.writer && film.writer !== film.director && (
-                  <div className="flex items-center col-span-2 gap-2 sm:col-span-1">
-                    <Users className="w-4 h-4 text-gold-500/80" />
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/60 border border-gold-500/10 max-w-full">
+                    <Users className="w-4 h-4 text-gold-400 flex-shrink-0" />
                     <span className="text-gray-300 truncate" title={`Written by ${film.writer}`}>
                       {film.writer}
                     </span>
@@ -560,9 +561,9 @@ export default function MovieDetailModal({
                     href={`https://www.youtube.com/watch?v=${trailer.key}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-gold-300 hover:text-gold-200 transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/60 border border-gold-500/10 text-gold-300 hover:text-gold-200 hover:border-gold-500/30 transition-colors"
                   >
-                    <Play className="w-4 h-4 text-gold-500/80" />
+                    <Play className="w-4 h-4 text-gold-400" />
                     <span>Watch Trailer</span>
                   </a>
                 )}
@@ -575,7 +576,7 @@ export default function MovieDetailModal({
               {hasDeeperTake && yourTake && (
                 <div className="p-4 border rounded-lg bg-gray-800/50 border-gold-500/10 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-gold-400 flex items-center gap-2">
+                    <h4 className="font-unbounded font-semibold text-gold-400 flex items-center gap-2">
                       <PenLine className="w-4 h-4" />
                       Your Take
                     </h4>
@@ -701,7 +702,7 @@ export default function MovieDetailModal({
               {/* Genres — desktop only (mobile shows genres in the sidebar) */}
               {film.genres && film.genres.length > 0 && (
                 <div className="hidden md:block">
-                  <h4 className="mb-2 font-semibold text-gold-400">Genres</h4>
+                  <h4 className="mb-2 font-unbounded font-semibold text-gold-400">Genres</h4>
                   <div className="flex flex-wrap gap-2">
                     {film.genres.map((genre: string, index: number) => (
                       <span
@@ -718,7 +719,7 @@ export default function MovieDetailModal({
               {/* Cast */}
               {film.cast_list && film.cast_list.length > 0 && (
                 <div>
-                  <h4 className="mb-2 font-semibold text-gold-400">Cast</h4>
+                  <h4 className="mb-2 font-unbounded font-semibold text-gold-400">Cast</h4>
                   <p className="text-sm text-gray-300">
                     {film.cast_list.slice(0, 10).join(", ")}
                   </p>
@@ -728,7 +729,7 @@ export default function MovieDetailModal({
               {/* Where to Watch */}
               {hasProviders && (
                 <div>
-                  <h4 className="mb-2 font-semibold text-gold-400">Where to Watch</h4>
+                  <h4 className="mb-2 font-unbounded font-semibold text-gold-400">Where to Watch</h4>
                   <WatchProviders providersByRegion={watchProviders} preferredRegion="US" />
                 </div>
               )}
@@ -736,7 +737,7 @@ export default function MovieDetailModal({
               {/* Scores (Admin only) */}
               {isAdmin && (film.imdb_rating || film.metacritic_score) && (
                 <div>
-                  <h4 className="mb-2 font-semibold text-gold-400">Scores</h4>
+                  <h4 className="mb-2 font-unbounded font-semibold text-gold-400">Scores</h4>
                   <div className="grid grid-cols-2 gap-4">
                     {film.imdb_rating && (
                       <div className="p-3 text-center border rounded-lg bg-gray-800/50 border-gold-500/10">
