@@ -406,7 +406,7 @@ export default function ListsHomePage() {
               const isSaving = savingAlertKey === alertKey;
               const isSaved = savedAlertKeys.includes(alertKey);
               return (
-                <div key={alertKey} className="min-w-[300px] max-w-[300px] flex-shrink-0 snap-start overflow-visible">
+                <div key={alertKey} className="w-[78vw] max-w-[300px] flex-shrink-0 snap-start overflow-visible">
                   <ReadyMadeCard
                     title={alert.label}
                     count={alert.count}
@@ -466,7 +466,7 @@ export default function ListsHomePage() {
             {/* Terminator — mirrors the home page rail */}
             <Link
               href="/lists/ready-made"
-              className="min-w-[300px] max-w-[300px] h-[260px] mt-5 flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gold-500/40 bg-charcoal-900/40 hover:border-gold-500/60 hover:bg-charcoal-900/60 rounded-lg shadow-md transition-all p-6 group"
+              className="w-[78vw] max-w-[300px] h-[260px] mt-5 flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gold-500/40 bg-charcoal-900/40 hover:border-gold-500/60 hover:bg-charcoal-900/60 rounded-lg shadow-md transition-all p-6 group"
               aria-label="Browse all ready-made lists"
             >
               <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-gold-500/20 group-hover:bg-gold-500/40 transition-all">

@@ -29,7 +29,7 @@ const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, see
       <div className="relative overflow-visible">
         <div className="flex gap-5 overflow-x-auto pb-4 pt-4 pr-3 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
           {lists.map((list) => (
-            <div key={list.id} className="min-w-[280px] max-w-[280px] flex-shrink-0 overflow-visible snap-start">
+            <div key={list.id} className="w-[78vw] max-w-[280px] flex-shrink-0 overflow-visible snap-start">
               <ListCard list={list} readOnly={readOnly} />
             </div>
           ))}
@@ -38,7 +38,7 @@ const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, see
               the Ready-Made rail on the home page where it belongs. */}
           {!readOnly && onAdd && (
             <div
-              className="min-w-[280px] max-w-[280px] h-[320px] flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gray-700/50 bg-charcoal-900/40 hover:border-gray-600/70 hover:bg-charcoal-900/60 rounded-xl shadow-md cursor-pointer transition-all p-6 group"
+              className="w-[78vw] max-w-[280px] h-[320px] flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gray-700/50 bg-charcoal-900/40 hover:border-gray-600/70 hover:bg-charcoal-900/60 rounded-xl shadow-md cursor-pointer transition-all p-6 group"
               onClick={onAdd}
               tabIndex={0}
               role="button"

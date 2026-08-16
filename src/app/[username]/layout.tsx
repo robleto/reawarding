@@ -8,15 +8,46 @@ import { useFollowing } from "@/hooks/useFollowing";
 import UserAvatar from "@/components/ui/UserAvatar";
 import FollowButton from "@/components/social/FollowButton";
 import { useUser } from "@supabase/auth-helpers-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 function ProfileHeader({
   username,
 }: {
   username: string;
 }) {
-  const { profile, stats, loading, notFound } = usePublicProfile(username);
+  const { profile, movies, awards, stats, loading, notFound } = usePublicProfile(username);
   const sessionUser = useUser();
+  const [statsScope, setStatsScope] = useState<"all" | "year">("all");
+
+  // "This Year" scopes the same all-time data (already fetched above) down to
+  // films released in the current year — mirrors the Settings page's
+  // StatsSummary scope semantics (release_year, not rating/watch date, since
+  // each year is its own ballot here). Computed client-side rather than a
+  // second API round-trip since `movies`/`awards` already carry everything
+  // needed. Awards mirrors the API's own all-time fallback: use recorded
+  // best-picture award years when any exist, else derive from rated films.
+  const yearStats = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const ratedThisYear = movies.filter(
+      (m) => m.release_year === currentYear && typeof m.rankings?.[0]?.ranking === "number"
+    );
+    const seenThisYear = movies.filter(
+      (m) => m.release_year === currentYear && m.rankings?.[0]?.seen_it
+    );
+    const hasRecordedAwards = awards.length > 0;
+    const awardedThisYear = hasRecordedAwards
+      ? awards.some((a) => Number(a.year) === currentYear)
+      : ratedThisYear.length > 0;
+
+    return {
+      rated: ratedThisYear.length,
+      seen: seenThisYear.length,
+      awards: awardedThisYear ? 1 : 0,
+      films: seenThisYear.length,
+    };
+  }, [movies, awards]);
+
+  const activeStats = statsScope === "year" ? yearStats : stats;
   const { followingIds, toggleFollow } = useFollowing(profile?.id ?? null);
   const [copied, setCopied] = useState(false);
   const isOwnProfile = sessionUser?.id === profile?.id;
@@ -68,9 +99,9 @@ function ProfileHeader({
     profile.username;
 
   const statItems = [
-    { label: "AWARDS", value: stats.awards, icon: <Trophy className="w-3.5 h-3.5" /> },
-    { label: "RANKINGS", value: stats.rated, icon: <Star className="w-3.5 h-3.5" /> },
-    { label: "FILMS", value: stats.films, icon: <Film className="w-3.5 h-3.5" /> },
+    { label: "AWARDS", value: activeStats.awards, icon: <Trophy className="w-3.5 h-3.5" /> },
+    { label: "RANKINGS", value: activeStats.rated, icon: <Star className="w-3.5 h-3.5" /> },
+    { label: "FILMS", value: activeStats.films, icon: <Film className="w-3.5 h-3.5" /> },
   ];
 
   return (
@@ -147,21 +178,45 @@ function ProfileHeader({
         </div>
 
         {/* Stats row — MeepleGo-inspired */}
-        <div className="grid grid-cols-3 md:w-[360px] rounded-lg border border-gray-700/40 bg-gray-800/20">
-          {statItems.map((s, index) => (
-            <div
-              key={s.label}
-              className={`flex flex-col items-center py-2.5 px-1 ${
-                index > 0 ? "border-l border-gray-700/50" : ""
-              }`}
-            >
-              <div className="flex items-center gap-1 text-gray-500 mb-0.5">
-                {s.icon}
-                <span className="text-[10px] uppercase tracking-wider font-medium">{s.label}</span>
-              </div>
-              <span className="text-xl sm:text-2xl font-bold text-white">{s.value}</span>
+        <div className="md:w-[360px]">
+          <div className="flex justify-end mb-1.5">
+            <div className="inline-flex rounded-md overflow-hidden border border-gray-700/50">
+              <button
+                type="button"
+                onClick={() => setStatsScope("all")}
+                className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  statsScope === "all" ? "bg-gold-500/90 text-gray-900" : "bg-transparent text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                All-time
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatsScope("year")}
+                className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  statsScope === "year" ? "bg-gold-500/90 text-gray-900" : "bg-transparent text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                This Year
+              </button>
             </div>
-          ))}
+          </div>
+          <div className="grid grid-cols-3 rounded-lg border border-gray-700/40 bg-gray-800/20">
+            {statItems.map((s, index) => (
+              <div
+                key={s.label}
+                className={`flex flex-col items-center py-2.5 px-1 ${
+                  index > 0 ? "border-l border-gray-700/50" : ""
+                }`}
+              >
+                <div className="flex items-center gap-1 text-gray-500 mb-0.5">
+                  {s.icon}
+                  <span className="text-[10px] uppercase tracking-wider font-medium">{s.label}</span>
+                </div>
+                <span className="text-xl sm:text-2xl font-bold text-white">{s.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -185,8 +240,15 @@ function ProfileTabs({ username }: { username: string }) {
   ];
 
   return (
+    // w-max (not w-full) on the inner bar below: w-full capped it to the
+    // nav's visible width, so the background/border only covered whatever
+    // fit on screen — tabs that overflowed off the right edge scrolled in
+    // with no background behind them, reading as if the list ended at
+    // whatever happened to be visible. w-max sizes the bar to its actual
+    // content (all tabs), so overflow-x-auto scrolls the WHOLE bar,
+    // background included.
     <nav className="mt-4 mb-6 overflow-x-auto">
-      <div className="w-full flex items-center justify-start gap-1 rounded-xl bg-black/20 backdrop-blur-md border border-gray-700/40 shadow-lg p-1">
+      <div className="w-max flex items-center justify-start gap-2 rounded-xl bg-black/20 backdrop-blur-md border border-gray-700/40 shadow-lg p-1">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive =

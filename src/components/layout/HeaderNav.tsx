@@ -232,17 +232,6 @@ export default function HeaderNav() {
 										</li>
 									);
 								})}
-								{user && (
-									<li>
-										<button
-											onClick={() => { setMobileMenuOpen(false); setShowAddMovieModal(true); }}
-											className="flex items-center w-full gap-2 py-2 px-3 rounded-md font-medium text-left text-gray-300 hover:text-gold hover:bg-gray-800 transition-colors"
-										>
-											<Plus className="w-4 h-4" />
-											<span>Add a film</span>
-										</button>
-									</li>
-								)}
 							</ul>
 							<div className={navItems.length > 0 ? "mt-4 border-t border-gray-700 pt-3" : undefined}>
 								<UserMenu
@@ -250,6 +239,7 @@ export default function HeaderNav() {
 									onLoginClick={handleLoginClick}
 									onSignupClick={handleSignupClick}
 									onNavigate={() => setMobileMenuOpen(false)}
+									onAddFilmClick={user ? () => { setMobileMenuOpen(false); setShowAddMovieModal(true); } : undefined}
 								/>
 							</div>
 						</nav>

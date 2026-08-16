@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Activity, Bookmark, Film, LogOut, Moon, Monitor, Settings, Star, Sun, Trophy, User, Users, List } from 'lucide-react';
+import { Activity, Bookmark, Film, LogOut, Moon, Monitor, Plus, Settings, Star, Sun, Trophy, User, Users, List } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useProfile } from '@/contexts/ProfileContext';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
@@ -55,9 +55,16 @@ interface UserMenuProps {
    * dropdown variant, which closes itself internally.
    */
   onNavigate?: () => void;
+  /**
+   * Renders an "Add a Film" action in the inline variant, between Settings
+   * and Sign Out — only when provided, so the desktop dropdown variant
+   * (which never passes this) is unaffected. The mobile hamburger panel
+   * (HeaderNav.tsx) is the only current caller.
+   */
+  onAddFilmClick?: () => void;
 }
 
-export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown', onNavigate }: UserMenuProps) {
+export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown', onNavigate, onAddFilmClick }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
@@ -224,6 +231,15 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown', on
             <Settings className="w-4 h-4" />
             Settings
           </Link>
+          {onAddFilmClick && (
+            <button
+              onClick={onAddFilmClick}
+              className="flex items-center gap-2 w-full px-3 py-2.5 rounded-md text-sm font-medium text-left text-gray-300 hover:bg-gray-800"
+            >
+              <Plus className="w-4 h-4" />
+              Add a Film
+            </button>
+          )}
           <button
             onClick={handleSignOut}
             className="flex items-center gap-2 w-full px-3 py-2.5 rounded-md text-sm font-medium text-left text-gray-300 hover:bg-gray-800"

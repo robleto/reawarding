@@ -899,7 +899,7 @@ export default function HomePage() {
             ═══════════════════════════════════════════════════ */}
         <div className={isGuest ? "pb-32" : ""}>
           {formattedYears.length > 1 && (
-            <div className="sticky top-[calc(4.3rem+env(safe-area-inset-top))] z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-2 mb-4 bg-gray-950/90 backdrop-blur-md border-b border-gray-800/60 [&>div]:mb-0">
+            <div className="sticky top-[calc(4.3rem+env(safe-area-inset-top))] z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-2 mb-4 bg-gray-950 [&>div]:mb-0">
               <MuseumYearTimeline
                 years={formattedYears.map((y) => ({
                   year: Number(y.year),
