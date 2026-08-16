@@ -1,5 +1,11 @@
 "use client";
 
+// DEAD CODE as of the LOOP-1 fix: orphaned by src/app/nominees/page.tsx now
+// redirecting to Home instead of rendering this builder (its Save/Share
+// actions never persisted anything). Kept only because file deletion isn't
+// permitted in this pass — removing this file entirely would be a good
+// small follow-up cleanup task for whoever has file-deletion permission.
+
 import { useState, useEffect } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";

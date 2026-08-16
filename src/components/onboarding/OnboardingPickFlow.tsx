@@ -163,12 +163,14 @@ export default function OnboardingPickFlow({
         ref={panelRef}
         className="relative w-full max-w-sm rounded-2xl border border-gray-700/60 bg-charcoal-900 shadow-2xl shadow-black/60 animate-in fade-in zoom-in-95 duration-200"
       >
-        {/* Close affordance */}
+        {/* Close affordance — visual chip stays small (p-1.5 + w-4 icon); the
+            before:-inset-3 pseudo-element pads the real tappable area out to
+            44x44 on touch without enlarging the visible icon. */}
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-3 top-3 z-10 p-1.5 rounded-lg text-gray-500 hover:text-gray-200 hover:bg-gray-800 transition-colors"
+          className="absolute right-3 top-3 z-10 p-1.5 rounded-lg text-gray-500 hover:text-gray-200 hover:bg-gray-800 transition-colors before:content-[''] before:absolute before:-inset-3"
         >
           <X className="w-4 h-4" />
         </button>

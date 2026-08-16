@@ -10,6 +10,12 @@ export type FollowProfile = {
   avatar_url: string | null;
 };
 
+/** Result of a toggleFollow call, so callers can detect and react to failure. */
+export type ToggleFollowResult = {
+  success: boolean;
+  error?: string;
+};
+
 export type UseFollowingResult = {
   /** Profiles this user follows */
   following: FollowProfile[];
@@ -18,8 +24,10 @@ export type UseFollowingResult = {
   /** IDs of profiles the *current session user* follows (for button state) */
   followingIds: Set<string>;
   loading: boolean;
+  /** Set if the most recent load() failed to fetch one or more of the follow lists */
+  error: string | null;
   /** Toggle follow/unfollow for a target profile ID */
-  toggleFollow: (targetProfileId: string) => Promise<void>;
+  toggleFollow: (targetProfileId: string) => Promise<ToggleFollowResult>;
 };
 
 /**
@@ -35,6 +43,7 @@ export function useFollowing(profileId: string | null): UseFollowingResult {
   const [followers, setFollowers] = useState<FollowProfile[]>([]);
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profileId) return;
@@ -42,20 +51,40 @@ export function useFollowing(profileId: string | null): UseFollowingResult {
 
     async function load() {
       setLoading(true);
+      setError(null);
 
-      // People this profile follows
-      const { data: followingRows } = await supabase
-        .from("follows")
-        .select("following_id, profiles!follows_following_id_fkey(id, username, full_name, avatar_url)")
-        .eq("follower_id", profileId);
-
-      // People following this profile
-      const { data: followerRows } = await supabase
-        .from("follows")
-        .select("follower_id, profiles!follows_follower_id_fkey(id, username, full_name, avatar_url)")
-        .eq("following_id", profileId);
+      // People this profile follows, people following this profile, and (if
+      // logged in) the session user's own following set — none of these
+      // depend on each other, so fire them concurrently.
+      const [followingQuery, followerQuery, myFollowingQuery] = await Promise.all([
+        supabase
+          .from("follows")
+          .select("following_id, profiles!follows_following_id_fkey(id, username, full_name, avatar_url)")
+          .eq("follower_id", profileId),
+        supabase
+          .from("follows")
+          .select("follower_id, profiles!follows_follower_id_fkey(id, username, full_name, avatar_url)")
+          .eq("following_id", profileId),
+        sessionUser
+          ? supabase
+              .from("follows")
+              .select("following_id")
+              .eq("follower_id", sessionUser.id)
+          : Promise.resolve({ data: null, error: null }),
+      ]);
 
       if (cancelled) return;
+
+      const { data: followingRows, error: followingError } = followingQuery;
+      const { data: followerRows, error: followerError } = followerQuery;
+      const { data: myFollowing, error: myFollowingError } = myFollowingQuery;
+
+      const loadError = followingError ?? followerError ?? myFollowingError;
+      if (loadError) {
+        setError(loadError.message || "Failed to load follow data.");
+        setLoading(false);
+        return;
+      }
 
       type ProfileRow = { id: string; username: string; full_name: string | null; avatar_url: string | null };
 
@@ -78,13 +107,7 @@ export function useFollowing(profileId: string | null): UseFollowingResult {
 
       // Also load the session user's following set (for button state)
       if (sessionUser) {
-        const { data: myFollowing } = await supabase
-          .from("follows")
-          .select("following_id")
-          .eq("follower_id", sessionUser.id);
-        if (!cancelled) {
-          setFollowingIds(new Set((myFollowing ?? []).map((r) => r.following_id)));
-        }
+        setFollowingIds(new Set((myFollowing ?? []).map((r) => r.following_id)));
       }
 
       setLoading(false);
@@ -95,8 +118,10 @@ export function useFollowing(profileId: string | null): UseFollowingResult {
   }, [profileId, sessionUser?.id, supabase]);
 
   const toggleFollow = useCallback(
-    async (targetProfileId: string) => {
-      if (!sessionUser) return;
+    async (targetProfileId: string): Promise<ToggleFollowResult> => {
+      if (!sessionUser) {
+        return { success: false, error: "You must be signed in to follow." };
+      }
 
       const isFollowing = followingIds.has(targetProfileId);
 
@@ -108,19 +133,38 @@ export function useFollowing(profileId: string | null): UseFollowingResult {
         return next;
       });
 
+      const revert = () => {
+        setFollowingIds((prev) => {
+          const next = new Set(prev);
+          if (isFollowing) next.add(targetProfileId);
+          else next.delete(targetProfileId);
+          return next;
+        });
+      };
+
       if (isFollowing) {
-        await supabase
+        const { error: deleteError } = await supabase
           .from("follows")
           .delete()
           .match({ follower_id: sessionUser.id, following_id: targetProfileId });
+        if (deleteError) {
+          revert();
+          return { success: false, error: deleteError.message || "Failed to unfollow." };
+        }
       } else {
-        await supabase
+        const { error: insertError } = await supabase
           .from("follows")
           .insert({ follower_id: sessionUser.id, following_id: targetProfileId });
+        if (insertError) {
+          revert();
+          return { success: false, error: insertError.message || "Failed to follow." };
+        }
       }
+
+      return { success: true };
     },
     [sessionUser, followingIds, supabase]
   );
 
-  return { following, followers, followingIds, loading, toggleFollow };
+  return { following, followers, followingIds, loading, error, toggleFollow };
 }

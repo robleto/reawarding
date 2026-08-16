@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Search } from "lucide-react";
 import { useUser } from "@supabase/auth-helpers-react";
 import { supabase } from "@/lib/supabaseBrowser";
-import { useEnsureProfile } from "@/hooks/useEnsureProfile";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useFollowing } from "@/hooks/useFollowing";
 import FollowButton from "@/components/social/FollowButton";
 import ScreenState from "@/components/ui/ScreenState";
@@ -22,7 +22,7 @@ type MemberProfile = {
 
 export default function MembersPage() {
   const sessionUser = useUser();
-  const { profile: ownProfile } = useEnsureProfile(sessionUser);
+  const { profile: ownProfile } = useProfile();
   const { followingIds, toggleFollow } = useFollowing(ownProfile?.id ?? null);
 
   const [query, setQuery] = useState("");

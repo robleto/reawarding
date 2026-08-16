@@ -1,19 +1,19 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
 import { useAuthState } from "@/hooks/useAuthState";
-import { useWatchlist } from "@/hooks/useWatchlist";
+import { useWatchlist, type WatchlistMutationResult } from "@/hooks/useWatchlist";
 
 interface WatchlistContextValue {
   watchlistMovieIds: Set<string>;
-  toggle: (movieId: string) => Promise<void>;
-  removeIfWatched: (movieId: string) => Promise<void>;
+  toggle: (movieId: string) => Promise<WatchlistMutationResult>;
+  removeIfWatched: (movieId: string) => Promise<WatchlistMutationResult>;
 }
 
 const WatchlistContext = createContext<WatchlistContextValue>({
   watchlistMovieIds: new Set(),
-  toggle: async () => {},
-  removeIfWatched: async () => {},
+  toggle: async () => ({ success: true }),
+  removeIfWatched: async () => ({ success: true }),
 });
 
 /**
@@ -25,8 +25,13 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuthState();
   const { watchlistMovieIds, toggle, removeIfWatched } = useWatchlist(user?.id ?? null);
 
+  const value = useMemo<WatchlistContextValue>(
+    () => ({ watchlistMovieIds, toggle, removeIfWatched }),
+    [watchlistMovieIds, toggle, removeIfWatched]
+  );
+
   return (
-    <WatchlistContext.Provider value={{ watchlistMovieIds, toggle, removeIfWatched }}>
+    <WatchlistContext.Provider value={value}>
       {children}
     </WatchlistContext.Provider>
   );

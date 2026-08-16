@@ -177,6 +177,10 @@ import EditableYearSection from '@/components/award/EditableYearSection';
   winner={yearData.winner}
   movies={yearData.nominees}
   allMoviesForYear={yearData.allMovies}
+  // Required: is the viewer looking at their OWN ballot? Never pass a
+  // blanket `true` for a page that can render another user's data (e.g. a
+  // public profile) — compute it as `viewer.id === profile.id`.
+  viewerOwnsBallot={true}
 />
 ```
 

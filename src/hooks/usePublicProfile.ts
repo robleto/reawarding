@@ -60,9 +60,7 @@ export function usePublicProfile(username: string): UsePublicProfileResult {
       setNotFound(false);
 
       try {
-        const res = await fetch(`/api/users/${encodeURIComponent(username)}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(`/api/users/${encodeURIComponent(username)}`);
 
         if (res.status === 404) {
           if (mounted) setNotFound(true);

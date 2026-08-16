@@ -243,7 +243,7 @@ export function markStorageWarningShown(): void {
 
 // Hook that provides the migration functionality with Supabase access
 /** Prevents concurrent migration runs (e.g., auth listener double-emit). */
-let migrationInFlight: Promise<{ success: boolean; migratedCount: number; error?: string }> | null = null;
+let migrationInFlight: Promise<{ success: boolean; migratedCount: number; error?: string; failedAwardYears?: number[] }> | null = null;
 
 export function useGuestRankingStoreWithMigration() {
   const supabase = useSupabaseClient<Database>();
@@ -291,6 +291,7 @@ export function useGuestRankingStoreWithMigration() {
 
       // Migrate guest awards
       let awardsMigrated = 0;
+      const failedAwardYears: number[] = [];
       for (const award of awards) {
         try {
           const res = await fetch('/api/awards', {
@@ -309,15 +310,28 @@ export function useGuestRankingStoreWithMigration() {
             awardsMigrated++;
           } else {
             console.warn('[GuestMigration] Failed to migrate award for year', award.year);
+            failedAwardYears.push(award.year);
           }
         } catch (e) {
           console.warn('[GuestMigration] Error migrating award for year', award.year, e);
+          failedAwardYears.push(award.year);
         }
       }
-      // Clear guest data after successful migration
-      store.clearAllData();
 
-      return { success: true, migratedCount: rankingsToInsert.length + awardsMigrated };
+      // Only clear guest data when everything migrated cleanly. If any award
+      // failed to migrate, leave localStorage intact so a retry is possible
+      // instead of silently losing the guest's ballots.
+      if (failedAwardYears.length === 0) {
+        store.clearAllData();
+        return { success: true, migratedCount: rankingsToInsert.length + awardsMigrated };
+      }
+
+      return {
+        success: false,
+        migratedCount: rankingsToInsert.length + awardsMigrated,
+        failedAwardYears,
+        error: `Failed to migrate ${failedAwardYears.length} award(s) for year(s): ${failedAwardYears.join(', ')}`,
+      };
     } catch (error) {
       console.error('[GuestMigration] Unexpected error migrating guest data:', error);
       return {

@@ -1,40 +1,18 @@
 /**
  * Client-side hook for checking admin status
  * Use this in Client Components
+ *
+ * Thin wrapper around the shared ProfileContext (see
+ * src/contexts/ProfileContext.tsx) — no longer issues its own
+ * `SELECT is_admin FROM profiles` request, it reads the cached profile
+ * fetched once by ProfileProvider.
  */
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
-import type { Database } from '@/types/supabase';
+import { useProfile } from '@/contexts/ProfileContext';
 
 export function useIsAdmin() {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const supabase = useSupabaseClient<Database>();
-  const user = useUser();
-
-  useEffect(() => {
-    async function checkAdminStatus() {
-      if (!user) {
-        setIsAdmin(false);
-        setLoading(false);
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single();
-
-      setIsAdmin(profile?.is_admin ?? false);
-      setLoading(false);
-    }
-
-    checkAdminStatus();
-  }, [user, supabase]);
-
+  const { isAdmin, loading } = useProfile();
   return { isAdmin, loading };
 }

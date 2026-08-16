@@ -13,6 +13,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
+import { sanitizeNextPath } from '@/utils/sanitizeNextPath';
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
   const type = requestUrl.searchParams.get('type') as EmailOtpType | null;
   const rawNext = requestUrl.searchParams.get('next') ?? (type === 'recovery' ? '/auth/reset-password' : '/');
   // Only allow same-origin relative paths — `next` comes from the URL and must not redirect off-site.
-  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
+  const next = sanitizeNextPath(rawNext);
 
   if (!token_hash || !type) {
     return NextResponse.redirect(
@@ -69,7 +70,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  return NextResponse.redirect(
-    new URL(`/auth-code-error?error=${encodeURIComponent(errorCode)}&description=${encodeURIComponent(error.message)}`, requestUrl.origin)
-  );
+  // Everything else (most importantly `signup` — the standard email-confirmation
+  // link) lands on the generic error page. Thread `type` through so that page can
+  // offer a targeted recovery action (e.g. resending a signup confirmation email)
+  // instead of a dead end.
+  const errorRedirectUrl = new URL('/auth-code-error', requestUrl.origin);
+  errorRedirectUrl.searchParams.set('error', errorCode);
+  errorRedirectUrl.searchParams.set('description', error.message);
+  errorRedirectUrl.searchParams.set('type', type);
+  return NextResponse.redirect(errorRedirectUrl);
 }

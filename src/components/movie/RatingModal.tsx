@@ -335,7 +335,7 @@ export default function RatingModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-gray-500 hover:text-gray-200 hover:bg-gray-800 transition-colors"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-200 hover:bg-gray-800 transition-colors"
               aria-label="Close"
             >
               <X className="w-4 h-4" />

@@ -26,6 +26,7 @@ interface Profile {
   updated_at: string;
   subscription_status: string | null;
   subscription_current_period_end: string | null;
+  stripe_customer_id: string | null;
 }
 
 const ENTITLED_STATUSES = new Set(["active", "trialing"]);
@@ -238,7 +239,14 @@ export default function SettingsPage() {
     setBillingLoading(true);
     setBillingError(null);
     try {
-      const endpoint = isPremium ? "/api/stripe/portal" : "/api/stripe/checkout";
+      // Route to the Billing Portal whenever a Stripe customer already
+      // exists, regardless of current subscription_status — a past_due or
+      // unpaid subscriber still has a live subscription (and stripe_customer_id)
+      // even though isPremium is false, and sending them to Checkout instead
+      // would create a duplicate concurrent subscription (audit PAY-2).
+      const endpoint = Boolean(profile?.stripe_customer_id)
+        ? "/api/stripe/portal"
+        : "/api/stripe/checkout";
       const res = await fetch(endpoint, { method: "POST" });
       const data = await res.json();
       if (data.url) {
@@ -620,11 +628,7 @@ export default function SettingsPage() {
               </>
             )}
           </div>
-          {isNative && !isPremium ? (
-            <p className="text-xs text-gray-400 whitespace-nowrap">
-              Unlock Premium at reawarding.com
-            </p>
-          ) : (
+          {!(isNative && !isPremium) && (
             <button
               onClick={handleManageBilling}
               disabled={billingLoading}

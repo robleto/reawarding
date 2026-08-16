@@ -15,6 +15,7 @@ import { useAuthMigration } from '@/utils/authMigration';
 import { useAuthState } from '@/hooks/useAuthState';
 import useOnboardingState from '@/hooks/useOnboardingState';
 import { WatchlistProvider } from '@/contexts/WatchlistContext';
+import { ProfileProvider } from '@/contexts/ProfileContext';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -37,9 +38,11 @@ export function Providers({ children }: ProvidersProps) {
         <NativeOAuthBridge />
         <ThemeProvider>
           <ToastProvider>
-            <WatchlistProvider>
-              {children}
-            </WatchlistProvider>
+            <ProfileProvider>
+              <WatchlistProvider>
+                {children}
+              </WatchlistProvider>
+            </ProfileProvider>
           </ToastProvider>
         </ThemeProvider>
       </SessionContextProvider>

@@ -36,18 +36,33 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // 2. Fetch all movies the user has ranked/seen (with their rankings)
-    const { data: movies, error: moviesError } = await supabase
-      .from("movies")
-      .select(
-        `
+    // 2. Fetch all movies the user has ranked/seen (with their rankings) and
+    // the user's award records concurrently — neither depends on the other's
+    // result, only on profile.id.
+    // Heavy, per-movie-detail-only columns (cast_list, backdrop_url) are
+    // intentionally omitted here: they're only consumed by MovieDetailModal,
+    // which fetches them itself via its own dedicated query.
+    const [
+      { data: movies, error: moviesError },
+      { data: awards, error: awardsError },
+    ] = await Promise.all([
+      supabase
+        .from("movies")
+        .select(
+          `
         id, title, release_year, poster_url, thumb_url,
-        backdrop_url, imdb_rating, metacritic_score, tmdb_rating,
-        director, writer, cast_list, genres, runtime, created_at,
+        imdb_rating, metacritic_score, tmdb_rating,
+        director, writer, genres, runtime, created_at,
         rankings!inner(ranking, seen_it, user_id)
       `
-      )
-      .eq("rankings.user_id", profile.id);
+        )
+        .eq("rankings.user_id", profile.id),
+      // Count best-picture award years (any award record counts, regardless of winner selection).
+      supabase
+        .from("awards")
+        .select("year, nominee_ids, winner_id, category")
+        .eq("user_id", profile.id),
+    ]);
 
     const allMovies = movies || [];
     if (moviesError) {
@@ -60,11 +75,6 @@ export async function GET(
     );
     const seenMovies = allMovies.filter((m: any) => m.rankings?.[0]?.seen_it);
 
-    // Count best-picture award years (any award record counts, regardless of winner selection).
-    const { data: awards, error: awardsError } = await supabase
-      .from("awards")
-      .select("year, nominee_ids, winner_id, category")
-      .eq("user_id", profile.id);
     if (awardsError) {
       console.error("Error fetching user award stats:", awardsError);
     }
@@ -107,8 +117,12 @@ export async function GET(
       stats,
       awards: bestPictureAwards,
     }, {
+      // Public profile data: profiles/movies/rankings/awards all carry public
+      // "readable by anyone" RLS policies (qual: true), so this response does
+      // not vary by viewer even though createSupabaseServerClient() reads the
+      // viewer's auth cookies. Safe to cache briefly at the edge/CDN.
       headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Cache-Control": "public, max-age=30, stale-while-revalidate=300",
       },
     });
   } catch (error) {

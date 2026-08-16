@@ -4,8 +4,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
-import { useUser } from "@/hooks/useUser";
-import { useEnsureProfile } from "@/hooks/useEnsureProfile";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useQualityTagCollections } from "@/hooks/useQualityTagCollections";
 import { slugifyTitle } from "@/utils/slug";
 import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
@@ -17,8 +16,7 @@ export default function CollectionsPage() {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
   const { movies, profile, loading } = usePublicProfile(username);
-  const { user } = useUser();
-  const { profile: ownerProfile } = useEnsureProfile(user ?? null);
+  const { profile: ownerProfile } = useProfile();
 
   const isOwner = !!(
     ownerProfile?.username &&

@@ -32,6 +32,7 @@ import { useViewMode, useMovieFilters, SORT_OPTIONS, GROUP_OPTIONS, type SortKey
 import MovieFilters from "@/components/filters/MovieFilters";
 import { Edit2, Plus, Globe, Lock, MoreVertical, ArrowLeft, Trash } from "lucide-react";
 import { useAuthState } from "@/hooks/useAuthState";
+import { useGlobalToast } from "@/hooks/useGlobalToast";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,7 @@ export default function ListDetailPage() {
   const userId = user?.id;
   const [viewMode, setViewMode] = useViewMode("grid");
   const [errorKind, setErrorKind] = useState<"not_found" | "unauthorized" | "fetch" | null>(null);
+  const { showToast, toast } = useGlobalToast();
 
   const sensors = useSensors(
     // Long-press to drag so touch scrolling isn't hijacked by the sortable
@@ -245,6 +247,50 @@ export default function ListDetailPage() {
     )
   ).sort((a, b) => a - b);
 
+  // Fetch + merge global rankings (seen_it/score) into a set of movie_list_items rows.
+  // Shared by the initial load and handleAddMovie so both stay in sync — neither should
+  // rebuild listItems without this merge, or every other item's rating badge / seen-it
+  // marker gets blanked out.
+  const mergeItemsWithRankings = async (itemsData: any[]): Promise<ListItem[]> => {
+    const movieIds = (itemsData || []).map((item) => item.movie_id);
+
+    let rankingsData: any[] = [];
+    if (movieIds.length > 0 && status === "authenticated" && userId) {
+      const { data: rankings, error: rankingsError } = await supabase
+        .from("rankings")
+        .select("id, movie_id, seen_it, ranking")
+        .eq("user_id", userId)
+        .in("movie_id", movieIds);
+      if (rankingsError) {
+        console.error("Error fetching user rankings:", rankingsError.message);
+      } else if (rankings) {
+        rankingsData = rankings;
+      }
+    }
+
+    const rankingMap = new Map<string, any>();
+    for (const r of rankingsData) {
+      rankingMap.set(r.movie_id, r);
+    }
+
+    return (itemsData || [])
+      .filter((item) => item.movies)
+      .map((item) => {
+        const global = rankingMap.get(item.movie_id) || {};
+        return {
+          ...item,
+          seen_it: global.seen_it ?? false,
+          score: typeof global.ranking === "number" ? global.ranking : null,
+          ranking_id: global.id,
+          movie: {
+            ...item.movies,
+            rankings: [],
+            thumb_url: item.movies.thumb_url || "",
+          } as Movie,
+        };
+      });
+  };
+
   useEffect(() => {
     if (!listId || status === "loading") return;
 
@@ -309,47 +355,8 @@ export default function ListDetailPage() {
           return;
         }
 
-        // Get all movie_ids in the list
-        const movieIds = (itemsData || []).map(item => item.movie_id);
-
-        // Fetch global rankings for these movies for this user
-        let rankingsData: any[] = [];
-        if (movieIds.length > 0 && status === "authenticated" && userId) {
-          const { data: rankings, error: rankingsError } = await supabase
-            .from("rankings")
-            .select("id, movie_id, seen_it, ranking")
-            .eq("user_id", userId)
-            .in("movie_id", movieIds);
-          if (rankingsError) {
-            console.error("Error fetching user rankings:", rankingsError.message);
-          } else {
-            rankingsData = rankings;
-          }
-        }
-
-        // Map movie_id to ranking info
-        const rankingMap = new Map<string, any>();
-        for (const r of rankingsData) {
-          rankingMap.set(r.movie_id, r);
-        }
-
         // Transform the data to match our expected structure, merging in global ranking/seen_it
-        const transformedItems: ListItem[] = (itemsData || [])
-          .filter(item => item.movies)
-          .map(item => {
-            const global = rankingMap.get(item.movie_id) || {};
-            return {
-              ...item,
-              seen_it: global.seen_it ?? false,
-              score: typeof global.ranking === 'number' ? global.ranking : null,
-              ranking_id: global.id,
-              movie: {
-                ...item.movies,
-                rankings: [],
-                thumb_url: item.movies.thumb_url || "",
-              } as Movie,
-            };
-          });
+        const transformedItems = await mergeItemsWithRankings(itemsData || []);
 
         setListItems(transformedItems);
       } catch (err) {
@@ -362,72 +369,15 @@ export default function ListDetailPage() {
     }
 
     fetchListData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listId, status, userId, supabase]);
 
-  // Update global ranking/seen_it for a movie
-  // Refetch list items and rankings after update
-  const refetchListItems = async () => {
-    if (!listId) return;
-    setLoading(true);
-    setError(null);
-    setErrorKind(null);
-    try {
-      // Fetch the list items with movie details
-      const { data: itemsData, error: itemsError } = await supabase
-        .from("movie_list_items")
-        .select(`*, movies:movie_id (id, title, release_year, poster_url, thumb_url, created_at)`)
-        .eq("list_id", listId)
-        .order("ranking");
-      if (itemsError) {
-        setListItems([]);
-        setLoading(false);
-        return;
-      }
-      // Get all movie_ids in the list
-      const movieIds = (itemsData || []).map(item => item.movie_id);
-      // Fetch global rankings for these movies for this user
-      let rankingsData: any[] = [];
-      if (movieIds.length > 0 && status === "authenticated" && userId) {
-        const { data: rankings, error: rankingsError } = await supabase
-          .from("rankings")
-          .select("id, movie_id, seen_it, ranking")
-          .eq("user_id", userId)
-          .in("movie_id", movieIds);
-        if (!rankingsError && rankings) {
-          rankingsData = rankings;
-        }
-      }
-      // Map movie_id to ranking info
-      const rankingMap = new Map<string, any>();
-      for (const r of rankingsData) {
-        rankingMap.set(r.movie_id, r);
-      }
-      // Transform the data to match our expected structure, merging in global ranking/seen_it
-      const transformedItems: ListItem[] = (itemsData || [])
-        .filter(item => item.movies)
-        .map(item => {
-          const global = rankingMap.get(item.movie_id) || {};
-          return {
-            ...item,
-            seen_it: global.seen_it ?? false,
-            score: typeof global.ranking === 'number' ? global.ranking : null,
-            ranking_id: global.id,
-            movie: {
-              ...item.movies,
-              rankings: [],
-              thumb_url: item.movies.thumb_url || "",
-            } as Movie,
-          };
-        });
-      setListItems(transformedItems);
-    } catch (err) {
-      setError("Failed to refresh list items");
-      setErrorKind("fetch");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Update global ranking/seen_it for a single movie in this list.
+  // IMPORTANT: this fires on every rating/seen-it toggle — the single most frequent
+  // action on this page (Watch -> Rate is the primary product loop). It must NOT
+  // trigger setLoading(true)/a full refetch, which would tear down the whole page to
+  // a spinner and lose scroll position, edit mode, and filter/sort selections. Update
+  // just this item's local state optimistically instead.
   const handleUpdateItem = async (
     itemId: string,
     updates: { seen_it?: boolean; score?: number | null }
@@ -446,26 +396,85 @@ export default function ListDetailPage() {
     if (updates.score !== undefined) payload.ranking = updates.score;
 
     // Upsert into rankings table
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("rankings")
-      .upsert(payload, { onConflict: "user_id,movie_id" });
+      .upsert(payload, { onConflict: "user_id,movie_id" })
+      .select("id")
+      .single();
 
     if (error) {
       console.error("Error updating global ranking:", error.message);
+      showToast("Couldn't save your update. Please try again.", "error");
       return;
     }
 
-    // Optimistically update local state
+    // Update just this item's local state — no full-page refetch/reload.
     setListItems(prevItems =>
-      prevItems.map(item =>
-        item.id === itemId ? { ...item, ...updates } : item
+      prevItems.map(i =>
+        i.id === itemId
+          ? {
+              ...i,
+              // Spread only the keys the caller actually set. `updates` is
+              // built from two independent card actions (seen-it toggle,
+              // rate) that only ever populate ONE of these fields at a time
+              // — the other key is present with value `undefined`, and a
+              // naive `{ ...i, ...updates }` spread copies that `undefined`
+              // over the sibling field, wiping it from display until the
+              // next reload. `null` must still pass through: it's the
+              // legitimate "cleared rating" value.
+              ...(updates.seen_it !== undefined ? { seen_it: updates.seen_it } : {}),
+              ...(updates.score !== undefined ? { score: updates.score } : {}),
+              ranking_id: data?.id ?? i.ranking_id,
+            }
+          : i
       )
     );
-    // Refetch from backend to ensure sync
-    await refetchListItems();
+    showToast("Saved", "success");
+  };
+
+  // Re-insert a previously-removed item, used by the "Undo" action on the remove toast.
+  const handleUndoRemove = async (item: ListItem) => {
+    const { data, error } = await supabase
+      .from("movie_list_items")
+      .insert({
+        list_id: listId,
+        movie_id: item.movie_id,
+        ranking: item.ranking,
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      console.error("Error restoring removed item:", error?.message);
+      showToast("Couldn't restore the movie.", "error");
+      return;
+    }
+
+    setListItems(prevItems => {
+      if (prevItems.some(i => i.movie_id === item.movie_id)) return prevItems;
+      const restored: ListItem = { ...item, id: data.id };
+      return [...prevItems, restored].sort((a, b) => (a.ranking ?? 0) - (b.ranking ?? 0));
+    });
+
+    // Restoring the item changes the list contents again, so bump updated_at.
+    supabase
+      .from("movie_lists")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", listId)
+      .then(({ error: touchError }) => {
+        if (touchError) console.error("Error touching list updated_at:", touchError.message);
+      });
+
+    showToast("Movie restored", "success");
   };
 
   const handleRemoveItem = async (itemId: string) => {
+    const item = listItems.find(i => i.id === itemId);
+    if (!item) return;
+
+    // Optimistically remove from the UI immediately.
+    setListItems(prevItems => prevItems.filter(i => i.id !== itemId));
+
     const { error } = await supabase
       .from("movie_list_items")
       .delete()
@@ -473,17 +482,40 @@ export default function ListDetailPage() {
 
     if (error) {
       console.error("Error removing item:", error.message);
+      // Roll back the optimistic removal since the delete never happened.
+      setListItems(prevItems => {
+        if (prevItems.some(i => i.id === itemId)) return prevItems;
+        return [...prevItems, item].sort((a, b) => (a.ranking ?? 0) - (b.ranking ?? 0));
+      });
+      showToast("Couldn't remove the movie. Please try again.", "error");
       return;
     }
 
-    // Update local state
-    setListItems(prevItems => prevItems.filter(item => item.id !== itemId));
-
-    // Update the list's updated_at timestamp
-    await supabase
+    // Update the list's updated_at timestamp (best-effort, doesn't block the undo toast)
+    supabase
       .from("movie_lists")
       .update({ updated_at: new Date().toISOString() })
-      .eq("id", listId);
+      .eq("id", listId)
+      .then(({ error: touchError }) => {
+        if (touchError) console.error("Error touching list updated_at:", touchError.message);
+      });
+
+    // Give the user a few seconds to reverse the removal instead of an unconfirmed,
+    // permanent delete with no way back.
+    toast((t) => (
+      <span className="flex items-center gap-3">
+        <span>Removed “{item.movie.title}”</span>
+        <button
+          onClick={() => {
+            toast.dismiss(t.id);
+            handleUndoRemove(item);
+          }}
+          className="font-semibold underline hover:no-underline"
+        >
+          Undo
+        </button>
+      </span>
+    ), { duration: 6000 });
   };
 
   const handleAddMovie = async () => {
@@ -506,18 +538,9 @@ export default function ListDetailPage() {
         .order("ranking");
 
       if (!itemsError && itemsData) {
-        const transformedItems: ListItem[] = itemsData
-          .filter(item => item.movies)
-          .map(item => ({
-            ...item,
-            seen_it: item.seen_it ?? undefined,
-            movie: {
-              ...item.movies,
-              rankings: [],
-              thumb_url: item.movies.thumb_url || "",
-            } as Movie,
-          }));
-
+        // Merge in global rankings the same way fetchListData does — otherwise every
+        // other item's rating badge and seen-it marker get blanked out.
+        const transformedItems = await mergeItemsWithRankings(itemsData);
         setListItems(transformedItems);
       }
     } catch (err) {
@@ -537,10 +560,12 @@ export default function ListDetailPage() {
 
     if (error) {
       console.error("Error updating visibility:", error.message);
+      showToast("Couldn't update visibility. Please try again.", "error");
       return;
     }
 
     setList(prev => prev ? { ...prev, is_public: !prev.is_public } : null);
+    showToast(list.is_public ? "List is now private" : "List is now public", "success");
   };
 
   const handleUpdateDetails = async () => {
@@ -548,7 +573,7 @@ export default function ListDetailPage() {
 
     const { error } = await supabase
       .from("movie_lists")
-      .update({ 
+      .update({
         name: editName.trim(),
         description: editDescription.trim() || null,
         updated_at: new Date().toISOString()
@@ -557,15 +582,17 @@ export default function ListDetailPage() {
 
     if (error) {
       console.error("Error updating list details:", error.message);
+      showToast("Couldn't save your changes. Please try again.", "error");
       return;
     }
 
-    setList(prev => prev ? { 
-      ...prev, 
+    setList(prev => prev ? {
+      ...prev,
       name: editName.trim(),
       description: editDescription.trim() || null
     } : null);
     setIsEditingDetails(false);
+    showToast("List updated", "success");
   };
 
   const handleDeleteList = async () => {

@@ -1,73 +1,20 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseBrowser';
 import type { User } from '@supabase/supabase-js';
+import { useProfile } from '@/contexts/ProfileContext';
 
 /**
- * Ensures a profile row exists for the given user. If not, creates one with default values.
- * Returns { profile, loading, error, created }.
+ * Thin wrapper around the shared ProfileContext (see src/contexts/ProfileContext.tsx).
+ *
+ * Historically this hook independently queried `profiles` for whatever user
+ * was passed in (and created the row if missing). That fetch now happens
+ * exactly once, app-wide, inside ProfileProvider — this hook no longer
+ * issues its own network request, it just reads the cached result.
+ *
+ * The `user` param is accepted for backwards compatibility with existing
+ * call sites, but every caller in this codebase passes the current session
+ * user, which is also what ProfileProvider fetches for — so the param is
+ * effectively unused now.
  */
-export function useEnsureProfile(user: User | null) {
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [created, setCreated] = useState(false);
-
-  useEffect(() => {
-    if (!user) {
-      setProfile(null);
-      setCreated(false);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-    let cancelled = false;
-    const checkAndCreate = async () => {
-      setLoading(true);
-      setError(null);
-      // 1. Check for existing profile
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      if (error && error.code !== 'PGRST116') {
-        setError(error.message);
-        setLoading(false);
-        return;
-      }
-      if (data) {
-        setProfile(data);
-        setCreated(false);
-        setLoading(false);
-        return;
-      }
-      // 2. If not found, create it
-      const { data: newProfile, error: insertError } = await supabase
-        .from('profiles')
-        .insert({
-          id: user.id,
-          username: user.email?.split('@')[0] || user.id,
-          full_name: user.user_metadata?.full_name || null,
-          avatar_url: user.user_metadata?.avatar_url || null,
-        })
-        .select()
-        .single();
-      if (insertError) {
-        setError(insertError.message);
-        setLoading(false);
-        return;
-      }
-      if (!cancelled) {
-        setProfile(newProfile);
-        setCreated(true);
-        setLoading(false);
-      }
-    };
-    checkAndCreate();
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
+export function useEnsureProfile(_user: User | null) {
+  const { profile, loading, error, created } = useProfile();
   return { profile, loading, error, created };
 }

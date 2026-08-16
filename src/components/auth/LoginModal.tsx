@@ -8,6 +8,7 @@ import type { User } from "@supabase/auth-helpers-nextjs";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
 import { supabase } from "@/lib/supabaseBrowser";
 import { buildSiteUrl } from "@/utils/siteUrl";
+import { sanitizeNextPath } from "@/utils/sanitizeNextPath";
 import { startOAuthSignIn } from "@/utils/oauthSignIn";
 
 interface LoginModalProps {
@@ -16,6 +17,10 @@ interface LoginModalProps {
   onAuthSuccess?: (user: User) => void;
   showSignupLink?: boolean;
   onSwitchToSignup?: () => void;
+  /** Where to send the user after a successful sign-in. Defaults to '/'.
+   *  Always sanitized to a same-origin relative path — never trust this
+   *  directly as a redirect target. */
+  next?: string;
 }
 
 export default function LoginModal({
@@ -24,6 +29,7 @@ export default function LoginModal({
   onAuthSuccess,
   showSignupLink = true,
   onSwitchToSignup,
+  next,
 }: LoginModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,12 +40,13 @@ export default function LoginModal({
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const router = useRouter();
   const { showToast } = useGlobalToast();
+  const safeNext = sanitizeNextPath(next);
 
   const completeLogin = (user: User) => {
     showToast("Welcome back!", "success");
     onAuthSuccess?.(user);
     onClose();
-    router.push("/");
+    router.push(safeNext);
   };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -87,7 +94,7 @@ export default function LoginModal({
     setLoading(true);
     setError(null);
 
-    const { error } = await startOAuthSignIn(supabase, provider);
+    const { error } = await startOAuthSignIn(supabase, provider, safeNext);
     if (error) {
       setError(error);
       setLoading(false);
@@ -109,7 +116,7 @@ export default function LoginModal({
         type: 'signup',
         email: email,
         options: {
-          emailRedirectTo: buildSiteUrl("/auth/callback?next=/") || undefined,
+          emailRedirectTo: buildSiteUrl(`/auth/callback?next=${encodeURIComponent(safeNext)}`) || undefined,
         },
       });
 

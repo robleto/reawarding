@@ -132,6 +132,12 @@ shell variable or terminal output. Instead:
   `import puppeteer from "<repo>/node_modules/puppeteer/lib/esm/puppeteer/puppeteer.js"`).
   If a scratch file must live in the repo, name it `.tmp-*` (gitignored) and
   leave it for the user to delete.
+- **Never run `rm`, `rm -f`, or `git rm` with a wildcard (`*`), and never run
+  bare `rm -rf` on a directory** — against corporate policy, no exceptions,
+  even for the assistant's own temp files/dirs. Don't use `pkill`/broad
+  process kills as a cleanup shortcut either. Use a fresh, uniquely-named
+  path instead of deleting an old one, and leave throwaway files for the
+  user to remove.
 
 **TypeScript check** — `node`/`npx` not in default PATH. The globally installed
 TypeScript is v6+ and rejects this project's `baseUrl` config (TS5101); use the

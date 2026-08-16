@@ -619,7 +619,25 @@ export default function YearExplorer({
                             event.stopPropagation();
                             handlePromoteContender(movie);
                           }}
-                          className="inline-flex items-center justify-center rounded-md border border-gold-500/30 bg-gold-500/10 px-1.5 py-0.5 text-gold-300 transition-colors hover:border-gold-400/50 hover:bg-gold-500/20 hover:text-gold-200"
+                          // relative + z-10: this button renders as MovieCard's
+                          // footerAction, immediately to the right of the rate
+                          // pill in the grid overlay row. The rate pill uses a
+                          // symmetric before:-inset-2 hit-area (8px/side), which
+                          // is wider than this row's gap-1.5 (6px), so its
+                          // right-side reach spills a couple px onto this
+                          // button. Without its own stacking context, a
+                          // non-positioned element like this one loses to ANY
+                          // positioned sibling's pseudo-element regardless of
+                          // DOM order — so even correct inset math on the pill
+                          // isn't enough of a guarantee on its own. Explicit
+                          // position + z-index here makes sure taps on this
+                          // button's own visible pixels always resolve to
+                          // Nominate, never to the pill's overlapping
+                          // pseudo-element. (This is independent of the rate
+                          // pill's own effective tap width in this row, which
+                          // is necessarily short of 44px in this configuration
+                          // — see the comments on that pill in MovieCard.tsx.)
+                          className="relative z-10 inline-flex items-center justify-center rounded-md border border-gold-500/30 bg-gold-500/10 px-1.5 py-0.5 text-gold-300 transition-colors hover:border-gold-400/50 hover:bg-gold-500/20 hover:text-gold-200"
                           aria-label={`Nominate ${movie.title}`}
                           title="Nominate"
                         >
@@ -821,6 +839,11 @@ export default function YearExplorer({
               category="best-picture"
               mode="workshop"
               compact
+              // The year workshop is only ever reached from Home/own-profile
+              // navigation onto the signed-in user's own data (see
+              // src/app/year/[year]/page.tsx — useUserAwards/useMovieDataWithGuest
+              // have no username param, they're always "me").
+              viewerOwnsBallot
               onRequestScrollToContenders={focusContenders}
               onWorkshopRankUpdate={onUpdateMovieRanking}
               onWorkshopNomineesChange={handleWorkshopNomineesChange}

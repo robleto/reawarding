@@ -1,24 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Lock, Sparkles } from "lucide-react";
 import { useAuthState } from "@/hooks/useAuthState";
-import { useIsPremium } from "@/hooks/useIsPremium";
+import { useProfile } from "@/contexts/ProfileContext";
 import { isNativeApp } from "@/lib/platform";
+import { supabase } from "@/lib/supabaseBrowser";
 
 export default function PremiumPage() {
-  const { status, isAuthenticated } = useAuthState();
-  const isPremium = useIsPremium();
+  const { status, isAuthenticated, user } = useAuthState();
+  const { isPremium } = useProfile();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
   const isNative = isNativeApp();
+
+  useEffect(() => {
+    if (!user?.id) {
+      setHasStripeCustomer(false);
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("stripe_customer_id")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (!cancelled) {
+          setHasStripeCustomer(Boolean(data?.stripe_customer_id));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const handleUpgrade = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/stripe/checkout", { method: "POST" });
+      // A past_due/unpaid subscriber already has a Stripe customer (and a
+      // live subscription) even though isPremium is false — route them to
+      // the Billing Portal instead of Checkout, or they'd end up with a
+      // second concurrent subscription (audit PAY-2).
+      const endpoint = hasStripeCustomer ? "/api/stripe/portal" : "/api/stripe/checkout";
+      const res = await fetch(endpoint, { method: "POST" });
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
@@ -87,15 +115,7 @@ export default function PremiumPage() {
             .
           </p>
         </div>
-      ) : isNative ? (
-        <div className="text-center">
-          <p className="text-sm text-gray-400">
-            Premium is available at{" "}
-            <span className="text-gold-300">reawarding.com</span> — manage your subscription from
-            a web browser.
-          </p>
-        </div>
-      ) : (
+      ) : isNative ? null : (
         <div className="text-center">
           <button
             onClick={handleUpgrade}

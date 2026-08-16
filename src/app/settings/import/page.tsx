@@ -122,6 +122,7 @@ export default function ImportPage() {
   const [fileName, setFileName] = useState("");
   const [parseError, setParseError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [importPhase, setImportPhase] = useState<"matching" | "backfilling">("matching");
   const [result, setResult] = useState<ImportResult | null>(null);
 
   // Derived counts for preview
@@ -169,6 +170,14 @@ export default function ImportPage() {
   const handleImport = useCallback(async () => {
     if (!user || parsedRows.length === 0) return;
     setImporting(true);
+    setImportPhase("matching");
+    // The server does its local-database matching first, then (for anything
+    // still unmatched) a live TMDB backfill lookup that can take several
+    // seconds — there's no streaming progress from the server, so this is a
+    // client-side approximation: local matching is normally fast, so once
+    // we've been waiting a bit longer than that we're almost certainly in
+    // the slower backfill phase.
+    const backfillPhaseTimer = setTimeout(() => setImportPhase("backfilling"), 1500);
     try {
       const res = await fetch("/api/import/library", {
         method: "POST",
@@ -185,6 +194,7 @@ export default function ImportPage() {
     } catch {
       setParseError("Something went wrong during import. Please try again.");
     } finally {
+      clearTimeout(backfillPhaseTimer);
       setImporting(false);
     }
   }, [user, parsedRows, source]);
@@ -383,7 +393,9 @@ export default function ImportPage() {
               {importing ? (
                 <>
                   <span className="h-4 w-4 rounded-full border-2 border-yellow-400/30 border-t-yellow-400 animate-spin" />
-                  Importing…
+                  {importPhase === "backfilling"
+                    ? `Looking up unmatched titles among ${watchedRows.length} films…`
+                    : `Matching ${watchedRows.length} films…`}
                 </>
               ) : (
                 `Import ${watchedRows.length} films`
@@ -417,13 +429,50 @@ export default function ImportPage() {
                 <p className="text-xs text-gray-500 mt-0.5">Already in library</p>
               </div>
             )}
+            {result.preservedExisting > 0 && (
+              <div className="rounded-xl border border-gray-700/30 bg-gray-900/40 px-4 py-4 text-center">
+                <p className="text-2xl font-bold text-gray-400">{result.preservedExisting}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Already rated — kept yours</p>
+              </div>
+            )}
             {result.notFound.length > 0 && (
               <div className="rounded-xl border border-gray-700/30 bg-gray-900/40 px-4 py-4 text-center">
                 <p className="text-2xl font-bold text-gray-500">{result.notFound.length}</p>
                 <p className="text-xs text-gray-500 mt-0.5">Not in our catalog</p>
               </div>
             )}
+            {result.failed > 0 && (
+              <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-4 text-center">
+                <p className="text-2xl font-bold text-red-400">{result.failed}</p>
+                <p className="text-xs text-red-300/80 mt-0.5">Failed to save — try re-importing</p>
+              </div>
+            )}
           </div>
+
+          {result.failed > 0 && (
+            <div className="mb-8 flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-3">
+              <AlertCircle className="h-4 w-4 text-red-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-red-300">
+                  {result.failed} film{result.failed === 1 ? "" : "s"} hit a database error while
+                  saving and were not imported — this is different from a duplicate skip. Re-import
+                  the same file to retry just these.
+                </p>
+                {result.failedToSave && result.failedToSave.length > 0 && (
+                  <details className="mt-2">
+                    <summary className="text-xs font-semibold uppercase tracking-wider text-red-400/80 cursor-pointer hover:text-red-300 transition-colors">
+                      Show films
+                    </summary>
+                    <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
+                      {result.failedToSave.map((title, i) => (
+                        <p key={i} className="text-sm text-red-300/80 px-1">{title}</p>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+            </div>
+          )}
 
           {result.notFound.length > 0 && (
             <details className="mb-8">

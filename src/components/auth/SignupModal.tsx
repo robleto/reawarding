@@ -7,6 +7,7 @@ import type { User } from "@supabase/auth-helpers-nextjs";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
 import { supabase } from "@/lib/supabaseBrowser";
 import { buildSiteUrl } from "@/utils/siteUrl";
+import { sanitizeNextPath } from "@/utils/sanitizeNextPath";
 import { startOAuthSignIn } from "@/utils/oauthSignIn";
 
 interface SignupModalProps {
@@ -15,6 +16,10 @@ interface SignupModalProps {
   onAuthSuccess?: (user: User) => void;
   showLoginLink?: boolean;
   onSwitchToLogin?: () => void;
+  /** Where to send the user after a successful sign-up/sign-in. Defaults to '/'.
+   *  Always sanitized to a same-origin relative path — never trust this
+   *  directly as a redirect target. */
+  next?: string;
 }
 
 // Password strength helper to avoid code duplication
@@ -39,7 +44,9 @@ export default function SignupModal({
   onAuthSuccess,
   showLoginLink = true,
   onSwitchToLogin,
+  next,
 }: SignupModalProps) {
+  const safeNext = sanitizeNextPath(next);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -92,8 +99,8 @@ export default function SignupModal({
         email,
         password,
         options: {
-          // Use auth callback to exchange code and then redirect home
-          emailRedirectTo: buildSiteUrl("/auth/callback?next=/") || undefined,
+          // Use auth callback to exchange code and then redirect to `next`
+          emailRedirectTo: buildSiteUrl(`/auth/callback?next=${encodeURIComponent(safeNext)}`) || undefined,
           data: {
             username,
             full_name: username,
@@ -112,7 +119,7 @@ export default function SignupModal({
           showToast("Welcome to Reawarding!", "success");
           onAuthSuccess?.(data.user);
           onClose();
-          router.push("/");
+          router.push(safeNext);
         } else {
           // User needs to confirm email
           setEmailSent(true);
@@ -132,7 +139,7 @@ export default function SignupModal({
     setLoading(true);
     setError(null);
 
-    const { error } = await startOAuthSignIn(supabase, provider);
+    const { error } = await startOAuthSignIn(supabase, provider, safeNext);
     if (error) {
       setError(error);
       setLoading(false);

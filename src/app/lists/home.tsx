@@ -12,7 +12,7 @@ import Link from "next/link";
 import { List, X } from "lucide-react";
 import { useAuthState } from "@/hooks/useAuthState";
 import { useSmartListAlerts } from "@/hooks/useSmartListAlerts";
-import { useIsPremium } from "@/hooks/useIsPremium";
+import { useProfile } from "@/contexts/ProfileContext";
 import { isNativeApp } from "@/lib/platform";
 import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
 import { slugifyTitle } from "@/utils/slug";
@@ -245,7 +245,7 @@ export default function ListsHomePage() {
 
   // Smart list alerts derived from seen movies
   const smartAlerts = useSmartListAlerts(seenMovies);
-  const isPremium = useIsPremium();
+  const { isPremium } = useProfile();
   const isNative = isNativeApp();
   const [savingAlertKey, setSavingAlertKey] = useState<string | null>(null);
   const [savedAlertKeys, setSavedAlertKeys] = useState<string[]>([]);
@@ -419,7 +419,7 @@ export default function ListsHomePage() {
                       ) : !isPremium && isNative ? (
                         <span
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500"
-                          title="Saving Ready-Made lists is a premium feature — available on reawarding.com"
+                          title="Saving Ready-Made lists is a premium feature"
                         >
                           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
                           Premium

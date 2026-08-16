@@ -8,6 +8,7 @@ import SeenItButton from "@/components/movie/SeenItButton";
 import RankingDropdown from "@/components/movie/RankingDropdown";
 import useGuestRankingStore from "@/hooks/useGuestRankingStore";
 import { useWatchlistContext } from "@/contexts/WatchlistContext";
+import { getMovieCacheKey, invalidateMovieCache } from "@/utils/sharedMovieUtils";
 
 type Props = {
   movieId: string;
@@ -63,6 +64,11 @@ export default function FilmActions({ movieId }: Props) {
       });
       if (updates.ranking !== undefined) setRanking(updates.ranking);
       if (updates.seen_it !== undefined) setSeenIt(updates.seen_it);
+      // This write bypasses useMovieDataWithGuest's updateMovieRanking, so the
+      // shared movie cache (sharedMovieUtils.ts) never sees it. Invalidate the
+      // guest entry so the next mount (e.g. navigating to /rankings) refetches
+      // instead of showing a stale pre-rating snapshot for up to CACHE_STALE_MS.
+      invalidateMovieCache(getMovieCacheKey(true, ""));
       return;
     }
 
@@ -82,6 +88,11 @@ export default function FilmActions({ movieId }: Props) {
     if (!error) {
       if (updates.ranking !== undefined) setRanking(updates.ranking);
       if (updates.seen_it !== undefined) setSeenIt(updates.seen_it);
+      // Same bypass as above: this write goes straight to Supabase, not
+      // through updateMovieRanking, so invalidate explicitly rather than
+      // relying solely on the TTL — this is the highest-traffic bypass path
+      // (global header search -> film detail page, reachable from every page).
+      invalidateMovieCache(getMovieCacheKey(false, user.id));
     } else {
       console.error("Error updating ranking:", error);
     }

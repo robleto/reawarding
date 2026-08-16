@@ -11,7 +11,7 @@ import RatingModal from "@/components/movie/RatingModal";
 import WatchProviders from "@/components/films/WatchProviders";
 import type { Movie, TMDBVideo } from "@/types/types";
 import { normalizeImageUrl } from "@/utils/imageUrl";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useProfile } from "@/contexts/ProfileContext";
 import { slugifyTitle } from "@/utils/slug";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import { SUGGESTED_QUALITY_TAGS } from "@/utils/qualityTags";
@@ -77,7 +77,7 @@ export default function MovieDetailModal({
 }: MovieDetailModalProps) {
   const user = useUser();
   const router = useRouter();
-  const { isAdmin } = useIsAdmin();
+  const { isAdmin } = useProfile();
   const { watchlistMovieIds, toggle: toggleWatchlist, removeIfWatched } = useWatchlistContext();
   const isOnWatchlist = watchlistMovieIds.has(movie.id);
   const [seenIt, setSeenIt] = useState(initialSeenIt);
@@ -212,14 +212,15 @@ export default function MovieDetailModal({
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
-    }
+    if (!isOpen) return;
+
+    document.addEventListener('keydown', handleEscape);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = prevOverflow;
     };
   }, [isOpen, onClose]);
 
@@ -336,9 +337,12 @@ export default function MovieDetailModal({
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={movie.title}
     >
       <div
-        className="bg-charcoal-900/80 border border-gold-500/20 rounded-t-2xl sm:rounded-2xl shadow-lg max-w-4xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto text-gray-200"
+        className="bg-charcoal-900/80 border border-gold-500/20 rounded-t-2xl sm:rounded-2xl shadow-lg max-w-4xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto overscroll-contain text-gray-200 pb-[env(safe-area-inset-bottom)] sm:pb-0"
         onClick={e => e.stopPropagation()}
       >
         {/* Header — backdrop image behind a dark scrim when available */}
@@ -362,14 +366,14 @@ export default function MovieDetailModal({
           <div className="relative flex items-center gap-1">
             <button
               onClick={() => router.push(`/films/${slugifyTitle(movie.title)}/${movie.id}`)}
-              className="p-3 transition-colors rounded-full hover:bg-gray-700/50"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors rounded-full hover:bg-gray-700/50"
               title="Open full film page"
             >
               <Maximize2 className="w-4 h-4 text-gray-400 hover:text-white" />
             </button>
             <button
               onClick={onClose}
-              className="p-2 transition-colors rounded-full hover:bg-gray-700/50"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors rounded-full hover:bg-gray-700/50"
               title="Close"
             >
               <X className="w-5 h-5 text-gray-400 hover:text-white" />

@@ -1,5 +1,13 @@
 "use client";
 
+// DEAD CODE as of the LOOP-1 fix: orphaned by src/app/nominees/page.tsx now
+// redirecting to Home instead of rendering the nominees builder that used
+// this empty state (its "Sign Up to Save Nominees" CTA implied saving would
+// work once you had an account — it never did, for anyone). Kept only
+// because file deletion isn't permitted in this pass — removing this file
+// entirely would be a good small follow-up cleanup task for whoever has
+// file-deletion permission.
+
 import { Trophy, Star, ArrowRight, Film, Crown } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";

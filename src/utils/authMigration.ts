@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import type { Database } from "@/types/supabase";
 import { useGuestRankingStoreWithMigration } from "@/hooks/useGuestRankingStore";
 import { ensureUserWatchlist } from "./watchlist";
+import { getMovieCacheKey, invalidateMovieCache } from "./sharedMovieUtils";
 
 export function useAuthMigration(onMigrationSuccess?: (count: number) => void) {
   const supabase = useSupabaseClient<Database>();
@@ -44,6 +45,13 @@ export function useAuthMigration(onMigrationSuccess?: (count: number) => void) {
         try {
           const result = await guestStore.migrateToSupabase(user.id);
           if (result.success && result.migratedCount > 0) {
+            // The shared movie-data cache (src/utils/sharedMovieUtils.ts) may
+            // already hold a "no rankings yet" entry for this user if its
+            // first fetch raced this migration write. Invalidate it so the
+            // next page mount (the redirect below, or whatever the user
+            // navigates to next) refetches and shows the just-migrated
+            // ratings immediately, instead of for up to CACHE_STALE_MS.
+            invalidateMovieCache(getMovieCacheKey(false, user.id));
             onMigrationSuccess?.(result.migratedCount);
             if (window.location.pathname === '/' || window.location.pathname.includes('callback')) {
               setTimeout(() => {

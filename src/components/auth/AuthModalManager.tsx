@@ -10,6 +10,9 @@ interface AuthModalManagerProps {
   onClose: () => void;
   initialMode?: "login" | "signup";
   onAuthSuccess?: (user: User) => void;
+  /** Where to send the user after a successful sign-in/sign-up. Forwarded
+   *  as-is to LoginModal/SignupModal, which sanitize it themselves. */
+  next?: string;
 }
 
 export default function AuthModalManager({
@@ -17,6 +20,7 @@ export default function AuthModalManager({
   onClose,
   initialMode = "login",
   onAuthSuccess,
+  next,
 }: AuthModalManagerProps) {
   const [currentMode, setCurrentMode] = useState<"login" | "signup">(initialMode);
 
@@ -52,6 +56,7 @@ export default function AuthModalManager({
         onClose={handleClose}
         onAuthSuccess={handleAuthSuccess}
         onSwitchToLogin={handleSwitchToLogin}
+        next={next}
       />
     );
   }
@@ -63,6 +68,7 @@ export default function AuthModalManager({
       onClose={handleClose}
       onAuthSuccess={handleAuthSuccess}
       onSwitchToSignup={handleSwitchToSignup}
+      next={next}
     />
   );
 }

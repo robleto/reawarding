@@ -2,9 +2,12 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
+import Link from "next/link";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { ArrowRight, Film, Sparkles } from "lucide-react";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
+import Loader from "@/components/ui/Loading";
+import { useAuthState } from "@/hooks/useAuthState";
 import type { Movie } from "@/types/types";
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -48,12 +51,25 @@ function StepDots({ current }: { current: number }) {
 export default function OnboardingPage() {
   const router = useRouter();
   const supabase = useSupabaseClient();
-  const user = useUser();
+  const { user, status: authStatus } = useAuthState();
 
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
 
-  // Guard: redirect away if already complete or not authenticated
+  // Auth guard (AUTH-5): a signed-out guest must never see the wizard —
+  // filling out all 3 steps only to have finishOnboarding() silently discard
+  // everything is the bug this closes. Redirect to /login before rendering
+  // any step, reusing the same next-param plumbing established for AUTH-1
+  // (middleware.ts -> /login -> sign-in -> back here). Wait for authStatus to
+  // resolve past "loading" so we don't bounce a legitimate signed-in user
+  // whose session hasn't hydrated yet on first render.
+  useEffect(() => {
+    if (authStatus === "unauthenticated") {
+      router.replace("/login?next=" + encodeURIComponent("/onboarding"));
+    }
+  }, [authStatus, router]);
+
+  // Guard: redirect away if already complete
   useEffect(() => {
     if (!user) return;
     void (async () => {
@@ -83,6 +99,11 @@ export default function OnboardingPage() {
 
   // Save to DB and mark onboarding complete
   const finishOnboarding = useCallback(async () => {
+    // Dead code in the normal flow now that the auth-guard effect above (and
+    // the render guard) keep a signed-out guest from ever reaching a wizard
+    // step in the first place — kept as defense-in-depth in case the session
+    // expires mid-wizard between renders, rather than silently discarding
+    // picks against a stale/null user.
     if (!user) { router.push("/"); return; }
     setSaving(true);
     try {
@@ -124,6 +145,17 @@ export default function OnboardingPage() {
   }, [step, finishOnboarding]);
 
   // ── Render ──────────────────────────────────────────────────────────────────
+
+  // Never render a wizard step for a signed-out guest — even briefly while
+  // the redirect above is in flight. Covers both "still resolving the
+  // session" and "confirmed signed out, redirect queued" states.
+  if (authStatus !== "authenticated") {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4 py-12">
+        <Loader message="Loading…" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-4 py-12">
@@ -287,6 +319,26 @@ export default function OnboardingPage() {
             </div>
           </div>
         )}
+
+        {/* ── Import shortcut — a low-friction alternative to the manual flow ──
+            above. A brand-new user has zero data, so surfacing this here (the
+            very first moments in the app) is the highest-leverage place to
+            offer it. Does not block or replace any step — just an escape
+            hatch. Note: clicking through as a non-premium user currently hits
+            the import paywall (src/app/api/import/library/route.ts) — that's
+            an existing, separately-flagged product question, not something
+            fixed here. */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-gray-600">
+            Already on Letterboxd or IMDb?{" "}
+            <Link
+              href="/settings/import"
+              className="font-medium text-gold-400 underline underline-offset-2 decoration-gold-400/30 hover:text-gold-300"
+            >
+              Bring your ratings in
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

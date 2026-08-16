@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useParams } from "next/navigation";
 import EditableYearSection from "@/components/award/EditableYearSection";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
+import { useUser } from "@/hooks/useUser";
 import type { Movie } from "@/types/types";
 
 interface YearData {
@@ -16,7 +17,14 @@ interface YearData {
 export default function ProfileAwardsPage() {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
-  const { movies, awards, loading } = usePublicProfile(username);
+  const { profile, movies, awards, loading } = usePublicProfile(username);
+  const { userId } = useUser();
+
+  // LOOP-M1/M2: this page renders ANY user's public ballot to ANY signed-in
+  // visitor. EditableYearSection must only treat this as an editable, "my
+  // own saved picks" surface when the viewer IS the profile owner — same
+  // owner-detection shape as src/app/[username]/page.tsx's `isOwner`.
+  const viewerOwnsBallot = !!(userId && profile?.id && userId === profile.id);
 
   const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -195,6 +203,7 @@ export default function ProfileAwardsPage() {
                 category="best-picture"
                 mode="view"
                 nomineeImageMode="poster"
+                viewerOwnsBallot={viewerOwnsBallot}
               />
             ) : (
               <div className="flex items-center justify-center" style={{ minHeight: "600px" }}>

@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** Routes that require a valid session — redirect to home if unauthenticated. */
+/** Routes that require a valid session — redirect to /login if unauthenticated. */
 function isProtectedRoute(pathname: string): boolean {
   return (
     /^\/rankings(\/.*)?$/.test(pathname) ||
@@ -54,10 +54,15 @@ export async function middleware(request: NextRequest) {
 
   // Redirect unauthenticated users away from protected routes.
   if (isProtectedRoute(pathname) && !user) {
+    // Preserve the full original path + query string (e.g. /rankings/2024?filter=drama)
+    // as `next` so the post-login redirect can restore it exactly, not just the
+    // pathname — losing the query string here would silently drop things like
+    // active filters once the user is bounced through /login and back.
+    const originalPathAndQuery = pathname + request.nextUrl.search;
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";
-    url.searchParams.set("next", pathname);
+    url.searchParams.set("next", originalPathAndQuery);
     return NextResponse.redirect(url);
   }
 

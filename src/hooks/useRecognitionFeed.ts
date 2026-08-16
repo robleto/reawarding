@@ -14,9 +14,21 @@ export interface FeedRow {
 const FEED_COLS =
   "id, title, release_year, poster_url, thumb_url, imdb_rating, genres";
 
-function toMovies(data: Record<string, unknown>[] | null): Movie[] {
+type Ranking = Movie["rankings"][number];
+
+// rankingsById comes from the already-fetched, per-user-enriched `movies`
+// list (see useMovieDataWithGuest/sharedMovieUtils) — reusing it here avoids
+// a second rankings query and keeps seen/rating badges in these rows in
+// sync with the same source of truth as the rest of the Films page.
+function toMovies(
+  data: Record<string, unknown>[] | null,
+  rankingsById: Map<string, Ranking>
+): Movie[] {
   if (!data) return [];
-  return data.map((m) => ({ ...m, rankings: [] } as unknown as Movie));
+  return data.map((m) => {
+    const ranking = rankingsById.get(m.id as string);
+    return { ...m, rankings: ranking ? [ranking] : [] } as unknown as Movie;
+  });
 }
 
 // Curated pool: Best Picture winners from the last 25 years, newest first.
@@ -42,15 +54,16 @@ async function getCuratedWinnerTitles(): Promise<string[]> {
  * Row 3  "Notable films"   — widely-seen movies: imdb_votes desc. Popularity,
  *                            not acclaim — the row most likely to trigger "I've seen that".
  *
- * userMovieIds is read via ref so a new rating doesn't re-fire the fetch.
+ * movies (the full per-user movie list) is read via ref so a new rating
+ * doesn't re-fire the fetch.
  */
 export function useRecognitionFeed(
-  userMovieIds: Set<string>
+  movies: Movie[]
 ): { rows: FeedRow[]; loading: boolean } {
   const [rows, setRows] = useState<FeedRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const idsRef = useRef(userMovieIds);
-  idsRef.current = userMovieIds;
+  const moviesRef = useRef(movies);
+  moviesRef.current = movies;
 
   useEffect(() => {
     let cancelled = false;
@@ -90,16 +103,25 @@ export function useRecognitionFeed(
 
       if (cancelled) return;
 
-      const ids = idsRef.current;
+      const rankingsById = new Map<string, Ranking>();
+      const ids = new Set<string>();
+      for (const m of moviesRef.current) {
+        if (m.rankings.length > 0) {
+          ids.add(m.id);
+          rankingsById.set(m.id, m.rankings[0]);
+        }
+      }
+
       const filter = (d: Record<string, unknown>[] | null, limit = 20) =>
-        toMovies(d)
+        toMovies(d, rankingsById)
           .filter((m) => !ids.has(m.id))
           .slice(0, limit);
 
       // Row 1: preserve curated order (newest winner first)
       const winnerFilms = (() => {
         const raw = toMovies(
-          (winnersResult.data as Record<string, unknown>[] | null) ?? null
+          (winnersResult.data as Record<string, unknown>[] | null) ?? null,
+          rankingsById
         ).filter((m) => !ids.has(m.id));
         // re-sort to match CURATED_WINNER_TITLES order (newest first)
         return raw
@@ -128,7 +150,8 @@ export function useRecognitionFeed(
         ...acclaimedDistinct.map((m) => m.id),
       ]);
       const notableFilms = toMovies(
-        (notableResult.data as Record<string, unknown>[] | null) ?? null
+        (notableResult.data as Record<string, unknown>[] | null) ?? null,
+        rankingsById
       )
         .filter((m) => !ids.has(m.id) && !earlierIds.has(m.id))
         .slice(0, 20);

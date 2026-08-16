@@ -8,9 +8,7 @@ import { UserMenu } from "@/components/layout/UserMenu";
 import NavSearch from "@/components/layout/NavSearch";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import { Logo } from "@/components/ui/Logo";
-import UserAvatar from "@/components/ui/UserAvatar";
 import { useScrollBackground } from "@/hooks/useScrollBackground";
-import { useEnsureProfile } from "@/hooks/useEnsureProfile";
 import AddMovieByTmdbModal from "@/components/movie/AddMovieByTmdbModal";
 import { useAuthState } from "@/hooks/useAuthState";
 
@@ -19,16 +17,12 @@ export default function HeaderNav() {
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<"login" | "signup">("login");
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-	const [mobileUserOpen, setMobileUserOpen] = useState(false);
 	const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 	const [showAddMovieModal, setShowAddMovieModal] = useState(false);
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 	const navRefs = useRef<(HTMLLIElement | null)[]>([]);
 	const hasScrolled = useScrollBackground();
 	const { user } = useAuthState();
-	const { profile } = useEnsureProfile(user);
-	const displayName = profile?.preferred_name || profile?.full_name || profile?.username || user?.email;
-	const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
 
 	const navItems = user
 		? [
@@ -49,14 +43,12 @@ export default function HeaderNav() {
 
 	const handleLoginClick = () => {
 		setMobileMenuOpen(false);
-		setMobileUserOpen(false);
 		setAuthMode("login");
 		setShowAuthModal(true);
 	};
 
 	const handleSignupClick = () => {
 		setMobileMenuOpen(false);
-		setMobileUserOpen(false);
 		setAuthMode("signup");
 		setShowAuthModal(true);
 	};
@@ -87,13 +79,17 @@ export default function HeaderNav() {
 					? 'dark-background'
 					: 'bg-transparent'
 			}`}> 
-				<div className="relative z-10 flex items-center justify-between max-w-screen-xl px-6 py-3 mx-auto gap-x-6">
+				<div className="relative z-10 flex items-center justify-between max-w-screen-xl px-4 sm:px-6 py-3 mx-auto gap-x-2 sm:gap-x-6">
 				{/* Logo & Title */}
-				<div className="flex items-center flex-shrink-0 gap-2">
+				<div className="flex items-center flex-shrink-0 gap-1 sm:gap-2">
 					<Link href="/" className="flex items-center min-h-[44px]" aria-label="Reawarding home">
-						<Logo size="sm" showText={false} />
+						<Logo
+							size="sm"
+							showText={false}
+							imageClassName="object-contain w-[150px] h-[60px] sm:w-[180px] sm:h-[72px]"
+						/>
 					</Link>
-					<span className="ml-2 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-gray-400 bg-charcoal-900/60 border border-gray-700/60 rounded uppercase">
+					<span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold tracking-wider text-gray-400 bg-charcoal-900/60 border border-gray-700/60 rounded uppercase whitespace-nowrap">
 						Beta
 					</span>
 				</div>					{/* Navigation and Controls */}
@@ -148,7 +144,7 @@ export default function HeaderNav() {
 						</nav>
 
 						{/* Controls: Add + Search + UserMenu */}
-						<div className="flex items-center gap-3 flex-shrink-0 ml-auto">
+						<div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0 ml-auto">
 							{user && (
 								<button
 									onClick={() => setShowAddMovieModal(true)}
@@ -167,7 +163,7 @@ export default function HeaderNav() {
 							</div>
 
 							<button
-								onClick={() => { setMobileSearchOpen(!mobileSearchOpen); if (!mobileSearchOpen) { setMobileMenuOpen(false); setMobileUserOpen(false); } }}
+								onClick={() => { setMobileSearchOpen(!mobileSearchOpen); if (!mobileSearchOpen) { setMobileMenuOpen(false); } }}
 								className={`md:hidden inline-flex items-center justify-center w-11 h-11 rounded-md transition-colors ${
 									mobileSearchOpen ? "text-gold bg-gray-800" : "text-gray-300 hover:bg-gray-800"
 								}`}
@@ -176,33 +172,9 @@ export default function HeaderNav() {
 							>
 								<Search className="w-5 h-5" />
 							</button>
-							{user && (
-								<button
-									onClick={() => setShowAddMovieModal(true)}
-									className="md:hidden inline-flex items-center justify-center w-11 h-11 rounded-md text-gray-300 hover:bg-gray-800 transition-colors"
-									aria-label="Add film"
-									title="Add film"
-								>
-									<Plus className="w-5 h-5 text-gray-300" />
-								</button>
-							)}
-							{user && (
-								<button
-									className="md:hidden inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-2 rounded-full hover:bg-gray-800 transition-colors"
-									aria-label="Open user menu"
-									onClick={() => { setMobileUserOpen(!mobileUserOpen); if (!mobileUserOpen) { setMobileMenuOpen(false); setMobileSearchOpen(false); } }}
-								>
-									<UserAvatar
-										imageUrl={avatarUrl}
-										name={displayName}
-										username={profile?.username}
-										size={28}
-									/>
-								</button>
-							)}
 							{/* Mobile Menu Button */}
 							<button
-								onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (!mobileMenuOpen) { setMobileUserOpen(false); setMobileSearchOpen(false); } }}
+								onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (!mobileMenuOpen) { setMobileSearchOpen(false); } }}
 								className="md:hidden inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-3 rounded-md hover:bg-gray-800 transition-colors ml-auto"
 								aria-label="Toggle mobile menu"
 							>
@@ -260,30 +232,26 @@ export default function HeaderNav() {
 										</li>
 									);
 								})}
-
+								{user && (
+									<li>
+										<button
+											onClick={() => { setMobileMenuOpen(false); setShowAddMovieModal(true); }}
+											className="flex items-center w-full gap-2 py-2 px-3 rounded-md font-medium text-left text-gray-300 hover:text-gold hover:bg-gray-800 transition-colors"
+										>
+											<Plus className="w-4 h-4" />
+											<span>Add a film</span>
+										</button>
+									</li>
+								)}
 							</ul>
-							{!user && (
-								<div className="mt-4 border-t border-gray-700 pt-3">
-									<UserMenu
-										variant="inline"
-										onLoginClick={handleLoginClick}
-										onSignupClick={handleSignupClick}
-									/>
-								</div>
-							)}
-						</nav>
-					</div>
-				)}
-
-				{/* Mobile User Panel */}
-				{mobileUserOpen && (
-					<div className="md:hidden bg-charcoal-900 border-t border-gray-700 shadow-gray-800/50 transition-colors duration-300">
-						<nav className="px-6 py-4">
-							<ul className="space-y-3">
-								<li>
-									<UserMenu variant="inline" onLoginClick={handleLoginClick} onSignupClick={handleSignupClick} />
-								</li>
-							</ul>
+							<div className={navItems.length > 0 ? "mt-4 border-t border-gray-700 pt-3" : undefined}>
+								<UserMenu
+									variant="inline"
+									onLoginClick={handleLoginClick}
+									onSignupClick={handleSignupClick}
+									onNavigate={() => setMobileMenuOpen(false)}
+								/>
+							</div>
 						</nav>
 					</div>
 				)}

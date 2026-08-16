@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Lock } from "lucide-react";
 import type { Movie } from "@/types/types";
 import { useAlternateOscarHistory } from "@/hooks/useAlternateOscarHistory";
-import { useIsPremium } from "@/hooks/useIsPremium";
+import { useProfile } from "@/contexts/ProfileContext";
 import { isNativeApp } from "@/lib/platform";
 import MovieRowCard from "@/components/movie/MovieRowCard";
 
@@ -26,7 +26,7 @@ interface Props {
  */
 export default function AlternateOscarHistoryPanel({ movies, currentUserId, onUpdateMovie }: Props) {
   const history = useAlternateOscarHistory(movies);
-  const isPremium = useIsPremium();
+  const { isPremium } = useProfile();
   const isNative = isNativeApp();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -145,9 +145,7 @@ export default function AlternateOscarHistoryPanel({ movies, currentUserId, onUp
             <p className="text-xs text-gray-500 max-w-[240px]">
               See your lifetime Upheld rate, decade trends, and your most controversial calls against the Academy.
             </p>
-            {isNative ? (
-              <p className="mt-1 text-xs text-gray-500">Unlock Premium at reawarding.com</p>
-            ) : (
+            {!isNative && (
               <button
                 onClick={handleUpgrade}
                 disabled={checkoutLoading}

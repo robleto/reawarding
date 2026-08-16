@@ -96,8 +96,13 @@ function ProfileHeader({
             ) : (
               <p className="mt-1.5 text-xs text-gray-500 italic">Curating film history one year at a time.</p>
             )}
-            {/* Actions: follow + share */}
-            <div className="mt-2 flex items-center gap-2 flex-wrap">
+            {/* Actions: follow + share. gap-y-6 (24px) is intentionally larger
+                than gap-x-2 (8px): on narrow screens this row can flex-wrap,
+                stacking Share below Follow, and Follow's before:-inset-y-2.5
+                (10px) plus Share's before:-inset-y-3 (12px) need 22px of
+                clearance to avoid the two hit-boxes overlapping vertically
+                the same way they used to overlap horizontally. */}
+            <div className="mt-2 flex items-center gap-x-2 gap-y-6 flex-wrap">
               {sessionUser && profile && (
                 <FollowButton
                   targetProfileId={profile.id}
@@ -107,9 +112,23 @@ function ProfileHeader({
                   size="sm"
                 />
               )}
+              {/* Visual chip stays compact (px-2.5 py-1 text-[11px]) to match the
+                  header's dense layout; the before:-inset-y-3 pseudo-element pads
+                  the real tappable area out to 44px+ tall on touch without
+                  enlarging the visible pill. Horizontal expansion is
+                  intentionally zero (before:inset-x-0) — this pill's own text
+                  ("Share Profile"/"Copied!") already clears 44px wide, and the
+                  old before:-inset-3 (12px, all sides) reached 4px past the
+                  8px gap-2 onto the Follow button's own visible pixels; since
+                  Share renders later in DOM with z-index:auto, its invisible
+                  hit-box was winning the hit-test over Follow's real button in
+                  that 4px strip (tapping the right edge of "Follow" copied the
+                  URL instead of toggling follow). Removing the horizontal
+                  reach fixes that at the source; FollowButton's own z-10 is
+                  the backstop. */}
               <button
                 onClick={handleCopyProfileUrl}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-gray-400 hover:text-white bg-gray-800/40 hover:bg-gray-700/60 border border-gray-700/30 hover:border-gray-600/50 transition-all"
+                className="relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-gray-400 hover:text-white bg-gray-800/40 hover:bg-gray-700/60 border border-gray-700/30 hover:border-gray-600/50 transition-all before:content-[''] before:absolute before:inset-x-0 before:-inset-y-3"
               >
                 {copied ? (
                   <>

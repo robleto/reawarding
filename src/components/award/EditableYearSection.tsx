@@ -113,6 +113,20 @@ interface EditableYearSectionProps {
   onWorkshopNomineesChange?: (nomineeIds: string[], winnerId: string | null) => void;
   /** When provided, Edit button calls this instead of toggling inline editing. Used by Awards page to open YearExplorer. */
   onEditRequest?: () => void;
+  /**
+   * Whether the person currently looking at this page owns the profile/data
+   * being shown (i.e. this is THEIR ballot, not merely someone-is-signed-in).
+   * Home and the year workshop route are always the signed-in user's own
+   * data. A public profile page (`/[username]/awards`) must compute this as
+   * `viewer.id === profile.id` (or equivalent) since it can render ANY
+   * user's ballot to ANY signed-in visitor.
+   *
+   * Gates: the "Edit ballot" button, the mount effect that loads/overlays
+   * the viewer's own saved nominations (loadExistingNominations + syncView),
+   * and — as defense in depth — the actual write paths (handleSave,
+   * handleResetToDefault, applyWorkshopState) refuse to persist when false.
+   */
+  viewerOwnsBallot: boolean;
 }
 
 const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSectionProps>(function EditableYearSection({
@@ -129,6 +143,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   onWorkshopRankUpdate,
   onWorkshopNomineesChange,
   onEditRequest,
+  viewerOwnsBallot,
 }: EditableYearSectionProps, ref) {
   const supabase = useSupabaseClient<Database>();
   const user = useUser();
@@ -147,6 +162,15 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   const initialCache = React.useMemo(() => {
     if (isWorkshop) return null;
     if (typeof window === 'undefined') return null;
+    // LOOP-M2 guard (first-paint variant): this memo seeds the very first
+    // render from the VIEWER's own last-signed-in cache
+    // (reawarding-awards-last-user), with no ownership check. On someone
+    // else's public profile the viewer is never the profile owner, so this
+    // must never seed initialNominees/initialWinner (or the derived
+    // hasCustomNominations/customNominees/isUsingCustomView state below) from
+    // the viewer's own cached ballot — render strictly from the movies/winner
+    // props the page passed in until/unless viewerOwnsBallot is true.
+    if (!viewerOwnsBallot) return null;
     const lastUser = window.localStorage.getItem(LAST_USER_KEY);
     if (!lastUser) return null;
     const cached = getCachedEntry(lastUser, resolvedCategory, year);
@@ -171,7 +195,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
       useCustom,
       userId: lastUser,
     };
-  }, [allMoviesForYear, resolvedCategory, year, isWorkshop]);
+  }, [allMoviesForYear, resolvedCategory, year, isWorkshop, viewerOwnsBallot]);
 
   const initialNominees = initialCache?.useCustom ? initialCache.nomineeMovies : movies;
   const initialWinner = initialCache?.useCustom ? (initialCache.winnerMovie || null) : (winner || null);
@@ -401,6 +425,33 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
   // Load custom nominations on component mount
   useEffect(() => {
+    // LOOP-M2 guard: this effect (when viewerOwnsBallot) fetches /api/awards
+    // using the CURRENT viewer's session cookie and, if non-empty, overlays
+    // it over whatever nominees/winner the parent already computed for the
+    // profile being shown. That's only correct when the viewer IS the
+    // profile owner (Home, the year workshop). On someone else's public
+    // profile this must never run — render strictly from the movies/winner
+    // props the page passed in. Ownership doesn't depend on session-load
+    // state, so this check runs BEFORE the sessionLoading gate below: while
+    // Supabase's session is still restoring (which can race the awards
+    // page's own profile fetch), we still want to immediately clear any
+    // viewer-cached ballot rather than wait for session load to finish.
+    if (!viewerOwnsBallot) {
+      hasInitializedGuestRef.current = false;
+      hasLoadedInitialRef.current = false;
+      setHasCustomNominations(false);
+      setCustomNominees(null);
+      customNomineesRef.current = null;
+      setCustomWinner(null);
+      customWinnerRef.current = null;
+      if (!isWorkshop) {
+        setIsUsingCustomView(false);
+        isUsingCustomViewRef.current = false;
+      }
+      syncView('default');
+      return;
+    }
+
     // Don't do anything while session is loading
     if (sessionLoading) {
       return;
@@ -436,7 +487,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
       }
       syncView('default');
     }
-  }, [user, sessionLoading, loadExistingNominations, syncView, isWorkshop]);
+  }, [user, sessionLoading, loadExistingNominations, syncView, isWorkshop, viewerOwnsBallot]);
 
   // Keep display state in sync when defaults change and there are no custom nominations
   useEffect(() => {
@@ -556,6 +607,18 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     
     if (!user) {
       showToast('Please sign in to save your nominations.', 'info');
+      return;
+    }
+
+    // LOOP-M1 defense-in-depth: even if the Edit-ballot button were ever
+    // shown to a non-owner viewer by a future regression, refuse to persist.
+    // Without this, saving here would overwrite the VIEWER's own real ballot
+    // for this year with whatever nominees/winner this instance is showing
+    // (which, on a public profile, belong to the profile owner, not them).
+    if (!viewerOwnsBallot) {
+      const msg = "You don't have permission to edit this ballot.";
+      setError(msg);
+      showToast(msg, 'error');
       return;
     }
 
@@ -745,6 +808,16 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   };
 
   const handleResetToDefault = async () => {
+    // LOOP-M1 defense-in-depth: never let a non-owner viewer delete/reset
+    // nominations for the year being shown — see the matching guard in
+    // handleSave.
+    if (!viewerOwnsBallot) {
+      const msg = "You don't have permission to edit this ballot.";
+      setError(msg);
+      showToast(msg, 'error');
+      return;
+    }
+
     setIsSaving(true);
     setError(null);
     try {
@@ -1052,6 +1125,17 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   }, [movies, isWorkshop, hasCustomNominations]);
 
   const applyWorkshopState = async (nextNominees: Movie[], nextWinner: Movie | null) => {
+    // LOOP-M1 defense-in-depth: the workshop auto-save path (drag reorder,
+    // set winner, remove, reset, add-via-ref) all funnel through here. Never
+    // apply or persist a workshop mutation for a viewer who doesn't own this
+    // ballot — see the matching guard in handleSave.
+    if (!viewerOwnsBallot) {
+      const msg = "You don't have permission to edit this ballot.";
+      setError(msg);
+      showToast(msg, 'error');
+      return;
+    }
+
     // Mark mutation in-flight so the workshop sync effect doesn't re-sync
     workshopMutationInFlightRef.current = true;
     // Optimistic: update ALL state immediately so nothing can roll back
@@ -1292,7 +1376,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     })()}
                   </div>
                   <div className="flex items-center gap-2">
-                    {compact && user && !isEditing && !isWorkshop && (
+                    {compact && user && viewerOwnsBallot && !isEditing && !isWorkshop && (
                       <button
                         onClick={onEditRequest ?? handleStartEditing}
                         className="md:hidden flex items-center gap-1.5 min-h-[44px] px-3.5 text-sm font-medium text-gray-300 border border-gray-700/40 rounded-lg hover:text-white hover:border-gray-600 hover:bg-gray-800/60 transition-all"
@@ -1466,7 +1550,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                           </p>
                         )}
                       </div>
-                      {!compact && user && !isEditing && !isWorkshop && (
+                      {!compact && user && viewerOwnsBallot && !isEditing && !isWorkshop && (
                         <button
                           onClick={onEditRequest ?? handleStartEditing}
                           className="hidden md:flex items-center gap-1.5 min-h-[32px] px-3 text-xs font-medium text-gray-300 border border-gray-700/40 rounded-lg hover:text-white hover:border-gray-600 hover:bg-gray-800/60 transition-all flex-shrink-0"
@@ -1677,7 +1761,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
           <h2 className="md:absolute block top-0 md:top-[120px] left-0 text-2xl md:text-3xl font-bold text-gray-100 md:text-gray-600/60 mt-0 md:mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-[0.25em]">
             {year}
           </h2>
-          {user && !isEditing && !isWorkshop && (
+          {user && viewerOwnsBallot && !isEditing && !isWorkshop && (
             <button
               onClick={onEditRequest ?? handleStartEditing}
               className="md:hidden flex items-center gap-1.5 min-h-[44px] px-3.5 text-sm font-medium text-gray-300 border border-gray-700/40 rounded-lg hover:text-white hover:border-gray-600 hover:bg-gray-800/60 transition-all flex-shrink-0"

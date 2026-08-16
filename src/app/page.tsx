@@ -933,6 +933,10 @@ export default function HomePage() {
                     allMoviesForYear={yearData.allMovies}
                     category="best-picture"
                     nomineeImageMode="poster"
+                    // Home always renders the signed-in user's own ballot —
+                    // guard against a not-yet-signed-in/guest render the same
+                    // way the page already gates elsewhere (isGuest).
+                    viewerOwnsBallot={!isGuest}
                     onEditRequest={() => router.push(`/year/${yearData.year}`)}
                   />
                 ) : (

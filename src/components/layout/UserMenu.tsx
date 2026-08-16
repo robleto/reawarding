@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Activity, Bookmark, Film, LogOut, Moon, Monitor, Settings, Star, Sun, Trophy, User, Users, List } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { useEnsureProfile } from '@/hooks/useEnsureProfile';
+import { useProfile } from '@/contexts/ProfileContext';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import type { Database } from '@/types/supabase';
 import UserAvatar from '@/components/ui/UserAvatar';
@@ -49,9 +49,15 @@ interface UserMenuProps {
    * inline: renders the menu items inline (useful inside mobile hamburger panel)
    */
   variant?: 'dropdown' | 'inline';
+  /**
+   * Called when a nav link or sign-out is triggered in the inline variant, so the
+   * parent (e.g. the mobile hamburger panel) can close itself. Not used by the
+   * dropdown variant, which closes itself internally.
+   */
+  onNavigate?: () => void;
 }
 
-export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: UserMenuProps) {
+export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown', onNavigate }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
@@ -59,7 +65,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
   const { user, status: authStatus } = useAuthState();
   const { theme, setTheme } = useTheme();
 
-  const { profile, loading: profileLoading, error: profileError } = useEnsureProfile(user);
+  const { profile, loading: profileLoading, error: profileError } = useProfile();
 
   const handleLogin = () => {
     if (onLoginClick) {
@@ -81,6 +87,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
     try {
       await signOutEverywhere(supabase);
       setOpen(false);
+      onNavigate?.();
       router.replace('/');
       router.refresh();
     } catch (error) {
@@ -183,7 +190,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
     { href: `/${u}/following`,  icon: Users,    label: 'My Friends'   },
   ] : [];
 
-  // ── Inline variant (mobile hamburger panel) ──────────────────────────────
+  // ── Inline variant (rendered inside HeaderNav's mobile hamburger panel) ──
   if (variant === 'inline') {
     return (
       <div className="rounded-md">
@@ -201,6 +208,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
             <Link
               key={href}
               href={href}
+              onClick={() => onNavigate?.()}
               className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-800"
             >
               <Icon className="w-4 h-4" />
@@ -210,6 +218,7 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown' }: 
           <div className="my-1 border-t border-gray-700" />
           <Link
             href="/settings"
+            onClick={() => onNavigate?.()}
             className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-800"
           >
             <Settings className="w-4 h-4" />

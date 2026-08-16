@@ -50,12 +50,10 @@ function FilmsPageContent() {
 	const { user } = useAuthState();
 
 	// Discovery rows (ported from Home — explore/awards-as-home moved
-	// discovery off Home now that Home is the awards archive).
-	const userMovieIds = useMemo(
-		() => new Set(movies.filter((m) => m.rankings.length > 0).map((m) => m.id)),
-		[movies]
-	);
-	const { rows: feedRows, loading: feedLoading } = useRecognitionFeed(userMovieIds);
+	// discovery off Home now that Home is the awards archive). Reuses the
+	// already-fetched, per-user-enriched `movies` list so feed cards get
+	// real seen/rating badges instead of always showing unrated.
+	const { rows: feedRows, loading: feedLoading } = useRecognitionFeed(movies);
 
 	// Guests are first-class on /films per the project's guest-mode mandate.
 	// The previous redirect-to-home blocked the natural "rate another from

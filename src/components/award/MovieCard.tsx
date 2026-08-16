@@ -275,12 +275,15 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 					)}
 
 					{/* Bookmark — top-right, icon-only. Hidden for winners (trophy owns
-					    that corner) and once seen (watchlist is for what's still ahead). */}
+					    that corner) and once seen (watchlist is for what's still ahead).
+					    Visual chip stays 28px (w-7 h-7) to preserve the grid's density;
+					    the before:-inset-2 pseudo-element pads the actual tappable area
+					    out to 44x44 on touch without enlarging the visible circle. */}
 					{showBookmark && (
 						<button
 							type="button"
 							onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie.id); }}
-							className={`movie-card-overlay absolute top-2 right-2 z-30 flex items-center justify-center w-7 h-7 rounded-full bg-always-black/65 backdrop-blur-sm transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-always-black/85 ${
+							className={`movie-card-overlay absolute top-2 right-2 z-30 flex items-center justify-center w-7 h-7 rounded-full bg-always-black/65 backdrop-blur-sm transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-always-black/85 before:content-[''] before:absolute before:-inset-2 ${
 								isOnWatchlist ? "text-amber-400" : "text-always-white/80 hover:text-amber-300"
 							}`}
 							title={isOnWatchlist ? "Remove from watchlist" : "Add to watchlist"}
@@ -302,7 +305,31 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 										<button
 											type="button"
 											onClick={() => setShowRatingModal(true)}
-											className={`font-bold px-1.5 py-2 rounded-md border transition-colors active:scale-95 ${
+											// Symmetric before:-inset-2 (8px/side), restored here after round 2's
+											// asymmetric before:left-0/-right-4 split measured WORSE (effective
+											// width dropped to ~34-36px) without actually removing the overlap onto
+											// footerAction — it just deferred to footerAction's z-index. This
+											// symmetric form is round 1's baseline and its best measured result:
+											// 44px effective width when rated (min-w-[28px], no neighbor) / ~57px
+											// unrated (min-w-[40px]). In THIS row, footerAction sits gap-1.5 (6px)
+											// away — narrower than this inset's 8px reach — so on the right side
+											// the expansion is clipped ~2px short of its full 8px once it meets
+											// footerAction's own hit area, landing at 42px effective width in that
+											// specific configuration. VariancePill (if present) also renders inline
+											// in this row but is a non-interactive <span> with no hit area of its
+											// own, so it doesn't compete for or block any tap target — the only
+											// real neighbor for reach purposes is footerAction. That 42px-vs-44px
+											// shortfall is physical: at a 375px viewport this 3-up grid card is
+											// only ~109px wide, leaving no room to also grow the pill's visible
+											// size (already ruled out, see the width comment on the interactive
+											// overlay above) to reach a true 44px in every configuration.
+											// footerAction itself carries its own `relative z-10` (see
+											// YearExplorer.tsx) so it is never silently overridden by this pill's
+											// pseudo-element regardless of the residual overlap. NOTE: `ratingOnly`
+											// is declared/threaded throughout this file but no current caller
+											// passes it — these figures are derived from the resolved box model,
+											// not a live-rendered measurement of this exact branch.
+											className={`relative font-bold px-1.5 py-2 rounded-md border transition-colors active:scale-95 before:content-[''] before:absolute before:-inset-2 ${
 												rating
 													? "text-xs min-w-[28px] border-gray-700/60"
 													: "text-xs min-w-[40px] border-gray-600/40 hover:border-gray-500/60 hover:brightness-125"
@@ -332,7 +359,10 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 										showText={false}
 										size="sm"
 										variant="compact"
-										className="shrink-0"
+										// z-10 so this button's own hit area is never silently overridden
+										// by the rate pill's before:-inset-2 pseudo-element reaching in
+										// from the right (see the comment on that pill below).
+										className="relative z-10 shrink-0"
 										onClick={() => {
 											const newSeenIt = !(seenIt ?? false);
 											onUpdate?.(movie.id, { seen_it: newSeenIt });
@@ -340,10 +370,36 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 										}}
 									/>
 									<div className="flex flex-col items-center min-w-0 shrink-0">
+										{/* Visual chip stays min-h/w-32px — the cramped 3-up mobile
+										    grid needs that density. Symmetric before:-inset-2 (8px/side),
+										    restored here after round 2's asymmetric before:left-0/-right-4
+										    split measured WORSE (effective width dropped to ~34-36px)
+										    without actually removing the overlaps it was meant to fix —
+										    it just deferred to neighbors' z-index. This branch's visible
+										    chip (px-1 py-0.5, min-w-[28px]/[32px]) is smaller than the
+										    ratingOnly branch's (px-1.5 py-2, min-w-[28px]/[40px]), but the
+										    resolved hit area is the same 44px (rated) / ~53px (unrated)
+										    when there's no interactive neighbor to the right — VariancePill
+										    (if present) renders BELOW this pill in this branch (mt-0.5,
+										    not inline), so it is never a horizontal neighbor here at all,
+										    and being a non-interactive <span> it wouldn't compete for a
+										    tap target even if it were. footerAction (when rendered) sits
+										    gap-1.5 (6px) to the right — narrower than this inset's 8px
+										    reach — so that side is clipped ~2px short of its full 8px once
+										    it meets footerAction's own hit area, landing at 42px effective
+										    width in that specific configuration. That 42px-vs-44px
+										    shortfall is physical (interactive controls sharing a
+										    ~109px-wide 3-up-grid card at 375px), not a bug, and not
+										    fixable with more inset math without regressing the no-neighbor
+										    case again (see round 2's history above). SeenIt (to the left)
+										    now carries its own `relative z-10` and footerAction (to the
+										    right, when present) carries its own `relative z-10` in
+										    YearExplorer.tsx, so neither neighbor is ever silently
+										    overridden by this pill's pseudo-element. */}
 										<button
 											type="button"
 											onClick={() => setShowRatingModal(true)}
-											className={`font-bold px-1 py-0.5 min-h-[32px] rounded-lg border transition-colors active:scale-95 ${
+											className={`relative font-bold px-1 py-0.5 min-h-[32px] rounded-lg border transition-colors active:scale-95 before:content-[''] before:absolute before:-inset-2 ${
 												rating
 													? "text-sm min-w-[28px] border-gray-700"
 													: "text-xs min-w-[32px] border-gray-600/50 hover:border-gray-500/70 hover:brightness-125"
@@ -639,7 +695,12 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 							{showYear && <p className="text-xs text-gray-400">{movie.release_year}</p>}
 							{incomplete && <p className="text-xs text-gray-500">Seen, not rated yet</p>}
 						</div>
-						<div className="flex items-center gap-2 ml-2">
+						{/* gap-4 (16px), not gap-2 — SeenIt's compact hit-area (before:-inset-1.5,
+						    6px/side) plus this bookmark's before:-inset-2 (8px/side) need 14px of
+						    facing clearance to avoid the two invisible hit-boxes overlapping each
+						    other; a wider gap here (a full-width list row, not the cramped 3-up
+						    grid) is the cheap fix vs. shrinking either below its 44px floor. */}
+						<div className="flex items-center gap-4 ml-2">
 							<SeenItButton
 								seenIt={seenIt ?? false}
 								onClick={toggleSeenIt}
@@ -651,7 +712,7 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 								<button
 									type="button"
 									onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie.id); }}
-									className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
+									className={`relative w-7 h-7 flex items-center justify-center rounded-lg transition-colors before:content-[''] before:absolute before:-inset-2 ${
 										isOnWatchlist ? "text-amber-400 bg-amber-500/10" : "text-gray-400 hover:text-amber-300 hover:bg-gray-800"
 									}`}
 									title={isOnWatchlist ? "Remove from watchlist" : "Add to watchlist"}

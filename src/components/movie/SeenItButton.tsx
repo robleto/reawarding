@@ -43,9 +43,13 @@ export default function SeenItButton({
     lg: "w-5 h-5",
   };
 
+  // "compact" keeps its small 34px visual footprint (p-2.5 around the icon) so
+  // dense grids/rows don't get pushed wider — the before:-inset-1.5
+  // pseudo-element pads the actual tappable area out to 44x44 on touch
+  // without enlarging the visible icon or its hover chip.
   const baseVariant =
     variant === "compact"
-      ? "flex items-center justify-center p-2.5 rounded transition-all active:scale-95 focus:outline-none"
+      ? "relative flex items-center justify-center p-2.5 rounded transition-all active:scale-95 focus:outline-none before:content-[''] before:absolute before:-inset-1.5"
       : "flex items-center gap-1 text-sm font-medium transition-all active:scale-95 focus:outline-none";
 
   // Derive current watch-state

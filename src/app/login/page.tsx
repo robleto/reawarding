@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from "@/lib/supabaseBrowser";
 import { Mail, Eye, EyeOff, User, Lock } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { buildSiteUrl } from '@/utils/siteUrl';
+import { sanitizeNextPath } from '@/utils/sanitizeNextPath';
 import { startOAuthSignIn, type OAuthProvider } from '@/utils/oauthSignIn';
 
 const providerLabels: Record<OAuthProvider, string> = {
@@ -14,6 +16,24 @@ const providerLabels: Record<OAuthProvider, string> = {
 };
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4">
+        <div className="w-8 h-8 border-4 border-gold-500 rounded-full border-t-transparent animate-spin" />
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
+  const searchParams = useSearchParams();
+  // Where to send the user after a successful sign-in — captured by middleware.ts
+  // when it bounced an unauthenticated session away from a protected route.
+  // Never trust this directly: sanitize to a same-origin relative path so a
+  // crafted `next` value can't be used as an open redirect.
+  const next = sanitizeNextPath(searchParams.get('next'));
   const [loading, setLoading] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
@@ -23,7 +43,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [emailOptIn, setEmailOptIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
@@ -44,7 +64,7 @@ export default function LoginPage() {
         type: 'signup',
         email,
         options: {
-          emailRedirectTo: buildSiteUrl('/auth/callback?next=/') || undefined,
+          emailRedirectTo: buildSiteUrl(`/auth/callback?next=${encodeURIComponent(next)}`) || undefined,
         },
       });
 
@@ -109,10 +129,11 @@ export default function LoginPage() {
           email,
           password,
           options: {
-            emailRedirectTo: buildSiteUrl('/auth/callback?next=/') || undefined,
+            emailRedirectTo: buildSiteUrl(`/auth/callback?next=${encodeURIComponent(next)}`) || undefined,
             data: {
               username,
-              full_name: fullName || username,
+              full_name: username,
+              email_opt_in: emailOptIn,
             }
           },
         });
@@ -137,8 +158,8 @@ export default function LoginPage() {
             setShowResendConfirmation(true);
           }
         } else {
-          // Redirect on successful login
-          window.location.href = '/';
+          // Redirect on successful login — back to wherever the user was headed.
+          window.location.href = next;
         }
       }
     } catch {
@@ -151,7 +172,7 @@ export default function LoginPage() {
   const handleOAuthSignIn = async (provider: OAuthProvider) => {
     setLoading(provider);
     try {
-      const { error } = await startOAuthSignIn(supabase, provider);
+      const { error } = await startOAuthSignIn(supabase, provider, next);
       if (error) {
         console.error(`${provider} sign-in error:`, error);
         setError(`Failed to sign in with ${providerLabels[provider]}. Please try again.`);
@@ -232,23 +253,6 @@ export default function LoginPage() {
                     />
                   </div>
                 </div>
-                
-                <div>
-                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-300 mb-1">
-                    Full Name (optional)
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
-                    <input
-                      id="fullName"
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-gray-700 text-white"
-                      placeholder="Your Full Name"
-                    />
-                  </div>
-                </div>
               </>
             )}
             
@@ -316,6 +320,18 @@ export default function LoginPage() {
               </div>
             )}
 
+            {isSignUp && (
+              <label className="flex items-start gap-2 text-sm text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={emailOptIn}
+                  onChange={(e) => setEmailOptIn(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-yellow-500 focus:ring-yellow-500"
+                />
+                <span>Send me product updates by email (optional).</span>
+              </label>
+            )}
+
             <button
               type="submit"
               disabled={loading === 'email'}
@@ -352,7 +368,7 @@ export default function LoginPage() {
                 setPassword('');
                 setConfirmPassword('');
                 setUsername('');
-                setFullName('');
+                setEmailOptIn(false);
               }}
               className="text-sm text-gold-500 hover:text-yellow-400 transition-colors"
             >

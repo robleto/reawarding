@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import type { Database } from '@/types/supabase';
+import { sanitizeNextPath } from '@/utils/sanitizeNextPath';
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -11,7 +12,8 @@ export async function GET(request: NextRequest) {
   const type = requestUrl.searchParams.get('type');
   const code = requestUrl.searchParams.get('code');
   const codeVerifier = requestUrl.searchParams.get('code_verifier');
-  const next = requestUrl.searchParams.get('next') ?? '/';
+  // Only allow same-origin relative paths — `next` comes from the URL and must not redirect off-site.
+  const next = sanitizeNextPath(requestUrl.searchParams.get('next'));
   const error = requestUrl.searchParams.get('error');
   const error_description = requestUrl.searchParams.get('error_description');
 

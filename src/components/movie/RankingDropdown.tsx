@@ -122,14 +122,14 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
               className="absolute inset-0 bg-black/55"
               onClick={() => setShowDropdown(false)}
             />
-            <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-gray-700 bg-charcoal-900 px-4 pb-5 pt-3 shadow-2xl">
+            <div className="absolute inset-x-0 bottom-0 rounded-t-2xl border-t border-gray-700 bg-charcoal-900 px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl">
               <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-gray-600" />
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-white">Set rating</h3>
                 <button
                   type="button"
                   onClick={() => setShowDropdown(false)}
-                  className="text-sm text-gray-400 hover:text-gray-200"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center text-sm text-gray-400 hover:text-gray-200"
                 >
                   Close
                 </button>

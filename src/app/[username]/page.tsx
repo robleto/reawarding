@@ -20,8 +20,7 @@ import {
   Check,
 } from "lucide-react";
 import { usePublicProfile, type PublicAward } from "@/hooks/usePublicProfile";
-import { useUser } from "@/hooks/useUser";
-import { useEnsureProfile } from "@/hooks/useEnsureProfile";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useQualityTagCollections } from "@/hooks/useQualityTagCollections";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import { slugifyTitle } from "@/utils/slug";
@@ -811,8 +810,7 @@ export default function ProfileOverviewPage() {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
   const { movies, profile, awards, loading } = usePublicProfile(username);
-  const { user } = useUser();
-  const { profile: ownerProfile } = useEnsureProfile(user ?? null);
+  const { profile: ownerProfile } = useProfile();
 
   // Owner detection: logged-in user's profile username matches the route
   const isOwner = !!(
