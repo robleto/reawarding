@@ -70,6 +70,12 @@ const SUGGESTED_YEARS = [0, -1, -2, -4, -7, -12, -19, -27].map(
 // silent multi-user collision risk.
 const FIRST_AWARD_SEEN_KEY_PREFIX = "reawarding-first-award-seen";
 
+// Archive sort preference. Actor-scoped at use the same way as the key above,
+// so two users on one device don't inherit each other's choice.
+const ARCHIVE_SORT_KEY_PREFIX = "reawarding-archive-sort";
+
+type ArchiveSort = "chronological" | "strength";
+
 export default function HomePage() {
   const router = useRouter();
   const reducedMotion = usePrefersReducedMotion();
@@ -94,6 +100,36 @@ export default function HomePage() {
   const [activeScrollYear, setActiveScrollYear] = useState<number | null>(null);
   const spyObserverRef = useRef<IntersectionObserver | null>(null);
   const [arrivedYears, setArrivedYears] = useState<Set<string>>(new Set());
+
+  // Archive sort order. Chronological (newest first) stays the default so the
+  // page opens the way it always has; "strength" leads with the most-formed
+  // ballots instead, so a thin newest year doesn't headline a deep archive.
+  const [archiveSort, setArchiveSort] = useState<ArchiveSort>("chronological");
+
+  // Read the stored preference after mount rather than in the initial state —
+  // touching localStorage during the first render desyncs server/client HTML.
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      const stored = window.localStorage.getItem(`${ARCHIVE_SORT_KEY_PREFIX}:${userId}`);
+      if (stored === "strength" || stored === "chronological") setArchiveSort(stored);
+    } catch {
+      // Private mode / blocked storage — keep the default.
+    }
+  }, [userId]);
+
+  const handleArchiveSortChange = useCallback(
+    (next: ArchiveSort) => {
+      setArchiveSort(next);
+      if (!userId) return;
+      try {
+        window.localStorage.setItem(`${ARCHIVE_SORT_KEY_PREFIX}:${userId}`, next);
+      } catch {
+        // Non-fatal — the sort still applies for this session.
+      }
+    },
+    [userId]
+  );
   const arrivalObserverRef = useRef<IntersectionObserver | null>(null);
 
   // Determine if we're showing guest panels (unauthenticated).
@@ -175,6 +211,23 @@ export default function HomePage() {
       .filter((yearData) => yearData.allMovies.length >= 1)
       .sort((a, b) => Number(b.year) - Number(a.year));
   }, [movies, awards]);
+
+  // Render order for the archive below. The scrubber itself stays
+  // chronological in both modes — it's a timeline, and its connectors (solid
+  // for consecutive years, heartbeat for gaps) only carry meaning between
+  // chronologically adjacent entries. Only the ballot list reorders.
+  const sortedYears = useMemo(() => {
+    if (archiveSort === "chronological") return formattedYears;
+    return [...formattedYears].sort((a, b) => {
+      // Nominee count leads because it's the product's own measure of how far
+      // a ballot has formed (5+ is "set"). Total rated breaks ties — same
+      // nominee count with more films behind it is the better-established
+      // year — then newest-first for an exact tie.
+      if (b.nominees.length !== a.nominees.length) return b.nominees.length - a.nominees.length;
+      if (b.allMovies.length !== a.allMovies.length) return b.allMovies.length - a.allMovies.length;
+      return Number(b.year) - Number(a.year);
+    });
+  }, [formattedYears, archiveSort]);
 
   // One stable ref callback per year (see /awards for why: an inline
   // `ref={(el) => ...}` gets a new identity every render, causing React to
@@ -390,7 +443,10 @@ export default function HomePage() {
 
       gsapModule.registerPlugin(ScrollTriggerModule);
 
-      const orderedElements = formattedYears
+      // Must follow the RENDERED order, not the chronological one — each
+      // trigger animates the element visually above it, so a strength-sorted
+      // archive would otherwise pair every year with the wrong neighbour.
+      const orderedElements = sortedYears
         .map((yearData) => yearElementsRef.current[yearData.year])
         .filter((el): el is HTMLDivElement => Boolean(el));
 
@@ -421,7 +477,7 @@ export default function HomePage() {
       mounted = false;
       cleanup();
     };
-  }, [formattedYears, reducedMotion]);
+  }, [sortedYears, reducedMotion]);
 
   // GSAP panel tracking for guest onboarding
   useEffect(() => {
@@ -899,19 +955,44 @@ export default function HomePage() {
             ═══════════════════════════════════════════════════ */}
         <div className={isGuest ? "pb-32" : ""}>
           {formattedYears.length > 1 && (
+            <div className="flex items-center justify-end gap-2 mb-2 px-1">
+              <label
+                htmlFor="archive-sort"
+                className="text-[10px] font-medium uppercase tracking-wider text-gray-500"
+              >
+                Sort
+              </label>
+              {/* Native select on purpose: iOS renders its own picker, which is
+                  a better touch target than a custom menu in the native shell.
+                  text-base on mobile prevents Safari's focus zoom. */}
+              <select
+                id="archive-sort"
+                value={archiveSort}
+                onChange={(e) => handleArchiveSortChange(e.target.value as ArchiveSort)}
+                className="border border-gray-600/50 rounded-lg px-3 py-2 text-base sm:text-sm bg-gray-800/70 text-gray-300 focus:outline-none focus:ring-2 focus:ring-gold-500"
+              >
+                <option value="chronological">Newest year first</option>
+                <option value="strength">Strongest ballots first</option>
+              </select>
+            </div>
+          )}
+          {formattedYears.length > 1 && (
             <div className="sticky top-[calc(4.3rem+env(safe-area-inset-top))] z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-2 mb-4 bg-gray-950 [&>div]:mb-0">
               <MuseumYearTimeline
                 years={formattedYears.map((y) => ({
                   year: Number(y.year),
                   nomineeCount: y.nominees.length,
                 }))}
-                activeYear={activeScrollYear ?? Number(formattedYears[0].year)}
+                // Falls back to whatever the archive actually leads with, so
+                // the highlighted chip matches the top of the list in both
+                // sort modes rather than always pointing at the newest year.
+                activeYear={activeScrollYear ?? Number(sortedYears[0].year)}
                 onSelectYear={scrollToYear}
                 showSubLabel={false}
               />
             </div>
           )}
-          {formattedYears.map((yearData) => {
+          {sortedYears.map((yearData) => {
             const isVisible = visibleYears.has(yearData.year);
             const hasArrived = arrivedYears.has(yearData.year);
             return (
