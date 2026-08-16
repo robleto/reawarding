@@ -1,0 +1,55 @@
+name: Award Drift Check
+
+# Reconciles award rows against the films they point at. Runs AFTER the
+# metadata pipelines rather than inside them: those workflows are what move a
+# film's release_year out from under an existing award, and a data-integrity
+# observation shouldn't be able to fail an ingest job (or be mistaken for one).
+#
+# As a separate workflow, a drift finding shows up as its own red run — visible
+# on its own terms, with nothing blocked.
+#
+# Add any future workflow that writes to `movies` to the list below.
+on:
+  workflow_run:
+    workflows:
+      - "Enrich Movies"
+      - "Ingest Discover + Enrich"
+      - "Enrich Movie Details (Weekly)"
+      - "Update All Movies (Weekly)"
+      - "Update Movie Batch"
+      - "TMDB Popular Import"
+      - "TMDB Now Playing Import"
+    types: [completed]
+  # Backstop, in case drift arrives by a path that isn't one of the above
+  # (a manual repair, a direct SQL edit). 10:00 UTC sits after the 08:30
+  # ingest-discover-enrich cron.
+  schedule:
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+
+# The enrichment workflows can finish close together; one check per settled
+# state is enough.
+concurrency:
+  group: award-drift-check
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # No `npm ci`: --rest uses only built-in fetch and node:fs, so the check
+      # needs no dependencies. It also pins the transport rather than letting
+      # it depend on which secrets happen to be present.
+      - name: Check award drift
+        run: node scripts/check-award-year-drift.mjs --rest
