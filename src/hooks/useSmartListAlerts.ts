@@ -15,12 +15,21 @@ export type SmartListAlert = {
 };
 
 // Thresholds: [near-miss starts at, unlocks at]
-// Aligned with the Ready-Made Lists page so home and dedicated page agree on what's available.
+//
+// These mirror src/app/lists/ready-made/page.tsx exactly — director, actor and
+// genre are "ready" at >=10 with an "almost" band of 6-9; decade is ready at
+// >=12 with an "almost" band of 7-11. The previous comment claimed alignment
+// while the numbers disagreed, which broke both directions:
+//   - director/actor unlocked here at 8, but the page still filed those under
+//     "almost", so home promised a list the page wouldn't offer;
+//   - the near-miss floor of 5 sat below the page's "almost" floor of 6, so a
+//     user at 5 got a home teaser pointing at a page that rendered nothing.
+// If the page's numbers change, change these with them.
 const THRESHOLDS: Record<SmartListAlertType, [number, number]> = {
-  director: [5,  8],
-  actor:    [5,  8],
-  genre:    [8, 10],   // was [12,15] — lowered to match Ready-Made page threshold
-  decade:   [10, 15],  // was [15,20] — lowered to match Ready-Made page threshold
+  director: [6, 10],
+  actor:    [6, 10],
+  genre:    [6, 10],
+  decade:   [7, 12],
 };
 
 function decadeLabel(year: number): string {

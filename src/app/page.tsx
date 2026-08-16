@@ -537,6 +537,17 @@ export default function HomePage() {
   // ── Smart list alerts (P2-d) — lightweight "you have enough for a list"
   // nudges. The full Ready-Made rail lives on /lists now. ──
   const smartAlerts = useSmartListAlerts(movies);
+  // Alerts that are actually available now, not "you're close". smartAlerts
+  // mixes both (nearMiss: true = not there yet), so gating the home nudge on
+  // smartAlerts.length meant a user whose every alert was a near-miss still
+  // saw a "Ready-made lists" chip — a headline promising lists that exist,
+  // pointing at a page with none ready. Near-misses still render once the
+  // gate opens; with thresholds aligned to that page they now correspond to
+  // its "almost" section rather than to nothing at all.
+  const unlockedSmartAlerts = useMemo(
+    () => smartAlerts.filter((alert) => !alert.nearMiss),
+    [smartAlerts]
+  );
 
   // ── User state detection ──
   // Source of truth: PRODUCT_DESIGN_PRINCIPLES.md "State thresholds measure
@@ -878,7 +889,7 @@ export default function HomePage() {
               </Link>
             ))}
           </div>
-        ) : isEstablished && !onboardingFlow.shouldShow && smartAlerts.length > 0 ? (
+        ) : isEstablished && !onboardingFlow.shouldShow && unlockedSmartAlerts.length > 0 ? (
           <div className="mb-6">
             <Link
               href="/lists/ready-made"
