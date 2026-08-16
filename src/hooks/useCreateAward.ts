@@ -16,6 +16,14 @@ export interface AwardResult {
   nomineeIds: string[];
   contextMessage: string;
   agreedWithAcademy: boolean;
+  /**
+   * Only "seed_pick" is produced today. "ranking_calc" was emitted by a
+   * createFromRatings() path that was removed — it took `year` independently
+   * of the winner and only received the winner's id/title, so it structurally
+   * could not verify the winner belonged to that year (the origin of at least
+   * one award filed under the wrong year). The union members are retained
+   * because persisted guest awards may still carry them.
+   */
   source: "seed_pick" | "ranking_calc" | "manual";
   error?: string;
 }
@@ -84,16 +92,48 @@ export function useCreateAward() {
   }, [actorKey]);
 
   const getExistingRankings = useCallback(
-    (movieIds: string[]): Record<string, number | null | undefined> => {
+    async (movieIds: string[]): Promise<Record<string, number | null | undefined>> => {
       const result: Record<string, number | null | undefined> = {};
-      for (const id of movieIds) {
-        if (!isGuest) continue;
-        const guestRanking = guestStore.getRanking(id);
-        result[id] = guestRanking?.ranking;
+
+      if (isGuest) {
+        for (const id of movieIds) {
+          result[id] = guestStore.getRanking(id)?.ranking;
+        }
+        return result;
+      }
+
+      // Signed-in users used to get an empty map here, leaving `ignoreDuplicates`
+      // in applyInferredRankings as the only guard against overwriting a real
+      // rating. That guard is ON CONFLICT DO NOTHING, which also blocks rows
+      // that already exist with a NULL ranking — so crowning a film that had an
+      // empty rankings row (an old watchlist/seen entry) silently recorded no
+      // opinion at all, leaving a winner with no rating behind it. Reading the
+      // real rows lets inferRankingsFromAward do the filtering in JS, exactly
+      // as it already does for guests, so those NULL rows can be filled while a
+      // genuine rating is still never touched.
+      if (!user || movieIds.length === 0) return result;
+
+      const { data, error } = await supabase
+        .from("rankings")
+        .select("movie_id, ranking")
+        .eq("user_id", user.id)
+        .in("movie_id", movieIds);
+
+      if (error) {
+        console.warn("[useCreateAward] Existing-ranking lookup failed:", error.message);
+        // Fail closed: mark every nominee as already rated so inference becomes
+        // a no-op. Skipping the auto-rating is recoverable; overwriting a user's
+        // real rating on the strength of an incomplete read is not.
+        for (const id of movieIds) result[id] = 10;
+        return result;
+      }
+
+      for (const row of data ?? []) {
+        result[String(row.movie_id)] = row.ranking;
       }
       return result;
     },
-    [isGuest, guestStore]
+    [isGuest, guestStore, supabase, user]
   );
 
   const applyInferredRankings = useCallback(
@@ -120,11 +160,14 @@ export function useCreateAward() {
           seen_it: true,
         }));
 
+        // No ignoreDuplicates: inferRankingsFromAward has already dropped every
+        // movie that carries a real rating, so anything still in this list is
+        // either a brand-new row or an existing row with a NULL ranking that
+        // should be filled. DO NOTHING here is what stranded the latter.
         const { error } = await supabase
           .from("rankings")
           .upsert(rankingsToUpsert, {
             onConflict: "user_id,movie_id",
-            ignoreDuplicates: true,
           });
 
         if (error) {
@@ -289,7 +332,7 @@ export function useCreateAward() {
         return failed;
       }
 
-      const rankings = existingRankingsMap ?? getExistingRankings(mergedNominees);
+      const rankings = existingRankingsMap ?? (await getExistingRankings(mergedNominees));
       await applyInferredRankings(winnerId, mergedNominees, rankings);
 
       const officialWinners = await fetchOfficialAwardWinners();
@@ -347,124 +390,5 @@ export function useCreateAward() {
     [createAwardInner]
   );
 
-  /** Inner implementation — must only be called through the mutex wrapper. */
-  const createFromRatingsInner = useCallback(
-    async (
-      year: number,
-      nominees: Pick<Movie, "id" | "title">[],
-      winner: Pick<Movie, "id" | "title">,
-      _existingRankingsMap?: Record<string, number | null | undefined>
-    ): Promise<AwardResult> => {
-      const source: AwardResult["source"] = "ranking_calc";
-      const winnerId = winner.id;
-      const nomineeIds = [...new Set([winnerId, ...nominees.map((n) => n.id)])].slice(0, 10);
-
-      const existingLookup = await fetchExistingAward(year);
-      if (existingLookup.error) {
-        const failed: AwardResult = {
-          success: false,
-          year,
-          winnerId,
-          nomineeIds,
-          contextMessage: "",
-          agreedWithAcademy: false,
-          source,
-          error: existingLookup.error,
-        };
-        return failed;
-      }
-      const existing = existingLookup.award;
-      const revisionNumber = (existing?.revisionNumber ?? 0) + 1;
-
-      const signature = buildSignature(year, winnerId, nomineeIds, source);
-      const duplicate = getDuplicateResult(signature);
-      if (duplicate) return duplicate;
-
-      const previousGuestAward = isGuest ? guestStore.getAward(year) : null;
-
-      if (isGuest) {
-        guestStore.setAward(year, winnerId, nomineeIds, source);
-      }
-
-      const persisted = await persistAward(year, nomineeIds, winnerId, source, revisionNumber);
-      if (!persisted) {
-        if (isGuest) {
-          if (previousGuestAward) {
-            guestStore.setAward(
-              year,
-              previousGuestAward.winnerId,
-              previousGuestAward.nomineeIds,
-              previousGuestAward.source
-            );
-          } else {
-            guestStore.removeAward(year);
-          }
-        }
-
-        const failed: AwardResult = {
-          success: false,
-          year,
-          winnerId,
-          nomineeIds,
-          contextMessage: "",
-          agreedWithAcademy: false,
-          source,
-          error: "Couldn't save award. Try again.",
-        };
-        recordMutation(signature, failed);
-        return failed;
-      }
-
-      const officialWinners = await fetchOfficialAwardWinners();
-      const context = getAcademyContextMessage(winner.id, winner.title, year, officialWinners);
-      const success: AwardResult = {
-        success: true,
-        year,
-        winnerId,
-        nomineeIds,
-        contextMessage: context.message,
-        agreedWithAcademy: context.agreedWithAcademy,
-        source,
-      };
-      recordMutation(signature, success);
-      return success;
-    },
-    [
-      fetchExistingAward,
-      buildSignature,
-      getDuplicateResult,
-      isGuest,
-      guestStore,
-      persistAward,
-      recordMutation,
-    ]
-  );
-
-  /**
-   * Public createFromRatings — serialised per year via the same mutex.
-   */
-  const createFromRatings = useCallback(
-    (
-      year: number,
-      nominees: Pick<Movie, "id" | "title">[],
-      winner: Pick<Movie, "id" | "title">,
-      existingRankingsMap?: Record<string, number | null | undefined>
-    ): Promise<AwardResult> => {
-      const pending = yearLocksRef.current.get(year);
-      const execute = async (): Promise<AwardResult> => {
-        if (pending) await pending.catch(() => {});
-        return createFromRatingsInner(year, nominees, winner, existingRankingsMap);
-      };
-      const promise = execute().finally(() => {
-        if (yearLocksRef.current.get(year) === promise) {
-          yearLocksRef.current.delete(year);
-        }
-      });
-      yearLocksRef.current.set(year, promise);
-      return promise;
-    },
-    [createFromRatingsInner]
-  );
-
-  return { createAward, createFromRatings, isGuest };
+  return { createAward, isGuest };
 }
