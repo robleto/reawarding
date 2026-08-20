@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Clapperboard, LineChart, List, Menu, Plus, Search, Trophy, X } from "lucide-react";
@@ -21,8 +21,27 @@ export default function HeaderNav() {
 	const [showAddMovieModal, setShowAddMovieModal] = useState(false);
 	const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 	const navRefs = useRef<(HTMLLIElement | null)[]>([]);
+	const headerRef = useRef<HTMLElement>(null);
 	const hasScrolled = useScrollBackground();
 	const { user } = useAuthState();
+
+	// AppShell's <main> needs to clear this header exactly, but the header's
+	// true height (safe-area inset + logo/badge row) varies by device and
+	// shifts any time this component's content changes — a hardcoded guess in
+	// AppShell drifts out of sync silently. Publishing the measured height as
+	// a CSS var keeps the two in lock-step instead of two numbers that have to
+	// be updated together by hand.
+	useEffect(() => {
+		const el = headerRef.current;
+		if (!el) return;
+		const setHeightVar = () => {
+			document.documentElement.style.setProperty("--header-height", `${el.offsetHeight}px`);
+		};
+		setHeightVar();
+		const observer = new ResizeObserver(setHeightVar);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, []);
 
 	const navItems = user
 		? [
@@ -74,8 +93,21 @@ export default function HeaderNav() {
 
 	return (
 		<>
-			<header className={`fixed top-0 left-0 right-0 z-50 w-full pt-[env(safe-area-inset-top)] border-b border-gray-700 transition-all duration-300 ${
-				hasScrolled 
+			{/* sticky, not fixed — this is the actual fix for the recurring
+			    "content is tight against the header" reports. A fixed header
+			    takes no space in the document flow, so <main> had to guess its
+			    height by hand (5rem, 4.3rem, three different guesses that all
+			    drifted). Sticky reserves its real height in-flow automatically;
+			    <main> needs zero header-aware padding at all now. Nothing here
+			    relied on content bleeding under a transparent fixed header —
+			    main's old padding already fully reserved that space, so the
+			    transparent/opaque toggle below was always just chrome weight,
+			    never true overlap — confirmed via grep before making this
+			    change. --header-height (published below) still feeds
+			    lists/home.tsx's explicit viewport-height calc, unrelated to
+			    this element's own position. */}
+			<header ref={headerRef} className={`sticky top-0 z-50 w-full pt-[env(safe-area-inset-top)] border-b border-gray-700 transition-all duration-300 ${
+				hasScrolled
 					? 'dark-background'
 					: 'bg-transparent'
 			}`}> 
@@ -86,20 +118,25 @@ export default function HeaderNav() {
 						<Logo
 							size="sm"
 							showText={false}
-							imageClassName="object-contain w-[150px] h-[60px] sm:w-[180px] sm:h-[72px]"
+							// The source SVG is ~5:1 (wide wordmark, 2407x472) — the old
+							// w-150/h-60 box (2.5:1) was fighting that ratio, so
+							// object-contain quietly shrank it to fit the width and
+							// left ~30px of dead space above/below. Sized to the SVG's
+							// real ratio so it actually fills its box.
+							imageClassName="object-contain w-[170px] h-[34px] sm:w-[210px] sm:h-[42px]"
 						/>
 					</Link>
-					<span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold tracking-wider text-gray-400 bg-charcoal-900/60 border border-gray-700/60 rounded uppercase whitespace-nowrap">
+					<span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold tracking-wider text-gray-400 bg-white/5 border border-white/10 backdrop-blur-sm rounded-full uppercase whitespace-nowrap">
 						Beta
 					</span>
 				</div>					{/* Navigation and Controls */}
 					<div className="flex flex-1 items-center justify-between min-w-0">
 						{/* Navigation */}
 						<nav className="hidden md:block min-w-0">
-							<div className="relative rounded-xl bg-black/20 backdrop-blur-md border border-gray-700/40 shadow-lg">
+							<div className="relative rounded-full bg-white/5 backdrop-blur-md border border-white/10 shadow-lg">
 								{/* Bubble background */}
-								<div 
-									className="nav-bubble absolute top-0 rounded-lg backdrop-blur-xl transition-all duration-500 ease-out"
+								<div
+									className="nav-bubble absolute top-0 rounded-full backdrop-blur-xl transition-all duration-500 ease-out"
 									style={{
 										...getBubbleStyle(),
 										transitionTimingFunction: `linear(
@@ -112,12 +149,15 @@ export default function HeaderNav() {
 								<ul className="flex items-center font-medium text-sm font-inter relative z-10">
 									{desktopNavItems.map((item, index) => {
 										const Icon = item.icon;
+										// "/" also counts as Awards: /awards redirects straight to /
+										// (see src/app/awards/page.tsx), and Home now renders the
+										// awards showcase directly, so landing on either lights this up.
 										const isActive =
 											pathname === item.match ||
-											(item.match === "/" && pathname === "");
+											(item.href === "/awards" && pathname === "/");
 
 										return (
-											<li 
+											<li
 												key={item.href}
 												ref={(el) => { navRefs.current[index] = el; }}
 												onMouseEnter={() => setHoveredIndex(index)}
@@ -125,7 +165,7 @@ export default function HeaderNav() {
 											>
 												<Link
 													href={item.href}
-													className={`block px-4 py-2 relative transition-colors duration-200 rounded-lg text-center ${
+													className={`block px-4 py-2 relative transition-colors duration-200 rounded-full text-center ${
 														isActive
 															? "text-gold"
 															: "text-gray-300"
@@ -148,7 +188,7 @@ export default function HeaderNav() {
 							{user && (
 								<button
 									onClick={() => setShowAddMovieModal(true)}
-									className="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-400 hover:text-gray-200 hover:bg-gray-800 transition-colors"
+									className="hidden md:inline-flex items-center justify-center w-9 h-9 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors active:scale-95"
 									aria-label="Add movie by TMDB ID"
 									title="Add movie by TMDB ID"
 								>
@@ -164,8 +204,10 @@ export default function HeaderNav() {
 
 							<button
 								onClick={() => { setMobileSearchOpen(!mobileSearchOpen); if (!mobileSearchOpen) { setMobileMenuOpen(false); } }}
-								className={`md:hidden inline-flex items-center justify-center w-11 h-11 rounded-md transition-colors ${
-									mobileSearchOpen ? "text-gold bg-gray-800" : "text-gray-300 hover:bg-gray-800"
+								className={`md:hidden inline-flex items-center justify-center w-11 h-11 rounded-full border backdrop-blur-sm transition-colors active:scale-95 ${
+									mobileSearchOpen
+										? "text-gold-300 bg-gold-500/15 border-gold-500/25"
+										: "text-gray-300 bg-white/5 border-white/10 hover:bg-white/10 hover:text-white"
 								}`}
 								aria-label="Search films"
 								aria-expanded={mobileSearchOpen}
@@ -175,13 +217,17 @@ export default function HeaderNav() {
 							{/* Mobile Menu Button */}
 							<button
 								onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (!mobileMenuOpen) { setMobileSearchOpen(false); } }}
-								className="md:hidden inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-3 rounded-md hover:bg-gray-800 transition-colors ml-auto"
+								className={`md:hidden inline-flex items-center justify-center w-11 h-11 rounded-full border backdrop-blur-sm transition-colors active:scale-95 ml-auto ${
+									mobileMenuOpen
+										? "text-gold-300 bg-gold-500/15 border-gold-500/25"
+										: "text-gray-300 bg-white/5 border-white/10 hover:bg-white/10 hover:text-white"
+								}`}
 								aria-label="Toggle mobile menu"
 							>
 								{mobileMenuOpen ? (
-									<X className="w-6 h-6 text-gray-300" />
+									<X className="w-5 h-5" />
 								) : (
-									<Menu className="w-6 h-6 text-gray-300" />
+									<Menu className="w-5 h-5" />
 								)}
 							</button>
 						</div>
@@ -191,8 +237,8 @@ export default function HeaderNav() {
 				{/* Mobile Search Panel — search is the primary way to find a film
 				    on mobile (the Films catalog is secondary; see decision log). */}
 				{mobileSearchOpen && (
-					<div className="md:hidden bg-charcoal-900 border-t border-gray-700 shadow-gray-800/50 transition-colors duration-300">
-						<div className="px-6 py-4">
+					<div className="md:hidden mx-3 mb-3 rounded-2xl border border-white/10 bg-charcoal-900/95 backdrop-blur-xl shadow-2xl transition-colors duration-300">
+						<div className="px-4 py-4">
 							<NavSearch
 								variant="panel"
 								autoFocus
@@ -204,9 +250,9 @@ export default function HeaderNav() {
 
 				{/* Mobile Menu */}
 				{mobileMenuOpen && (
-					<div className="md:hidden bg-charcoal-900 border-t border-gray-700 shadow-gray-800/50 transition-colors duration-300">
-						<nav className="px-6 py-4">
-							<ul className="space-y-3">
+					<div className="md:hidden mx-3 mb-3 rounded-2xl border border-white/10 bg-charcoal-900/95 backdrop-blur-xl shadow-2xl transition-colors duration-300">
+						<nav className="px-3 py-3">
+							<ul className="space-y-1">
 								{navItems.map((item) => {
 									const Icon = item.icon;
 									const isActive =
@@ -217,23 +263,21 @@ export default function HeaderNav() {
 										<li key={item.href}>
 											<Link
 												href={item.href}
-												className={`block py-2 px-3 rounded-md font-medium transition-colors ${
+												className={`flex items-center gap-2 py-2.5 px-3 rounded-xl font-medium transition-colors active:scale-[0.98] ${
 													isActive
-														? "text-gold bg-gold/10"
-														: "text-gray-300 hover:text-gold hover:bg-gray-800"
+														? "text-gold-300 bg-gold-500/15"
+														: "text-gray-300 hover:text-gold hover:bg-white/5"
 												}`}
 												onClick={() => setMobileMenuOpen(false)}
 											>
-												<span className="inline-flex items-center gap-2">
-													<Icon className="w-4 h-4" />
-													<span>{item.label}</span>
-												</span>
+												<Icon className="w-4 h-4" />
+												<span>{item.label}</span>
 											</Link>
 										</li>
 									);
 								})}
 							</ul>
-							<div className={navItems.length > 0 ? "mt-4 border-t border-gray-700 pt-3" : undefined}>
+							<div className={navItems.length > 0 ? "mt-3 border-t border-white/10 pt-3" : undefined}>
 								<UserMenu
 									variant="inline"
 									onLoginClick={handleLoginClick}
