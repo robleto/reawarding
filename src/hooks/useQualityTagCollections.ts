@@ -1,3 +1,10 @@
+// DELETE ME — personal quality-tag "Collections" feature retired in favor of
+// the editorial film_collections system (confirmed with the user 2026-08-20).
+// Remaining call site: src/app/[username]/page.tsx's MyCollectionsPreview
+// (also marked for deletion — remove both together, plus this file, once
+// you've confirmed src/app/[username]/collections/page.tsx's new version
+// works). src/app/[username]/collections/[tag]/page.tsx (also marked) is the
+// only other caller.
 "use client";
 
 import { useEffect, useState } from "react";

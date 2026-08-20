@@ -650,6 +650,14 @@ function AwardsGallery({
   );
 }
 
+// DELETE ME — and its render call site below (search MyCollectionsPreview)
+// — personal quality-tag "Collections" feature retired in favor of the
+// editorial film_collections system, now reachable from the profile nav
+// directly (src/app/[username]/collections/page.tsx). Remove this function,
+// its call site, the now-unused useQualityTagCollections import above, and
+// check whether slugifyTitle/ReadyMadeCard imports in this file become
+// unused once this section is gone (they may still be used elsewhere in
+// this file — don't remove those blind).
 // ─── My Collections Preview ─────────────────────────────
 // Films grouped by the quality tags you've applied (e.g. "Great score").
 // expressions RLS is owner-only, so ownerUserId is only non-null when this
@@ -942,6 +950,7 @@ export default function ProfileOverviewPage() {
         persistedPickIds={Array.isArray(profile?.signature_picks) ? profile?.signature_picks : null}
       />
       <AwardsGallery movies={movies} awards={awards} username={username} />
+      {/* DELETE ME — render call site for the retired MyCollectionsPreview (see its definition above) */}
       <MyCollectionsPreview movies={movies} username={username} ownerUserId={ownerUserId} />
       <SignatureTasteStats movies={movies} />
     </div>
