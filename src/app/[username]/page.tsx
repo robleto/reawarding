@@ -22,11 +22,8 @@ import {
 } from "lucide-react";
 import { usePublicProfile, type PublicAward } from "@/hooks/usePublicProfile";
 import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
-import { useQualityTagCollections } from "@/hooks/useQualityTagCollections";
 import { normalizeImageUrl } from "@/utils/imageUrl";
-import { slugifyTitle } from "@/utils/slug";
 import AwardCard from "@/components/home/AwardCard";
-import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
 import { useOfficialAwardWinners, getAcademyStatus } from "@/data/officialAwardWinners";
 import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
@@ -650,65 +647,6 @@ function AwardsGallery({
   );
 }
 
-// DELETE ME — and its render call site below (search MyCollectionsPreview)
-// — personal quality-tag "Collections" feature retired in favor of the
-// editorial film_collections system, now reachable from the profile nav
-// directly (src/app/[username]/collections/page.tsx). Remove this function,
-// its call site, the now-unused useQualityTagCollections import above, and
-// check whether slugifyTitle/ReadyMadeCard imports in this file become
-// unused once this section is gone (they may still be used elsewhere in
-// this file — don't remove those blind).
-// ─── My Collections Preview ─────────────────────────────
-// Films grouped by the quality tags you've applied (e.g. "Great score").
-// expressions RLS is owner-only, so ownerUserId is only non-null when this
-// is your own profile — for anyone else the hook returns an empty list and
-// this section renders nothing, no extra check needed.
-function MyCollectionsPreview({
-  movies,
-  username,
-  ownerUserId,
-}: {
-  movies: Movie[];
-  username: string;
-  ownerUserId: string | null;
-}) {
-  const { collections } = useQualityTagCollections(ownerUserId, movies);
-
-  if (collections.length === 0) {
-    return null;
-  }
-
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-lg font-semibold text-white">My Collections</h2>
-          <p className="text-xs text-gray-500">Films grouped by what you noticed</p>
-        </div>
-        <Link
-          href={`/${username}/collections`}
-          className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-yellow-300 transition-colors"
-        >
-          See all <ArrowRight className="w-3 h-3" />
-        </Link>
-      </div>
-      <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-        {collections.map((collection) => (
-          <div key={collection.tag} className="min-w-[260px] max-w-[260px] flex-shrink-0 snap-start">
-            <ReadyMadeCard
-              title={collection.tag}
-              count={collection.count}
-              subtitle={<span>Tagged films</span>}
-              posterUrls={collection.posterUrls}
-              viewHref={`/${username}/collections/${slugifyTitle(collection.tag)}`}
-            />
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 // ─── Signature Taste Stats ──────────────────────────────
 // Curated, editorial stat cards — not raw metrics.
 function SignatureTasteStats({ movies }: { movies: Movie[] }) {
@@ -797,13 +735,15 @@ function SignatureTasteStats({ movies }: { movies: Movie[] }) {
         {cards.slice(0, 4).map((card) => (
           <div
             key={card.label}
-            className="rounded-xl bg-gray-800/30 border border-gray-700/30 p-4 flex flex-col"
+            className="dark-glass rounded-xl border border-gold-500/10 p-4 flex flex-col cursor-default"
           >
-            <div className="flex items-center gap-1.5 text-gray-500 mb-2">
+            <div className="flex items-center gap-1.5 text-gold-500/60 mb-2">
               {card.icon}
               <span className="text-[10px] uppercase tracking-wider font-medium">{card.label}</span>
             </div>
-            <span className="text-xl font-bold text-white leading-tight">{card.value}</span>
+            <span className="font-unbounded text-xl font-bold text-white leading-tight">
+              {card.value}
+            </span>
             <span className="text-[11px] text-gray-400 mt-1 leading-tight line-clamp-1">
               {card.sublabel}
             </span>
@@ -864,8 +804,12 @@ function ProfileStatsRow({
   ];
 
   return (
-    <div>
-      <div className="flex justify-end mb-1.5">
+    <section>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-lg font-semibold text-white">By the Numbers</h2>
+          <p className="text-xs text-gray-500">A quick tally, if you're curious</p>
+        </div>
         <div className="inline-flex rounded-md overflow-hidden border border-gray-700/50">
           <button
             type="button"
@@ -887,23 +831,23 @@ function ProfileStatsRow({
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-3 rounded-lg border border-gray-700/40 bg-gray-800/20">
+      <div className="grid grid-cols-3 rounded-xl dark-glass border border-gold-500/10">
         {statItems.map((s, index) => (
           <div
             key={s.label}
-            className={`flex flex-col items-center py-2.5 px-1 ${
-              index > 0 ? "border-l border-gray-700/50" : ""
+            className={`flex flex-col items-center py-3 px-1 ${
+              index > 0 ? "border-l border-gray-700/30" : ""
             }`}
           >
-            <div className="flex items-center gap-1 text-gray-500 mb-0.5">
+            <div className="flex items-center gap-1 text-gold-500/60 mb-0.5">
               {s.icon}
               <span className="text-[10px] uppercase tracking-wider font-medium">{s.label}</span>
             </div>
-            <span className="text-xl sm:text-2xl font-bold text-white">{s.value}</span>
+            <span className="font-unbounded text-xl sm:text-2xl font-bold text-white">{s.value}</span>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -928,6 +872,14 @@ export default function ProfileOverviewPage() {
           </div>
         </div>
         <div>
+          <div className="h-5 w-32 bg-gray-700/60 rounded mb-3" />
+          <div className="flex gap-3 overflow-hidden">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="w-[160px] flex-shrink-0 aspect-[2/3] bg-gray-700/40 rounded-xl" />
+            ))}
+          </div>
+        </div>
+        <div>
           <div className="h-5 w-40 bg-gray-700/60 rounded mb-3" />
           <div className="grid grid-cols-4 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -941,7 +893,6 @@ export default function ProfileOverviewPage() {
 
   return (
     <div className="space-y-10">
-      <ProfileStatsRow movies={movies} awards={awards} stats={stats} />
       <SignaturePicks
         movies={movies}
         username={username}
@@ -950,9 +901,8 @@ export default function ProfileOverviewPage() {
         persistedPickIds={Array.isArray(profile?.signature_picks) ? profile?.signature_picks : null}
       />
       <AwardsGallery movies={movies} awards={awards} username={username} />
-      {/* DELETE ME — render call site for the retired MyCollectionsPreview (see its definition above) */}
-      <MyCollectionsPreview movies={movies} username={username} ownerUserId={ownerUserId} />
       <SignatureTasteStats movies={movies} />
+      <ProfileStatsRow movies={movies} awards={awards} stats={stats} />
     </div>
   );
 }
