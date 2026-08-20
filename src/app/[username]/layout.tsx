@@ -2,14 +2,14 @@
 
 import { useParams, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Star, Trophy, Film, Home, Share2, Check, Bookmark, List, Activity, Users } from "lucide-react";
+import { Star, Trophy, Film, Home, Share2, Check, Bookmark, List, Activity, Users, Layers } from "lucide-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
 import { useFollowing } from "@/hooks/useFollowing";
 import UserAvatar from "@/components/ui/UserAvatar";
 import FollowButton from "@/components/social/FollowButton";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function ProfileHeader({
   username,
@@ -141,17 +141,28 @@ function ProfileTabs({ username }: { username: string }) {
   const pathname = usePathname();
   const currentPath = pathname ?? "";
   const basePath = `/${username}`;
+  const activeTabRef = useRef<HTMLAnchorElement | null>(null);
 
   const tabs = [
     { label: "Overview", href: basePath, icon: Home },
     { label: "My Awards", href: `${basePath}/awards`, icon: Trophy },
     { label: "My Rankings", href: `${basePath}/rankings`, icon: Star },
     { label: "My Films", href: `${basePath}/films`, icon: Film },
+    { label: "Collections", href: `${basePath}/collections`, icon: Layers },
     { label: "Watchlist", href: `${basePath}/watchlist`, icon: Bookmark },
     { label: "Lists", href: `${basePath}/lists`, icon: List },
     { label: "Activity", href: `${basePath}/activity`, icon: Activity },
     { label: "Friends", href: `${basePath}/following`, icon: Users },
   ];
+
+  // Whichever tab is active — including landing on it via a deep sub-route
+  // (a specific list, a specific collection) — gets centered in the bar
+  // rather than left wherever it happens to sit; on a narrow screen the
+  // active tab can otherwise be scrolled off-screen with nothing visibly
+  // highlighted.
+  useEffect(() => {
+    activeTabRef.current?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [currentPath]);
 
   return (
     // w-max (not w-full) on the inner bar below: w-full capped it to the
@@ -175,6 +186,7 @@ function ProfileTabs({ username }: { username: string }) {
           return (
             <Link
               key={tab.label}
+              ref={isActive ? activeTabRef : undefined}
               href={tab.href}
               className={`px-4 sm:px-5 py-2 text-sm font-medium whitespace-nowrap rounded-lg transition-colors ${
                 isActive

@@ -13,6 +13,9 @@ interface CollectionExpandOverlayProps {
   userId: string | null;
   initialIndex: number;
   onClose: () => void;
+  /** Forwards each slide's live seen/total counts up to the grid page, so
+      its cards reflect a seen/rating change made in here immediately. */
+  onProgressChange?: (collectionId: string, filmsSeen: number, totalFilms: number) => void;
 }
 
 // Same toss-to-dismiss/pager physics as ReadyMadeExpandOverlay
@@ -30,7 +33,7 @@ const TOSS_AWAY = { duration: 0.22, ease: "easeIn" } as const;
 const ENTRANCE = { duration: 0.32, ease: "easeOut" } as const;
 const PAGE_SPRING = { type: "spring", stiffness: 300, damping: 32 } as const;
 
-export default function CollectionExpandOverlay({ collections, userId, initialIndex, onClose }: CollectionExpandOverlayProps) {
+export default function CollectionExpandOverlay({ collections, userId, initialIndex, onClose, onProgressChange }: CollectionExpandOverlayProps) {
   const [index, setIndex] = useState(initialIndex);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scrollRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
@@ -175,6 +178,11 @@ export default function CollectionExpandOverlay({ collections, userId, initialIn
                 userId={userId}
                 variant="overlay"
                 onRequestClose={dismiss}
+                onProgressChange={
+                  onProgressChange
+                    ? (seen, total) => onProgressChange(collection.collectionId, seen, total)
+                    : undefined
+                }
               />
             ) : (
               <div className="h-full w-full animate-pulse bg-charcoal-900/60" />

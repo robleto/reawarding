@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseBrowser";
 
 export interface UserCollectionProgress {
@@ -119,5 +119,35 @@ export function useUserCollectionProgress(enabled: boolean) {
     };
   }, [enabled]);
 
-  return { collections, loading };
+  // Patches one collection's progress locally (e.g. after a seen/rating
+  // change inside its detail overlay) so the grid's card reflects it
+  // immediately, without a full server refetch — the caller already knows
+  // the new counts from the same films array the detail view just updated.
+  //
+  // Bails out (returns the same array reference) when nothing actually
+  // changed — React skips the re-render in that case. Without this,
+  // CollectionDetailView's effect calls this on every render (its
+  // onProgressChange prop is a fresh closure each time, recreated by
+  // CollectionExpandOverlay), so an unconditional update here re-renders
+  // this hook's consumer -> re-renders the overlay -> new closure -> effect
+  // fires again -> forever ("Maximum update depth exceeded").
+  const updateProgress = useCallback((collectionId: string, filmsSeen: number, totalFilms: number) => {
+    setCollections((prev) => {
+      const current = prev.find((c) => c.collectionId === collectionId);
+      if (current && current.filmsSeen === filmsSeen && current.totalFilms === totalFilms) return prev;
+      return prev.map((c) =>
+        c.collectionId === collectionId
+          ? {
+              ...c,
+              filmsSeen,
+              totalFilms,
+              completionPercentage: totalFilms > 0 ? Math.round((filmsSeen / totalFilms) * 100) : 0,
+              isCompleted: totalFilms > 0 && filmsSeen === totalFilms,
+            }
+          : c
+      );
+    });
+  }, []);
+
+  return { collections, loading, updateProgress };
 }

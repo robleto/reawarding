@@ -49,7 +49,8 @@ export function useCollectionFilms(collectionId: string | null, userId: string |
       const { data: movieRows, error: moviesError } = await supabase
         .from("movies")
         .select("id, title, release_year, poster_url, thumb_url, tmdb_id, created_at")
-        .in("tmdb_id", tmdbIds);
+        .in("tmdb_id", tmdbIds)
+        .order("release_year", { ascending: true, nullsFirst: false });
 
       if (cancelled) return;
       if (moviesError || !movieRows) {
