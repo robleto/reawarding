@@ -9,11 +9,11 @@ import { Edit3, Save, X, AlertCircle, RotateCcw, Loader2, Film, GripVertical, St
 import MovieCard from "./MovieCard";
 import NomineeCardCarousel from "./NomineeCardCarousel";
 import { hapticSuccess } from "@/lib/haptics";
-import WinnerCard from "./WinnerCard";
 import AwardCard from "@/components/home/AwardCard";
 import AcademyStamp from "./AcademyStamp";
 import DraggableNomineeCard from "./DraggableNomineeCard";
 import SelectableMovieItem from "./SelectableMovieItem";
+import BallotEditorOverlay from "./BallotEditorOverlay";
 import MovieDetailModal from "../movie/MovieDetailModal";
 import RatingModal from "@/components/movie/RatingModal";
 import { getRatingStyle } from "@/utils/getRatingStyle";
@@ -272,6 +272,14 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
         setSelectedWinner(winnerSource || null);
         const nomineeIds = nomineesSource.map((m) => m.id);
         setAvailableMovies(allMoviesForYear.filter((m) => !nomineeIds.includes(m.id)));
+        // Seed the parent's live count from this component's own authoritative
+        // fetch, not just on subsequent user edits — otherwise YearExplorer
+        // shows nominee counts from its own (possibly one-save-stale) prop
+        // data until the user's first interaction, disagreeing with the
+        // "N/10" text rendered right here from the same nominees array.
+        if (isWorkshop) {
+          onWorkshopNomineesChange?.(nomineeIds, winnerSource?.id ?? null);
+        }
       } else {
         if (isWorkshop) {
           setIsUsingCustomView(true);
@@ -288,9 +296,15 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
         setSelectedWinner(winnerSource);
         const nomineeIds = nomineesSource.map((m) => m.id);
         setAvailableMovies(allMoviesForYear.filter((m) => !nomineeIds.includes(m.id)));
+        // Same seeding as the custom branch above — this is the "no saved
+        // custom ballot yet, fall back to default nominees" path, but the
+        // parent still needs the real count from here, not stale prop data.
+        if (isWorkshop) {
+          onWorkshopNomineesChange?.(nomineeIds, winnerSource?.id ?? null);
+        }
       }
     },
-    [allMoviesForYear, movies, winner, isWorkshop]
+    [allMoviesForYear, movies, winner, isWorkshop, onWorkshopNomineesChange]
   );
 
   const loadExistingNominations = React.useCallback(async () => {
@@ -1202,75 +1216,80 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     await applyWorkshopState(resetNominees, resetWinner);
   };
 
+  const errorBanner = error && (
+    <div className="p-3 mb-4 rounded-lg border border-red-500/30 bg-red-500/10">
+      <div className="flex items-center gap-2 text-red-300">
+        <AlertCircle className="w-5 h-5" />
+        <span className="text-sm">{error}</span>
+        {errorDetails && (
+          <button
+            onClick={() => setShowErrorDetails(v => !v)}
+            className="ml-auto text-xs font-medium underline decoration-red-400/50 hover:decoration-red-300"
+          >
+            {showErrorDetails ? 'Hide details' : 'Why did this fail?'}
+          </button>
+        )}
+      </div>
+      {errorDetails && showErrorDetails && (
+        <div className="mt-2 text-xs text-red-200 space-y-1">
+          {errorDetails.status && (<div>Status: {errorDetails.status}</div>)}
+          {errorDetails.code && (<div>Code: {errorDetails.code}</div>)}
+          {errorDetails.source && (<div>Source: {errorDetails.source}</div>)}
+          {errorDetails.hint && (<div>Hint: {errorDetails.hint}</div>)}
+          {errorDetails.details && (
+            <pre className="mt-1 max-h-40 overflow-auto bg-black/40 border border-red-500/30 rounded p-2 whitespace-pre-wrap break-all">
+{typeof errorDetails.details === 'string' ? errorDetails.details : JSON.stringify(errorDetails.details, null, 2)}
+            </pre>
+          )}
+          <div className="pt-1">
+            <button
+              onClick={async () => {
+                const payload = {
+                  status: errorDetails.status,
+                  code: errorDetails.code,
+                  source: errorDetails.source,
+                  hint: errorDetails.hint,
+                  details: errorDetails.details,
+                  year,
+                  category: resolvedCategory,
+                };
+                try {
+                  const text = typeof payload.details === 'string'
+                    ? JSON.stringify(payload, null, 2)
+                    : JSON.stringify(payload, null, 2);
+                  if (navigator?.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    showToast('Error details copied', 'success');
+                  } else {
+                    showToast('Clipboard unavailable', 'error');
+                  }
+                } catch (e) {
+                  showToast('Failed to copy details', 'error');
+                }
+              }}
+              className="text-[11px] px-2 py-1 rounded border border-red-500/40 text-red-300 hover:bg-red-500/15"
+            >
+              Copy details
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // View mode keeps the ceremonial dark-glass card exactly as before. Edit
+  // mode no longer renders inline here — see editContent / BallotEditorOverlay
+  // below, which portals it into a dismissible overlay instead of expanding
+  // in place.
   const contentBlock = (
     <>
-    <div className={`award-editable-section relative flex flex-col w-full rounded-xl shadow-md dark-glass p-4 md:p-8${compact ? '' : ' mb-12 md:mb-24'}${isEditing ? ' pb-32 md:pb-0' : ' overflow-hidden'}`}>
+    {!isEditing && (
+    <div className={`award-editable-section relative flex flex-col w-full rounded-xl shadow-md p-4 md:p-8 dark-glass${compact ? '' : ' mb-12 md:mb-24'} overflow-hidden`}>
 
-          {/* Error Message */}
-          {error && (
-            <div className="p-3 mb-4 rounded-lg border border-red-500/30 bg-red-500/10">
-              <div className="flex items-center gap-2 text-red-300">
-                <AlertCircle className="w-5 h-5" />
-                <span className="text-sm">{error}</span>
-                {errorDetails && (
-                  <button
-                    onClick={() => setShowErrorDetails(v => !v)}
-                    className="ml-auto text-xs font-medium underline decoration-red-400/50 hover:decoration-red-300"
-                  >
-                    {showErrorDetails ? 'Hide details' : 'Why did this fail?'}
-                  </button>
-                )}
-              </div>
-              {errorDetails && showErrorDetails && (
-                <div className="mt-2 text-xs text-red-200 space-y-1">
-                  {errorDetails.status && (<div>Status: {errorDetails.status}</div>)}
-                  {errorDetails.code && (<div>Code: {errorDetails.code}</div>)}
-                  {errorDetails.source && (<div>Source: {errorDetails.source}</div>)}
-                  {errorDetails.hint && (<div>Hint: {errorDetails.hint}</div>)}
-                  {errorDetails.details && (
-                    <pre className="mt-1 max-h-40 overflow-auto bg-black/40 border border-red-500/30 rounded p-2 whitespace-pre-wrap break-all">
-{typeof errorDetails.details === 'string' ? errorDetails.details : JSON.stringify(errorDetails.details, null, 2)}
-                    </pre>
-                  )}
-                  <div className="pt-1">
-                    <button
-                      onClick={async () => {
-                        const payload = {
-                          status: errorDetails.status,
-                          code: errorDetails.code,
-                          source: errorDetails.source,
-                          hint: errorDetails.hint,
-                          details: errorDetails.details,
-                          year,
-                          category: resolvedCategory,
-                        };
-                        try {
-                          const text = typeof payload.details === 'string'
-                            ? JSON.stringify(payload, null, 2)
-                            : JSON.stringify(payload, null, 2);
-                          if (navigator?.clipboard?.writeText) {
-                            await navigator.clipboard.writeText(text);
-                            showToast('Error details copied', 'success');
-                          } else {
-                            showToast('Clipboard unavailable', 'error');
-                          }
-                        } catch (e) {
-                          showToast('Failed to copy details', 'error');
-                        }
-                      }}
-                      className="text-[11px] px-2 py-1 rounded border border-red-500/40 text-red-300 hover:bg-red-500/15"
-                    >
-                      Copy details
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {errorBanner}
 
           {/* Content */}
-          {!isEditing ? (
-            /* READ MODE LAYOUT */
+          {/* READ MODE LAYOUT */}
             <div className="relative flex flex-col gap-6 md:flex-row md:gap-8">
               {/* Academy stamp — sits in the open space under the winner
                   title and the first couple nominees of row 2, run past the
@@ -1319,12 +1338,23 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                       winnerId={displayWinner.id}
                       onSelect={handleOpenModal}
                     />
-                    {/* Desktop: full-column featured poster beside the grid */}
-                    <div className="hidden md:block">
-                      <WinnerCard
-                        movie={displayWinner}
+                    {/* Desktop: same gilt-frame ceremony as the mobile artifact
+                        above (previously a plain FeaturedCard via WinnerCard —
+                        the biggest screen had the least ceremony for the one
+                        thing on the page that's supposed to have the most).
+                        academyStatus is intentionally omitted here: the
+                        larger floating AcademyStamp below the grid already
+                        covers desktop, so passing it would double-stamp with
+                        AwardCard's own small internal corner stamp. */}
+                    <div className="hidden md:flex justify-center">
+                      <AwardCard
+                        year={Number(year)}
+                        winnerTitle={displayWinner.title}
+                        winnerPoster={displayWinner.poster_url}
+                        winnerMovieId={displayWinner.id}
+                        nomineeCount={nomineeCount}
                         onClick={() => handleOpenModal(displayWinner)}
-                        hideRating
+                        fullWidth
                       />
                     </div>
                   </>
@@ -1365,8 +1395,13 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     instead of anchored to opposite edges like the ballot
                     rows below them. */}
                 <div className={`flex flex-wrap items-start gap-y-2 mb-3 ${isWorkshop ? "justify-between" : "justify-center md:justify-between"}`}>
-                  <div className={`items-baseline gap-3 ${isWorkshop ? "flex" : "hidden md:flex"}`}>
-                    <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-gray-500">Nominees</p>
+                  {/* Thin gold "ballot" plaque — view mode only (not workshop,
+                      which keeps its own plain gray label out of scope for
+                      this pass). Nominee tiles themselves stay exactly as
+                      plain as every other poster grid in the app — only this
+                      header signals "this is a ballot," not a browse shelf. */}
+                  <div className={`items-baseline gap-3 ${isWorkshop ? "flex" : "hidden md:flex px-3 py-1 rounded-full border border-gold-500/20 bg-gold-500/5"}`}>
+                    <p className={`text-[12px] font-semibold uppercase tracking-[0.2em] ${isWorkshop ? "text-gray-500" : "text-gold-500/70"}`}>Nominees</p>
                     {(() => {
                       const count = isWorkshop ? activeWorkshopNominees.length : nomineeCount;
                       if (count >= 10) return <span className="text-sm font-medium text-emerald-400">Full Ballot</span>;
@@ -1564,9 +1599,24 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                 )}
               </div>
             </div>
-          ) : (
-            /* EDIT MODE LAYOUT */
-            <div className="space-y-6">
+        </div>
+    )}
+
+    {isEditing && (
+      <BallotEditorOverlay onClose={handleCancelEditing}>
+        {errorBanner}
+        {/* EDIT MODE LAYOUT */}
+        <div className="space-y-6">
+              {/* Editing eyebrow — gray, flat register vs. view mode's gold
+                  "Best Picture" eyebrow in the same visual slot, so the two
+                  modes read as opposites (Guardrail 8). The gold winner-name
+                  chip below is left as-is on purpose: it's a functional
+                  status readout ("here's your current pick while editing"),
+                  not competing ceremony. */}
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+                <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-gray-500">Editing · {year}</p>
+              </div>
               {/* Two Column Layout for Nominees and Available Movies */}
               <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                 {/* Nominees Section - Left 2/3 */}
@@ -1584,11 +1634,13 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         </span>
                       )}
                     </div>
-                    {/* Action buttons for md+ */}
+                    {/* Action buttons for md+ — same hue/height/spacing as the
+                        mobile action bar below, so the toolbar reads as one
+                        control group regardless of breakpoint. */}
                     <div className="items-center hidden gap-2 md:flex">
                       <button
                         onClick={handleResetToDefault}
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-orange-300 transition-colors rounded-lg bg-orange-500/10 hover:bg-orange-500/20"
+                        className="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-orange-300 transition-all rounded-lg bg-orange-500/10 hover:bg-orange-500/20 active:scale-[0.98]"
                         title={resolvedCategory === 'best-picture' ? 'Reset to default nominees (7+ first, then fill to 10)' : 'Reset to default nominees (top 10)'}
                       >
                         <RotateCcw className="w-4 h-4" />
@@ -1596,7 +1648,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                       </button>
                       <button
                         onClick={handleCancelEditing}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-300 transition-colors rounded-lg bg-gray-800/60 hover:bg-gray-700"
+                        className="inline-flex items-center gap-1.5 h-9 px-3.5 text-sm font-medium text-gray-300 transition-all rounded-lg bg-gray-800/60 hover:bg-gray-700 active:scale-[0.98]"
                       >
                         <X className="w-4 h-4" />
                         Cancel
@@ -1604,7 +1656,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                       <button
                         onClick={handleSave}
                         disabled={isSaving}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white transition-colors bg-emerald-600 rounded-lg hover:bg-emerald-500 disabled:bg-gray-600"
+                        className="inline-flex items-center gap-1.5 h-9 px-4 text-sm font-medium text-white transition-all bg-emerald-600 rounded-lg hover:bg-emerald-500 disabled:bg-gray-600 active:scale-[0.98]"
                       >
                         <Save className="w-4 h-4" />
                         {isSaving ? 'Saving...' : 'Save'}
@@ -1612,8 +1664,16 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     </div>
                   </div>
                   {loadingNominations ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="text-gray-500">Loading nominations...</div>
+                    <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
+                      {[0, 1, 2, 3].map((i) => (
+                        <div key={i} className="flex items-center gap-3 w-full px-1 py-1 md:px-2 min-h-[72px]">
+                          <div className="award-skeleton-block flex-shrink-0 w-12 h-[72px]" />
+                          <div className="flex-1 min-w-0 space-y-2">
+                            <div className="award-skeleton-block h-3 w-3/4" />
+                            <div className="award-skeleton-block h-3 w-1/3" />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : nominees.length > 0 ? (
                     <DndContext
@@ -1689,18 +1749,16 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                 </div>
               </div>
             </div>
-          )}
-        </div>
+      </BallotEditorOverlay>
+    )}
 
       {/* Mobile action bar — visible only when editing on small screens */}
       {isEditing && (
-        <div className="fixed bottom-0 inset-x-0 z-50 md:hidden flex items-center justify-end gap-2 px-4 py-3 bg-charcoal-900/95 backdrop-blur-sm border-t border-gray-700"
-          style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
-        >
+        <div className="fixed bottom-0 inset-x-0 z-50 md:hidden flex items-center justify-end gap-2 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-charcoal-900/95 backdrop-blur-sm border-t border-gray-700">
           <button
             type="button"
             onClick={handleResetToDefault}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-orange-400 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 transition-colors"
+            className="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-orange-300 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 active:scale-[0.98] transition-all"
           >
             <RotateCcw className="w-4 h-4" />
             Reset
@@ -1708,7 +1766,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
           <button
             type="button"
             onClick={handleCancelEditing}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-300 rounded-lg bg-gray-700/50 hover:bg-gray-700 transition-colors"
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 text-sm font-medium text-gray-300 rounded-lg bg-gray-800/60 hover:bg-gray-700 active:scale-[0.98] transition-all"
           >
             <X className="w-4 h-4" />
             Cancel
@@ -1717,7 +1775,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white rounded-lg bg-green-600 hover:bg-green-700 disabled:bg-gray-500 transition-colors"
+            className="inline-flex items-center gap-1.5 h-9 px-4 text-sm font-medium text-white rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-600 active:scale-[0.98] transition-all"
           >
             <Save className="w-4 h-4" />
             {isSaving ? 'Saving…' : 'Save'}
@@ -1821,12 +1879,17 @@ function WorkshopNomineeRow({
     <>
       <div
         ref={setNodeRef}
-        style={style}
-        className={`flex items-center gap-1 px-1 md:px-2 py-1 min-h-[72px] rounded-lg border transition-colors ${
+        // Glass row treatment adapted from Rankings' MovieCard "native"
+        // compact row (border-white/10 bg-white/5 backdrop-blur + shadow)
+        // instead of the flat, unblurred surface this used to have — same
+        // family as the rest of the app's list rows, just with ballot-only
+        // controls (drag/crown/remove) that Rankings never needed.
+        className={`flex items-center gap-2 px-2.5 py-2 min-h-[76px] rounded-2xl border backdrop-blur-sm shadow-sm transition-colors ${
           isWinner
-            ? "border-gold-500/40 bg-gold-500/5"
-            : "border-gray-700/30 bg-charcoal-900/30 hover:bg-gray-800/50"
+            ? "border-gold-500/30 bg-gold-500/[0.06] hover:bg-gold-500/10"
+            : "border-white/10 bg-white/5 hover:bg-white/[0.08]"
         }`}
+        style={{ ...style, boxShadow: "0 2px 8px 0 rgba(0,0,0,0.10)" }}
       >
         {/* Drag handle */}
         <button
@@ -1839,35 +1902,39 @@ function WorkshopNomineeRow({
           <GripVertical className="w-5 h-5" />
         </button>
 
+        {/* Rank — its own typographic column (matching Rankings' rows)
+            instead of a tiny badge stamped on the poster corner. Ballot
+            rank is mutable (it's drag order, not a read-only display
+            index like Rankings' rank), but the plain-numeral treatment
+            still reads better than an overlay chip. */}
+        <div className="w-5 flex-shrink-0 flex items-center justify-end text-xs font-mono font-bold text-gray-400 tabular-nums select-none">
+          {rank}
+        </div>
+
         {/* Thumbnail — matches MovieCard compact variant (fixed 2:3 poster
-            crop). Rank sits on its corner rather than its own column — that
-            column was stealing ~24px from the title, which is what made
-            titles like "Thunderbolts*" break mid-word on narrow phones. */}
-        <div className="relative flex-shrink-0 overflow-hidden bg-gray-800 rounded-md shadow-md" style={{ width: 48, height: 72 }}>
+            crop), now free of the rank badge that used to sit on its corner. */}
+        <div className="relative flex-shrink-0 overflow-hidden bg-gray-800 rounded-lg shadow-md" style={{ width: 48, height: 72 }}>
           {thumbSrc ? (
             <img src={thumbSrc} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="flex items-center justify-center w-full h-full"><Film className="w-4 h-4 text-gray-600" /></div>
           )}
-          <span className="absolute top-0.5 left-0.5 min-w-[16px] h-4 px-0.5 flex items-center justify-center rounded-full bg-always-black/70 backdrop-blur-sm text-[9px] font-mono font-bold text-always-white tabular-nums leading-none">
-            {rank}
-          </span>
         </div>
 
         {/* Title — matches MovieCard compact variant */}
         <p className="flex-1 min-w-0 px-2 text-sm font-semibold text-white leading-tight line-clamp-2 break-words">{movie.title}</p>
 
-        {/* Rating badge — on this row it's mostly read, not set (winner
-            pick and nominee promotion read off it; the drag handle, trophy
-            and remove buttons are the actual editing controls here), so it
-            doesn't need the same size as a primary tap target. Still opens
-            the rating modal on tap. */}
+        {/* Rating badge — bumped to the same 44px pill Rankings' native rows
+            use (was 32px). Mostly read, not set, on this row (winner pick and
+            nominee promotion read off it; drag/trophy/remove are the actual
+            editing controls) but it's still a real tap target that opens the
+            rating modal. */}
         <div className="flex-shrink-0 flex flex-col items-center">
           <button
             type="button"
             onClick={() => setShowRatingModal(true)}
             data-tour-target="rating-badge"
-            className="min-w-[32px] min-h-[32px] px-1 flex items-center justify-center text-sm font-mono font-bold tabular-nums rounded-md shadow-sm transition-transform active:scale-95"
+            className="min-w-[44px] min-h-[44px] px-1 flex items-center justify-center text-sm font-mono font-bold tabular-nums rounded-full shadow-sm transition-transform active:scale-95"
             style={ranking > 0 ? { backgroundColor: ratingStyle.background, color: ratingStyle.text } : { backgroundColor: 'rgba(75,85,99,0.4)', color: '#9ca3af' }}
           >
             {ranking > 0 ? ranking : <span className="text-sm font-sans">Rate</span>}
@@ -1879,12 +1946,16 @@ function WorkshopNomineeRow({
 
         {/* Winner toggle + remove — stacked, not side-by-side (same layout
             as DraggableNomineeCard's sibling row), so the two buttons cost
-            one column of width instead of two. */}
-        <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+            one column of width instead of two. before:-inset-1.5 grows each
+            button's actual hit area beyond its small visible icon (the same
+            trick MovieCard's overlay buttons use) — kept modest, and gap-1.5
+            between the two buttons, so the two expanded hit areas don't
+            meaningfully collide in this stacked, height-constrained column. */}
+        <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
           <button
             type="button"
             onClick={onSetWinner}
-            className={`p-1.5 rounded-full border transition-colors ${
+            className={`relative p-1.5 rounded-full border transition-colors before:content-[''] before:absolute before:-inset-1.5 ${
               isWinner
                 ? "bg-gold-400 text-black border-gold-300"
                 : "text-gray-500 border-gray-600 hover:text-gold-300 hover:border-gold-400/60"
@@ -1897,7 +1968,7 @@ function WorkshopNomineeRow({
           <button
             type="button"
             onClick={onRemove}
-            className="p-1.5 text-gray-500 hover:text-red-400 transition-colors"
+            className="relative p-1.5 text-gray-500 hover:text-red-400 transition-colors before:content-[''] before:absolute before:-inset-1.5"
             aria-label="Remove nominee"
           >
             <X className="w-3.5 h-3.5" />

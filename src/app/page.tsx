@@ -17,10 +17,12 @@ import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
 import { useCreateAward } from "@/hooks/useCreateAward";
 import { useUserAwards } from "@/hooks/useUserAwards";
 import { buildTasteProfile, getYearLeaders } from "@/utils/tasteInsights";
-import { ArrowRight, Trophy, X } from "lucide-react";
+import { ArrowRight, Check, Filter, Trophy, X } from "lucide-react";
 import MuseumYearTimeline from "@/components/home/MuseumYearTimeline";
 import AlternateOscarHistoryPanel from "@/components/home/AlternateOscarHistoryPanel";
 import EditableYearSection from "@/components/award/EditableYearSection";
+import BallotEditorOverlay from "@/components/award/BallotEditorOverlay";
+import YearExplorer from "@/components/home/YearExplorer";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import useOnboardingState from "@/hooks/useOnboardingState";
 import LoggedInOnboardingExperience from "@/components/onboarding/LoggedInOnboardingExperience";
@@ -91,6 +93,11 @@ export default function HomePage() {
   const [selectedSearchMovie, setSelectedSearchMovie] = useState<Movie | null>(null);
   const [savePromptDismissed, setSavePromptDismissed] = useState(false);
   const [suggestedQuery, setSuggestedQuery] = useState<string | undefined>(undefined);
+  // "Edit ballot" opens YearExplorer in a dismissible overlay in place, instead
+  // of navigating to /year/[year] (which still exists as a real route for
+  // direct links/refresh — see BallotEditorOverlay for why this is safe to
+  // nest MovieDetailModal inside without repeating the old modal-stacking bug).
+  const [editingYear, setEditingYear] = useState<number | null>(null);
 
   // ── Year timeline (ported from /awards) — visibility windowing, scrollspy,
   // and one-shot arrival reveal for the scrubbable year-by-year ballot list. ──
@@ -105,6 +112,11 @@ export default function HomePage() {
   // page opens the way it always has; "strength" leads with the most-formed
   // ballots instead, so a thin newest year doesn't headline a deep archive.
   const [archiveSort, setArchiveSort] = useState<ArchiveSort>("chronological");
+  // Sort popover — same funnel-icon-opens-a-menu pattern as MovieFilters'
+  // compact Filters button on /rankings and /films, sized down for this
+  // page's one binary choice instead of a full sort/group/view modal.
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement | null>(null);
 
   // Read the stored preference after mount rather than in the initial state —
   // touching localStorage during the first render desyncs server/client HTML.
@@ -130,6 +142,27 @@ export default function HomePage() {
     },
     [userId]
   );
+
+  // Close the sort popover on outside click or Escape — same behavior as
+  // the app's other icon-triggered menus (e.g. ListDetailView's manage menu).
+  useEffect(() => {
+    if (!showSortMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
+        setShowSortMenu(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowSortMenu(false);
+    };
+    document.addEventListener("mousedown", handleClick, true);
+    document.addEventListener("keydown", handleKey, true);
+    return () => {
+      document.removeEventListener("mousedown", handleClick, true);
+      document.removeEventListener("keydown", handleKey, true);
+    };
+  }, [showSortMenu]);
+
   const arrivalObserverRef = useRef<IntersectionObserver | null>(null);
 
   // Determine if we're showing guest panels (unauthenticated).
@@ -706,7 +739,7 @@ export default function HomePage() {
   if (homepageDataError) {
     return (
       <div className="home-shell flex items-center justify-center min-h-[50vh]">
-        <div className="max-w-lg px-6 py-8 text-center border rounded-2xl border-red-500/20 bg-red-500/5">
+        <div className="max-w-lg px-6 py-8 text-center border rounded-2xl border-red-500/20 bg-red-500/5 backdrop-blur-sm">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-red-300">Fetch failure</p>
           <h2 className="mt-3 text-2xl text-white font-unbounded">We couldn&apos;t load your homepage state.</h2>
           <p className="mt-3 text-sm text-gray-300">
@@ -851,7 +884,7 @@ export default function HomePage() {
                  a user with nothing else eligible still gets an invite
                  instead of an empty strip. ─────────────────────────────── */}
         {showFirstAwardMoment ? (
-          <div className="mb-6 flex items-center gap-3 rounded-xl border border-gold-500/40 bg-gold-500/5 px-4 py-3">
+          <div className="mb-6 flex items-center gap-3 rounded-2xl border border-gold-500/40 bg-gold-500/5 backdrop-blur-sm px-4 py-3">
             <p className="flex-1 text-sm leading-snug text-gray-200">
               {setBallotCount === 1 ? (
                 <>
@@ -870,30 +903,31 @@ export default function HomePage() {
               type="button"
               onClick={dismissFirstAwardMoment}
               aria-label="Dismiss"
-              className="-mr-1 p-1 rounded-lg text-gray-500 hover:text-gray-200 hover:bg-gold-500/10 transition-colors"
+              className="flex-shrink-0 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-400 backdrop-blur-sm transition-colors hover:bg-white/10 hover:text-gray-200 active:scale-95"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         ) : actionableFormingYears.length > 0 ? (
           <div className="mb-6 flex flex-wrap items-center gap-2">
             <span className="text-xs uppercase tracking-wider text-gray-500">Finish what you started</span>
             {actionableFormingYears.map((year) => (
-              <Link
+              <button
                 key={year}
-                href={`/year/${year}`}
-                className="inline-flex items-center gap-1 rounded-md border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
+                type="button"
+                onClick={() => setEditingYear(Number(year))}
+                className="inline-flex items-center gap-1 rounded-full border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
               >
                 {year}
                 <ArrowRight className="w-3 h-3" aria-hidden="true" />
-              </Link>
+              </button>
             ))}
           </div>
         ) : isEstablished && !onboardingFlow.shouldShow && unlockedSmartAlerts.length > 0 ? (
           <div className="mb-6">
             <Link
               href="/lists/ready-made"
-              className="sm:hidden inline-flex items-center gap-1.5 rounded-md border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
+              className="sm:hidden inline-flex items-center gap-1.5 rounded-full border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
             >
               Ready-made lists
               <ArrowRight className="w-3 h-3" aria-hidden="true" />
@@ -910,7 +944,7 @@ export default function HomePage() {
                   <Link
                     key={alertKey}
                     href="/lists/ready-made"
-                    className="inline-flex items-center gap-1 rounded-md border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
+                    className="inline-flex items-center gap-1 rounded-full border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
                   >
                     {chipLabel}
                     <ArrowRight className="w-3 h-3" aria-hidden="true" />
@@ -934,7 +968,7 @@ export default function HomePage() {
               <Link
                 key={year}
                 href={`/onboarding/${year}`}
-                className="inline-flex items-center gap-1 rounded-md border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
+                className="inline-flex items-center gap-1 rounded-full border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
               >
                 {year}
                 <ArrowRight className="w-3 h-3" aria-hidden="true" />
@@ -943,19 +977,72 @@ export default function HomePage() {
           </div>
         ) : null}
 
-        {/* ─── Welcome + search ─── */}
+        {/* ─── Welcome + search ─── search and sort share one compact row,
+            same footprint as the search+filters row on /rankings, instead
+            of a full-width hero search plus a separate labeled sort row. */}
         <section className="mb-6">
-          <h1 className="mb-5 text-2xl sm:text-3xl font-bold text-white font-unbounded tracking-tight">
+          <h1 className="mb-3 text-2xl sm:text-3xl font-bold text-white font-unbounded tracking-tight">
             Welcome back
             {user?.user_metadata?.username ? `, ${user.user_metadata.username}` : ""}.
           </h1>
-          <div className="max-w-3xl">
-            <MovieSearchPicker
-              onSelect={handleOpenMovieDetail}
-              placeholder="Search for a film you've watched"
-              variant="hero"
-              suggestedQuery={suggestedQuery}
-            />
+          <div className="flex items-center gap-2 max-w-3xl">
+            <div className="flex-1 min-w-0">
+              <MovieSearchPicker
+                onSelect={handleOpenMovieDetail}
+                placeholder="Search for a film you've watched"
+                variant="compact"
+                suggestedQuery={suggestedQuery}
+              />
+            </div>
+            {/* Funnel icon → popover, same pattern as MovieFilters' compact
+                Filters button on /rankings and /films (icon-only, badge dot
+                when non-default), sized for this page's one binary choice
+                instead of that component's full sort/group/view modal. */}
+            {formattedYears.length > 1 && (
+              <div ref={sortMenuRef} className="relative flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowSortMenu((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={showSortMenu}
+                  aria-label="Sort the archive"
+                  className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-300 backdrop-blur-sm transition-colors hover:bg-white/10 hover:text-white active:scale-95"
+                >
+                  <Filter className="w-4 h-4" />
+                  {archiveSort !== "chronological" && (
+                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-gold-400" aria-hidden="true" />
+                  )}
+                </button>
+                {showSortMenu && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-white/10 bg-charcoal-900/95 p-1 shadow-2xl backdrop-blur-xl"
+                  >
+                    {(
+                      [
+                        { value: "chronological", label: "Newest first" },
+                        { value: "strength", label: "Strongest first" },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={archiveSort === opt.value}
+                        onClick={() => {
+                          handleArchiveSortChange(opt.value);
+                          setShowSortMenu(false);
+                        }}
+                        className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-200 transition-colors hover:bg-white/5"
+                      >
+                        {opt.label}
+                        {archiveSort === opt.value && <Check className="h-3.5 w-3.5 text-gold-400" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
@@ -966,29 +1053,7 @@ export default function HomePage() {
             ═══════════════════════════════════════════════════ */}
         <div className={isGuest ? "pb-32" : ""}>
           {formattedYears.length > 1 && (
-            <div className="flex items-center justify-end gap-2 mb-2 px-1">
-              <label
-                htmlFor="archive-sort"
-                className="text-[10px] font-medium uppercase tracking-wider text-gray-500"
-              >
-                Sort
-              </label>
-              {/* Native select on purpose: iOS renders its own picker, which is
-                  a better touch target than a custom menu in the native shell.
-                  text-base on mobile prevents Safari's focus zoom. */}
-              <select
-                id="archive-sort"
-                value={archiveSort}
-                onChange={(e) => handleArchiveSortChange(e.target.value as ArchiveSort)}
-                className="border border-gray-600/50 rounded-lg px-3 py-2 text-base sm:text-sm bg-gray-800/70 text-gray-300 focus:outline-none focus:ring-2 focus:ring-gold-500"
-              >
-                <option value="chronological">Newest year first</option>
-                <option value="strength">Strongest ballots first</option>
-              </select>
-            </div>
-          )}
-          {formattedYears.length > 1 && (
-            <div className="sticky top-[calc(4.3rem+env(safe-area-inset-top))] z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-2 mb-4 bg-gray-950 [&>div]:mb-0">
+            <div className="sticky top-[var(--header-height,calc(4.3rem+env(safe-area-inset-top)))] z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-2 mb-4 bg-charcoal-900/85 backdrop-blur-md [&>div]:mb-0">
               <MuseumYearTimeline
                 years={formattedYears.map((y) => ({
                   year: Number(y.year),
@@ -1014,7 +1079,7 @@ export default function HomePage() {
                 className={`award-year-enter ${hasArrived ? "award-year-arrived" : ""}`}
                 style={{
                   minHeight: isVisible ? "auto" : "600px",
-                  scrollMarginTop: "calc(4.3rem + 104px + env(safe-area-inset-top))",
+                  scrollMarginTop: "calc(var(--header-height, calc(4.3rem + env(safe-area-inset-top))) + 104px)",
                 }}
               >
                 {isVisible ? (
@@ -1029,7 +1094,7 @@ export default function HomePage() {
                     // guard against a not-yet-signed-in/guest render the same
                     // way the page already gates elsewhere (isGuest).
                     viewerOwnsBallot={!isGuest}
-                    onEditRequest={() => router.push(`/year/${yearData.year}`)}
+                    onEditRequest={() => setEditingYear(Number(yearData.year))}
                   />
                 ) : (
                   <div className="flex items-center justify-center" style={{ minHeight: "600px" }}>
@@ -1209,7 +1274,7 @@ export default function HomePage() {
                       <Link
                         key={entry.label}
                         href={`/films?genre=${encodeURIComponent(entry.genre)}`}
-                        className="flex items-center gap-2 px-3 py-1.5 transition-colors rounded-lg bg-gray-800/50 hover:bg-gray-800/80 border border-gray-700/40 hover:border-gray-600/60"
+                        className="flex items-center gap-2 px-3 py-1.5 transition-colors rounded-full bg-gray-800/50 hover:bg-gray-800/80 border border-gray-700/40 hover:border-gray-600/60 active:scale-95"
                       >
                         <span className="text-xs font-medium text-gold-300">{entry.label}</span>
                         {entry.movieTitle && (
@@ -1253,6 +1318,27 @@ export default function HomePage() {
           initialRanking={selectedSearchMovie.rankings?.[0]?.ranking ?? null}
           initialSeenIt={selectedSearchMovie.rankings?.[0]?.seen_it ?? false}
         />
+      )}
+
+      {/* Edit ballot — same overlay treatment as My Awards' inline editor
+          (see BallotEditorOverlay), wrapping YearExplorer instead of
+          navigating to /year/[year]. Reuses data already loaded on this page
+          rather than re-fetching what that route's own page component fetches
+          independently. */}
+      {editingYear !== null && (
+        <BallotEditorOverlay onClose={() => setEditingYear(null)}>
+          <YearExplorer
+            year={editingYear}
+            allMovies={movies}
+            currentUserId={userId}
+            existingAward={awards.find((a) => a.year === editingYear) ?? null}
+            onCreateAward={handleCreateAwardFromExplorer}
+            onUpdateMovieRanking={handleUpdateMovieRanking}
+            onClose={() => setEditingYear(null)}
+            hideBackButton
+            isGuest={isGuest}
+          />
+        </BallotEditorOverlay>
       )}
 
       {/* Onboarding Watch → Rate → Form flow — first-pick experience for new users */}
