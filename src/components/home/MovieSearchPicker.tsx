@@ -20,11 +20,15 @@ interface Props {
   /** When set, pre-fills the search and triggers a lookup */
   suggestedQuery?: string;
   /**
-   * "hero"  — gold border + gold icon + focus glow. Use for the primary
-   *           search surface on the homepage.
+   * "hero"    — gold border + gold icon + focus glow. Use for the primary
+   *             search surface on the homepage (empty/onboarding states).
    * "default" — standard gray treatment (existing behaviour).
+   * "compact" — small glass pill, same footprint as MovieFilters' compact
+   *             search input. Use for returning-user surfaces where the
+   *             search is a secondary tool sitting next to other controls,
+   *             not the page's one CTA.
    */
-  variant?: "default" | "hero";
+  variant?: "default" | "hero" | "compact";
 }
 
 /**
@@ -139,6 +143,7 @@ export default function MovieSearchPicker({
   };
 
   const isHero = variant === "hero";
+  const isCompact = variant === "compact";
 
   // Container styles — hero variant owns its own elevated, gold-accented shell.
   // Level 2 surface: gradient background sits visibly above the Level 1 card.
@@ -151,11 +156,15 @@ export default function MovieSearchPicker({
           ? "border-gold-500/70 shadow-[0_0_0_3px_rgba(212,175,55,0.30),_0_0_20px_rgba(212,175,55,0.15),_0_4px_24px_var(--shadow-ink-strong)]"
           : "border-gold-500/45 shadow-[0_0_0_1px_rgba(212,175,55,0.20),_0_0_12px_rgba(212,175,55,0.08),_0_4px_20px_var(--shadow-ink)]",
       ].join(" ")
-    : "flex items-center gap-2 rounded-xl border border-gray-600/60 bg-charcoal-900/80 backdrop-blur-md shadow-sm px-4 h-12";
+    : isCompact
+      ? "flex items-center gap-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm px-4 h-10"
+      : "flex items-center gap-2 rounded-xl border border-gray-600/60 bg-charcoal-900/80 backdrop-blur-md shadow-sm px-4 h-12";
 
   const iconClasses = isHero
     ? "w-5 h-5 flex-shrink-0 text-gold-500"
-    : "w-5 h-5 text-gray-500 flex-shrink-0";
+    : isCompact
+      ? "w-4 h-4 text-gray-400 flex-shrink-0"
+      : "w-5 h-5 text-gray-500 flex-shrink-0";
 
   const inputClasses = isHero
     ? "bg-transparent text-base text-gray-100 placeholder-gray-400 focus:outline-none w-full h-full self-stretch"

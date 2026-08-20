@@ -1816,7 +1816,12 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
             beside the nominee grid (see contentBlock), so the button here
             is mobile-only. */}
         <div className="flex items-center justify-between gap-3 md:contents">
-          <h2 className="md:absolute block top-0 md:top-[120px] left-0 text-2xl md:text-3xl font-bold text-gray-100 md:text-gray-600/60 mt-0 md:mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-[0.25em]">
+          {/* font-unbounded (the theme utility mapping to next/font's actual
+              --font-unbounded variable), not the literal font-['Unbounded']
+              this used to be — that string doesn't match next/font's
+              generated @font-face name and was silently falling back to a
+              generic sans-serif on the one mobile-visible heading here. */}
+          <h2 className="md:absolute block top-0 md:top-[120px] left-0 text-2xl md:text-3xl font-bold text-gray-100 md:text-gray-600/60 mt-0 md:mt-2 md:rotate-[-90deg] origin-left font-unbounded tracking-[0.25em]">
             {year}
           </h2>
           {user && viewerOwnsBallot && !isEditing && !isWorkshop && (

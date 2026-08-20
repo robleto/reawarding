@@ -5,8 +5,10 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Trophy } from "lucide-react";
 import EditableYearSection from "@/components/award/EditableYearSection";
+import MuseumYearTimeline from "@/components/home/MuseumYearTimeline";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
 import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
+import { usePrefersReducedMotion } from "@/lib/motion";
 import type { Movie } from "@/types/types";
 
 interface YearData {
@@ -27,8 +29,15 @@ export default function ProfileAwardsPage() {
   const viewerOwnsBallot = useIsProfileOwner(profile?.id);
 
   const [visibleYears, setVisibleYears] = useState<Set<string>>(new Set());
+  // Drives the year-timeline scrubber's highlighted chip — Home has this
+  // same "which year is centered in view" tracking (spyObserverRef there);
+  // this page had the lazy-load visibility observer but nothing driving an
+  // active-year highlight, since it had no timeline to highlight anything on.
+  const [activeYear, setActiveYear] = useState<number | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const spyObserverRef = useRef<IntersectionObserver | null>(null);
   const yearElementsRef = useRef<Record<string, HTMLDivElement | null>>({});
+  const reducedMotion = usePrefersReducedMotion();
 
   const formattedYears = useMemo<YearData[]>(() => {
     if (movies.length === 0) return [];
@@ -101,20 +110,68 @@ export default function ProfileAwardsPage() {
       { rootMargin: "400px", threshold: 0 }
     );
 
+    // Same "-25% 0px -60% 0px" band Home's own scrollspy uses — a year only
+    // counts as active once it's crossed into the upper-middle of the
+    // viewport, not the instant it appears at the bottom edge.
+    spyObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const year = entry.target.getAttribute("data-year");
+          if (year && entry.isIntersecting) {
+            setActiveYear(Number(year));
+          }
+        });
+      },
+      { rootMargin: "-25% 0px -60% 0px", threshold: 0 }
+    );
+
     return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
+      observerRef.current?.disconnect();
+      spyObserverRef.current?.disconnect();
     };
   }, []);
 
   const yearContainerRef = useCallback(
     (element: HTMLDivElement | null, year: string) => {
       yearElementsRef.current[year] = element;
-      if (!element || !observerRef.current) return;
-      observerRef.current.observe(element);
+      if (!element) return;
+      observerRef.current?.observe(element);
+      spyObserverRef.current?.observe(element);
     },
     []
+  );
+
+  // Adapted from Home's scrollToYear: jump to the target year, then keep
+  // re-aiming (snap, not animate, so it doesn't fight the initial smooth
+  // scroll) for a couple seconds while lazy sections above it settle into
+  // their real height — a single scrollIntoView call drifts further off
+  // target the more not-yet-loaded sections sit above the jump target.
+  const scrollToYear = useCallback(
+    (year: number) => {
+      setVisibleYears((prev) => {
+        const next = new Set(prev);
+        Object.keys(yearElementsRef.current).forEach((y) => next.add(y));
+        return next.size === prev.size ? prev : next;
+      });
+
+      const yearKey = String(year);
+      const behavior = reducedMotion ? "auto" : "smooth";
+      let firstAlign = true;
+      const align = () => {
+        yearElementsRef.current[yearKey]?.scrollIntoView({
+          behavior: firstAlign ? behavior : "auto",
+          block: "start",
+        });
+        firstAlign = false;
+      };
+
+      align();
+
+      const ro = new ResizeObserver(align);
+      ro.observe(document.body);
+      window.setTimeout(() => ro.disconnect(), 2000);
+    },
+    [reducedMotion]
   );
 
   // GSAP scroll animation
@@ -218,6 +275,22 @@ export default function ProfileAwardsPage() {
        min-w-0, wide intrinsic children propagate their width up here and
        inflate the page past the viewport on mobile (same guard as /awards). */
     <div className="w-full min-w-0 max-w-screen-xl mx-auto">
+      {/* Same sticky year scrubber Home uses above its own archive — this
+          page rendered the identical EditableYearSection list with no
+          navigation chrome at all above it. */}
+      {formattedYears.length > 1 && (
+        <div className="sticky top-[var(--header-height,calc(4.3rem+env(safe-area-inset-top)))] z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-2 mb-4 bg-charcoal-900/85 backdrop-blur-md [&>div]:mb-0">
+          <MuseumYearTimeline
+            years={formattedYears.map((y) => ({
+              year: Number(y.year),
+              nomineeCount: y.nominees.length,
+            }))}
+            activeYear={activeYear ?? Number(formattedYears[0].year)}
+            onSelectYear={scrollToYear}
+            showSubLabel={false}
+          />
+        </div>
+      )}
       {formattedYears.map((yearData) => {
         const isVisible = visibleYears.has(yearData.year);
         return (

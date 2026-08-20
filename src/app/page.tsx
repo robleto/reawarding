@@ -1097,8 +1097,23 @@ export default function HomePage() {
                     onEditRequest={() => setEditingYear(Number(yearData.year))}
                   />
                 ) : (
-                  <div className="flex items-center justify-center" style={{ minHeight: "600px" }}>
-                    <div className="text-gray-400 text-sm">Loading {yearData.year}...</div>
+                  // Same glass-skeleton treatment [username]/awards/page.tsx
+                  // uses for the identical not-yet-visible-year situation —
+                  // this used to be bare "Loading {year}..." text with no
+                  // skeleton at all, a real gap next to Films/Rankings'
+                  // grid skeletons for the same "content not here yet" case.
+                  <div className="award-editable-section dark-glass rounded-xl p-4 md:p-8" style={{ minHeight: "600px" }}>
+                    <div className="flex flex-col gap-6 md:flex-row md:gap-8">
+                      <div className="w-full md:w-1/3 space-y-3">
+                        <div className="award-skeleton-block w-full aspect-[2/3] rounded-xl" />
+                      </div>
+                      <div className="hidden w-px bg-gray-700/40 md:block" />
+                      <div className="w-full md:w-2/3 grid grid-cols-3 sm:grid-cols-5 gap-3">
+                        {[0, 1, 2, 3, 4].map((i) => (
+                          <div key={i} className="award-skeleton-block aspect-[2/3] rounded-lg" />
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

@@ -65,6 +65,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
+    "framer-motion": "^13.1.0",
     "gsap": "^3.13.0",
     "lucide-react": "^0.517.0",
     "next": "15.3.9",

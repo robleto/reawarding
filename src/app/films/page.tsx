@@ -1,21 +1,15 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Library, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieFilters from "@/components/filters/MovieFilters";
-import MuseumYearTimeline from "@/components/home/MuseumYearTimeline";
-import FeaturedCollectionsSection from "@/components/home/FeaturedCollectionsSection";
-import RecognitionFeed from "@/components/home/RecognitionFeed";
-import WatchlistMovieRow from "@/components/home/WatchlistMovieRow";
-import { useRecognitionFeed } from "@/hooks/useRecognitionFeed";
 import UnifiedBanner from "@/components/auth/UnifiedBanner";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import AddMovieByTmdbModal from "@/components/movie/AddMovieByTmdbModal";
-import { useAuthState } from "@/hooks/useAuthState";
 import type { Movie } from "@/types/types";
 
 import {
@@ -46,20 +40,8 @@ export default function FilmsPage() {
 function FilmsPageContent() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
-	const { movies, loading, userId, updateMovieRanking, isGuest } = useMovieDataWithGuest();
-	const { user } = useAuthState();
+	const { movies, loading, updateMovieRanking, isGuest } = useMovieDataWithGuest();
 
-	// Discovery rows (ported from Home — explore/awards-as-home moved
-	// discovery off Home now that Home is the awards archive). Reuses the
-	// already-fetched, per-user-enriched `movies` list so feed cards get
-	// real seen/rating badges instead of always showing unrated.
-	const { rows: feedRows, loading: feedLoading } = useRecognitionFeed(movies);
-
-	// Guests are first-class on /films per the project's guest-mode mandate.
-	// The previous redirect-to-home blocked the natural "rate another from
-	// {year}" path out of the onboarding loop. Removed 2026-05-12.
-	
-	// Films-specific view mode with grid as default for poster-based display
 	const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
 		if (typeof window !== "undefined") {
 			const stored = localStorage.getItem("filmsViewMode") as "grid" | "list" | null;
@@ -67,18 +49,16 @@ function FilmsPageContent() {
 		}
 		return "grid";
 	});
-	
-	// Save films-specific view mode preference
+
 	useEffect(() => {
 		if (typeof window !== "undefined") {
 			localStorage.setItem("filmsViewMode", viewMode);
 		}
 	}, [viewMode]);
-	
+
 	const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	
-	// Films-specific filter state with custom defaults
+
 	const [sortBy, setSortBy] = useState<SortKey>(() => {
 		if (typeof window !== "undefined") {
 			const stored = localStorage.getItem("filmsSortBy") as SortKey;
@@ -86,7 +66,7 @@ function FilmsPageContent() {
 		}
 		return "title";
 	});
-	
+
 	const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
 		if (typeof window !== "undefined") {
 			const stored = localStorage.getItem("filmsSortOrder") as SortOrder;
@@ -94,7 +74,7 @@ function FilmsPageContent() {
 		}
 		return "asc";
 	});
-	
+
 	const [groupBy, setGroupBy] = useState<GroupKey>(() => {
 		if (typeof window !== "undefined") {
 			const stored = localStorage.getItem("filmsGroupBy") as GroupKey;
@@ -102,9 +82,25 @@ function FilmsPageContent() {
 		}
 		return "release_year";
 	});
-	
+
 	const [filterType, setFilterType] = useState<"none" | "year" | "rank" | "movie" | "search" | "genre">("none");
 	const [filterValue, setFilterValue] = useState<string>("all");
+
+	// My Films / All Films toggle — lives outside the filter box. Defaults to
+	// "mine" (seen_it films only); "all" shows the entire catalog.
+	const [showMine, setShowMine] = useState<boolean>(() => {
+		if (typeof window !== "undefined") {
+			const stored = localStorage.getItem("filmsShowMine");
+			return stored === null ? true : stored === "true";
+		}
+		return true;
+	});
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			localStorage.setItem("filmsShowMine", String(showMine));
+		}
+	}, [showMine]);
 
 	// Apply preset from nav search (?movie=<id>, ?query=, ?genre=, or ?year=)
 	useEffect(() => {
@@ -133,8 +129,7 @@ function FilmsPageContent() {
 	const [showAuthModal, setShowAuthModal] = useState(false);
 	const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
 	const [showAddMovieModal, setShowAddMovieModal] = useState(false);
-	
-	// Save films-specific filter state
+
 	useEffect(() => {
 		if (typeof window !== "undefined") {
 			localStorage.setItem("filmsSortBy", sortBy);
@@ -142,9 +137,16 @@ function FilmsPageContent() {
 			localStorage.setItem("filmsGroupBy", groupBy);
 		}
 	}, [sortBy, sortOrder, groupBy]);
-	
+
+	const myFilmsCount = movies.filter((m) => m.rankings?.[0]?.seen_it).length;
+
 	// Filter movies based on current filter settings
 	const filteredMovies = movies.filter((movie) => {
+		// A search or direct movie link is explicit intent — don't hide the
+		// result behind the My Films toggle.
+		if (showMine && filterType !== "search" && filterType !== "movie" && !movie.rankings?.[0]?.seen_it) {
+			return false;
+		}
 		if (filterType === "year") {
 			return filterValue === "all" || movie.release_year === Number(filterValue);
 		}
@@ -162,31 +164,18 @@ function FilmsPageContent() {
 		}
 		return true;
 	});
-	
+
 	// Group and sort logic for films: use shared util for consistency (supports Year/Ranking/None)
 	const groupedMovies = groupMovies(filteredMovies, groupBy, sortBy, sortOrder);
-
-	// Search-first surface: the full catalog is opt-in. Until the user searches,
-	// filters, or asks to browse everything, show curated shelves instead.
-	const isFiltering =
-		filterType === "movie" || filterType === "search"
-			? true
-			: filterType !== "none" && filterValue !== "all";
-	const [browseAll, setBrowseAll] = useState(false);
-	const showCatalog = isFiltering || browseAll;
-
-	const recentlyAdded = [...movies]
-		.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
-		.slice(0, 12);
 
 	// ── Progressive rendering window (mirrors the rankings page) ──
 	const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_ROWS);
 	const sentinelRef = useRef<HTMLDivElement | null>(null);
-	const hasMoreRows = showCatalog && filteredMovies.length > visibleCount;
+	const hasMoreRows = filteredMovies.length > visibleCount;
 
 	useEffect(() => {
 		setVisibleCount(INITIAL_VISIBLE_ROWS);
-	}, [browseAll, filterType, filterValue, sortBy, sortOrder, groupBy]);
+	}, [filterType, filterValue, sortBy, sortOrder, groupBy, showMine]);
 
 	useEffect(() => {
 		const node = sentinelRef.current;
@@ -216,21 +205,6 @@ function FilmsPageContent() {
 	// Generate unique years and ranks for filter dropdowns
 	const uniqueYears = Array.from(new Set(movies.map((m) => m.release_year).filter((y): y is number => typeof y === 'number'))).sort((a, b) => b - a);
 
-	// Year-jump timeline (reuses the Awards page's MuseumYearTimeline) — lets
-	// the user jump straight to a year's films instead of scrolling past every
-	// other year to find it. Counts are total films in the catalog per year,
-	// not nominee counts, so the "/10" nominee suffix is suppressed.
-	const yearTimelineEntries = useMemo(() => {
-		const counts = new Map<number, number>();
-		for (const m of movies) {
-			if (typeof m.release_year === "number") {
-				counts.set(m.release_year, (counts.get(m.release_year) ?? 0) + 1);
-			}
-		}
-		return uniqueYears.map((year) => ({ year, nomineeCount: counts.get(year) ?? 0 }));
-	}, [movies, uniqueYears]);
-	const activeTimelineYear =
-		filterType === "year" && filterValue !== "all" ? Number(filterValue) : NaN;
 	const uniqueRanks = Array.from(
 		new Set(
 			movies
@@ -281,12 +255,44 @@ function FilmsPageContent() {
 		<div className="max-w-screen-xl">
 			{/* Unified Banner System for Guests */}
 			{isGuest && (
-				<UnifiedBanner 
-					onSignupClick={handleSignupClick} 
-					onLoginClick={handleLoginClick} 
+				<UnifiedBanner
+					onSignupClick={handleSignupClick}
+					onLoginClick={handleLoginClick}
 					excludeBannerTypes={['welcome']}
 				/>
 			)}
+
+			<div className="flex items-center justify-between gap-4 mb-2">
+				<h1 className="text-2xl font-bold text-white font-unbounded">
+					{showMine ? "My films" : "All films"}
+				</h1>
+				<Link
+					href="/films/collections"
+					className="text-sm text-gold-500 hover:text-yellow-400 transition-colors whitespace-nowrap"
+				>
+					Browse collections
+				</Link>
+			</div>
+
+			<div className="mb-4 inline-flex self-start rounded-full border border-white/10 bg-white/5 p-0.5">
+				{([true, false] as const).map((mine) => (
+					<button
+						key={String(mine)}
+						type="button"
+						onClick={() => setShowMine(mine)}
+						className={`px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
+							showMine === mine
+								? "bg-gold-500 text-black"
+								: "text-gray-400 hover:text-gray-300"
+						}`}
+					>
+						{mine ? "My Films" : "All Films"}
+						<span className={`ml-1 font-mono ${showMine === mine ? "text-black/60" : "text-gray-500"}`}>
+							({mine ? myFilmsCount : movies.length})
+						</span>
+					</button>
+				))}
+			</div>
 
 			<MovieFilters
 						viewMode={viewMode}
@@ -317,41 +323,6 @@ function FilmsPageContent() {
 				}}
 			/>
 
-			{groupBy === "release_year" && yearTimelineEntries.length > 1 && (
-				<div className="mt-4 mb-2">
-					<div className="flex items-center justify-between mb-1 px-2">
-						<span className="text-xs uppercase tracking-wider text-gray-500">Jump to a year</span>
-						{filterType === "year" && filterValue !== "all" && (
-							<button
-								onClick={() => {
-									setFilterType("none");
-									setFilterValue("all");
-									setBrowseAll(true);
-								}}
-								className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
-							>
-								Show all years
-							</button>
-						)}
-					</div>
-					<MuseumYearTimeline
-						years={yearTimelineEntries}
-						activeYear={activeTimelineYear}
-						subLabelSuffix=""
-						onSelectYear={(year) => {
-							if (filterType === "year" && Number(filterValue) === year) {
-								setFilterType("none");
-								setFilterValue("all");
-							} else {
-								setFilterType("year");
-								setFilterValue(String(year));
-							}
-							setBrowseAll(true);
-						}}
-					/>
-				</div>
-			)}
-
 			{filteredMovies.length === 0 && (filterType === "search" || filterType === "movie") ? (
 				<div className="mt-8 rounded-xl border border-gray-700 bg-gray-900 p-8 text-center">
 					<h3 className="text-xl font-semibold text-white mb-2">No films found</h3>
@@ -369,90 +340,21 @@ function FilmsPageContent() {
 						Add movie by TMDB ID
 					</button>
 				</div>
-			) : !showCatalog ? (
-				<>
-					{/* Overview — search above is the primary finder; these shelves are
-					    for wandering. The full catalog is one tap below. */}
-					<section className="mb-10">
-						<div className="flex items-center justify-between mb-4 px-2">
-							<div>
-								<h2 className="text-xl font-bold text-white">Recently added</h2>
-								<p className="text-sm text-gray-400">The newest films in the library</p>
-							</div>
-						</div>
-						<div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-							{recentlyAdded.map((movie) => {
-								const r = movie.rankings?.[0];
-								return (
-									<div key={movie.id} className="flex-shrink-0 w-[140px] sm:w-[160px] snap-start">
-										<MovieCard
-											movie={movie}
-											variant="grid"
-											ranking={r?.ranking ?? null}
-											seenIt={r?.seen_it ?? false}
-											onUpdate={updateMovieRanking}
-											onClick={() => handleOpenModal(movie)}
-										/>
-									</div>
-								);
-							})}
-						</div>
-					</section>
-
-					<FeaturedCollectionsSection
-						movies={movies}
-						userId={userId}
-						updateMovieRanking={updateMovieRanking}
-						setSelectedMovie={handleOpenModal}
-					/>
-
-					<WatchlistMovieRow userId={userId} username={user?.user_metadata?.username ?? null} />
-
-					{(feedLoading || feedRows.length > 0) && (
-						<section className="mb-10">
-							<RecognitionFeed
-								rows={feedRows}
-								loading={feedLoading}
-								onSelectMovie={handleOpenModal}
-								onUpdate={updateMovieRanking}
-								currentUserId={userId}
-							/>
-						</section>
-					)}
-
-					<div className="mt-10 border-t border-gray-700/60 pt-6">
-						<button
-							onClick={() => setBrowseAll(true)}
-							className="w-full flex items-center justify-between rounded-xl border border-gray-700 bg-gray-900/40 px-5 py-4 hover:bg-gray-800/50 transition-colors"
-						>
-							<span className="flex items-center gap-2.5 font-medium text-gray-200">
-								<Library className="w-4 h-4 text-gray-400" />
-								Browse the full library
-							</span>
-							<span className="flex items-center gap-1.5 font-mono text-xs text-gray-500">
-								{movies.length} films
-								<ChevronRight className="w-4 h-4" />
-							</span>
-						</button>
-						<Link
-							href="/films/collections"
-							className="mt-3 block text-center text-sm text-gold-500 hover:text-yellow-400 transition-colors"
-						>
-							All collections
-						</Link>
-					</div>
-				</>
+			) : filteredMovies.length === 0 && showMine ? (
+				<div className="mt-8 rounded-xl border border-gray-700 bg-gray-900 p-8 text-center">
+					<h3 className="text-xl font-semibold text-white mb-2">No films watched yet</h3>
+					<p className="text-sm text-gray-300 mb-6">
+						Mark films as seen to see them here, or switch to All Films to browse the catalog.
+					</p>
+					<button
+						onClick={() => setShowMine(false)}
+						className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+					>
+						Show All Films
+					</button>
+				</div>
 			) : (
 				<>
-				{browseAll && !isFiltering && (
-					<button
-						onClick={() => setBrowseAll(false)}
-						className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-200 transition-colors"
-					>
-						<ChevronLeft className="w-4 h-4" />
-						Back to overview
-					</button>
-				)}
 				{visibleGroupedMovies.map(({ key, movies }: { key: string; movies: Movie[] }) => (
 					<div key={key} className="mb-10">
 						{groupBy !== "none" && (

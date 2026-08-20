@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import ListCard from "@/components/list/ListCard";
+import ListExpandOverlay from "@/components/list/ListExpandOverlay";
 import Link from "next/link";
 
 interface HorizontalListRowProps {
@@ -12,6 +13,11 @@ interface HorizontalListRowProps {
 }
 
 const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, seeAllHref, readOnly, onAdd, headerActions }) => {
+  // Local to this row instance — home.tsx renders multiple independent
+  // HorizontalListRows (My Lists, Public Lists) on the same screen, each with
+  // its own expand state.
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
   if (!lists || lists.length === 0) return null;
   return (
     <div className="mb-10">
@@ -28,9 +34,9 @@ const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, see
       </div>
       <div className="relative overflow-visible">
         <div className="flex gap-5 overflow-x-auto pb-4 pt-4 pr-3 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-          {lists.map((list) => (
+          {lists.map((list, i) => (
             <div key={list.id} className="w-[78vw] max-w-[280px] flex-shrink-0 overflow-visible snap-start">
-              <ListCard list={list} readOnly={readOnly} />
+              <ListCard list={list} readOnly={readOnly} onOpen={() => setExpandedIndex(i)} />
             </div>
           ))}
           {/* Add New List card at the end, only if not readOnly.
@@ -52,6 +58,13 @@ const HorizontalListRow: React.FC<HorizontalListRowProps> = ({ title, lists, see
           )}
         </div>
       </div>
+      {expandedIndex !== null && (
+        <ListExpandOverlay
+          lists={lists}
+          initialIndex={expandedIndex}
+          onClose={() => setExpandedIndex(null)}
+        />
+      )}
     </div>
   );
 };

@@ -65,8 +65,8 @@ function AuthErrorContent() {
 
         {/* Error Message */}
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-white">
-            Authentication Failed
+          <h1 className="font-unbounded text-2xl font-bold text-white">
+            Authentication failed
           </h1>
           <p className="text-gray-400">
             {isSignupConfirmation
@@ -76,12 +76,12 @@ function AuthErrorContent() {
         </div>
 
         {/* Error Details */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 space-y-2">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-300">
-              Error Code
+              Error code
             </p>
-            <p className="text-sm text-gray-400 font-mono bg-gray-900 px-2 py-1 rounded">
+            <p className="text-sm text-gray-400 font-mono bg-black/30 px-2.5 py-1 rounded-full inline-block">
               {error}
             </p>
           </div>
@@ -99,12 +99,12 @@ function AuthErrorContent() {
           /* Resend confirmation — the actual recovery path for an expired or
            * already-used signup link. Works without an active session and
            * without first requiring a failed password sign-in attempt. */
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 space-y-3">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
             <h2 className="text-sm font-semibold text-white">
               Get a new confirmation link
             </h2>
             {resendSent ? (
-              <div className="flex items-start gap-2 text-sm text-green-300 bg-green-900/20 border border-green-800 rounded-lg p-3">
+              <div className="flex items-start gap-2 text-sm text-green-300 bg-green-900/20 border border-green-800 rounded-xl p-3">
                 <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <span>Confirmation email sent! Check your inbox.</span>
               </div>
@@ -115,14 +115,14 @@ function AuthErrorContent() {
                     Email address
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
                     <input
                       id="resend-email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your@email.com"
-                      className="w-full pl-9 pr-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-gray-700 text-white text-sm"
+                      className="w-full pl-10 pr-3 py-2 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white text-sm"
                       required
                     />
                   </div>
@@ -133,7 +133,7 @@ function AuthErrorContent() {
                 <button
                   type="submit"
                   disabled={resendLoading}
-                  className="w-full flex items-center justify-center gap-2 bg-gold-500 hover:bg-yellow-600 text-gray-900 px-4 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 rounded-full border border-gold-300/40 bg-gold-500 text-black shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 px-4 py-2.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {resendLoading ? "Sending..." : "Resend confirmation email"}
                 </button>
@@ -141,12 +141,15 @@ function AuthErrorContent() {
             )}
           </div>
         ) : (
-          /* Common Solutions */
-          <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4">
-            <h2 className="text-sm font-semibold text-blue-300 mb-2">
-              Common Solutions
+          /* Common Solutions — neutral, not an error/success state, so it
+             gets the same glass treatment as the resend/details boxes above
+             rather than the semantic red/green tints. (Was blue — the one
+             color nowhere else in the app's palette.) */
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <h2 className="text-sm font-semibold text-gray-200 mb-2">
+              Common solutions
             </h2>
-            <ul className="text-sm text-blue-300 space-y-1 list-disc list-inside">
+            <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
               <li>Try signing in again with a different method</li>
               <li>Clear your browser cache and cookies</li>
               <li>Make sure your email is verified (check your inbox)</li>
@@ -159,10 +162,10 @@ function AuthErrorContent() {
         <div className="space-y-3">
           <button
             onClick={() => router.push("/")}
-            className="w-full flex items-center justify-center gap-2 bg-gold-500 hover:bg-yellow-600 text-gray-900 px-4 py-2.5 rounded-lg font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 rounded-full border border-gold-300/40 bg-gold-500 text-black shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 px-4 py-2.5 font-medium transition-colors"
           >
             <Home className="w-4 h-4" />
-            Go to Home
+            Go to home
           </button>
         </div>
 
@@ -178,8 +181,8 @@ function AuthErrorContent() {
 export default function AuthCodeErrorPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-400">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <div className="w-8 h-8 border-4 border-gold-400/30 border-t-gold-400 rounded-full animate-spin" />
       </div>
     }>
       <AuthErrorContent />

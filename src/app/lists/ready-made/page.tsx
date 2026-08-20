@@ -6,9 +6,97 @@ import { normalizeImageUrl } from '@/utils/imageUrl';
 import Image from 'next/image';
 import Link from 'next/link';
 import { slugifyTitle } from '@/utils/slug';
-import ReadyMadeTabs from '@/components/lists/ReadyMadeTabs';
 import ReadyMadeCard from '@/components/lists/ReadyMadeCard';
+import ReadyMadeSuggestionDetail from '@/components/lists/ReadyMadeSuggestionDetail';
+import ReadyMadeCarousel, { type ReadyMadeSlide } from '@/components/lists/ReadyMadeCarousel';
 import RatingChip from '@/components/ui/RatingChip';
+import { Lock } from 'lucide-react';
+
+// "Almost Ready" suggestions render as the exact same ReadyMadeCard shell as
+// a ready one (View + Dismiss, same fan-of-posters) instead of a separate
+// compact-progress panel — the only visual difference is these two slots: a
+// dot-by-dot progress readout standing in for the movies preview, and a
+// locked "X more to unlock" bar standing in for the Save button. See
+// AlmostProgressMeta / AlmostLockedPill below, used by the four Almost*Card
+// factories.
+function AlmostProgressMeta({ seenCount, threshold }: { seenCount: number; threshold: number }) {
+  const remaining = Math.max(0, threshold - seenCount);
+  return (
+    <div className="flex flex-col items-center gap-3 text-center">
+      <div className="flex flex-wrap items-center justify-center gap-1.5 max-w-[200px]">
+        {Array.from({ length: threshold }, (_, i) => (
+          <span key={i} className={`w-2.5 h-2.5 rounded-full ${i < seenCount ? "bg-gold-400" : "bg-white/10"}`} />
+        ))}
+      </div>
+      <p className="text-sm text-gray-300">
+        <span className="font-mono font-semibold text-gold-300">{seenCount}</span> of {threshold} seen
+        <span className="block mt-0.5 text-xs text-gray-500">{remaining} more to unlock this list</span>
+      </p>
+    </div>
+  );
+}
+
+function AlmostLockedPill({ seenCount, threshold }: { seenCount: number; threshold: number }) {
+  const remaining = Math.max(0, threshold - seenCount);
+  return (
+    <div
+      className="flex items-center justify-center gap-1.5 w-full h-11 rounded-full text-sm font-medium text-gray-400 bg-white/5 border border-white/10"
+      title={`Locked until ${threshold} seen`}
+    >
+      <Lock className="w-3.5 h-3.5" />
+      {remaining} more to unlock
+    </div>
+  );
+}
+
+// Shared Dismiss button — was duplicated inline (identical structure, only
+// the field name/value differ) across all eight card factories below.
+function DismissButton({
+  action,
+  fieldName,
+  value,
+}: {
+  action: (formData: FormData) => void | Promise<void>;
+  fieldName: string;
+  value: string;
+}) {
+  return (
+    <form action={action} className="flex-1">
+      <input type="hidden" name={fieldName} value={value} />
+      <button
+        type="submit"
+        title="Hide this suggestion"
+        className="w-full inline-flex items-center justify-center h-10 rounded-full border border-white/10 bg-white/5 text-sm font-medium text-gray-400 hover:bg-white/10 hover:text-gray-300 transition-colors"
+      >
+        Dismiss
+      </button>
+    </form>
+  );
+}
+
+// Shared Save button — the primary action for a ready-to-save suggestion,
+// promoted to a full-width row (was a small corner pill).
+function SaveButton({
+  action,
+  hidden,
+}: {
+  action: (formData: FormData) => void | Promise<void>;
+  hidden: Record<string, string | number>;
+}) {
+  return (
+    <form action={action}>
+      {Object.entries(hidden).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
+      <button
+        type="submit"
+        className="w-full h-11 rounded-full bg-gold-500 text-black font-semibold text-sm hover:bg-gold-400 transition-colors"
+      >
+        Save this list
+      </button>
+    </form>
+  );
+}
 
 type DirectorSuggestion = {
   director: string;
@@ -60,10 +148,10 @@ type DecadeSuggestion = {
   }>;
 };
 
-type AlmostDirector = { director: string; seen_count: number };
-type AlmostActor = { actor: string; seen_count: number };
-type AlmostGenre = { genre: string; seen_count: number };
-type AlmostDecade = { decade: string; startYear: number; seen_count: number };
+type AlmostDirector = { director: string; seen_count: number; posterUrls: string[] };
+type AlmostActor = { actor: string; seen_count: number; posterUrls: string[] };
+type AlmostGenre = { genre: string; seen_count: number; posterUrls: string[] };
+type AlmostDecade = { decade: string; startYear: number; seen_count: number; posterUrls: string[] };
 
 async function getSuggestions() {
   const cookieStore = await cookies();
@@ -139,7 +227,7 @@ async function getSuggestions() {
   // Count seen per director for this user
   const { data: counts, error: countErr } = await supabase
     .from('rankings')
-    .select('seen_it, movie:movies(director, cast_list, genres, release_year)')
+    .select('seen_it, movie:movies(poster_url, director, cast_list, genres, release_year)')
     .eq('user_id', user.id)
     .eq('seen_it', true);
 
@@ -162,16 +250,36 @@ async function getSuggestions() {
   const byActor = new Map<string, number>();
   const byGenre = new Map<string, number>();
   const byDecade = new Map<number, number>(); // key = decade start year
+  // Small poster previews (capped at 5 each) for the fan-of-posters card art —
+  // gathered from this same pass so "Almost Ready" cards get real posters too,
+  // without an extra round-trip per suggestion.
+  const byDirectorPosters = new Map<string, string[]>();
+  const byActorPosters = new Map<string, string[]>();
+  const byGenrePosters = new Map<string, string[]>();
+  const byDecadePosters = new Map<number, string[]>();
+  const pushPoster = <K,>(map: Map<K, string[]>, key: K, url: string | null | undefined) => {
+    if (!url) return;
+    const arr = map.get(key) || [];
+    if (arr.length < 5) {
+      arr.push(url);
+      map.set(key, arr);
+    }
+  };
   for (const row of (counts as any[] | null) || []) {
     const mv: any = (row as any).movie;
     const record = Array.isArray(mv) ? mv?.[0] : mv;
+    const poster: string | null = record?.poster_url ?? null;
     const dir: string | null = record?.director ?? null;
-    if (dir) byDirector.set(dir, (byDirector.get(dir) || 0) + 1);
+    if (dir) {
+      byDirector.set(dir, (byDirector.get(dir) || 0) + 1);
+      pushPoster(byDirectorPosters, dir, poster);
+    }
     const castArr: string[] | null = record?.cast_list ?? null;
     if (Array.isArray(castArr)) {
       for (const actor of castArr) {
         if (!actor) continue;
         byActor.set(actor, (byActor.get(actor) || 0) + 1);
+        pushPoster(byActorPosters, actor, poster);
       }
     }
     const genresArr: string[] | null = record?.genres ?? null;
@@ -179,12 +287,14 @@ async function getSuggestions() {
       for (const g of genresArr) {
         if (!g) continue;
         byGenre.set(g, (byGenre.get(g) || 0) + 1);
+        pushPoster(byGenrePosters, g, poster);
       }
     }
     const year: number | null = record?.release_year ?? null;
     if (year && year >= 1900) {
       const decadeStart = Math.floor(year / 10) * 10;
       byDecade.set(decadeStart, (byDecade.get(decadeStart) || 0) + 1);
+      pushPoster(byDecadePosters, decadeStart, poster);
     }
   }
   // Genre suggestions (ready >=10, almost 6-9)
@@ -196,7 +306,7 @@ async function getSuggestions() {
     .filter(([genre, c]) => c >= 6 && c < 10 && !savedGenres.has(genre) && !dismissedGenres.has(genre))
     .sort((a, b) => b[1] - a[1])
     .slice(0, 18)
-    .map(([genre, seen_count]) => ({ genre, seen_count }));
+    .map(([genre, seen_count]) => ({ genre, seen_count, posterUrls: byGenrePosters.get(genre) || [] }));
 
   // Decade suggestions (ready >=12, almost 7-11)
   const decadeCandidates = [...byDecade.entries()]
@@ -207,7 +317,7 @@ async function getSuggestions() {
     .filter(([start, c]) => c >= 7 && c < 12 && !savedDecades.has(`${start}s`) && !dismissedDecades.has(`${start}s`))
     .sort((a, b) => b[1] - a[1])
     .slice(0, 18)
-    .map(([start, seen_count]) => ({ decade: `${start}s`, startYear: start, seen_count }));
+    .map(([start, seen_count]) => ({ decade: `${start}s`, startYear: start, seen_count, posterUrls: byDecadePosters.get(start) || [] }));
 
   const genreSuggestions: GenreSuggestion[] = [];
   for (const [genre, seen_count] of genreCandidates) {
@@ -287,7 +397,7 @@ async function getSuggestions() {
     .filter(([dir, c]) => c >= 6 && c < 10 && !savedDirectors.has(dir) && !dismissed.has(dir))
     .sort((a, b) => b[1] - a[1])
     .slice(0, 18)
-    .map(([director, seen_count]) => ({ director, seen_count }));
+    .map(([director, seen_count]) => ({ director, seen_count, posterUrls: byDirectorPosters.get(director) || [] }));
 
   // Actor suggestions
   const actorCandidates = [...byActor.entries()]
@@ -298,7 +408,7 @@ async function getSuggestions() {
     .filter(([actor, c]) => c >= 6 && c < 10 && !savedActors.has(actor) && !dismissedActors.has(actor))
     .sort((a, b) => b[1] - a[1])
     .slice(0, 18)
-    .map(([actor, seen_count]) => ({ actor, seen_count }));
+    .map(([actor, seen_count]) => ({ actor, seen_count, posterUrls: byActorPosters.get(actor) || [] }));
 
   const actorSuggestions: ActorSuggestion[] = [];
   for (const [actor, seen_count] of actorCandidates) {
@@ -368,267 +478,72 @@ async function getSuggestions() {
 
 export const dynamic = 'force-dynamic';
 
-export default async function ReadyMadeListsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const sp = await searchParams;
-  const activeTab = (sp?.tab ?? 'all') as 'all' | 'directors' | 'actors' | 'genres' | 'decades';
+export default async function ReadyMadeListsPage() {
   const { user, suggestions, almost, actorSuggestions, actorAlmost, genreSuggestions, genreAlmost, decadeSuggestions, decadeAlmost } = await getSuggestions();
   const isPremium = user ? await isPremiumUser(await createSupabaseServerClient(), user.id) : false;
 
+  const hasAny =
+    suggestions.length + actorSuggestions.length + genreSuggestions.length + decadeSuggestions.length +
+    almost.length + actorAlmost.length + genreAlmost.length + decadeAlmost.length > 0;
+
+  // Ready and Almost Ready suggestions share one carousel and one card
+  // shell (ReadyMadeCard) — sorting each category by seen-count naturally
+  // puts the ready ones first, since they always clear a higher bar than
+  // the almost-ready ones sharing that same category.
+  const slides: ReadyMadeSlide[] = [
+    ...suggestions.map((s) => ({ key: `director-${s.director}`, category: 'directors' as const, ...buildDirectorSuggestion(s, isPremium) })),
+    ...almost.map((a) => ({ key: `director-almost-${a.director}`, category: 'directors' as const, ...buildAlmostDirector(a) })),
+    ...actorSuggestions.map((a) => ({ key: `actor-${a.actor}`, category: 'actors' as const, ...buildActorSuggestion(a, isPremium) })),
+    ...actorAlmost.map((a) => ({ key: `actor-almost-${a.actor}`, category: 'actors' as const, ...buildAlmostActor(a) })),
+    ...genreSuggestions.map((g) => ({ key: `genre-${g.genre}`, category: 'genres' as const, ...buildGenreSuggestion(g, isPremium) })),
+    ...genreAlmost.map((g) => ({ key: `genre-almost-${g.genre}`, category: 'genres' as const, ...buildAlmostGenre(g) })),
+    ...decadeSuggestions.map((d) => ({ key: `decade-${d.decade}`, category: 'decades' as const, ...buildDecadeSuggestion(d, isPremium) })),
+    ...decadeAlmost.map((d) => ({ key: `decade-almost-${d.decade}`, category: 'decades' as const, ...buildAlmostDecade(d) })),
+  ];
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-semibold font-unbounded">Ready‑Made Lists</h1>
-        <p className="mt-2 text-gray-400">Auto-generated lists based on your watching habits. These are private until you choose to save them.</p>
-      </div>
+    // Same explicit viewport-based height as the Lists home page (src/app/lists/home.tsx)
+    // so the carousel below gets the same available space, and its cards render at the
+    // same on-screen size — previously this page used a fixed h-[65vh] instead, which
+    // made its cards visibly smaller/shorter than the Lists carousel's on most screens.
+    <div
+      className="max-w-screen-xl flex flex-col min-h-0"
+      style={{ height: "calc(100dvh - var(--header-height, calc(5rem + env(safe-area-inset-top))) - (6rem + env(safe-area-inset-bottom)))" }}
+    >
+      <h1 className="flex-shrink-0 mb-6 text-2xl sm:text-3xl font-unbounded uppercase tracking-wide text-white">Ready‑Made Lists</h1>
 
       {!user ? (
-        <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
-          <h2 className="mb-2 text-xl font-semibold">Ready‑Made Lists</h2>
-            <p className="text-gray-300">Sign in to unlock director-based ready-made lists once you have enough ranked & seen films. We’ll start generating them automatically after you mark at least 10 movies by a director as seen.</p>
-            <Link href="/login" className="inline-block px-4 py-2 mt-4 text-black bg-gold-500 rounded">Sign In</Link>
+        <div className="p-6 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm">
+          <h2 className="mb-2 text-xl font-bold text-white tracking-wide">Sign in to see your lists</h2>
+          <p className="text-gray-300">Mark at least 10 movies by a director as seen and we'll generate one automatically.</p>
+          <Link href="/login" className="inline-block px-4 py-2 mt-4 rounded-full text-black bg-gold-500 hover:bg-gold-400 transition-colors font-medium">Sign In</Link>
+        </div>
+      ) : !hasAny ? (
+        <div className="p-6 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm">
+          <p className="text-gray-300">No Ready‑Made lists yet. Watch and mark at least 6 movies by a director to see one taking shape.</p>
+          <Link href="/lists" className="inline-block mt-4 text-gold-400 hover:underline">Go to your lists</Link>
         </div>
       ) : (
-        <>
-          <ReadyMadeTabs
-            counts={{
-              all:
-                (suggestions?.length ?? 0) +
-                (actorSuggestions?.length ?? 0) +
-                (genreSuggestions?.length ?? 0) +
-                (decadeSuggestions?.length ?? 0),
-              directors: { ready: suggestions?.length ?? 0, almost: almost?.length ?? 0 },
-              actors: { ready: actorSuggestions?.length ?? 0, almost: actorAlmost?.length ?? 0 },
-              genres: { ready: genreSuggestions?.length ?? 0, almost: genreAlmost?.length ?? 0 },
-              decades: { ready: decadeSuggestions?.length ?? 0, almost: decadeAlmost?.length ?? 0 },
-            }}
-          />
-          {activeTab === 'all' && suggestions.length === 0 && actorSuggestions.length === 0 && genreSuggestions.length === 0 && decadeSuggestions.length === 0 && (
-            <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
-              <p className="text-gray-300">No Ready‑Made lists yet. Watch and mark at least 10 movies by a director to unlock one.</p>
-              <Link href="/lists" className="inline-block mt-4 text-gold-400 underline">Go to your lists</Link>
-            </div>
-          )}
-          {(activeTab === 'all' || activeTab === 'genres') && genreSuggestions.length > 0 && (
-            <div className="mt-10">
-              <h2 className="mb-1 text-xl font-semibold">Genre Ready‑Made Lists</h2>
-              <p className="mb-3 text-sm text-gray-400">Unlocks at 10 seen. Large genres show 9–10 only.</p>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-                {genreSuggestions.map((g) => (
-                  <GenreSuggestionCard key={g.genre} suggestion={g} isPremium={isPremium} />
-                ))}
-              </div>
-            </div>
-          )}
-          {(activeTab === 'genres') && genreSuggestions.length === 0 && genreAlmost.length === 0 && (
-            <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
-              <p className="text-gray-300">No Genre suggestions yet. Watch and mark more films to unlock genre lists.</p>
-              <div className="mt-3 text-sm">
-                <Link href="/films" className="text-gold-300 hover:underline">Browse films</Link>
-                <span className="mx-2 text-gray-500">•</span>
-                <Link href="/rankings" className="text-gold-300 hover:underline">Go to your rankings</Link>
-              </div>
-            </div>
-          )}
-          {(activeTab === 'all' || activeTab === 'decades') && decadeSuggestions.length > 0 && (
-            <div className="mt-10">
-              <h2 className="mb-1 text-xl font-semibold">Decade Ready‑Made Lists</h2>
-              <p className="mb-3 text-sm text-gray-400">Unlocks at 12 seen. Large decades show 9–10 only.</p>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-                {decadeSuggestions.map((d) => (
-                  <DecadeSuggestionCard key={d.decade} suggestion={d} isPremium={isPremium} />
-                ))}
-              </div>
-            </div>
-          )}
-          {(activeTab === 'decades') && decadeSuggestions.length === 0 && decadeAlmost.length === 0 && (
-            <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
-              <p className="text-gray-300">No Decade suggestions yet. Watch and mark more films to unlock decade lists.</p>
-              <div className="mt-3 text-sm">
-                <Link href="/films" className="text-gold-300 hover:underline">Browse films</Link>
-                <span className="mx-2 text-gray-500">•</span>
-                <Link href="/rankings" className="text-gold-300 hover:underline">Go to your rankings</Link>
-              </div>
-            </div>
-          )}
-          {(activeTab === 'all' || activeTab === 'genres') && genreAlmost.length > 0 && (
-            <div className="p-5 mt-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xl font-semibold">Almost Ready (Genres)</h2>
-                <span className="inline-flex items-center justify-center text-gold-400 bg-gray-800 rounded-full w-7 h-7" title="Locked until 10 seen" aria-label="Locked until 10 seen">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
-                </span>
-              </div>
-              <p className="mb-4 text-sm text-gray-400">Genres you are close to unlocking.</p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {genreAlmost.map((g) => (
-                  <div key={g.genre} className="p-3 rounded-md bg-gray-800/50">
-                    <div className="font-medium text-white truncate" title={g.genre}>{g.genre}</div>
-                    <div className="flex items-center justify-between gap-3 mt-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="h-2 bg-gray-700 rounded">
-                          <div className="h-2 bg-gold-500 rounded" style={{ width: `${Math.min(100, (g.seen_count/10)*100)}%` }} />
-                        </div>
-                        <div className="mt-1 text-[11px] text-gray-400">{g.seen_count} of 10 seen • {Math.max(0, 10 - g.seen_count)} away</div>
-                      </div>
-                      <span className="inline-flex items-center justify-center text-gray-300 bg-gray-700 rounded-full w-7 h-7" title="Locked until 10 seen">
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {(activeTab === 'all' || activeTab === 'decades') && decadeAlmost.length > 0 && (
-            <div className="p-5 mt-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xl font-semibold">Almost Ready (Decades)</h2>
-                <span className="inline-flex items-center justify-center text-gold-400 bg-gray-800 rounded-full w-7 h-7" title="Locked until 12 seen" aria-label="Locked until 12 seen">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
-                </span>
-              </div>
-              <p className="mb-4 text-sm text-gray-400">Decades you are close to unlocking (needs 12 seen).</p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {decadeAlmost.map((d) => (
-                  <div key={d.decade} className="p-3 rounded-md bg-gray-800/50">
-                    <div className="font-medium text-white truncate" title={d.decade}>{d.decade}</div>
-                    <div className="flex items-center justify-between gap-3 mt-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="h-2 bg-gray-700 rounded">
-                          <div className="h-2 bg-gold-500 rounded" style={{ width: `${Math.min(100, (d.seen_count/12)*100)}%` }} />
-                        </div>
-                        <div className="mt-1 text-[11px] text-gray-400">{d.seen_count} of 12 seen • {Math.max(0, 12 - d.seen_count)} away</div>
-                      </div>
-                      <span className="inline-flex items-center justify-center text-gray-300 bg-gray-700 rounded-full w-7 h-7" title="Locked until 12 seen">
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {(activeTab === 'all' || activeTab === 'directors') && suggestions.length > 0 && (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-              {suggestions.map((s) => (
-                <SuggestionCard key={s.director} suggestion={s} isPremium={isPremium} />
-              ))}
-            </div>
-          )}
-          {(activeTab === 'directors') && suggestions.length === 0 && almost.length === 0 && (
-            <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
-              <p className="text-gray-300">No Director suggestions yet. Watch and mark more films to unlock director lists.</p>
-              <div className="mt-3 text-sm">
-                <Link href="/films" className="text-gold-300 hover:underline">Browse films</Link>
-                <span className="mx-2 text-gray-500">•</span>
-                <Link href="/rankings" className="text-gold-300 hover:underline">Go to your rankings</Link>
-              </div>
-            </div>
-          )}
-          {(activeTab === 'all' || activeTab === 'actors') && actorSuggestions.length > 0 && (
-            <div className="mt-10">
-              <h2 className="mb-3 text-xl font-semibold">Actor Ready‑Made Lists</h2>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-                {actorSuggestions.map((a) => (
-                  <ActorSuggestionCard key={a.actor} suggestion={a} isPremium={isPremium} />
-                ))}
-              </div>
-            </div>
-          )}
-          {(activeTab === 'actors') && actorSuggestions.length === 0 && actorAlmost.length === 0 && (
-            <div className="p-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
-              <p className="text-gray-300">No Actor suggestions yet. Watch and mark more films to unlock actor lists.</p>
-              <div className="mt-3 text-sm">
-                <Link href="/films" className="text-gold-300 hover:underline">Browse films</Link>
-                <span className="mx-2 text-gray-500">•</span>
-                <Link href="/rankings" className="text-gold-300 hover:underline">Go to your rankings</Link>
-              </div>
-            </div>
-          )}
-
-          {(activeTab === 'all' || activeTab === 'directors') && almost.length > 0 && (
-            <div className="p-5 mt-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xl font-semibold">Almost Ready</h2>
-                <span className="inline-flex items-center justify-center text-gold-400 bg-gray-800 rounded-full w-7 h-7" title="Locked until 10 seen" aria-label="Locked until 10 seen">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
-                  <span className="sr-only">Locked until 10 seen</span>
-                </span>
-              </div>
-              <p className="mb-4 text-sm text-gray-400">Hit 10 seen films to unlock a Ready‑Made list. You can preview details with View.</p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {almost.map((a) => (
-                  <div key={a.director} className="p-3 rounded-md bg-gray-800/50">
-                    <Link href={`/lists/ready-made/${slugifyTitle(a.director)}`} className="font-medium leading-snug text-white hover:text-gold-200">
-                      {a.director}
-                    </Link>
-                    <div className="flex items-center justify-between gap-3 mt-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="h-2 bg-gray-700 rounded">
-                          <div className="h-2 bg-gold-500 rounded" style={{ width: `${Math.min(100, (a.seen_count/10)*100)}%` }} />
-                        </div>
-                        <div className="mt-1 text-[11px] text-gray-400">{a.seen_count} of 10 seen • {Math.max(0, 10 - a.seen_count)} away</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center justify-center text-gray-300 bg-gray-700 rounded-full w-7 h-7" title="Locked until 10 seen" aria-label="Locked until 10 seen">
-                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
-                        </span>
-                        <Link href={`/lists/ready-made/${slugifyTitle(a.director)}`} className="text-xs text-gold-300 hover:underline whitespace-nowrap">View</Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {(activeTab === 'all' || activeTab === 'actors') && actorAlmost.length > 0 && (
-            <div className="p-5 mt-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xl font-semibold">Almost Ready (Actors)</h2>
-                <span className="inline-flex items-center justify-center text-gold-400 bg-gray-800 rounded-full w-7 h-7" title="Locked until 10 seen" aria-label="Locked until 10 seen">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
-                  <span className="sr-only">Locked until 10 seen</span>
-                </span>
-              </div>
-              <p className="mb-4 text-sm text-gray-400">Actors you are close to unlocking.</p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {actorAlmost.map((a) => (
-                  <div key={a.actor} className="p-3 rounded-md bg-gray-800/50">
-                    <div className="font-medium text-white truncate" title={a.actor}>{a.actor}</div>
-                    <div className="flex items-center justify-between gap-3 mt-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="h-2 bg-gray-700 rounded">
-                          <div className="h-2 bg-gold-500 rounded" style={{ width: `${Math.min(100, (a.seen_count/10)*100)}%` }} />
-                        </div>
-                        <div className="mt-1 text-[11px] text-gray-400">{a.seen_count} of 10 seen • {Math.max(0, 10 - a.seen_count)} away</div>
-                      </div>
-                      <span className="inline-flex items-center justify-center text-gray-300 bg-gray-700 rounded-full w-7 h-7" title="Locked until 10 seen">
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+        <ReadyMadeCarousel slides={slides} />
       )}
     </div>
   );
 }
 
-function formatListName(director: string, count: number) {
-  return `${director}: ${count} You’ve Seen`;
+// Movie count isn't part of the name — it's already shown separately
+// wherever the list is displayed (e.g. "10 movies" under the title), so
+// baking it into the name too was pure redundancy.
+function formatListName(director: string, _count: number) {
+  return director;
 }
-function formatActorListName(actor: string, count: number) {
-  return `Actor - ${actor}: ${count} You’ve Seen`;
+function formatActorListName(actor: string, _count: number) {
+  return `Actor - ${actor}`;
 }
-function formatGenreListName(genre: string, count: number) {
-  return `Genre - ${genre}: ${count} You’ve Seen`;
+function formatGenreListName(genre: string, _count: number) {
+  return `Genre - ${genre}`;
 }
-function formatDecadeListName(decade: string, count: number) {
-  return `Decade - ${decade}: ${count} You’ve Seen`;
+function formatDecadeListName(decade: string, _count: number) {
+  return `Decade - ${decade}`;
 }
 
 async function saveList(formData: FormData) {
@@ -978,83 +893,99 @@ function PremiumLockBadge() {
   return (
     <Link
       href="/premium"
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 bg-gray-800 border border-gray-700 rounded hover:text-gray-300 hover:border-gray-600"
+      className="flex items-center justify-center gap-1.5 w-full h-11 rounded-full text-sm font-medium text-gray-300 bg-white/5 border border-white/10 backdrop-blur-sm hover:text-white hover:bg-white/10 transition-colors"
       title="Saving Ready-Made lists is a premium feature"
     >
-      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
-      Premium
+      <Lock className="w-3.5 h-3.5" />
+      Unlock with Premium
     </Link>
   );
 }
 
-function SuggestionCard({ suggestion, isPremium }: { suggestion: DirectorSuggestion; isPremium: boolean }) {
+// Each builder below returns both the compact carousel card (`node`) and its
+// full-screen counterpart (`detailNode`, shown in ReadyMadeExpandOverlay when
+// the card is tapped) — sharing one `primaryAction`/`dismissForm`/`meta`
+// computation so the Save/Dismiss/progress behavior is identical wherever it
+// renders, instead of duplicating that logic per surface.
+function buildDirectorSuggestion(suggestion: DirectorSuggestion, isPremium: boolean) {
   const ids = suggestion.movies.map((m) => m.id).join(',');
   const posterUrls = suggestion.movies
     .map((m) => m.poster_url)
     .filter((u): u is string => !!u)
     .slice(0, 5);
   const href = `/lists/ready-made/${slugifyTitle(suggestion.director)}`;
-  return (
-    <ReadyMadeCard
-      title={suggestion.director}
-      count={suggestion.seen_count}
-      posterUrls={posterUrls}
-      subtitle={<span>Director</span>}
-      headerRight={isPremium ? (
-        <form action={saveList}>
-          <input type="hidden" name="director" value={suggestion.director} />
-          <input type="hidden" name="count" value={suggestion.seen_count} />
-          <input type="hidden" name="movie_ids" value={ids} />
-          <button className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400" type="submit">Save</button>
-        </form>
-      ) : (
-        <PremiumLockBadge />
-      )}
-      viewHref={href}
-      dismissForm={(
-        <form action={dismissSuggestion}>
-          <input type="hidden" name="director" value={suggestion.director} />
-          <button className="text-sm text-gray-400 hover:text-gray-300" type="submit" title="Hide this suggestion">Dismiss</button>
-        </form>
-      )}
-    />
+  const primaryAction = isPremium ? (
+    <SaveButton action={saveList} hidden={{ director: suggestion.director, count: suggestion.seen_count, movie_ids: ids }} />
+  ) : (
+    <PremiumLockBadge />
   );
+  const dismissForm = <DismissButton action={dismissSuggestion} fieldName="director" value={suggestion.director} />;
+  return {
+    node: (
+      <ReadyMadeCard
+        title={suggestion.director}
+        count={suggestion.seen_count}
+        posterUrls={posterUrls}
+        subtitle={<span>Director</span>}
+        ready
+        primaryAction={primaryAction}
+        viewHref={href}
+        dismissForm={dismissForm}
+      />
+    ),
+    detailNode: (
+      <ReadyMadeSuggestionDetail
+        category="Director"
+        title={suggestion.director}
+        count={suggestion.seen_count}
+        movies={suggestion.movies}
+        primaryAction={primaryAction}
+        dismissForm={dismissForm}
+      />
+    ),
+  };
 }
 
-function ActorSuggestionCard({ suggestion, isPremium }: { suggestion: ActorSuggestion; isPremium: boolean }) {
+function buildActorSuggestion(suggestion: ActorSuggestion, isPremium: boolean) {
   const ids = suggestion.movies.map((m) => m.id).join(',');
   const posterUrls = suggestion.movies
     .map((m) => m.poster_url)
     .filter((u): u is string => !!u)
     .slice(0, 5);
-  return (
-    <ReadyMadeCard
-      title={suggestion.actor}
-      count={suggestion.seen_count}
-      posterUrls={posterUrls}
-      subtitle={<span>Actor</span>}
-      headerRight={isPremium ? (
-        <form action={saveActorList}>
-          <input type="hidden" name="actor" value={suggestion.actor} />
-          <input type="hidden" name="count" value={suggestion.seen_count} />
-          <input type="hidden" name="movie_ids" value={ids} />
-          <button className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400" type="submit">Save</button>
-        </form>
-      ) : (
-        <PremiumLockBadge />
-      )}
-      viewHref={`/lists/ready-made/${slugifyTitle(suggestion.actor)}`}
-      dismissForm={(
-        <form action={dismissActorSuggestion}>
-          <input type="hidden" name="actor" value={suggestion.actor} />
-          <button className="text-sm text-gray-400 hover:text-gray-300" type="submit" title="Hide this suggestion">Dismiss</button>
-        </form>
-      )}
-    />
+  const href = `/lists/ready-made/${slugifyTitle(suggestion.actor)}`;
+  const primaryAction = isPremium ? (
+    <SaveButton action={saveActorList} hidden={{ actor: suggestion.actor, count: suggestion.seen_count, movie_ids: ids }} />
+  ) : (
+    <PremiumLockBadge />
   );
+  const dismissForm = <DismissButton action={dismissActorSuggestion} fieldName="actor" value={suggestion.actor} />;
+  return {
+    node: (
+      <ReadyMadeCard
+        title={suggestion.actor}
+        count={suggestion.seen_count}
+        posterUrls={posterUrls}
+        subtitle={<span>Actor</span>}
+        ready
+        primaryAction={primaryAction}
+        viewHref={href}
+        dismissForm={dismissForm}
+      />
+    ),
+    detailNode: (
+      <ReadyMadeSuggestionDetail
+        category="Actor"
+        title={suggestion.actor}
+        count={suggestion.seen_count}
+        movies={suggestion.movies}
+        primaryAction={primaryAction}
+        dismissForm={dismissForm}
+      />
+    ),
+  };
 }
 
-function GenreSuggestionCard({ suggestion, isPremium }: { suggestion: GenreSuggestion; isPremium: boolean }) {
+function buildGenreSuggestion(suggestion: GenreSuggestion, isPremium: boolean) {
   const totalSeen = suggestion.seen_count;
   const filteredCount = suggestion.movies.length;
   const ids = suggestion.movies.map((m) => m.id).join(',');
@@ -1063,43 +994,50 @@ function GenreSuggestionCard({ suggestion, isPremium }: { suggestion: GenreSugge
     .filter((u): u is string => !!u)
     .slice(0, 5);
   const href = `/lists/ready-made/${slugifyTitle(suggestion.genre)}`;
-  return (
-    <ReadyMadeCard
-      title={suggestion.genre}
-      count={filteredCount}
-      asterisk={totalSeen > 100}
-      posterUrls={posterUrls}
-      subtitle={<span>Genre</span>}
-      meta={totalSeen > 100 && (
-        <>
-          <RatingChip rating={9} />
-          <RatingChip rating={10} />
-          <span>only</span>
-        </>
-      )}
-      headerRight={isPremium ? (
-        <form action={saveGenreList} className="shrink-0">
-          <input type="hidden" name="genre" value={suggestion.genre} />
-          <input type="hidden" name="count" value={filteredCount} />
-          <input type="hidden" name="total_seen" value={totalSeen} />
-          <input type="hidden" name="movie_ids" value={ids} />
-          <button className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400" type="submit">Save</button>
-        </form>
-      ) : (
-        <PremiumLockBadge />
-      )}
-      viewHref={href}
-      dismissForm={(
-        <form action={dismissGenreSuggestion}>
-          <input type="hidden" name="genre" value={suggestion.genre} />
-          <button className="text-sm text-gray-400 hover:text-gray-300" type="submit" title="Hide this suggestion">Dismiss</button>
-        </form>
-      )}
-    />
+  const meta = totalSeen > 100 && (
+    <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
+      <RatingChip rating={9} />
+      <RatingChip rating={10} />
+      <span>only</span>
+    </div>
   );
+  const primaryAction = isPremium ? (
+    <SaveButton action={saveGenreList} hidden={{ genre: suggestion.genre, count: filteredCount, total_seen: totalSeen, movie_ids: ids }} />
+  ) : (
+    <PremiumLockBadge />
+  );
+  const dismissForm = <DismissButton action={dismissGenreSuggestion} fieldName="genre" value={suggestion.genre} />;
+  return {
+    node: (
+      <ReadyMadeCard
+        title={suggestion.genre}
+        count={filteredCount}
+        asterisk={totalSeen > 100}
+        posterUrls={posterUrls}
+        subtitle={<span>Genre</span>}
+        ready
+        meta={meta}
+        primaryAction={primaryAction}
+        viewHref={href}
+        dismissForm={dismissForm}
+      />
+    ),
+    detailNode: (
+      <ReadyMadeSuggestionDetail
+        category="Genre"
+        title={suggestion.genre}
+        count={filteredCount}
+        asterisk={totalSeen > 100}
+        meta={meta}
+        movies={suggestion.movies}
+        primaryAction={primaryAction}
+        dismissForm={dismissForm}
+      />
+    ),
+  };
 }
 
-function DecadeSuggestionCard({ suggestion, isPremium }: { suggestion: DecadeSuggestion; isPremium: boolean }) {
+function buildDecadeSuggestion(suggestion: DecadeSuggestion, isPremium: boolean) {
   const totalSeen = suggestion.seen_count;
   const filteredCount = suggestion.movies.length;
   const ids = suggestion.movies.map((m) => m.id).join(',');
@@ -1108,40 +1046,185 @@ function DecadeSuggestionCard({ suggestion, isPremium }: { suggestion: DecadeSug
     .filter((u): u is string => !!u)
     .slice(0, 5);
   const href = `/lists/ready-made/${slugifyTitle(suggestion.decade)}`;
-  return (
-    <ReadyMadeCard
-      title={suggestion.decade}
-      count={filteredCount}
-      asterisk={totalSeen > 100}
-      posterUrls={posterUrls}
-      subtitle={<span>Decade</span>}
-      meta={totalSeen > 100 && (
-        <>
-          <RatingChip rating={9} />
-          <RatingChip rating={10} />
-          <span>only</span>
-        </>
-      )}
-      headerRight={isPremium ? (
-        <form action={saveDecadeList} className="shrink-0">
-          <input type="hidden" name="decade" value={suggestion.decade} />
-          <input type="hidden" name="start_year" value={suggestion.startYear} />
-          <input type="hidden" name="count" value={filteredCount} />
-          <input type="hidden" name="total_seen" value={totalSeen} />
-          <input type="hidden" name="movie_ids" value={ids} />
-          <button className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400" type="submit">Save</button>
-        </form>
-      ) : (
-        <PremiumLockBadge />
-      )}
-      viewHref={href}
-      dismissForm={(
-        <form action={dismissDecadeSuggestion}>
-          <input type="hidden" name="decade" value={suggestion.decade} />
-          <button className="text-sm text-gray-400 hover:text-gray-300" type="submit" title="Hide this suggestion">Dismiss</button>
-        </form>
-      )}
-    />
+  const meta = totalSeen > 100 && (
+    <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-500">
+      <RatingChip rating={9} />
+      <RatingChip rating={10} />
+      <span>only</span>
+    </div>
   );
+  const primaryAction = isPremium ? (
+    <SaveButton
+      action={saveDecadeList}
+      hidden={{
+        decade: suggestion.decade,
+        start_year: suggestion.startYear,
+        count: filteredCount,
+        total_seen: totalSeen,
+        movie_ids: ids,
+      }}
+    />
+  ) : (
+    <PremiumLockBadge />
+  );
+  const dismissForm = <DismissButton action={dismissDecadeSuggestion} fieldName="decade" value={suggestion.decade} />;
+  return {
+    node: (
+      <ReadyMadeCard
+        title={suggestion.decade}
+        count={filteredCount}
+        asterisk={totalSeen > 100}
+        posterUrls={posterUrls}
+        subtitle={<span>Decade</span>}
+        ready
+        meta={meta}
+        primaryAction={primaryAction}
+        viewHref={href}
+        dismissForm={dismissForm}
+      />
+    ),
+    detailNode: (
+      <ReadyMadeSuggestionDetail
+        category="Decade"
+        title={suggestion.decade}
+        count={filteredCount}
+        asterisk={totalSeen > 100}
+        meta={meta}
+        movies={suggestion.movies}
+        primaryAction={primaryAction}
+        dismissForm={dismissForm}
+      />
+    ),
+  };
+}
+
+// Almost-ready suggestions — same shells as the ready-to-save versions above
+// (fan of posters, View, Dismiss), swapping only the "seen" pill for a
+// progress viz (AlmostProgressMeta) and the Save button for a locked "X more
+// to unlock" bar (AlmostLockedPill). Not premium-gated: there's nothing to
+// save yet either way. No full movie data is computed for these (only
+// poster thumbnails), so the detail view falls back to a poster grid.
+function buildAlmostDirector(suggestion: AlmostDirector) {
+  const meta = <AlmostProgressMeta seenCount={suggestion.seen_count} threshold={10} />;
+  const primaryAction = <AlmostLockedPill seenCount={suggestion.seen_count} threshold={10} />;
+  const dismissForm = <DismissButton action={dismissSuggestion} fieldName="director" value={suggestion.director} />;
+  return {
+    node: (
+      <ReadyMadeCard
+        title={suggestion.director}
+        count={suggestion.seen_count}
+        posterUrls={suggestion.posterUrls}
+        subtitle={<span>Director</span>}
+        meta={meta}
+        primaryAction={primaryAction}
+        viewHref={`/lists/ready-made/${slugifyTitle(suggestion.director)}`}
+        dismissForm={dismissForm}
+      />
+    ),
+    detailNode: (
+      <ReadyMadeSuggestionDetail
+        category="Director"
+        title={suggestion.director}
+        count={suggestion.seen_count}
+        meta={meta}
+        posterUrls={suggestion.posterUrls}
+        primaryAction={primaryAction}
+        dismissForm={dismissForm}
+      />
+    ),
+  };
+}
+
+function buildAlmostActor(suggestion: AlmostActor) {
+  const meta = <AlmostProgressMeta seenCount={suggestion.seen_count} threshold={10} />;
+  const primaryAction = <AlmostLockedPill seenCount={suggestion.seen_count} threshold={10} />;
+  const dismissForm = <DismissButton action={dismissActorSuggestion} fieldName="actor" value={suggestion.actor} />;
+  return {
+    node: (
+      <ReadyMadeCard
+        title={suggestion.actor}
+        count={suggestion.seen_count}
+        posterUrls={suggestion.posterUrls}
+        subtitle={<span>Actor</span>}
+        meta={meta}
+        primaryAction={primaryAction}
+        viewHref={`/lists/ready-made/${slugifyTitle(suggestion.actor)}`}
+        dismissForm={dismissForm}
+      />
+    ),
+    detailNode: (
+      <ReadyMadeSuggestionDetail
+        category="Actor"
+        title={suggestion.actor}
+        count={suggestion.seen_count}
+        meta={meta}
+        posterUrls={suggestion.posterUrls}
+        primaryAction={primaryAction}
+        dismissForm={dismissForm}
+      />
+    ),
+  };
+}
+
+function buildAlmostGenre(suggestion: AlmostGenre) {
+  const meta = <AlmostProgressMeta seenCount={suggestion.seen_count} threshold={10} />;
+  const primaryAction = <AlmostLockedPill seenCount={suggestion.seen_count} threshold={10} />;
+  const dismissForm = <DismissButton action={dismissGenreSuggestion} fieldName="genre" value={suggestion.genre} />;
+  return {
+    node: (
+      <ReadyMadeCard
+        title={suggestion.genre}
+        count={suggestion.seen_count}
+        posterUrls={suggestion.posterUrls}
+        subtitle={<span>Genre</span>}
+        meta={meta}
+        primaryAction={primaryAction}
+        viewHref={`/lists/ready-made/${slugifyTitle(suggestion.genre)}`}
+        dismissForm={dismissForm}
+      />
+    ),
+    detailNode: (
+      <ReadyMadeSuggestionDetail
+        category="Genre"
+        title={suggestion.genre}
+        count={suggestion.seen_count}
+        meta={meta}
+        posterUrls={suggestion.posterUrls}
+        primaryAction={primaryAction}
+        dismissForm={dismissForm}
+      />
+    ),
+  };
+}
+
+function buildAlmostDecade(suggestion: AlmostDecade) {
+  const meta = <AlmostProgressMeta seenCount={suggestion.seen_count} threshold={12} />;
+  const primaryAction = <AlmostLockedPill seenCount={suggestion.seen_count} threshold={12} />;
+  const dismissForm = <DismissButton action={dismissDecadeSuggestion} fieldName="decade" value={suggestion.decade} />;
+  return {
+    node: (
+      <ReadyMadeCard
+        title={suggestion.decade}
+        count={suggestion.seen_count}
+        posterUrls={suggestion.posterUrls}
+        subtitle={<span>Decade</span>}
+        meta={meta}
+        primaryAction={primaryAction}
+        viewHref={`/lists/ready-made/${slugifyTitle(suggestion.decade)}`}
+        dismissForm={dismissForm}
+      />
+    ),
+    detailNode: (
+      <ReadyMadeSuggestionDetail
+        category="Decade"
+        title={suggestion.decade}
+        count={suggestion.seen_count}
+        meta={meta}
+        posterUrls={suggestion.posterUrls}
+        primaryAction={primaryAction}
+        dismissForm={dismissForm}
+      />
+    ),
+  };
 }
 

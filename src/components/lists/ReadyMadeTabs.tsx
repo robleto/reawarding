@@ -32,30 +32,33 @@ export default function ReadyMadeTabs(props: {
     return qs ? `${currentPath}?${qs}` : currentPath;
   };
 
-  const Tab = ({ tab, label, highlight }: { tab: ReadyMadeTab; label: string; highlight?: string }) => (
+  const Tab = ({ tab, label, ready, almost }: { tab: ReadyMadeTab; label: string; ready?: number; almost?: number }) => (
     <Link
       href={makeHref(tab)}
       replace
-      className={`px-4 py-3 text-sm font-medium transition-colors relative ${
+      className={`px-2.5 sm:px-4 py-2.5 sm:py-3 text-sm font-medium transition-colors relative whitespace-nowrap flex-shrink-0 ${
         current === tab
-          ? `${highlight ?? "text-gold-400 border-gold-400"} text-gold-400 border-b-2`
+          ? "text-gold-400 border-b-2 border-gold-400"
           : "text-gray-400 hover:text-gray-300"
       }`}
     >
       {label}
+      {typeof ready === "number" && (
+        <span className="ml-1.5 font-mono text-xs text-gray-500">({ready})</span>
+      )}
+      {typeof almost === "number" && almost > 0 && (
+        <span className="ml-1.5 font-mono text-xs text-gold-500/70">+{almost} almost</span>
+      )}
     </Link>
   );
 
-  const fmtSingle = (n?: number) => (typeof n === "number" ? ` (${n})` : "");
-  const fmtReadyOnly = (c?: CategoryCounts) => (typeof c?.ready === "number" ? ` (${c!.ready})` : "");
-
   return (
-    <div className="mb-6 flex gap-2 border-b border-gray-700">
-      <Tab tab="all" label={`All${fmtSingle(props.counts?.all)}`} />
-      <Tab tab="directors" label={`Directors${fmtReadyOnly(props.counts?.directors)}`} />
-      <Tab tab="actors" label={`Actors${fmtReadyOnly(props.counts?.actors)}`} />
-      <Tab tab="genres" label={`Genres${fmtReadyOnly(props.counts?.genres)}`} />
-      <Tab tab="decades" label={`Decades${fmtReadyOnly(props.counts?.decades)}`} />
+    <div className="mb-6 flex gap-1 sm:gap-2 border-b border-gray-700 overflow-x-auto [scrollbar-width:none]">
+      <Tab tab="all" label="All" ready={props.counts?.all} />
+      <Tab tab="directors" label="Directors" ready={props.counts?.directors?.ready} almost={props.counts?.directors?.almost} />
+      <Tab tab="actors" label="Actors" ready={props.counts?.actors?.ready} almost={props.counts?.actors?.almost} />
+      <Tab tab="genres" label="Genres" ready={props.counts?.genres?.ready} almost={props.counts?.genres?.almost} />
+      <Tab tab="decades" label="Decades" ready={props.counts?.decades?.ready} almost={props.counts?.decades?.almost} />
     </div>
   );
 }

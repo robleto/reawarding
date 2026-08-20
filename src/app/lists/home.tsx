@@ -1,22 +1,36 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/ui/Loading";
 import ScreenState from "@/components/ui/ScreenState";
-import HorizontalListRow from "@/components/list/HorizontalListRow";
+import ListCard from "@/components/list/ListCard";
+import ListExpandOverlay from "@/components/list/ListExpandOverlay";
 import ListsEmptyState from "@/components/lists/ListsEmptyState";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import Link from "next/link";
-import { List, X } from "lucide-react";
+import { ArrowRight, Plus, X } from "lucide-react";
 import { useAuthState } from "@/hooks/useAuthState";
-import { useSmartListAlerts } from "@/hooks/useSmartListAlerts";
-import { useProfile } from "@/contexts/ProfileContext";
-import { isNativeApp } from "@/lib/platform";
-import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
-import { slugifyTitle } from "@/utils/slug";
-import type { Movie } from "@/types/types";
+
+// Same small pill the home page uses for its "Ready-made lists" nudge
+// (src/app/page.tsx) — Ready-Made isn't a peer of My/Public here, it's a
+// separate feature this page just links out to, so it gets a persistent
+// low-key link rather than its own tab or a big banner.
+function ReadyMadePill() {
+  return (
+    <Link
+      href="/lists/ready-made"
+      className="inline-flex items-center gap-1.5 rounded-full border border-gold-500/30 bg-gold-500/[0.06] px-3 py-1.5 font-unbounded text-xs font-semibold text-gold-300 hover:border-gold-500/50 hover:bg-gold-500/[0.12] transition-colors"
+    >
+      Ready-made lists
+      <ArrowRight className="w-3 h-3" aria-hidden="true" />
+    </Link>
+  );
+}
+
+type ListsFilter = "mine" | "public";
 
 export default function ListsHomePage() {
   const supabase = useSupabaseClient();
@@ -26,7 +40,6 @@ export default function ListsHomePage() {
   const router = useRouter();
   const [myLists, setMyLists] = useState<any[]>([]);
   const [publicLists, setPublicLists] = useState<any[]>([]);
-  const [seenMovies, setSeenMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -35,7 +48,10 @@ export default function ListsHomePage() {
   const [createIsPublic, setCreateIsPublic] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [readyMadeBannerDismissed, setReadyMadeBannerDismissed] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<ListsFilter>("mine");
+  const [expandedListIndex, setExpandedListIndex] = useState<number | null>(null);
+  const carouselRowRef = useRef<HTMLDivElement | null>(null);
+  const [focusedCardIndex, setFocusedCardIndex] = useState(0);
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,12 +139,15 @@ export default function ListsHomePage() {
                 .eq("list_id", list.id)
                 .limit(1);
 
-              // Get top 5 movie IDs in order
+              // Get top 5 movie IDs in order. Descending: highest ranking
+              // value is the top-of-list item (same convention as
+              // ListDetailView's default sort), so this matches the "top 5"
+              // a viewer sees first on opening the list, not the bottom 5.
               const { data: items } = await supabase
                 .from("movie_list_items")
                 .select("movie_id")
                 .eq("list_id", list.id)
-                .order("ranking", { ascending: true })
+                .order("ranking", { ascending: false })
                 .limit(5);
 
               const movieIds = (items || []).map((item) => item.movie_id);
@@ -155,34 +174,8 @@ export default function ListsHomePage() {
           );
           my = listsWithCountsAndPosters;
         }
-
-        // Fetch seen movies for smart list detection
-        const { data: rankingRows } = await supabase
-          .from("rankings")
-          .select("movie_id, seen_it, ranking")
-          .eq("user_id", userId)
-          .eq("seen_it", true);
-
-        const seenIds = (rankingRows || []).map((r: { movie_id: string }) => r.movie_id);
-        if (seenIds.length > 0) {
-          const { data: movieRows } = await supabase
-            .from("movies")
-            .select("id, title, poster_url, director, genres, cast_list, release_year")
-            .in("id", seenIds);
-
-          if (movieRows) {
-            const mapped = movieRows.map((m) => ({
-              ...m,
-              rankings: [{
-                seen_it: true,
-                ranking: rankingRows?.find((r: { movie_id: string }) => r.movie_id === m.id)?.ranking ?? null,
-              }],
-            })) as Movie[];
-            setSeenMovies(mapped);
-          }
-        }
       }
-      
+
       // Get public lists
       const { data: pubData, error: pubError } = await supabase
         .from("movie_lists")
@@ -206,11 +199,13 @@ export default function ListsHomePage() {
               .eq("list_id", list.id)
               .limit(1);
 
+            // Descending, same convention as the "mine" fetch above and
+            // ListDetailView's default sort (highest ranking = top of list).
             const { data: items } = await supabase
               .from("movie_list_items")
               .select("movie_id")
               .eq("list_id", list.id)
-              .order("ranking", { ascending: true })
+              .order("ranking", { ascending: false })
               .limit(5);
 
             const movieIds = (items || []).map((item) => item.movie_id);
@@ -243,50 +238,48 @@ export default function ListsHomePage() {
     fetchLists();
   }, [status, userId, supabase]);
 
-  // Smart list alerts derived from seen movies
-  const smartAlerts = useSmartListAlerts(seenMovies);
-  const { isPremium } = useProfile();
-  const isNative = isNativeApp();
-  const [savingAlertKey, setSavingAlertKey] = useState<string | null>(null);
-  const [savedAlertKeys, setSavedAlertKeys] = useState<string[]>([]);
-  const [dismissedAlertKeys, setDismissedAlertKeys] = useState<string[]>([]);
-  const [saveAlertErrors, setSaveAlertErrors] = useState<Record<string, string>>({});
+  const hasAnyLists = myLists.length > 0 || publicLists.length > 0;
 
-  const handleSaveSmartList = async (alert: { type: string; label: string; movieIds: string[] }) => {
-    if (!userId) return;
-    const key = `${alert.type}:${alert.label}`;
-    setSavingAlertKey(key);
-    setSaveAlertErrors((prev) => ({ ...prev, [key]: "" }));
-    try {
-      const res = await fetch("/api/lists/ready-made/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: alert.type, label: alert.label, movieIds: alert.movieIds }),
+  const filteredEntries = activeFilter === "mine" ? myLists : publicLists;
+
+  // Which card is centered in the carousel — measured directly (each card's
+  // rendered center vs. the row's center) rather than guessed from scroll
+  // position, so it stays correct regardless of card width/gap. Drives the
+  // "focus" effect: the centered card is full color and slightly enlarged,
+  // neighbors are greyed out and slightly shrunk.
+  useEffect(() => {
+    const row = carouselRowRef.current;
+    if (!row) return;
+    let raf = 0;
+    const updateFocusedCard = () => {
+      const cards = Array.from(row.children) as HTMLElement[];
+      if (cards.length === 0) return;
+      const rowRect = row.getBoundingClientRect();
+      const rowCenter = rowRect.left + rowRect.width / 2;
+      let closestIndex = 0;
+      let closestDistance = Infinity;
+      cards.forEach((card, index) => {
+        const rect = card.getBoundingClientRect();
+        const cardCenter = rect.left + rect.width / 2;
+        const distance = Math.abs(cardCenter - rowCenter);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = index;
+        }
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to save list");
-      setSavedAlertKeys((prev) => [...prev, key]);
-    } catch (e) {
-      console.error("Failed to save smart list:", e);
-      setSaveAlertErrors((prev) => ({ ...prev, [key]: e instanceof Error ? e.message : "Failed to save list" }));
-    } finally {
-      setSavingAlertKey(null);
-    }
-  };
-
-  // Build poster URL arrays for each smart list alert
-  const getPosterUrlsForAlert = useMemo(() => (movieIds: string[]) =>
-    movieIds
-      .slice(0, 5)
-      .map((id) => seenMovies.find((m) => m.id === id))
-      .filter((m): m is Movie => Boolean(m))
-      .map((m) => (m as { poster_url?: string | null }).poster_url ?? "")
-      .filter(Boolean),
-  [seenMovies]);
-
-  const visibleSmartAlerts = smartAlerts.filter(
-    (a) => !a.nearMiss && !dismissedAlertKeys.includes(`${a.type}:${a.label}`)
-  );
+      setFocusedCardIndex(closestIndex);
+    };
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(updateFocusedCard);
+    };
+    updateFocusedCard();
+    row.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      row.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, [activeFilter, filteredEntries.length]);
 
   if (loading) return <Loader message="Loading lists..." />;
 
@@ -305,204 +298,147 @@ export default function ListsHomePage() {
   }
 
   return (
-    <div className="max-w-screen-xl">
+    // Explicit viewport-based height rather than chaining flex-1 up through
+    // AppShell's <main> — that chain didn't actually propagate in practice.
+    // This duplicates AppShell's own <main> padding formula
+    // (src/components/layout/AppShell.tsx: pt-[var(--header-height,...)],
+    // pb-[calc(6rem+safe-area-bottom)] for authenticated mobile) so it fills
+    // exactly what's left below the app header and above the mobile tab bar,
+    // independent of how many flex layers sit in between. --header-height is
+    // published by HeaderNav.tsx (measured, not guessed) — keep the pb side
+    // in sync if the tab bar's own height ever changes similarly.
+    <div
+      className="max-w-screen-xl flex flex-col min-h-0"
+      style={{ height: "calc(100dvh - var(--header-height, calc(5rem + env(safe-area-inset-top))) - (6rem + env(safe-area-inset-bottom)))" }}
+    >
       {/* Hero/empty state for not-logged-in or no lists */}
       {!user && <ListsEmptyState onCreateList={() => setShowAuthModal(true)} />}
-      {user && myLists.length === 0 && publicLists.length === 0 && (
+      {user && !hasAnyLists && (
         <>
           <ListsEmptyState onCreateList={() => setShowCreateModal(true)} />
-          <div className="p-5 mt-6 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gold-200">Ready-Made Lists</h3>
-                <p className="text-sm text-gray-300">Pre-built from your ratings — directors, decades, genres and more.</p>
-              </div>
-              <a href="/lists/ready-made" className="px-3 py-2 text-black bg-gold-500 rounded hover:bg-gold-400">Explore</a>
-            </div>
+          <div className="flex justify-center mt-4">
+            <ReadyMadePill />
           </div>
         </>
       )}
 
-      {/* Ready-Made Lists fallback banner — sits at the top, above My Lists, so
-          it's the first thing seen; only shown when the personalized rail below
-          isn't (no qualifying alerts), and can be dismissed for this visit. */}
-      {user &&
-        visibleSmartAlerts.length === 0 &&
-        !(myLists.length === 0 && publicLists.length === 0) &&
-        !readyMadeBannerDismissed && (
-          <div className="relative p-5 mb-8 border rounded-lg bg-charcoal-900/60 border-gold-500/20">
+      {user && hasAnyLists && (
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex-shrink-0 mb-6 flex items-center justify-between gap-4">
+            <h1 className="text-2xl sm:text-3xl font-unbounded uppercase tracking-wide text-white">Lists</h1>
             <button
               type="button"
-              onClick={() => setReadyMadeBannerDismissed(true)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-200 transition-colors"
-              aria-label="Dismiss"
+              onClick={handleCreateListClick}
+              aria-label="Create new list"
+              className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-gold-300 hover:bg-white/10 hover:text-gold-200 transition-colors"
             >
-              <X className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
             </button>
-            <div className="flex items-center justify-between pr-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gold-200">Ready-Made Lists</h3>
-                <p className="text-sm text-gray-300">Pre-built from your ratings — directors, decades, genres and more.</p>
-              </div>
-              <a href="/lists/ready-made" className="px-3 py-2 text-black bg-gold-500 rounded hover:bg-gold-400">Explore</a>
-            </div>
           </div>
-        )}
 
-      {/* My Lists — always first, primary */}
-      {user && myLists.length > 0 && (
-        <HorizontalListRow
-          title="My Lists"
-          lists={myLists.slice(0, 8)}
-          seeAllHref={myLists.length > 3 ? "/lists/mine" : undefined}
-          onAdd={handleCreateListClick}
-          headerActions={
-            <>
+          {/* My/Public toggle — the only real variety here (Ready-Made is a
+              different kind of thing, a persistent link at the bottom below,
+              not a peer of these two). */}
+          <div className="flex-shrink-0 mb-4 inline-flex self-start rounded-full border border-white/10 bg-white/5 p-0.5">
+            {(["mine", "public"] as const).map((key) => (
               <button
+                key={key}
                 type="button"
-                onClick={handleCreateListClick}
-                className="px-3 py-1.5 text-sm font-medium text-black bg-gold-500 rounded hover:bg-gold-400 transition-colors whitespace-nowrap"
+                onClick={() => setActiveFilter(key)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
+                  activeFilter === key
+                    ? "bg-gold-500 text-black"
+                    : "text-gray-400 hover:text-gray-300"
+                }`}
               >
-                Create New List
+                {key === "mine" ? "My" : "Public"}
+                <span className={`ml-1 font-mono ${activeFilter === key ? "text-black/60" : "text-gray-500"}`}>
+                  ({key === "mine" ? myLists.length : publicLists.length})
+                </span>
               </button>
-              <Link
-                href="/lists/ready-made"
-                className="px-3 py-1.5 text-sm font-medium text-gold-300 border border-gold-500/40 rounded hover:bg-gold-500/10 transition-colors whitespace-nowrap"
-              >
-                Find Ready-Made List
-              </Link>
-            </>
-          }
-        />
-      )}
+            ))}
+          </div>
 
-      {/* Public Lists Row */}
-      {publicLists.length > 0 && (
-        <HorizontalListRow
-          title="Public Lists"
-          lists={publicLists.slice(0, 8)}
-          seeAllHref={publicLists.length > 3 ? "/lists/public" : undefined}
-          readOnly
-        />
-      )}
-
-      {visibleSmartAlerts.length > 0 && (
-        <section className="mb-10">
-          <div className="flex items-center justify-between mb-5 px-1">
-            <div>
-              <h2 className="text-xl font-bold text-white tracking-wide">Ready-Made Lists</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Pre-built from your ratings — save any of these in one tap.</p>
+          {filteredEntries.length === 0 ? (
+            <div className="flex-1 min-h-0 flex items-center justify-center">
+              <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-6 py-10 text-center">
+                <p className="text-gray-300 font-medium mb-1">
+                  {activeFilter === "mine" ? "You haven't created any lists yet." : "No public lists yet."}
+                </p>
+                <p className="text-sm text-gray-500">Try the other tab, or create your own list.</p>
+              </div>
             </div>
-            <a href="/lists/ready-made" className="text-sm text-gold-400 hover:text-gold-300 transition-colors font-medium">
-              See all →
-            </a>
-          </div>
-          <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-            {visibleSmartAlerts.slice(0, 6).map((alert) => {
-              const alertKey = `${alert.type}:${alert.label}`;
-              if (dismissedAlertKeys.includes(alertKey)) return null;
-              const posterUrls = getPosterUrlsForAlert(alert.movieIds);
-              const typeLabel = alert.type.charAt(0).toUpperCase() + alert.type.slice(1);
-              const isSaving = savingAlertKey === alertKey;
-              const isSaved = savedAlertKeys.includes(alertKey);
-              return (
-                <div key={alertKey} className="w-[78vw] max-w-[300px] flex-shrink-0 snap-start overflow-visible">
-                  <ReadyMadeCard
-                    title={alert.label}
-                    count={alert.count}
-                    subtitle={<span>{typeLabel}</span>}
-                    posterUrls={posterUrls}
-                    viewHref={`/lists/ready-made/${slugifyTitle(alert.label)}`}
-                    headerRight={
-                      isSaved ? (
-                        <span className="px-3 py-1.5 text-sm font-medium text-green-400">Saved ✓</span>
-                      ) : !isPremium && isNative ? (
-                        <span
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500"
-                          title="Saving Ready-Made lists is a premium feature"
-                        >
-                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
-                          Premium
-                        </span>
-                      ) : !isPremium ? (
-                        <Link
-                          href="/premium"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 bg-gray-800 border border-gray-700 rounded hover:text-gray-300 hover:border-gray-600"
-                          title="Saving Ready-Made lists is a premium feature"
-                        >
-                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 8V7a3 3 0 016 0v3H9z"/></svg>
-                          Premium
-                        </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleSaveSmartList(alert)}
-                          disabled={isSaving}
-                          className="px-3 py-1.5 text-sm bg-gold-500 text-black rounded hover:bg-gold-400 disabled:opacity-50 font-medium"
-                        >
-                          {isSaving ? "Saving…" : "Save"}
-                        </button>
-                      )
-                    }
-                    dismissForm={
-                      !isSaved && (
-                        <button
-                          type="button"
-                          onClick={() => setDismissedAlertKeys((prev) => [...prev, alertKey])}
-                          className="text-sm text-gray-400 hover:text-gray-300"
-                          title="Hide this suggestion"
-                        >
-                          Dismiss
-                        </button>
-                      )
-                    }
-                  />
-                  {saveAlertErrors[alertKey] && (
-                    <p className="mt-2 text-xs text-red-400">{saveAlertErrors[alertKey]}</p>
-                  )}
-                </div>
-              );
-            })}
-            {/* Terminator — mirrors the home page rail */}
-            <Link
-              href="/lists/ready-made"
-              className="w-[78vw] max-w-[300px] h-[260px] mt-5 flex-shrink-0 snap-start flex flex-col items-center justify-center border-2 border-dashed border-gold-500/40 bg-charcoal-900/40 hover:border-gold-500/60 hover:bg-charcoal-900/60 rounded-lg shadow-md transition-all p-6 group"
-              aria-label="Browse all ready-made lists"
-            >
-              <div className="flex items-center justify-center w-16 h-16 mb-2 rounded-full bg-gold-500/20 group-hover:bg-gold-500/40 transition-all">
-                <List className="w-7 h-7 text-gold-300" />
+          ) : (
+            <div className="flex-1 min-h-0 relative overflow-visible">
+              <div
+                ref={carouselRowRef}
+                className="h-full flex gap-5 overflow-x-auto pb-4 pt-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
+                style={{
+                  // Symmetric inset matching each card's own width formula
+                  // (w-[78vw] max-w-[280px]) — this is what lets the first
+                  // and last cards scroll to a truly centered position too,
+                  // not just the ones in the middle.
+                  paddingLeft: "calc((100% - min(78vw, 280px)) / 2)",
+                  paddingRight: "calc((100% - min(78vw, 280px)) / 2)",
+                }}
+              >
+                {filteredEntries.map((list, index) => (
+                  <div key={list.id} className="h-full w-[78vw] max-w-[280px] flex-shrink-0 overflow-visible snap-center snap-always">
+                    <ListCard list={list} onOpen={() => setExpandedListIndex(index)} fillHeight focused={index === focusedCardIndex} />
+                  </div>
+                ))}
               </div>
-              <span className="mt-2 text-base font-semibold text-gold-200 group-hover:text-gold-300 transition-colors">Browse all</span>
-              <span className="mt-1 text-xs text-gray-300">More from your ratings</span>
-            </Link>
+            </div>
+          )}
+
+          {expandedListIndex !== null && (
+            <ListExpandOverlay
+              lists={filteredEntries}
+              initialIndex={expandedListIndex}
+              onClose={() => setExpandedListIndex(null)}
+            />
+          )}
+
+          {/* Persistent, low-key entry point to Ready-Made lists — same pill
+              as the home page's nudge, always visible here regardless of
+              which tab is active. */}
+          <div className="flex-shrink-0 flex justify-center pt-4 pb-4">
+            <ReadyMadePill />
           </div>
-        </section>
+        </div>
       )}
 
-      {/* Create List Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-black bg-opacity-70">
-          <div className="w-full max-w-md bg-white border border-gray-200 rounded-lg bg-charcoal-900 border-gray-700">
+      {/* Create List sheet — portaled to document.body, matching every other
+          fixed-position overlay in the app (MovieDetailModal, RankingDropdown's
+          mobile picker, etc). Bottom sheet on mobile, centered dialog on
+          desktop, both using the same glass/pill language as the rest of
+          the native Lists redesign. */}
+      {showCreateModal && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={resetCreateForm}
+            className="absolute inset-0 bg-black/60"
+          />
+          <div className="relative w-full sm:max-w-md sm:mx-4 bg-charcoal-900 border border-white/10 rounded-t-2xl sm:rounded-2xl shadow-2xl pb-[env(safe-area-inset-bottom)]">
+            <div className="sm:hidden mx-auto mt-3 h-1 w-9 rounded-full bg-white/20" />
             <form onSubmit={handleCreateList}>
-              {/* Header */}
-              <div className="p-6 border-b border-gray-700">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-white">Create New List</h2>
-                  <button
-                    type="button"
-                    onClick={resetCreateForm}
-                    className="text-gray-400 transition-colors text-gray-500 hover:text-gray-300"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
+              <div className="px-6 pt-4 pb-2 sm:pt-6 flex items-center justify-between">
+                <h2 className="text-lg font-unbounded uppercase tracking-wide text-white">New List</h2>
+                <button
+                  type="button"
+                  onClick={resetCreateForm}
+                  className="flex items-center justify-center w-8 h-8 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              {/* Form */}
-              <div className="p-6 space-y-4">
+              <div className="px-6 pb-6 space-y-4">
                 <div>
-                  <label htmlFor="listName" className="block mb-2 text-sm font-medium text-gray-300">
-                    List Name *
+                  <label htmlFor="listName" className="block mb-1.5 text-xs font-mono uppercase tracking-wider text-gray-500">
+                    List name
                   </label>
                   <input
                     type="text"
@@ -510,14 +446,14 @@ export default function ListsHomePage() {
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
                     placeholder="My Favorite Movies"
-                    className="w-full px-3 py-2 text-gray-900 placeholder-gray-500 bg-white border border-gray-300 border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent"
                     required
                     autoFocus
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="listDescription" className="block mb-2 text-sm font-medium text-gray-300">
+                  <label htmlFor="listDescription" className="block mb-1.5 text-xs font-mono uppercase tracking-wider text-gray-500">
                     Description
                   </label>
                   <textarea
@@ -526,46 +462,42 @@ export default function ListsHomePage() {
                     onChange={(e) => setCreateDescription(e.target.value)}
                     placeholder="A brief description of your list..."
                     rows={3}
-                    className="w-full px-3 py-2 text-gray-900 placeholder-gray-500 bg-white border border-gray-300 rounded-md border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gold-500/50 focus:border-transparent resize-none"
                   />
                 </div>
 
-                <div className="flex items-center">
+                <label htmlFor="isPublic" className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     id="isPublic"
                     checked={createIsPublic}
                     onChange={(e) => setCreateIsPublic(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 bg-white border-gray-300 border-gray-600 focus:ring-blue-400 bg-gray-800"
+                    className="w-4 h-4 rounded border-white/20 bg-white/5 text-gold-500 focus:ring-gold-500/50 focus:ring-offset-0"
                   />
-                  <label htmlFor="isPublic" className="ml-2 text-sm text-gray-300">
-                    Make this list public (others can view it)
-                  </label>
-                </div>
+                  <span className="text-sm text-gray-300">Make this list public</span>
+                </label>
               </div>
 
-              {/* Footer */}
-              <div className="p-6 border-t border-gray-200 border-gray-700 bg-gray-800/50">
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={resetCreateForm}
-                    className="px-4 py-2 text-gray-700 transition-colors border border-gray-300 text-gray-300 border-gray-600 hover:bg-gray-700"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={creating || !createName.trim()}
-                    className="px-4 py-2 text-white transition-colors bg-blue-600 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {creating ? "Creating..." : "Create List"}
-                  </button>
-                </div>
+              <div className="px-6 pb-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={resetCreateForm}
+                  className="flex-1 px-4 py-3 rounded-full border border-white/10 bg-white/5 text-gray-300 hover:bg-white/10 transition-colors text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating || !createName.trim()}
+                  className="flex-1 px-4 py-3 rounded-full bg-gold-500 text-black font-semibold hover:bg-gold-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                >
+                  {creating ? "Creating…" : "Create list"}
+                </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Auth Modal */}

@@ -8,49 +8,19 @@ import { useFollowing } from "@/hooks/useFollowing";
 import UserAvatar from "@/components/ui/UserAvatar";
 import FollowButton from "@/components/social/FollowButton";
 import { useUser } from "@supabase/auth-helpers-react";
-import { useMemo, useState } from "react";
+import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
+import { useState } from "react";
 
 function ProfileHeader({
   username,
 }: {
   username: string;
 }) {
-  const { profile, movies, awards, stats, loading, notFound } = usePublicProfile(username);
+  const { profile, loading, notFound } = usePublicProfile(username);
   const sessionUser = useUser();
-  const [statsScope, setStatsScope] = useState<"all" | "year">("all");
-
-  // "This Year" scopes the same all-time data (already fetched above) down to
-  // films released in the current year — mirrors the Settings page's
-  // StatsSummary scope semantics (release_year, not rating/watch date, since
-  // each year is its own ballot here). Computed client-side rather than a
-  // second API round-trip since `movies`/`awards` already carry everything
-  // needed. Awards mirrors the API's own all-time fallback: use recorded
-  // best-picture award years when any exist, else derive from rated films.
-  const yearStats = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const ratedThisYear = movies.filter(
-      (m) => m.release_year === currentYear && typeof m.rankings?.[0]?.ranking === "number"
-    );
-    const seenThisYear = movies.filter(
-      (m) => m.release_year === currentYear && m.rankings?.[0]?.seen_it
-    );
-    const hasRecordedAwards = awards.length > 0;
-    const awardedThisYear = hasRecordedAwards
-      ? awards.some((a) => Number(a.year) === currentYear)
-      : ratedThisYear.length > 0;
-
-    return {
-      rated: ratedThisYear.length,
-      seen: seenThisYear.length,
-      awards: awardedThisYear ? 1 : 0,
-      films: seenThisYear.length,
-    };
-  }, [movies, awards]);
-
-  const activeStats = statsScope === "year" ? yearStats : stats;
   const { followingIds, toggleFollow } = useFollowing(profile?.id ?? null);
   const [copied, setCopied] = useState(false);
-  const isOwnProfile = sessionUser?.id === profile?.id;
+  const isOwnProfile = useIsProfileOwner(profile?.id);
 
   const handleCopyProfileUrl = async () => {
     try {
@@ -71,11 +41,6 @@ function ProfileHeader({
             <div className="h-7 w-48 bg-gray-700 rounded mb-2" />
             <div className="h-4 w-28 bg-gray-700/60 rounded" />
           </div>
-        </div>
-        <div className="grid grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-14 bg-gray-700/40 rounded-lg" />
-          ))}
         </div>
       </div>
     );
@@ -98,124 +63,73 @@ function ProfileHeader({
     profile.full_name ||
     profile.username;
 
-  const statItems = [
-    { label: "AWARDS", value: activeStats.awards, icon: <Trophy className="w-3.5 h-3.5" /> },
-    { label: "RANKINGS", value: activeStats.rated, icon: <Star className="w-3.5 h-3.5" /> },
-    { label: "FILMS", value: activeStats.films, icon: <Film className="w-3.5 h-3.5" /> },
-  ];
-
   return (
     <div className="mb-2">
-      <div className="md:flex md:items-start md:justify-between md:gap-8">
-        {/* Profile info row */}
-        <div className="flex items-center gap-5 mb-5 md:mb-0 md:min-w-0">
-          <UserAvatar
-            imageUrl={profile.avatar_url}
-            name={displayName}
-            username={profile.username}
-            size={96}
-            alt={displayName || "Profile"}
-            className="w-20 h-20 sm:w-24 sm:h-24 border-4 border-gray-700/60"
-          />
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white truncate">
-              {displayName}
-            </h1>
-            <p className="text-gray-400 text-sm">@{profile.username}</p>
-            {profile.bio ? (
-              <p className="mt-1.5 text-sm text-gray-300/80 italic line-clamp-2">{profile.bio}</p>
-            ) : (
-              <p className="mt-1.5 text-xs text-gray-500 italic">Curating film history one year at a time.</p>
+      <div className="flex items-center gap-5 mb-5">
+        <UserAvatar
+          imageUrl={profile.avatar_url}
+          name={displayName}
+          username={profile.username}
+          size={96}
+          alt={displayName || "Profile"}
+          className="w-20 h-20 sm:w-24 sm:h-24 border-4 border-gray-700/60"
+        />
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white truncate">
+            {displayName}
+          </h1>
+          <p className="text-gray-400 text-sm">@{profile.username}</p>
+          {profile.bio ? (
+            <p className="mt-1.5 text-sm text-gray-300/80 italic line-clamp-2">{profile.bio}</p>
+          ) : (
+            <p className="mt-1.5 text-xs text-gray-500 italic">Curating film history one year at a time.</p>
+          )}
+          {/* Actions: follow + share. gap-y-6 (24px) is intentionally larger
+              than gap-x-2 (8px): on narrow screens this row can flex-wrap,
+              stacking Share below Follow, and Follow's before:-inset-y-2.5
+              (10px) plus Share's before:-inset-y-3 (12px) need 22px of
+              clearance to avoid the two hit-boxes overlapping vertically
+              the same way they used to overlap horizontally. */}
+          <div className="mt-2 flex items-center gap-x-2 gap-y-6 flex-wrap">
+            {sessionUser && profile && (
+              <FollowButton
+                targetProfileId={profile.id}
+                isFollowing={followingIds.has(profile.id)}
+                isOwnProfile={isOwnProfile}
+                onToggle={toggleFollow}
+                size="sm"
+              />
             )}
-            {/* Actions: follow + share. gap-y-6 (24px) is intentionally larger
-                than gap-x-2 (8px): on narrow screens this row can flex-wrap,
-                stacking Share below Follow, and Follow's before:-inset-y-2.5
-                (10px) plus Share's before:-inset-y-3 (12px) need 22px of
-                clearance to avoid the two hit-boxes overlapping vertically
-                the same way they used to overlap horizontally. */}
-            <div className="mt-2 flex items-center gap-x-2 gap-y-6 flex-wrap">
-              {sessionUser && profile && (
-                <FollowButton
-                  targetProfileId={profile.id}
-                  isFollowing={followingIds.has(profile.id)}
-                  isOwnProfile={isOwnProfile}
-                  onToggle={toggleFollow}
-                  size="sm"
-                />
+            {/* Visual chip stays compact (px-2.5 py-1 text-[11px]) to match the
+                header's dense layout; the before:-inset-y-3 pseudo-element pads
+                the real tappable area out to 44px+ tall on touch without
+                enlarging the visible pill. Horizontal expansion is
+                intentionally zero (before:inset-x-0) — this pill's own text
+                ("Share Profile"/"Copied!") already clears 44px wide, and the
+                old before:-inset-3 (12px, all sides) reached 4px past the
+                8px gap-2 onto the Follow button's own visible pixels; since
+                Share renders later in DOM with z-index:auto, its invisible
+                hit-box was winning the hit-test over Follow's real button in
+                that 4px strip (tapping the right edge of "Follow" copied the
+                URL instead of toggling follow). Removing the horizontal
+                reach fixes that at the source; FollowButton's own z-10 is
+                the backstop. */}
+            <button
+              onClick={handleCopyProfileUrl}
+              className="relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-gray-400 hover:text-white bg-gray-800/40 hover:bg-gray-700/60 border border-gray-700/30 hover:border-gray-600/50 transition-all before:content-[''] before:absolute before:inset-x-0 before:-inset-y-3"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3 h-3 text-green-400" />
+                  <span className="text-green-400">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-3 h-3" />
+                  Share Profile
+                </>
               )}
-              {/* Visual chip stays compact (px-2.5 py-1 text-[11px]) to match the
-                  header's dense layout; the before:-inset-y-3 pseudo-element pads
-                  the real tappable area out to 44px+ tall on touch without
-                  enlarging the visible pill. Horizontal expansion is
-                  intentionally zero (before:inset-x-0) — this pill's own text
-                  ("Share Profile"/"Copied!") already clears 44px wide, and the
-                  old before:-inset-3 (12px, all sides) reached 4px past the
-                  8px gap-2 onto the Follow button's own visible pixels; since
-                  Share renders later in DOM with z-index:auto, its invisible
-                  hit-box was winning the hit-test over Follow's real button in
-                  that 4px strip (tapping the right edge of "Follow" copied the
-                  URL instead of toggling follow). Removing the horizontal
-                  reach fixes that at the source; FollowButton's own z-10 is
-                  the backstop. */}
-              <button
-                onClick={handleCopyProfileUrl}
-                className="relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-gray-400 hover:text-white bg-gray-800/40 hover:bg-gray-700/60 border border-gray-700/30 hover:border-gray-600/50 transition-all before:content-[''] before:absolute before:inset-x-0 before:-inset-y-3"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-3 h-3 text-green-400" />
-                    <span className="text-green-400">Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="w-3 h-3" />
-                    Share Profile
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats row — MeepleGo-inspired */}
-        <div className="md:w-[360px]">
-          <div className="flex justify-end mb-1.5">
-            <div className="inline-flex rounded-md overflow-hidden border border-gray-700/50">
-              <button
-                type="button"
-                onClick={() => setStatsScope("all")}
-                className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                  statsScope === "all" ? "bg-gold-500/90 text-gray-900" : "bg-transparent text-gray-400 hover:text-gray-200"
-                }`}
-              >
-                All-time
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatsScope("year")}
-                className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                  statsScope === "year" ? "bg-gold-500/90 text-gray-900" : "bg-transparent text-gray-400 hover:text-gray-200"
-                }`}
-              >
-                This Year
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 rounded-lg border border-gray-700/40 bg-gray-800/20">
-            {statItems.map((s, index) => (
-              <div
-                key={s.label}
-                className={`flex flex-col items-center py-2.5 px-1 ${
-                  index > 0 ? "border-l border-gray-700/50" : ""
-                }`}
-              >
-                <div className="flex items-center gap-1 text-gray-500 mb-0.5">
-                  {s.icon}
-                  <span className="text-[10px] uppercase tracking-wider font-medium">{s.label}</span>
-                </div>
-                <span className="text-xl sm:text-2xl font-bold text-white">{s.value}</span>
-              </div>
-            ))}
+            </button>
           </div>
         </div>
       </div>

@@ -237,9 +237,9 @@ export default function ImportPage() {
                 setSource(s.id);
                 setStep("upload");
               }}
-              className="w-full text-left rounded-xl border border-gray-700/40 bg-gray-900/40 px-5 py-4 hover:border-yellow-500/30 hover:bg-gray-900/60 transition-all group"
+              className="w-full text-left rounded-xl border border-gray-700/40 bg-gray-900/40 px-5 py-4 hover:border-gold-500/30 hover:bg-gray-900/60 transition-all group"
             >
-              <p className="font-semibold text-white group-hover:text-yellow-200 transition-colors">
+              <p className="font-semibold text-white group-hover:text-gold-200 transition-colors">
                 {s.label}
               </p>
               <p className="mt-0.5 text-sm text-gray-500">{s.description}</p>
@@ -268,9 +268,9 @@ export default function ImportPage() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="w-full rounded-xl border-2 border-dashed border-gray-700/40 bg-gray-900/20 px-6 py-12 flex flex-col items-center gap-3 hover:border-yellow-500/30 hover:bg-gray-900/40 transition-all group"
+            className="w-full rounded-xl border-2 border-dashed border-gray-700/40 bg-gray-900/20 px-6 py-12 flex flex-col items-center gap-3 hover:border-gold-500/30 hover:bg-gray-900/40 transition-all group"
           >
-            <Upload className="h-8 w-8 text-gray-600 group-hover:text-yellow-400 transition-colors" />
+            <Upload className="h-8 w-8 text-gray-600 group-hover:text-gold-400 transition-colors" />
             <span className="text-sm font-medium text-gray-400 group-hover:text-gray-200 transition-colors">
               Click to choose a CSV file
             </span>
@@ -347,7 +347,7 @@ export default function ImportPage() {
                     <span className="text-xs text-gray-600 flex-shrink-0">{row.year}</span>
                   </div>
                   {row.rating !== null ? (
-                    <span className="text-xs font-semibold text-yellow-400 flex-shrink-0">
+                    <span className="text-xs font-semibold text-gold-400 flex-shrink-0">
                       {row.rating}/10
                     </span>
                   ) : row.watched ? (
@@ -388,11 +388,11 @@ export default function ImportPage() {
               type="button"
               onClick={() => void handleImport()}
               disabled={importing}
-              className="ml-auto inline-flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-6 py-2.5 text-sm font-medium text-yellow-300 hover:bg-yellow-500/20 transition-all disabled:opacity-50"
+              className="ml-auto inline-flex items-center gap-2 rounded-full border border-gold-300/40 bg-gold-500 px-6 py-2.5 text-sm font-medium text-black shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 transition-all disabled:opacity-50"
             >
               {importing ? (
                 <>
-                  <span className="h-4 w-4 rounded-full border-2 border-yellow-400/30 border-t-yellow-400 animate-spin" />
+                  <span className="h-4 w-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />
                   {importPhase === "backfilling"
                     ? `Looking up unmatched titles among ${watchedRows.length} films…`
                     : `Matching ${watchedRows.length} films…`}
@@ -409,7 +409,7 @@ export default function ImportPage() {
       {step === "done" && result && (
         <div>
           <div className="mb-8 flex flex-col items-center text-center">
-            <CheckCircle className="h-12 w-12 text-yellow-400 mb-4" />
+            <CheckCircle className="h-12 w-12 text-gold-400 mb-4" />
             <h2 className="text-xl font-bold font-unbounded text-white mb-1">
               Import complete
             </h2>
@@ -420,7 +420,7 @@ export default function ImportPage() {
 
           <div className="grid grid-cols-2 gap-3 mb-8 sm:grid-cols-3">
             <div className="rounded-xl border border-gray-700/30 bg-gray-900/40 px-4 py-4 text-center">
-              <p className="text-2xl font-bold text-yellow-400">{result.imported}</p>
+              <p className="text-2xl font-bold text-gold-400">{result.imported}</p>
               <p className="text-xs text-gray-500 mt-0.5">Films imported</p>
             </div>
             {result.skipped > 0 && (
@@ -504,7 +504,7 @@ export default function ImportPage() {
             <button
               type="button"
               onClick={() => router.push("/")}
-              className="ml-auto inline-flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-6 py-2.5 text-sm font-medium text-yellow-300 hover:bg-yellow-500/20 transition-all"
+              className="ml-auto inline-flex items-center gap-2 rounded-full border border-gold-300/40 bg-gold-500 px-6 py-2.5 text-sm font-medium text-black shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 transition-all"
             >
               Go to homepage
             </button>

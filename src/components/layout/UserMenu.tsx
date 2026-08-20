@@ -133,14 +133,14 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown', on
             type="button"
             onClick={handleLogin}
             data-testid="primary-cta-login"
-            className="w-full px-3 py-2 text-sm font-medium text-gray-300 transition-colors border rounded-md border-gray-600/60 hover:bg-gray-800"
+            className="w-full px-4 py-2 text-sm font-medium text-gray-300 transition-colors border rounded-full border-gray-600/60 hover:bg-gray-800 hover:text-white"
           >
             Log In
           </button>
           <button
             type="button"
             onClick={handleSignup}
-            className="w-full px-3 py-2 text-sm font-medium text-black transition-colors rounded-md shadow bg-gold-500 hover:bg-gold-400"
+            className="w-full px-4 py-2 text-sm font-medium text-black transition-colors border rounded-full border-gold-300/40 bg-gold-500 shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35"
           >
             Sign Up
           </button>
@@ -153,14 +153,14 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown', on
         <Link
           href="/login"
           data-testid="primary-cta-login"
-          className="px-3 py-1.5 text-sm font-medium text-white border border-gray-600/50 rounded-lg hover:border-gray-400/60 hover:text-gold transition-colors"
+          className="px-4 py-1.5 text-sm font-medium text-white border border-gray-600/50 rounded-full hover:border-gray-400/60 hover:text-gold transition-colors"
         >
           Log In
         </Link>
         <button
           type="button"
           onClick={handleSignup}
-          className="px-4 py-2 text-sm font-medium text-black transition-colors rounded-lg shadow bg-gold-500 hover:bg-gold-400"
+          className="px-4 py-2 text-sm font-medium text-black transition-colors border rounded-full border-gold-300/40 bg-gold-500 shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35"
         >
           Sign Up
         </button>

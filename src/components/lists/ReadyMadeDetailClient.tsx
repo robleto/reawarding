@@ -1,10 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
+import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import type { Movie } from "@/types/types";
-import { normalizeImageUrl } from "@/utils/imageUrl";
 
 export type ReadyMadeMovie = {
   id: string;
@@ -46,27 +45,31 @@ export default function ReadyMadeDetailClient({ movies }: { movies: ReadyMadeMov
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      {/* Same row anatomy as the classic list-detail page's default (list)
+          view mode (src/components/list/DraggableMovieCard.tsx's list
+          branch → MovieCard variant="compact") — rank 10 down to 1, no
+          drag handle/remove button since this isn't an editable saved
+          list yet, just a preview. */}
+      <div className="space-y-2">
         {movies.map((m, idx) => (
-          <button
+          <MovieCard
             key={m.id}
-            type="button"
+            movie={{
+              id: m.id,
+              title: m.title,
+              release_year: m.release_year,
+              poster_url: m.poster_url,
+              thumb_url: null,
+              created_at: "",
+              rankings: [],
+            } as unknown as Movie}
+            variant="compact"
+            rank={idx + 1}
+            ranking={m.ranking ?? null}
+            seenIt={true}
+            showYear
             onClick={() => openModal(m)}
-            className="p-2 text-left border rounded bg-charcoal-900/60 border-gold-500/20 hover:border-gold-500/40 focus:outline-none focus:ring-2 focus:ring-gold-500/30"
-          >
-            <div className="relative aspect-[2/3] rounded overflow-hidden border border-gray-800 bg-gray-800">
-              <div className="absolute z-10 px-3 py-2 text-lg font-bold text-white border rounded-md shadow-sm top-2 left-2 bg-charcoal-900/80 border-gray-300/50 font-unbounded backdrop-blur-sm">
-                {idx + 1}
-              </div>
-              {m.poster_url ? (
-                <Image src={normalizeImageUrl(m.poster_url)} alt={m.title} width={400} height={600} className="object-cover w-full h-full" />
-              ) : (
-                <div className="flex items-center justify-center w-full h-full text-xs text-gray-600">No Image</div>
-              )}
-            </div>
-            <div className="mt-2 text-sm font-medium line-clamp-2">{m.title}</div>
-            <div className="text-xs text-gray-500">{m.release_year ?? ""}</div>
-          </button>
+          />
         ))}
       </div>
 

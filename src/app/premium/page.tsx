@@ -75,7 +75,7 @@ export default function PremiumPage() {
         </p>
       </div>
 
-      <div className="dark-glass rounded-xl border border-gray-700/40 p-6 mb-6">
+      <div className="dark-glass rounded-xl p-6 mb-6">
         <h2 className="text-lg font-semibold text-white mb-1">Your Alternate Oscar History</h2>
         <p className="text-sm text-gray-400 mb-3">
           Your per-year Upheld/Reawarded/Unscreened verdict against the Academy is free on every
@@ -84,7 +84,7 @@ export default function PremiumPage() {
         </p>
       </div>
 
-      <div className="dark-glass rounded-xl border border-gray-700/40 p-6 mb-8">
+      <div className="dark-glass rounded-xl p-6 mb-8">
         <h2 className="text-lg font-semibold text-white mb-1">Automation</h2>
         <p className="text-sm text-gray-400 mb-3">
           Ready-Made Lists (auto-built collections by director, actor, genre, and decade) and
@@ -97,7 +97,7 @@ export default function PremiumPage() {
         <div className="text-center">
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 px-6 py-3 text-black bg-gold-500 rounded-lg hover:bg-gold-400 font-medium"
+            className="inline-flex items-center gap-2 px-6 py-3 text-black bg-gold-500 rounded-full border border-gold-300/40 shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 font-medium transition-colors"
           >
             Sign in to unlock Premium
           </Link>
@@ -120,7 +120,7 @@ export default function PremiumPage() {
           <button
             onClick={handleUpgrade}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-6 py-3 text-black bg-gold-500 rounded-lg hover:bg-gold-400 disabled:opacity-50 font-medium"
+            className="inline-flex items-center gap-2 px-6 py-3 text-black bg-gold-500 rounded-full border border-gold-300/40 shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 disabled:opacity-50 font-medium transition-colors"
           >
             <Lock className="w-4 h-4" />
             {loading ? "Redirecting…" : "Unlock Premium — $19/yr"}

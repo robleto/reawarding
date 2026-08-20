@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Minus } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 
@@ -7,6 +8,9 @@ interface RankingDropdownProps {
   ranking: number | null;
   onChange: (value: number | null) => void;
   disabled?: boolean;
+  /** Round pill badge instead of the old rounded-square — this is the app's
+   * one rating-badge design now, defaults to true. */
+  native?: boolean;
 }
 
 const RANKING_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1);
@@ -23,7 +27,7 @@ const RATING_LABELS: Record<number, string> = {
   1: "Awful",
 };
 
-export default function RankingDropdown({ ranking, onChange, disabled = false }: RankingDropdownProps) {
+export default function RankingDropdown({ ranking, onChange, disabled = false, native = true }: RankingDropdownProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -73,10 +77,15 @@ export default function RankingDropdown({ ranking, onChange, disabled = false }:
         type="button"
         disabled={disabled}
         onClick={() => setShowDropdown(!showDropdown)}
-        className={`font-bold px-3 py-1 min-h-[44px] rounded-lg border border-gray-700 bg-charcoal-900/80 text-white ${ranking ? 'text-base min-w-[44px]' : 'text-xs min-w-[48px]'}`}
-        style={{ backgroundColor: style.background, color: style.text }}
+        aria-label={ranking ? `Rated ${ranking}` : "Add your rating"}
+        className={
+          ranking
+            ? `font-bold font-mono px-3 py-1 min-h-[44px] min-w-[44px] text-base border border-gray-700 ${native ? "rounded-full" : "rounded-lg"}`
+            : "flex items-center justify-center min-h-[44px] min-w-[44px] rounded-xl border border-gray-600/50 bg-white/5 text-gray-400 transition-colors hover:border-gray-500/70 hover:bg-white/10"
+        }
+        style={ranking ? { backgroundColor: style.background, color: style.text } : undefined}
       >
-        {ranking ?? "Rate"}
+        {ranking ?? <Minus className="w-4 h-4" />}
       </button>
       {showDropdown && !disabled && !isMobile && (
         <div

@@ -168,15 +168,16 @@ export default function SignupModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-gray-800 rounded-lg max-w-md w-full p-6 my-8">
+      <div className="rounded-2xl border border-white/10 bg-charcoal-900/95 backdrop-blur-xl shadow-2xl max-w-md w-full p-6 my-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-white">
+          <h2 className="font-unbounded text-xl font-bold text-white">
             {emailSent ? "Check your email" : "Create account"}
           </h2>
           <button
             onClick={handleClose}
-            className="text-gray-400 text-gray-400 hover:text-white"
+            className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-white/10 bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+            aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -193,7 +194,7 @@ export default function SignupModal({
             <p className="mt-3 text-sm text-gray-400">
               Click the link in the email to activate your account. Check spam if you don&apos;t see it.
             </p>
-            <div className="mt-6 rounded-lg border border-gray-700 bg-gray-800/50 p-4 text-left">
+            <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-4 text-left">
               <p className="text-xs font-medium text-gray-300 mb-2">While you wait:</p>
               <ul className="space-y-1.5 text-xs text-gray-400">
                 <li>You&apos;ll pick movies you love and rate them</li>
@@ -203,7 +204,7 @@ export default function SignupModal({
             </div>
             <button
               onClick={handleClose}
-              className="mt-5 w-full bg-gold-500 text-gray-900 py-3 px-4 rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 font-medium touch-manipulation min-h-[44px]"
+              className="mt-5 w-full py-3 px-4 rounded-full border border-gold-300/40 bg-gold-500 text-black shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-charcoal-900 focus:ring-gold-500/60 font-medium transition-colors touch-manipulation min-h-[44px]"
             >
               Got it
             </button>
@@ -214,7 +215,7 @@ export default function SignupModal({
               <button
                 onClick={() => handleOAuthSignup('apple')}
                 disabled={loading}
-                className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-gray-600 rounded-md hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50"
+                className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-white/10 bg-white/5 rounded-full hover:bg-white/10 transition-colors duration-200 disabled:opacity-50"
               >
                 <svg className="w-5 h-5" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-3.014 1.57-.12 0-.23-.02-.3-.03-.014-.1-.04-.32-.04-.55 0-1.14.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.077.36.077.59zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.4-1.25-3.4-2.6-1.55-2.11-2.75-5.55-2.75-8.5 0-4.36 2.63-6.67 5.24-6.67 1.398 0 2.55.94 3.42.94.84 0 2.02-1 3.62-1 .53 0 2.36.05 3.6 1.72-.09.06-2.15 1.29-2.15 3.83 0 3.05 2.67 4.13 2.67 4.13z" />
@@ -224,7 +225,7 @@ export default function SignupModal({
               <button
                 onClick={() => handleOAuthSignup('google')}
                 disabled={loading}
-                className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-gray-600 rounded-md hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50"
+                className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-white/10 bg-white/5 rounded-full hover:bg-white/10 transition-colors duration-200 disabled:opacity-50"
               >
                 <svg className="w-5 h-5" aria-hidden="true" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -237,7 +238,7 @@ export default function SignupModal({
               <button
                 onClick={() => handleOAuthSignup('facebook')}
                 disabled={loading}
-                className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-gray-600 rounded-md hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50"
+                className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-white/10 bg-white/5 rounded-full hover:bg-white/10 transition-colors duration-200 disabled:opacity-50"
               >
                 <svg className="w-5 h-5" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.99 3.66 9.13 8.44 9.88v-6.99h-2.54V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99C18.34 21.13 22 16.99 22 12z" />
@@ -247,11 +248,11 @@ export default function SignupModal({
             </div>
 
             <div className="my-4 flex items-center">
-              <div className="flex-grow border-t border-gray-600"></div>
+              <div className="flex-grow border-t border-white/10"></div>
               <span className="mx-4 text-sm text-gray-400">
                 Or continue with email
               </span>
-              <div className="flex-grow border-t border-gray-600"></div>
+              <div className="flex-grow border-t border-white/10"></div>
             </div>
 
             <form onSubmit={handleEmailSignup} className="space-y-4">
@@ -263,7 +264,7 @@ export default function SignupModal({
                   Username
                 </label>
                 <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     id="signup-username"
                     type="text"
@@ -271,7 +272,7 @@ export default function SignupModal({
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
-                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-700 border-gray-600 text-white placeholder-gray-300"
+                    className="w-full pl-11 pr-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 border-white/10 text-white placeholder-gray-300"
                   />
                 </div>
               </div>
@@ -283,7 +284,7 @@ export default function SignupModal({
                   Email
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     id="email"
                     type="email"
@@ -291,7 +292,7 @@ export default function SignupModal({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-700 border-gray-600 text-white placeholder-gray-300"
+                    className="w-full pl-11 pr-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 border-white/10 text-white placeholder-gray-300"
                   />
                 </div>
               </div>
@@ -311,12 +312,12 @@ export default function SignupModal({
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
-                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-700 border-gray-600 text-white placeholder-gray-300"
+                    className="w-full pl-4 pr-11 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 border-white/10 text-white placeholder-gray-300"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white"
+                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-white"
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -364,14 +365,14 @@ export default function SignupModal({
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-700 border-gray-600 text-white placeholder-gray-300"
+                    className="w-full pl-4 pr-11 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 border-white/10 text-white placeholder-gray-300"
                   />
                   <button
                     type="button"
                     onClick={() =>
                       setShowConfirmPassword(!showConfirmPassword)
                     }
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white"
+                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-white"
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="w-5 h-5" />
@@ -386,13 +387,13 @@ export default function SignupModal({
                   type="checkbox"
                   checked={emailOptIn}
                   onChange={(e) => setEmailOptIn(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-yellow-500 focus:ring-yellow-500"
+                  className="mt-0.5 h-4 w-4 rounded border-gray-500 accent-gold-500 focus:ring-gold-500/40"
                 />
                 <span>Send me product updates by email (optional).</span>
               </label>
 
               {error && (
-                <div className="p-3 text-sm bg-red-900/20 text-red-300 border border-red-800 rounded-lg">
+                <div className="p-3 text-sm bg-red-900/20 text-red-300 border border-red-800 rounded-xl">
                   {error}
                 </div>
               )}
@@ -400,7 +401,7 @@ export default function SignupModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gold-500 hover:bg-yellow-600 text-gray-900 py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50 font-medium touch-manipulation min-h-[44px]"
+                className="w-full py-3 px-4 rounded-full border border-gold-300/40 bg-gold-500 text-black shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-charcoal-900 focus:ring-gold-500/60 disabled:opacity-50 font-medium transition-colors touch-manipulation min-h-[44px]"
               >
                 {loading ? "Creating account..." : "Create Account"}
               </button>
@@ -411,7 +412,7 @@ export default function SignupModal({
                 Already have an account?{" "}
                 <button
                   onClick={onSwitchToLogin}
-                  className="font-medium text-gold-500 hover:text-yellow-400 transition-colors"
+                  className="font-medium text-gold-500 hover:text-gold-400 transition-colors"
                 >
                   Sign in
                 </button>
