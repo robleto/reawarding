@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Activity, Bookmark, Film, LogOut, Moon, Monitor, Plus, Settings, Star, Sun, Trophy, User, Users, List } from 'lucide-react';
+import { Activity, Bookmark, Film, Layers, LogOut, Moon, Monitor, Plus, Settings, Star, Sun, Trophy, User, Users, List } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useProfile } from '@/contexts/ProfileContext';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
@@ -187,14 +187,15 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown', on
   const u = profile?.username;
 
   const navItems = u ? [
-    { href: `/${u}`,            icon: User,     label: 'My Profile'   },
-    { href: `/${u}/awards`,     icon: Trophy,   label: 'My Awards'    },
-    { href: `/${u}/rankings`,   icon: Star,     label: 'My Ratings'   },
-    { href: `/${u}/films`,      icon: Film,     label: 'My Films'     },
-    { href: `/${u}/watchlist`,  icon: Bookmark, label: 'My Watchlist' },
-    { href: `/${u}/lists`,      icon: List,     label: 'My Lists'     },
-    { href: `/${u}/activity`,   icon: Activity, label: 'My Activity'  },
-    { href: `/${u}/following`,  icon: Users,    label: 'My Friends'   },
+    { href: `/${u}`,             icon: User,     label: 'Profile'    },
+    { href: `/${u}/awards`,      icon: Trophy,   label: 'Awards'     },
+    { href: `/${u}/rankings`,    icon: Star,     label: 'Ratings'    },
+    { href: `/${u}/films`,       icon: Film,     label: 'Films'      },
+    { href: `/${u}/collections`, icon: Layers,   label: 'Collections'},
+    { href: `/${u}/watchlist`,   icon: Bookmark, label: 'Watchlist'  },
+    { href: `/${u}/lists`,       icon: List,     label: 'Lists'      },
+    { href: `/${u}/activity`,    icon: Activity, label: 'Activity'   },
+    { href: `/${u}/following`,   icon: Users,    label: 'Friends'    },
   ] : [];
 
   // ── Inline variant (rendered inside HeaderNav's mobile hamburger panel) ──

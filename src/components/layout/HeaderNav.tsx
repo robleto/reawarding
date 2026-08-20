@@ -8,9 +8,11 @@ import { UserMenu } from "@/components/layout/UserMenu";
 import NavSearch from "@/components/layout/NavSearch";
 import AuthModalManager from "@/components/auth/AuthModalManager";
 import { Logo } from "@/components/ui/Logo";
+import UserAvatar from "@/components/ui/UserAvatar";
 import { useScrollBackground } from "@/hooks/useScrollBackground";
 import AddMovieByTmdbModal from "@/components/movie/AddMovieByTmdbModal";
 import { useAuthState } from "@/hooks/useAuthState";
+import { useProfile } from "@/contexts/ProfileContext";
 
 export default function HeaderNav() {
 	const pathname = usePathname();
@@ -24,6 +26,11 @@ export default function HeaderNav() {
 	const headerRef = useRef<HTMLElement>(null);
 	const hasScrolled = useScrollBackground();
 	const { user } = useAuthState();
+	const { profile } = useProfile();
+	// Same derivation UserMenu uses — only swap in the photo when one is
+	// actually set; otherwise the hamburger icon stays exactly as it was.
+	const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
+	const displayName = profile?.full_name || profile?.username || user?.email;
 
 	// AppShell's <main> needs to clear this header exactly, but the header's
 	// true height (safe-area inset + logo/badge row) varies by device and
@@ -214,7 +221,11 @@ export default function HeaderNav() {
 							>
 								<Search className="w-5 h-5" />
 							</button>
-							{/* Mobile Menu Button */}
+							{/* Mobile Menu Button — shows the user's own avatar photo in
+							    place of the hamburger glyph once one is set (real photo
+							    only, not the initials fallback UserAvatar draws when
+							    there's no photo — that's not "filled in"). Still swaps
+							    to X while the menu is open either way. */}
 							<button
 								onClick={() => { setMobileMenuOpen(!mobileMenuOpen); if (!mobileMenuOpen) { setMobileSearchOpen(false); } }}
 								className={`md:hidden inline-flex items-center justify-center w-11 h-11 rounded-full border backdrop-blur-sm transition-colors active:scale-95 ml-auto ${
@@ -222,10 +233,12 @@ export default function HeaderNav() {
 										? "text-gold-300 bg-gold-500/15 border-gold-500/25"
 										: "text-gray-300 bg-white/5 border-white/10 hover:bg-white/10 hover:text-white"
 								}`}
-								aria-label="Toggle mobile menu"
+								aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
 							>
 								{mobileMenuOpen ? (
 									<X className="w-5 h-5" />
+								) : avatarUrl ? (
+									<UserAvatar imageUrl={avatarUrl} name={displayName} username={profile?.username} size={30} />
 								) : (
 									<Menu className="w-5 h-5" />
 								)}
@@ -248,44 +261,22 @@ export default function HeaderNav() {
 					</div>
 				)}
 
-				{/* Mobile Menu */}
+				{/* Mobile Menu — Films/Rankings/Lists dropped from here (they're
+				    already in MobileTabBar's bottom nav, so listing them again
+				    here was pure duplication). UserMenu's own inline variant
+				    still covers profile-scoped destinations (My Films, My
+				    Ratings, My Lists, etc.), which are different pages from
+				    these global catalog links, not repeats of them. */}
 				{mobileMenuOpen && (
 					<div className="md:hidden mx-3 mb-3 rounded-2xl border border-white/10 bg-charcoal-900/95 backdrop-blur-xl shadow-2xl transition-colors duration-300">
 						<nav className="px-3 py-3">
-							<ul className="space-y-1">
-								{navItems.map((item) => {
-									const Icon = item.icon;
-									const isActive =
-										pathname === item.match ||
-										(item.match === "/" && pathname === "");
-
-									return (
-										<li key={item.href}>
-											<Link
-												href={item.href}
-												className={`flex items-center gap-2 py-2.5 px-3 rounded-xl font-medium transition-colors active:scale-[0.98] ${
-													isActive
-														? "text-gold-300 bg-gold-500/15"
-														: "text-gray-300 hover:text-gold hover:bg-white/5"
-												}`}
-												onClick={() => setMobileMenuOpen(false)}
-											>
-												<Icon className="w-4 h-4" />
-												<span>{item.label}</span>
-											</Link>
-										</li>
-									);
-								})}
-							</ul>
-							<div className={navItems.length > 0 ? "mt-3 border-t border-white/10 pt-3" : undefined}>
-								<UserMenu
-									variant="inline"
-									onLoginClick={handleLoginClick}
-									onSignupClick={handleSignupClick}
-									onNavigate={() => setMobileMenuOpen(false)}
-									onAddFilmClick={user ? () => { setMobileMenuOpen(false); setShowAddMovieModal(true); } : undefined}
-								/>
-							</div>
+							<UserMenu
+								variant="inline"
+								onLoginClick={handleLoginClick}
+								onSignupClick={handleSignupClick}
+								onNavigate={() => setMobileMenuOpen(false)}
+								onAddFilmClick={user ? () => { setMobileMenuOpen(false); setShowAddMovieModal(true); } : undefined}
+							/>
 						</nav>
 					</div>
 				)}
