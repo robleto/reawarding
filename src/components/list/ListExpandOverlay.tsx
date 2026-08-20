@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { motion, useMotionValue, animate, type PanInfo } from "framer-motion";
 import ListDetailView from "@/components/list/ListDetailView";
 import { NetflixGlow } from "@/components/ui/NetflixGlow";
+import BackToTopButton from "@/components/ui/BackToTopButton";
 
 type MovieList = {
   id: string;
@@ -212,6 +213,10 @@ export default function ListExpandOverlay({ lists, initialIndex, onClose }: List
           </div>
         ))}
       </motion.div>
+      <BackToTopButton
+        getContainer={() => scrollRefs.current.get(index) ?? null}
+        className="bottom-6 right-4 sm:right-6"
+      />
     </div>,
     document.body
   );

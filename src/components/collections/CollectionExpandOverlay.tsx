@@ -1,30 +1,27 @@
 "use client";
 
-import { cloneElement, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, useMotionValue, animate, type PanInfo } from "framer-motion";
 import { NetflixGlow } from "@/components/ui/NetflixGlow";
 import BackToTopButton from "@/components/ui/BackToTopButton";
+import CollectionDetailView from "@/components/collections/CollectionDetailView";
+import type { UserCollectionProgress } from "@/hooks/useUserCollectionProgress";
 
-interface ReadyMadeExpandOverlaySlide {
-  key: string;
-  // A <ReadyMadeSuggestionDetail /> element, already assembled server-side
-  // (its primaryAction/dismissForm slots hold real server-action forms).
-  // The overlay only ever injects onRequestClose on a clone of it.
-  node: ReactElement<{ onRequestClose?: () => void }>;
-}
-
-interface ReadyMadeExpandOverlayProps {
-  slides: ReadyMadeExpandOverlaySlide[];
+interface CollectionExpandOverlayProps {
+  collections: UserCollectionProgress[];
+  userId: string | null;
   initialIndex: number;
   onClose: () => void;
 }
 
-// Same toss-to-dismiss/pager physics as ListExpandOverlay
-// (src/components/list/ListExpandOverlay.tsx), ported from galactic-weather's
-// TossToDismiss.swift — kept as a separate copy rather than a shared helper
-// since that gesture code is fiddly and already shipped for Lists; Ready-Made
-// has no drag-to-reorder/editing mode, so this version skips that branch.
+// Same toss-to-dismiss/pager physics as ReadyMadeExpandOverlay
+// (src/components/lists/ReadyMadeExpandOverlay.tsx) and ListExpandOverlay —
+// kept as its own copy per that established pattern (each variant skips
+// branches the others need; Collections has no edit/reorder mode, same as
+// Ready-Made, so it doesn't need cloneElement injection of pre-assembled
+// server-composed elements — CollectionDetailView is a plain client
+// component, so slides just carry the data and render it directly).
 const VERTICAL_VELOCITY_THRESHOLD = 420;
 const VERTICAL_DISTANCE_RATIO = 0.22;
 const AXIS_LOCK_DEADZONE = 4;
@@ -33,7 +30,7 @@ const TOSS_AWAY = { duration: 0.22, ease: "easeIn" } as const;
 const ENTRANCE = { duration: 0.32, ease: "easeOut" } as const;
 const PAGE_SPRING = { type: "spring", stiffness: 300, damping: 32 } as const;
 
-export default function ReadyMadeExpandOverlay({ slides, initialIndex, onClose }: ReadyMadeExpandOverlayProps) {
+export default function CollectionExpandOverlay({ collections, userId, initialIndex, onClose }: CollectionExpandOverlayProps) {
   const [index, setIndex] = useState(initialIndex);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scrollRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
@@ -49,7 +46,6 @@ export default function ReadyMadeExpandOverlay({ slides, initialIndex, onClose }
     x.set(-index * pageWidthRef.current);
     y.set(window.innerHeight);
     animate(y, 0, ENTRANCE);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -59,7 +55,6 @@ export default function ReadyMadeExpandOverlay({ slides, initialIndex, onClose }
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
 
   useEffect(() => {
@@ -122,19 +117,18 @@ export default function ReadyMadeExpandOverlay({ slides, initialIndex, onClose }
       const width = pageWidthRef.current || 1;
       const power = info.offset.x + info.velocity.x * 0.2;
       let nextIndex = index;
-      if (power < -width * 0.2) nextIndex = Math.min(index + 1, slides.length - 1);
+      if (power < -width * 0.2) nextIndex = Math.min(index + 1, collections.length - 1);
       else if (power > width * 0.2) nextIndex = Math.max(index - 1, 0);
       setIndex(nextIndex);
       animate(x, -nextIndex * width, PAGE_SPRING);
     }
   };
 
-  // Only the current page +/- 1 neighbor actually mounts its detail content —
-  // the rest render an inert placeholder (same neighbor-only approach as
-  // ListExpandOverlay).
+  // Only the current page +/- 1 neighbor actually mounts real detail
+  // content — the rest render an inert placeholder.
   const visibleRange = useMemo(
-    () => ({ start: Math.max(0, index - 1), end: Math.min(slides.length - 1, index + 1) }),
-    [index, slides.length]
+    () => ({ start: Math.max(0, index - 1), end: Math.min(collections.length - 1, index + 1) }),
+    [index, collections.length]
   );
 
   if (typeof document === "undefined") return null;
@@ -162,16 +156,26 @@ export default function ReadyMadeExpandOverlay({ slides, initialIndex, onClose }
         onPan={handlePan}
         onPanEnd={handlePanEnd}
       >
-        {slides.map((slide, i) => (
+        {collections.map((collection, i) => (
           <div
-            key={slide.key}
+            key={collection.collectionId}
             className="h-full w-full flex-shrink-0 overflow-y-auto px-4 sm:px-6"
             ref={(el) => {
               scrollRefs.current.set(i, el);
             }}
           >
             {i >= visibleRange.start && i <= visibleRange.end ? (
-              cloneElement(slide.node, { onRequestClose: dismiss })
+              <CollectionDetailView
+                collectionId={collection.collectionId}
+                title={collection.title}
+                description={collection.description}
+                filmsSeen={collection.filmsSeen}
+                totalFilms={collection.totalFilms}
+                isCompleted={collection.isCompleted}
+                userId={userId}
+                variant="overlay"
+                onRequestClose={dismiss}
+              />
             ) : (
               <div className="h-full w-full animate-pulse bg-charcoal-900/60" />
             )}

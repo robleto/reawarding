@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { Film, Trophy, Flame, TrendingUp, TrendingDown, Star, Bookmark, RefreshCcw, EyeOff } from "lucide-react";
+import { Film, Trophy, Flame, TrendingUp, TrendingDown, Star, Bookmark, RefreshCcw, EyeOff, Check } from "lucide-react";
 import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
@@ -71,6 +71,10 @@ export interface MovieCardProps {
 	 * watchlist is already the point (the Watchlist screen itself), so the icon
 	 * isn't redundant. */
 	hideBookmark?: boolean;
+	/** Compact, display-only rows only: desaturate/dim unseen films and add
+	 * a small check badge for seen ones — a checklist treatment for a
+	 * canonical membership list (e.g. a collection), not the default. */
+	dimUnseen?: boolean;
 }
 
 /* ── Shared helpers ── */
@@ -495,9 +499,15 @@ interface CompactCardProps {
 	incomplete?: boolean;
 	native?: boolean;
 	hideBookmark?: boolean;
+	/** Opt-in checklist treatment — desaturates/dims the poster when
+	    `seenIt` is false and adds a small check badge when true. Off by
+	    default so it doesn't change how every other existing display-only
+	    compact row looks; collection membership lists (a real checklist
+	    against a canonical film list) are the intended caller. */
+	dimUnseen?: boolean;
 }
 
-function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYear, interactive, onUpdate, seenIt, ratingLabel, showHotTake, incomplete, native = true, hideBookmark }: CompactCardProps) {
+function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYear, interactive, onUpdate, seenIt, ratingLabel, showHotTake, incomplete, native = true, hideBookmark, dimUnseen }: CompactCardProps) {
 	// Hot-take calculation
 	const myRating = rating;
 	const imdbRating = movie.imdb_rating || 0;
@@ -560,23 +570,35 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 							{rank}
 						</div>
 					)}
-					<div className="flex-shrink-0">
+					<div className="relative flex-shrink-0">
 						{thumbSrc ? (
 							<Image
 								src={thumbSrc}
 								alt=""
 								width={thumbW}
 								height={thumbH}
-								className={`shadow-md object-cover ${native ? "rounded-lg" : "rounded-md"}`}
+								className={`shadow-md object-cover transition-all ${native ? "rounded-lg" : "rounded-md"} ${
+									dimUnseen && !seenIt ? "grayscale opacity-40" : ""
+								}`}
 								style={{ width: thumbW, height: thumbH }}
 								sizes={`${thumbW}px`}
 								placeholder="blur"
 								blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(thumbW, thumbH))}`}
 							/>
 						) : (
-							<div className={`flex items-center justify-center bg-gray-800 ${native ? "rounded-lg" : "rounded-md"}`} style={{ width: thumbW, height: thumbH }}>
+							<div
+								className={`flex items-center justify-center bg-gray-800 ${native ? "rounded-lg" : "rounded-md"} ${
+									dimUnseen && !seenIt ? "opacity-40" : ""
+								}`}
+								style={{ width: thumbW, height: thumbH }}
+							>
 								<Film className="w-4 h-4 text-gray-600" />
 							</div>
+						)}
+						{dimUnseen && seenIt && (
+							<span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-black ring-2 ring-gray-900 shadow-md">
+								<Check className="w-3 h-3" strokeWidth={3} />
+							</span>
 						)}
 					</div>
 					<div className="flex-1 min-w-0 flex items-center justify-between">
@@ -619,22 +641,36 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 		>
 			{/* Desktop Layout */}
 			<div className="hidden md:flex items-center justify-between gap-2">
-				{thumbSrc ? (
-					<Image
-						src={thumbSrc}
-						alt={movie.title}
-						width={48}
-						height={72}
-						className="w-12 h-[72px] rounded-md shadow-md object-cover"
-						sizes="48px"
-						placeholder="blur"
-						blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(48, 72))}`}
-					/>
-				) : (
-					<div className="flex items-center justify-center bg-gray-800 rounded-md" style={{ width: 48, height: 72 }}>
-						<Film className="w-4 h-4 text-gray-600" />
-					</div>
-				)}
+				<div className="relative flex-shrink-0">
+					{thumbSrc ? (
+						<Image
+							src={thumbSrc}
+							alt={movie.title}
+							width={48}
+							height={72}
+							className={`w-12 h-[72px] rounded-md shadow-md object-cover transition-all ${
+								dimUnseen && !seenIt ? "grayscale opacity-35" : ""
+							}`}
+							sizes="48px"
+							placeholder="blur"
+							blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(48, 72))}`}
+						/>
+					) : (
+						<div
+							className={`flex items-center justify-center bg-gray-800 rounded-md ${
+								dimUnseen && !seenIt ? "opacity-35" : ""
+							}`}
+							style={{ width: 48, height: 72 }}
+						>
+							<Film className="w-4 h-4 text-gray-600" />
+						</div>
+					)}
+					{dimUnseen && seenIt && (
+						<span className="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500 text-black ring-2 ring-gray-900 shadow-md">
+							<Check className="w-3.5 h-3.5" strokeWidth={3} />
+						</span>
+					)}
+				</div>
 				<div className="flex-1 min-w-0">
 					<h3 className="text-base font-semibold text-white leading-snug truncate">{movie.title}</h3>
 					{showYear && <p className="text-sm text-gray-400">{movie.release_year}</p>}
@@ -697,23 +733,35 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 							{rank}
 						</div>
 					)}
-					<div className="flex-shrink-0">
+					<div className="relative flex-shrink-0">
 						{thumbSrc ? (
 							<Image
 								src={thumbSrc}
 								alt={movie.title}
 								width={thumbW}
 								height={thumbH}
-								className={`shadow-md object-cover ${native ? "rounded-lg" : "rounded-md"}`}
+								className={`shadow-md object-cover transition-all ${native ? "rounded-lg" : "rounded-md"} ${
+									dimUnseen && !seenIt ? "grayscale opacity-35" : ""
+								}`}
 								style={{ width: thumbW, height: thumbH }}
 								sizes={`${thumbW}px`}
 								placeholder="blur"
 								blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(thumbW, thumbH))}`}
 							/>
 						) : (
-							<div className={`flex items-center justify-center bg-gray-800 ${native ? "rounded-lg" : "rounded-md"}`} style={{ width: thumbW, height: thumbH }}>
+							<div
+								className={`flex items-center justify-center bg-gray-800 ${native ? "rounded-lg" : "rounded-md"} ${
+									dimUnseen && !seenIt ? "opacity-35" : ""
+								}`}
+								style={{ width: thumbW, height: thumbH }}
+							>
 								<Film className="w-4 h-4 text-gray-600" />
 							</div>
+						)}
+						{dimUnseen && seenIt && (
+							<span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-black ring-2 ring-gray-900 shadow-md">
+								<Check className="w-3 h-3" strokeWidth={3} />
+							</span>
 						)}
 					</div>
 					<div className="flex-1 min-w-0 flex items-center justify-between">
@@ -976,6 +1024,7 @@ export default function MovieCard({
 	winnerLabel,
 	native = true,
 	hideBookmark,
+	dimUnseen,
 }: MovieCardProps) {
 	// Use explicit ranking if provided, otherwise pull from movie data
 	const resolvedRating = ranking !== undefined ? Math.round(ranking ?? 0) : Math.round(movie.rankings?.[0]?.ranking ?? 0);
@@ -1007,6 +1056,7 @@ export default function MovieCard({
 					incomplete={incomplete}
 					native={native}
 					hideBookmark={hideBookmark}
+					dimUnseen={dimUnseen}
 				/>
 			);
 		case "large":

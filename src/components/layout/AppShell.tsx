@@ -3,6 +3,7 @@
 import HeaderNav from '@/components/layout/HeaderNav';
 import Footer from '@/components/layout/Footer';
 import MobileTabBar from '@/components/layout/MobileTabBar';
+import BackToTopButton from '@/components/ui/BackToTopButton';
 import { useAuthState } from '@/hooks/useAuthState';
 
 interface AppShellProps {
@@ -29,6 +30,13 @@ export default function AppShell({ children }: AppShellProps) {
         {children}
       </main>
       {isAuthenticated && <MobileTabBar />}
+      <BackToTopButton
+        className={
+          isAuthenticated
+            ? 'bottom-[calc(6rem+env(safe-area-inset-bottom)+12px)] right-4 md:bottom-6 md:right-6'
+            : 'bottom-6 right-4 md:right-6'
+        }
+      />
       <div className="hidden md:block">
         <Footer />
       </div>
