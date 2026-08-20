@@ -28,15 +28,15 @@
                             <div style="height:1px; background-color:#d4af37; margin:20px 0;"></div>
 
                             <p style="font-size:16px; color:#6b7280; line-height:1.6; margin:0 0 32px 0; text-align:center;">
-                                Someone has invited you to join Reawarding, the ultimate community for ranking, noting and awarding the best movies according to you.
-                                Click the button below to accept your invitation and start creating your personalized rankings.
+                                Someone has invited you to join Reawarding — rate the films you've seen and reaward your own winners.
+                                Click the button below to accept your invitation and get started.
                             </p>
 
                             <!-- CTA Button -->
                             <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
                                 <tr>
                                     <td align="center" bgcolor="#d4af37" style="border-radius:8px;">
-                                        <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite&amp;next=/auth/reset-password" style="display:inline-block; padding:16px 32px; font-size:16px; font-weight:600; color:#1f2937 !important; text-decoration:none; border-radius:8px; background-color:#d4af37; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+                                        <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite&amp;next=/" style="display:inline-block; padding:16px 32px; font-size:16px; font-weight:600; color:#1f2937 !important; text-decoration:none; border-radius:8px; background-color:#d4af37; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
                                             Accept Invitation
                                         </a>
                                     </td>
@@ -47,7 +47,7 @@
 
                             <p style="font-size:14px; color:#6b7280; line-height:1.6; margin:32px 0 0 0; text-align:center;">
                                 If the button doesn't work, copy and paste this link into your browser:<br>
-                                <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite&amp;next=/auth/reset-password" style="color:#b8941f; text-decoration:underline; word-break:break-all;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite&amp;next=/auth/reset-password</a>
+                                <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite&amp;next=/" style="color:#b8941f; text-decoration:underline; word-break:break-all;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite&amp;next=/</a>
                             </p>
                         </td>
                     </tr>
