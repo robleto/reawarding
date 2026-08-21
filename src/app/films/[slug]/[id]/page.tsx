@@ -132,41 +132,45 @@ export default async function MovieDetailPage({ params }: any) {
       .eq("list_type", "watchlist");
     const watchlistListIds: string[] = (watchlistListsRes.data ?? []).map((r: any) => r.id);
 
+    // PERF-4: ratingsCountRes/seenRes/ratingsRes were three separate queries
+    // all reading the same `rankings` rows for the same movie_id with
+    // overlapping filters — one `select('ranking, seen_it')` gives everything
+    // needed (count of non-null ranking, count of seen_it, and the ranking
+    // values themselves) in a single round trip. That query, the list-items
+    // count, and the watchlist-membership count now run concurrently per
+    // attempt via Promise.all instead of five sequential awaits; the loop
+    // over attemptIds itself stays sequential so a movie whose first attempt
+    // (the numeric id) already has data never issues the second attempt's
+    // queries at all.
     for (const movieId of attemptIds) {
-      const ratingsCountRes = await supabaseAdmin
-        .from("rankings")
-        .select("*", { count: "exact", head: true })
-        .eq("movie_id", movieId)
-        .not("ranking", "is", null);
-      const seenRes = await supabaseAdmin
-        .from("rankings")
-        .select("*", { count: "exact", head: true })
-        .eq("movie_id", movieId)
-        .eq("seen_it", true);
-      const ratingsRes = await supabaseAdmin
-        .from("rankings")
-        .select("ranking")
-        .eq("movie_id", movieId)
-        .not("ranking", "is", null);
-
-      const listsTotalRes = await supabaseAdmin
-        .from("movie_list_items")
-        .select("*", { count: "exact", head: true })
-        .eq("movie_id", movieId);
-      let watchRes = { count: 0 } as { count: number | null };
-      if (watchlistListIds.length > 0) {
-        watchRes = await supabaseAdmin
+      const [rankingsRes, listsTotalRes, watchRes] = await Promise.all([
+        supabaseAdmin
+          .from("rankings")
+          .select("ranking, seen_it")
+          .eq("movie_id", movieId),
+        supabaseAdmin
           .from("movie_list_items")
           .select("*", { count: "exact", head: true })
-          .eq("movie_id", movieId)
-          .in("list_id", watchlistListIds);
-      }
+          .eq("movie_id", movieId),
+        watchlistListIds.length > 0
+          ? supabaseAdmin
+              .from("movie_list_items")
+              .select("*", { count: "exact", head: true })
+              .eq("movie_id", movieId)
+              .in("list_id", watchlistListIds)
+          : Promise.resolve({ count: 0 } as { count: number | null }),
+      ]);
 
-      if ((ratingsCountRes.count ?? 0) > 0 || (seenRes.count ?? 0) > 0 || (ratingsRes.data?.length ?? 0) > 0 || (listsTotalRes.count ?? 0) > 0) {
-        totalRatings = ratingsCountRes.count ?? 0;
-        seen = seenRes.count ?? 0;
-        ratingsRows = (ratingsRes.data as any) || [];
-        listsTotal = listsTotalRes.count ?? 0;
+      const rankingRows = (rankingsRes.data as { ranking: number | null; seen_it: boolean }[] | null) ?? [];
+      const ratedRows = rankingRows.filter((r) => r.ranking !== null) as { ranking: number }[];
+      const seenForAttempt = rankingRows.filter((r) => r.seen_it).length;
+      const listsTotalForAttempt = listsTotalRes.count ?? 0;
+
+      if (ratedRows.length > 0 || seenForAttempt > 0 || listsTotalForAttempt > 0) {
+        totalRatings = ratedRows.length;
+        seen = seenForAttempt;
+        ratingsRows = ratedRows;
+        listsTotal = listsTotalForAttempt;
         watchlists = watchRes.count ?? 0;
         break;
       }
