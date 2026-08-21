@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Upload, ArrowLeft, CheckCircle, AlertCircle, Film } from "lucide-react";
+import { Upload, ArrowLeft, CheckCircle, AlertCircle, Film, Lock } from "lucide-react";
 import { useUser } from "@supabase/auth-helpers-react";
 import type { ImportRow, ImportSource, ImportResult } from "@/app/api/import/library/route";
 
@@ -417,6 +417,22 @@ export default function ImportPage() {
               Your library has been updated.
             </p>
           </div>
+
+          {!!result.premiumCapped && (
+            <div className="mb-8 flex items-start gap-3 rounded-lg border border-gold-500/20 bg-gold-500/5 px-4 py-3">
+              <Lock className="h-4 w-4 text-gold-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm text-gray-300">
+                  Free imports are capped at 50 films per file — {result.premiumCapped} more from
+                  this file weren&apos;t imported.{" "}
+                  <Link href="/premium" className="text-gold-400 hover:underline">
+                    Unlock Premium
+                  </Link>{" "}
+                  to import your full history.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 mb-8 sm:grid-cols-3">
             <div className="rounded-xl border border-gray-700/30 bg-gray-900/40 px-4 py-4 text-center">

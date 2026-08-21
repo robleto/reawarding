@@ -49,7 +49,16 @@ export type ImportResult = {
   failedToSave?: string[];
   /** Set when more unmatched rows existed than the live-backfill cap could attempt this request. */
   backfillCapped?: number;
+  /** Set when a non-premium user submitted more rows than FREE_IMPORT_ROW_CAP — the excess was never processed. */
+  premiumCapped?: number;
 };
+
+// Free users can import up to this many rows per request so anyone can
+// experience their history in Reawarding before being asked to pay; larger
+// or repeat imports are the premium "automation" pillar (IMP-1 —
+// docs/audits/2026-08-21-launch-readiness.md — the prior all-or-nothing
+// paywall blocked exactly the pre-conversion users onboarding sends here).
+const FREE_IMPORT_ROW_CAP = 50;
 
 // Netlify function time limits make unbounded sequential TMDB calls risky for
 // large Letterboxd exports — cap how many unmatched rows get a live lookup
@@ -107,22 +116,25 @@ export async function POST(req: NextRequest) {
   // don't need TS to re-prove `user` is non-null across a function boundary.
   const userId = user.id;
 
-  // Importing your watch history is the "automation" premium pillar —
-  // free users can still upload/preview (that happens client-side before
-  // this route is ever called); only the actual write is gated.
-  if (!(await isPremiumUser(supabase, userId))) {
-    return NextResponse.json(
-      { error: "Importing your library is a premium feature. Unlock premium to continue." },
-      { status: 403 }
-    );
-  }
+  // Importing your watch history is free up to FREE_IMPORT_ROW_CAP rows so
+  // any new user can bring their history in before being asked to pay;
+  // importing more than that (or re-importing later) is the "automation"
+  // premium pillar. Only the row count is gated — never an all-or-nothing
+  // block (see FREE_IMPORT_ROW_CAP comment above).
+  const premium = await isPremiumUser(supabase, userId);
 
   const body = (await req.json()) as ImportRequestBody;
-  const { rows, source } = body;
+  const { rows: submittedRows, source } = body;
 
-  if (!Array.isArray(rows) || rows.length === 0) {
+  if (!Array.isArray(submittedRows) || submittedRows.length === 0) {
     return NextResponse.json({ error: "No rows provided" }, { status: 400 });
   }
+
+  const premiumCapped =
+    !premium && submittedRows.length > FREE_IMPORT_ROW_CAP
+      ? submittedRows.length - FREE_IMPORT_ROW_CAP
+      : 0;
+  const rows = premiumCapped > 0 ? submittedRows.slice(0, FREE_IMPORT_ROW_CAP) : submittedRows;
 
   const importedAt = new Date().toISOString();
 
@@ -483,6 +495,7 @@ export async function POST(req: NextRequest) {
       failed,
       failedToSave: failedToSave.length > 0 ? failedToSave : undefined,
       backfillCapped: backfillCapped > 0 ? backfillCapped : undefined,
+      premiumCapped: premiumCapped > 0 ? premiumCapped : undefined,
     } satisfies ImportResult);
   } catch (e) {
     if (e instanceof RankingsGuardError) {
