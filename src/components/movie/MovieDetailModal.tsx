@@ -216,11 +216,14 @@ export default function MovieDetailModal({
     };
   }, [isOpen]);
 
-  // Update ranking and refetch latest value from backend
-  const updateRanking = async (newRanking: number | null, newSeenIt: boolean) => {
+  // Update ranking and refetch latest value from backend. Returns whether
+  // the write actually succeeded — RatingModal's onRate awaits this so it
+  // only shows a success confirmation once the write is real (see
+  // docs/audits/2026-08-21-launch-readiness.md LOOP-1).
+  const updateRanking = async (newRanking: number | null, newSeenIt: boolean): Promise<boolean> => {
     if (!user) {
       console.error('No user found when trying to update ranking');
-      return;
+      return false;
     }
 
     setIsLoading(true);
@@ -237,17 +240,19 @@ export default function MovieDetailModal({
         console.error('Error updating ranking:', error);
         setRanking(initialRanking);
         setSeenIt(initialSeenIt);
-        return;
+        return false;
       }
 
       setRanking(rankingData.ranking ?? null);
       setSeenIt(rankingData.seen_it ?? false);
       // On success, call the onUpdate callback
       onUpdate(movie.id, rankingData.ranking ?? null, rankingData.seen_it ?? false);
+      return true;
     } catch (error) {
       console.error('Caught exception updating ranking:', error);
       setRanking(initialRanking);
       setSeenIt(initialSeenIt);
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -295,12 +300,12 @@ export default function MovieDetailModal({
     if (newSeenIt) removeIfWatched(movie.id).catch(() => {});
   };
 
-  const handleRankingChange = (newRanking: number | null) => {
+  const handleRankingChange = (newRanking: number | null): Promise<boolean> => {
     setRanking(newRanking);
     // Auto-mark seen when a positive rating is chosen; preserves manual toggle
     const autoSeenIt = newRanking != null && newRanking >= 1 ? true : seenIt;
     if (autoSeenIt !== seenIt) setSeenIt(autoSeenIt);
-    updateRanking(newRanking, autoSeenIt);
+    return updateRanking(newRanking, autoSeenIt);
   };
 
   // Removed unused handleRankingClear function
@@ -823,7 +828,9 @@ export default function MovieDetailModal({
           onRate={(newRanking) => {
             // Don't close here — RatingModal plays its confirmation beat
             // (and the Add-your-take invite) then calls onClose itself.
-            handleRankingChange(newRanking);
+            // Returning the promise lets RatingModal await the real
+            // success/failure instead of assuming it worked.
+            return handleRankingChange(newRanking);
           }}
           onClose={() => setShowRatingModal(false)}
         />

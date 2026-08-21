@@ -658,7 +658,7 @@ export function useMovieDataWithGuest() {
 	const updateMovieRanking = async (
 		movieId: string,
 		updates: { seen_it?: boolean; ranking?: number | null }
-	) => {
+	): Promise<boolean> => {
 		if (isGuest) {
 			// For guests, update Zustand store - need to map seen_it to seenIt
 			const guestUpdates: { ranking?: number | null; seenIt?: boolean } = {};
@@ -686,7 +686,7 @@ export function useMovieDataWithGuest() {
 			if (cacheKeyRef.current) {
 				patchMovieCache(cacheKeyRef.current, movieId, applyGuestPatch);
 			}
-			return;
+			return true;
 		}
 
 		// For authenticated users, use the existing logic
@@ -703,7 +703,7 @@ export function useMovieDataWithGuest() {
 
 				if (error) {
 					console.error("Delete error:", error.message);
-					return;
+					return false;
 				}
 			}
 
@@ -713,7 +713,7 @@ export function useMovieDataWithGuest() {
 			if (cacheKeyRef.current) {
 				patchMovieCache(cacheKeyRef.current, movieId, clearRankingPatch);
 			}
-			return;
+			return true;
 		}
 
 		const payload = {
@@ -730,7 +730,7 @@ export function useMovieDataWithGuest() {
 
 		if (error) {
 			console.error("Update error:", error.message);
-			return;
+			return false;
 		}
 
 		const applyRankingPatch = (m: Movie): Movie => {
@@ -756,9 +756,10 @@ export function useMovieDataWithGuest() {
 		if (cacheKeyRef.current) {
 			patchMovieCache(cacheKeyRef.current, movieId, applyRankingPatch);
 		}
+		return true;
 	};
 
-	return { 
+	return {
 		movies, 
 		loading, 
 		user,

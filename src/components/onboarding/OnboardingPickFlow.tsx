@@ -158,14 +158,22 @@ export default function OnboardingPickFlow({
         className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
       />
 
-      {/* Panel */}
+      {/* Panel — max-h + overflow-hidden so short viewports (iPhone SE and
+          similar) clip at the rounded corners instead of the content; the
+          inner div below does the actual scrolling, matching the pattern in
+          RatingModal.tsx/RankingDropdown.tsx. Without this, the step
+          indicator, poster, and Back button could all land off-screen with
+          no way to reach them (see docs/audits/2026-08-21-launch-readiness.md
+          MOB-1). */}
       <div
         ref={panelRef}
-        className="relative w-full max-w-sm rounded-2xl border border-gray-700/60 bg-charcoal-900 shadow-2xl shadow-black/60 animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-sm max-h-[85vh] overflow-hidden rounded-2xl border border-gray-700/60 bg-charcoal-900 shadow-2xl shadow-black/60 animate-in fade-in zoom-in-95 duration-200 flex flex-col"
       >
         {/* Close affordance — visual chip stays small (p-1.5 + w-4 icon); the
             before:-inset-3 pseudo-element pads the real tappable area out to
-            44x44 on touch without enlarging the visible icon. */}
+            44x44 on touch without enlarging the visible icon. Sits outside
+            the scrollable region below so it stays reachable regardless of
+            scroll position. */}
         <button
           type="button"
           onClick={onClose}
@@ -175,104 +183,106 @@ export default function OnboardingPickFlow({
           <X className="w-4 h-4" />
         </button>
 
-        {/* Step indicator */}
-        <div className="px-5 pt-5 pb-3 flex items-center gap-2">
-          <span
-            className={`text-[11px] font-semibold uppercase tracking-wider ${
-              step === "watch" ? "text-gold-400" : "text-gray-500"
-            }`}
-          >
-            1 · Watch
-          </span>
-          <div className="flex-1 h-px bg-gray-700/60" />
-          <span
-            className={`text-[11px] font-semibold uppercase tracking-wider ${
-              step === "rate" ? "text-gold-400" : "text-gray-500"
-            }`}
-          >
-            2 · Rate
-          </span>
-          <div className="flex-1 h-px bg-gray-700/60" />
-          <span
-            className={`text-[11px] font-semibold uppercase tracking-wider ${
-              step === "forming" ? "text-gold-400" : "text-gray-500"
-            }`}
-          >
-            3 · Form
-          </span>
-        </div>
+        <div className="overflow-y-auto overscroll-contain min-h-0">
+          {/* Step indicator */}
+          <div className="px-5 pt-5 pb-3 flex items-center gap-2">
+            <span
+              className={`text-[11px] font-semibold uppercase tracking-wider ${
+                step === "watch" ? "text-gold-400" : "text-gray-500"
+              }`}
+            >
+              1 · Watch
+            </span>
+            <div className="flex-1 h-px bg-gray-700/60" />
+            <span
+              className={`text-[11px] font-semibold uppercase tracking-wider ${
+                step === "rate" ? "text-gold-400" : "text-gray-500"
+              }`}
+            >
+              2 · Rate
+            </span>
+            <div className="flex-1 h-px bg-gray-700/60" />
+            <span
+              className={`text-[11px] font-semibold uppercase tracking-wider ${
+                step === "forming" ? "text-gold-400" : "text-gray-500"
+              }`}
+            >
+              3 · Form
+            </span>
+          </div>
 
-        <div className="px-5 pb-5">
-          {/* Movie card — same shape across both steps. Action affordances on the
-              card itself, so the user learns where Seen + Rate live in the app. */}
-          <OnboardingMovieCard
-            movie={movie}
-            step={step}
-            seenIt={watchConfirmed}
-            onSeenItToggle={handleSeenItToggle}
-            onJustSeen={handleJustSeen}
-            selectedRating={selectedRating}
-            ratingPickerOpen={ratingPickerOpen}
-            onOpenRatePicker={() => setRatingPickerOpen(true)}
-          />
-
-          {/* Step-specific guidance lives BELOW the card so the eye lands on the
-              card first. Tooltip-style microcopy, not heavy instructions. */}
-          {step === "watch" ? (
-            <WatchGuidance
-              movieTitle={movie.title}
-              confirmed={watchConfirmed}
-              onPickAnother={() => {
-                onPickAnother();
-                onClose();
-              }}
-            />
-          ) : step === "rate" ? (
-            <RatePicker
-              movieTitle={movie.title}
-              selectedRating={selectedRating}
-              pickerOpen={ratingPickerOpen}
-              onSelect={handleRateSubmit}
-              onBack={() => {
-                setStep("watch");
-                setSelectedRating(null);
-                setRatingPickerOpen(false);
-              }}
-            />
-          ) : navigatingLabel ? (
-            <NavigatingPanel label={navigatingLabel} />
-          ) : (
-            <FormingPanel
+          <div className="px-5 pb-5">
+            {/* Movie card — same shape across both steps. Action affordances on the
+                card itself, so the user learns where Seen + Rate live in the app. */}
+            <OnboardingMovieCard
               movie={movie}
-              rating={selectedRating ?? 0}
-              currentNomineeCountForYear={currentNomineeCountForYear}
-              onRateAnother={() => {
-                setNavigatingLabel(
-                  movie.release_year
-                    ? `Loading ${movie.release_year} films…`
-                    : "Loading films…"
-                );
-                onRateAnother();
-              }}
-              onTryAnotherYear={() => {
-                setNavigatingLabel("Loading films…");
-                onTryAnotherYear();
-              }}
-              onSignup={() => {
-                setNavigatingLabel("Taking you to sign up…");
-                onSignup();
-              }}
-              onSeeStanding={() => {
-                setNavigatingLabel(
-                  movie.release_year
-                    ? `Loading your ${movie.release_year} race…`
-                    : "Loading your race…"
-                );
-                onSeeStanding();
-              }}
-              onClose={onClose}
+              step={step}
+              seenIt={watchConfirmed}
+              onSeenItToggle={handleSeenItToggle}
+              onJustSeen={handleJustSeen}
+              selectedRating={selectedRating}
+              ratingPickerOpen={ratingPickerOpen}
+              onOpenRatePicker={() => setRatingPickerOpen(true)}
             />
-          )}
+
+            {/* Step-specific guidance lives BELOW the card so the eye lands on the
+                card first. Tooltip-style microcopy, not heavy instructions. */}
+            {step === "watch" ? (
+              <WatchGuidance
+                movieTitle={movie.title}
+                confirmed={watchConfirmed}
+                onPickAnother={() => {
+                  onPickAnother();
+                  onClose();
+                }}
+              />
+            ) : step === "rate" ? (
+              <RatePicker
+                movieTitle={movie.title}
+                selectedRating={selectedRating}
+                pickerOpen={ratingPickerOpen}
+                onSelect={handleRateSubmit}
+                onBack={() => {
+                  setStep("watch");
+                  setSelectedRating(null);
+                  setRatingPickerOpen(false);
+                }}
+              />
+            ) : navigatingLabel ? (
+              <NavigatingPanel label={navigatingLabel} />
+            ) : (
+              <FormingPanel
+                movie={movie}
+                rating={selectedRating ?? 0}
+                currentNomineeCountForYear={currentNomineeCountForYear}
+                onRateAnother={() => {
+                  setNavigatingLabel(
+                    movie.release_year
+                      ? `Loading ${movie.release_year} films…`
+                      : "Loading films…"
+                  );
+                  onRateAnother();
+                }}
+                onTryAnotherYear={() => {
+                  setNavigatingLabel("Loading films…");
+                  onTryAnotherYear();
+                }}
+                onSignup={() => {
+                  setNavigatingLabel("Taking you to sign up…");
+                  onSignup();
+                }}
+                onSeeStanding={() => {
+                  setNavigatingLabel(
+                    movie.release_year
+                      ? `Loading your ${movie.release_year} race…`
+                      : "Loading your race…"
+                  );
+                  onSeeStanding();
+                }}
+                onClose={onClose}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -40,7 +40,12 @@ export interface MovieCardProps {
 	/* ── Interactive features (all optional) ── */
 
 	/** When provided, enables interactive controls (SeenIt, Rating) */
-	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+	/** May resolve `false` on a failed write — RatingModal awaits this via its
+	 *  onRate prop so it can show an error instead of a fabricated "Done"
+	 *  confirmation (see docs/audits/2026-08-21-launch-readiness.md LOOP-1).
+	 *  Implementations that don't report success/failure (void, or a Promise
+	 *  resolving to undefined) are treated as always-succeeding. */
+	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void | Promise<boolean | void>;
 	/** Explicit ranking value — overrides movie.rankings[0].ranking */
 	ranking?: number | null;
 	/** Seen-it state */
@@ -217,7 +222,12 @@ interface GridCardProps {
 	onClick?: () => void;
 	// interactive
 	interactive: boolean;
-	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+	/** May resolve `false` on a failed write — RatingModal awaits this via its
+	 *  onRate prop so it can show an error instead of a fabricated "Done"
+	 *  confirmation (see docs/audits/2026-08-21-launch-readiness.md LOOP-1).
+	 *  Implementations that don't report success/failure (void, or a Promise
+	 *  resolving to undefined) are treated as always-succeeding. */
+	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void | Promise<boolean | void>;
 	seenIt?: boolean;
 	ratingLabel?: string | null;
 	ratingOnly?: boolean;
@@ -492,7 +502,12 @@ interface CompactCardProps {
 	showYear?: boolean;
 	// interactive
 	interactive: boolean;
-	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+	/** May resolve `false` on a failed write — RatingModal awaits this via its
+	 *  onRate prop so it can show an error instead of a fabricated "Done"
+	 *  confirmation (see docs/audits/2026-08-21-launch-readiness.md LOOP-1).
+	 *  Implementations that don't report success/failure (void, or a Promise
+	 *  resolving to undefined) are treated as always-succeeding. */
+	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void | Promise<boolean | void>;
 	seenIt?: boolean;
 	ratingLabel?: string | null;
 	showHotTake?: boolean;
@@ -834,7 +849,12 @@ interface LargeCardProps {
 	onClick?: () => void;
 	// interactive
 	interactive: boolean;
-	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+	/** May resolve `false` on a failed write — RatingModal awaits this via its
+	 *  onRate prop so it can show an error instead of a fabricated "Done"
+	 *  confirmation (see docs/audits/2026-08-21-launch-readiness.md LOOP-1).
+	 *  Implementations that don't report success/failure (void, or a Promise
+	 *  resolving to undefined) are treated as always-succeeding. */
+	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void | Promise<boolean | void>;
 	seenIt?: boolean;
 	hideBookmark?: boolean;
 	/** Extra control rendered beside the title/year (e.g. Awards' "Nominate"

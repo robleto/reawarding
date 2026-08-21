@@ -46,7 +46,14 @@ interface Props {
   /** When set (and the user is logged in), a 7+ rating's confirmation offers
    *  "Add your take" — the post-rate beat is peak motivation for expression. */
   movieId?: string;
-  onRate: (value: number | null) => void;
+  /** May resolve `false` on a failed write (see updateMovieRanking in
+   *  sharedMovieUtils.ts) — handleRate below awaits this and only shows the
+   *  success confirmation once it resolves something other than `false`, so
+   *  a transient network/RLS failure surfaces as a real error instead of a
+   *  silently-wrong "Done." Callers that don't report success/failure
+   *  (void, or a Promise resolving to undefined) are treated as
+   *  always-succeeding, preserving prior behavior. */
+  onRate: (value: number | null) => void | Promise<boolean | void>;
   onClose: () => void;
 }
 
@@ -69,6 +76,12 @@ export default function RatingModal({
 
   const [phase, setPhase]               = useState<Phase>("idle");
   const [selectedRating, setSelected]   = useState<number | null>(null);
+  // Rating currently being written — distinct from selectedRating, which
+  // only gets set once the write actually succeeds. Lets the tapped row show
+  // a spinner instead of jumping straight to a confirmation that might be
+  // wrong (see docs/audits/2026-08-21-launch-readiness.md LOOP-1).
+  const [pendingRating, setPendingRating] = useState<number | null>(null);
+  const [saveError, setSaveError]       = useState(false);
   // The film page is a server component that fetches on navigation — there's
   // a real gap between tapping "Add your take" and the new page appearing.
   // Without this, the tap closes RatingModal instantly with nothing else
@@ -87,6 +100,8 @@ export default function RatingModal({
     if (isOpen) {
       setPhase("idle");
       setSelected(null);
+      setPendingRating(null);
+      setSaveError(false);
       setNavigatingToTake(false);
       setNavigatingToBallot(false);
     }
@@ -144,16 +159,42 @@ export default function RatingModal({
 
   // ── Tap handler ──────────────────────────────────────────────────────────────
   // Sequence:
-  //   0 ms  — onRate fires, selection locks, header switches to confirmation
-  // 500 ms  — phase → "closing", modal fade begins
-  // 700 ms  — onClose fires
-  const handleRate = useCallback((num: number) => {
+  //   0 ms  — write starts, tapped row shows a spinner (pendingRating)
+  //  write resolves — on success: selection locks, header switches to
+  //    confirmation; on failure: spinner clears, an inline error replaces the
+  //    "Rate 7+" hint, and the list stays interactive for a retry
+  // +500 ms (from success) — phase → "closing", modal fade begins
+  // +700 ms — onClose fires
+  //
+  // Previously this fired onRate and showed "Done" synchronously, before the
+  // underlying write resolved — a transient network/RLS failure left the
+  // user believing a film was rated/nominated when it silently wasn't (see
+  // docs/audits/2026-08-21-launch-readiness.md LOOP-1).
+  const handleRate = useCallback(async (num: number) => {
     if (dwellTimer.current) clearTimeout(dwellTimer.current);
     if (closeTimer.current) clearTimeout(closeTimer.current);
 
+    setSaveError(false);
+    setPendingRating(num);
+
+    // Callers that don't report success/failure resolve to `undefined`
+    // (a bare void return, or a Promise<void>) — only an explicit `false`
+    // counts as failure, so those callers keep behaving as "always succeeds."
+    const outcome = onRate(num);
+    const result = outcome === undefined ? true : await outcome;
+    const succeeded = result !== false;
+
+    if (!succeeded) {
+      setPendingRating(null);
+      setSaveError(true);
+      return;
+    }
+
     // 7+ is the emergence moment — the film becomes a nominee (firmer thunk).
+    // Fired only now, on confirmed success, so it never signals a nomination
+    // that didn't actually happen.
     void (num >= 7 ? hapticMedium() : hapticLight());
-    onRate(num);
+    setPendingRating(null);
     setSelected(num);
     setPhase("confirmed");
 
@@ -343,11 +384,18 @@ export default function RatingModal({
           </div>
         )}
 
-        {/* ── Threshold hint — always visible before a pick is made ─────── */}
+        {/* ── Threshold hint / save error — always visible before a pick is
+            made or confirmed ─────────────────────────────────────────── */}
         {!isConfirming && (
-          <p className="px-4 pt-2.5 pb-0 text-sm text-gray-400 text-center">
-            Rate 7 or higher to nominate
-          </p>
+          saveError ? (
+            <p className="px-4 pt-2.5 pb-0 text-sm text-red-400 text-center">
+              Couldn&rsquo;t save your rating — try again
+            </p>
+          ) : (
+            <p className="px-4 pt-2.5 pb-0 text-sm text-gray-400 text-center">
+              Rate 7 or higher to nominate
+            </p>
+          )
         )}
 
         {/* ── Rating list ─────────────────────────────────────────────────── */}
@@ -366,24 +414,32 @@ export default function RatingModal({
             const isSelected = isConfirming
               ? num === selectedRating
               : currentRating === num;
+            const isPending  = pendingRating === num;
+            const disableRow = isConfirming || pendingRating !== null;
 
             return (
               <button
                 key={num}
                 type="button"
-                onClick={isConfirming ? undefined : () => handleRate(num)}
-                disabled={isConfirming}
+                onClick={disableRow ? undefined : () => handleRate(num)}
+                disabled={disableRow}
                 className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
                   isConfirming
                     ? "cursor-default pointer-events-none ring-2 ring-gold-400/70 shadow-md"
+                    : isPending
+                    ? "cursor-default ring-2 ring-gold-400/70 shadow-md opacity-90"
                     : isSelected
                     ? "ring-2 ring-gold-400/70 shadow-md hover:scale-[1.01] active:scale-[0.99]"
                     : "ring-1 ring-gray-700/50 hover:ring-gray-600 hover:scale-[1.01] active:scale-[0.99]"
-                }`}
+                } ${disableRow && !isPending && !isConfirming ? "opacity-40" : ""}`}
                 style={{ backgroundColor: style.background, color: style.text }}
               >
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-black/15 text-lg font-bold flex-shrink-0">
-                  {num}
+                  {isPending ? (
+                    <span className="w-4 h-4 rounded-full border-2 border-current/30 border-t-current animate-spin" />
+                  ) : (
+                    num
+                  )}
                 </span>
                 <span className="flex-1 min-w-0">
                   <span className="text-sm font-semibold">{RATING_LABELS[num]}</span>
@@ -393,19 +449,28 @@ export default function RatingModal({
                     </span>
                   )}
                 </span>
-                {isSelected && !isConfirming && (
+                {isSelected && !isConfirming && !isPending && (
                   <span className="text-xs font-bold opacity-80">Current</span>
                 )}
               </button>
             );
           })}
 
-          {/* Clear rating — hidden during confirmation */}
+          {/* Clear rating — hidden during confirmation. Awaits the outcome
+              (like handleRate) instead of closing unconditionally, so a
+              failed clear doesn't read as a successful one. */}
           {!isConfirming && currentRating && (
             <button
               type="button"
-              onClick={() => { onRate(null); onClose(); }}
-              className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm font-medium text-gray-300 hover:bg-gray-700 transition-colors mt-2"
+              disabled={pendingRating !== null}
+              onClick={async () => {
+                setSaveError(false);
+                const outcome = onRate(null);
+                const result = outcome === undefined ? true : await outcome;
+                if (result !== false) onClose();
+                else setSaveError(true);
+              }}
+              className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm font-medium text-gray-300 hover:bg-gray-700 transition-colors mt-2 disabled:opacity-50"
             >
               Clear rating
             </button>
