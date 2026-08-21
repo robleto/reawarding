@@ -13,6 +13,12 @@ import AuthModalManager from "@/components/auth/AuthModalManager";
 import Link from "next/link";
 import { ArrowRight, Plus, X } from "lucide-react";
 import { useAuthState } from "@/hooks/useAuthState";
+import { enrichListsWithCountsAndPosters } from "@/lib/listEnrichment";
+
+// Public lists are unbounded (every public list from every user) — cap the
+// initial load rather than fetching the whole table on every page view.
+// PERF-2 — docs/audits/2026-08-21-launch-readiness.md.
+const PUBLIC_LISTS_LIMIT = 50;
 
 // Same small pill the home page uses for its "Ready-made lists" nudge
 // (src/app/page.tsx) — Ready-Made isn't a peer of My/Public here, it's a
@@ -129,50 +135,7 @@ export default function ListsHomePage() {
         }
 
         if (listsData) {
-          // For each list, get the count of movies and top 5 poster URLs
-          const listsWithCountsAndPosters = await Promise.all(
-            listsData.map(async (list) => {
-              // Get count (avoid head:true to sidestep edge policy issues)
-              const { count } = await supabase
-                .from("movie_list_items")
-                .select("id", { count: "exact" })
-                .eq("list_id", list.id)
-                .limit(1);
-
-              // Get top 5 movie IDs in order. Descending: highest ranking
-              // value is the top-of-list item (same convention as
-              // ListDetailView's default sort), so this matches the "top 5"
-              // a viewer sees first on opening the list, not the bottom 5.
-              const { data: items } = await supabase
-                .from("movie_list_items")
-                .select("movie_id")
-                .eq("list_id", list.id)
-                .order("ranking", { ascending: false })
-                .limit(5);
-
-              const movieIds = (items || []).map((item) => item.movie_id);
-              let posterUrls: string[] = [];
-              if (movieIds.length > 0) {
-                // Fetch poster URLs for these movies
-                const { data: movies } = await supabase
-                  .from("movies")
-                  .select("id,poster_url")
-                  .in("id", movieIds);
-                // Preserve order
-                posterUrls = movieIds.map((id) => {
-                  const m = movies?.find((mm) => mm.id === id);
-                  return (m?.poster_url || "") as string;
-                });
-              }
-
-              return {
-                ...list,
-                movie_count: count || 0,
-                posterUrls,
-              };
-            })
-          );
-          my = listsWithCountsAndPosters;
+          my = await enrichListsWithCountsAndPosters(supabase, listsData);
         }
       }
 
@@ -181,8 +144,9 @@ export default function ListsHomePage() {
         .from("movie_lists")
         .select("*")
         .eq("is_public", true)
-        .order("updated_at", { ascending: false });
-      
+        .order("updated_at", { ascending: false })
+        .limit(PUBLIC_LISTS_LIMIT);
+
       if (pubError) {
         setError("Couldn't load lists right now.");
         setLoading(false);
@@ -190,45 +154,7 @@ export default function ListsHomePage() {
       }
 
       if (pubData) {
-        // Add counts and posters for public lists too
-        const publicListsWithData = await Promise.all(
-          pubData.map(async (list) => {
-            const { count } = await supabase
-              .from("movie_list_items")
-              .select("id", { count: "exact" })
-              .eq("list_id", list.id)
-              .limit(1);
-
-            // Descending, same convention as the "mine" fetch above and
-            // ListDetailView's default sort (highest ranking = top of list).
-            const { data: items } = await supabase
-              .from("movie_list_items")
-              .select("movie_id")
-              .eq("list_id", list.id)
-              .order("ranking", { ascending: false })
-              .limit(5);
-
-            const movieIds = (items || []).map((item) => item.movie_id);
-            let posterUrls: string[] = [];
-            if (movieIds.length > 0) {
-              const { data: movies } = await supabase
-                .from("movies")
-                .select("id,poster_url")
-                .in("id", movieIds);
-              posterUrls = movieIds.map((id) => {
-                const m = movies?.find((mm) => mm.id === id);
-                return (m?.poster_url || "") as string;
-              });
-            }
-
-            return {
-              ...list,
-              movie_count: count || 0,
-              posterUrls,
-            };
-          })
-        );
-        pub = publicListsWithData;
+        pub = await enrichListsWithCountsAndPosters(supabase, pubData);
       }
       
       setMyLists(my);

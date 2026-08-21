@@ -7,8 +7,11 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
 import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
+import { useRedirectOwnerToWorkbench } from "@/hooks/useRedirectOwnerToWorkbench";
+import { useProfile } from "@/contexts/ProfileContext";
 import ListCard from "@/components/list/ListCard";
 import ListExpandOverlay from "@/components/list/ListExpandOverlay";
+import { enrichListsWithCountsAndPosters } from "@/lib/listEnrichment";
 
 type MovieList = {
   id: string;
@@ -45,6 +48,8 @@ export default function ProfileListsPage() {
   const supabase = useSupabaseClient();
   const { profile, loading: profileLoading, notFound } = usePublicProfile(username);
   const isOwner = useIsProfileOwner(profile?.id);
+  const { viewMode: profileViewMode } = useProfile();
+  const redirecting = useRedirectOwnerToWorkbench("/lists", isOwner, profileViewMode);
 
   const [publicLists, setPublicLists] = useState<MovieList[]>([]);
   const [privateLists, setPrivateLists] = useState<MovieList[]>([]);
@@ -78,39 +83,7 @@ export default function ProfileListsPage() {
         return;
       }
 
-      const enriched = await Promise.all(
-        listsData.map(async (list) => {
-          const { count } = await supabase
-            .from("movie_list_items")
-            .select("*", { count: "exact", head: true })
-            .eq("list_id", list.id);
-
-          // Descending: highest ranking value is the top-of-list item (same
-          // convention as ListDetailView's default sort), so the fan preview
-          // shows the same "top 5" a visitor would see first on opening the
-          // list, not the bottom 5.
-          const { data: items } = await supabase
-            .from("movie_list_items")
-            .select("movie_id")
-            .eq("list_id", list.id)
-            .order("ranking", { ascending: false })
-            .limit(5);
-
-          const movieIds = (items || []).map((item) => item.movie_id);
-          let posterUrls: string[] = [];
-          if (movieIds.length > 0) {
-            const { data: movies } = await supabase
-              .from("movies")
-              .select("id,poster_url")
-              .in("id", movieIds);
-            posterUrls = movieIds.map(
-              (id) => movies?.find((m) => m.id === id)?.poster_url || ""
-            );
-          }
-
-          return { ...list, movie_count: count || 0, posterUrls };
-        })
-      );
+      const enriched = await enrichListsWithCountsAndPosters(supabase, listsData);
 
       setPublicLists(enriched.filter((l) => l.is_public));
       setPrivateLists(enriched.filter((l) => !l.is_public));
@@ -119,6 +92,10 @@ export default function ProfileListsPage() {
 
     fetchLists();
   }, [profileLoading, profile, supabase, isOwner]);
+
+  if (redirecting) {
+    return null;
+  }
 
   if (profileLoading || loading) {
     return (
