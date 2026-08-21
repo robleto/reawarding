@@ -224,10 +224,13 @@ async function getSuggestions() {
     }
   }
 
-  // Count seen per director for this user
+  // Count seen per director for this user. Selects everything the four
+  // per-candidate suggestion builders below need (id/title/ranking included)
+  // so they can filter this one in-memory result instead of re-querying —
+  // see seenMovies below (PERF-1 fix).
   const { data: counts, error: countErr } = await supabase
     .from('rankings')
-    .select('seen_it, movie:movies(poster_url, director, cast_list, genres, release_year)')
+    .select('ranking, seen_it, movie:movies(id, title, poster_url, director, cast_list, genres, release_year)')
     .eq('user_id', user.id)
     .eq('seen_it', true);
 
@@ -265,38 +268,85 @@ async function getSuggestions() {
       map.set(key, arr);
     }
   };
+  // Flat, fully-typed view of the same rows the Maps below are built from —
+  // the four suggestion builders filter this in memory instead of each
+  // re-querying `rankings`+`movies` for their one director/actor/genre/decade
+  // (PERF-1: that was up to ~48 redundant full-history round trips per load).
+  type SeenMovie = {
+    id: string;
+    title: string;
+    release_year: number | null;
+    poster_url: string | null;
+    ranking: number | null;
+    seen_it: boolean;
+    director: string | null;
+    cast_list: string[] | null;
+    genres: string[] | null;
+  };
+  const seenMovies: SeenMovie[] = [];
+
   for (const row of (counts as any[] | null) || []) {
     const mv: any = (row as any).movie;
     const record = Array.isArray(mv) ? mv?.[0] : mv;
+    if (!record?.id) continue;
     const poster: string | null = record?.poster_url ?? null;
     const dir: string | null = record?.director ?? null;
+    const castArr: string[] | null = Array.isArray(record?.cast_list) ? record.cast_list : null;
+    const genresArr: string[] | null = Array.isArray(record?.genres) ? record.genres : null;
+    const year: number | null = record?.release_year ?? null;
+
+    seenMovies.push({
+      id: record.id as string,
+      title: record.title as string,
+      release_year: year,
+      poster_url: poster,
+      ranking: ((row as any).ranking as number | null) ?? null,
+      seen_it: !!(row as any).seen_it,
+      director: dir,
+      cast_list: castArr,
+      genres: genresArr,
+    });
+
     if (dir) {
       byDirector.set(dir, (byDirector.get(dir) || 0) + 1);
       pushPoster(byDirectorPosters, dir, poster);
     }
-    const castArr: string[] | null = record?.cast_list ?? null;
-    if (Array.isArray(castArr)) {
+    if (castArr) {
       for (const actor of castArr) {
         if (!actor) continue;
         byActor.set(actor, (byActor.get(actor) || 0) + 1);
         pushPoster(byActorPosters, actor, poster);
       }
     }
-    const genresArr: string[] | null = record?.genres ?? null;
-    if (Array.isArray(genresArr)) {
+    if (genresArr) {
       for (const g of genresArr) {
         if (!g) continue;
         byGenre.set(g, (byGenre.get(g) || 0) + 1);
         pushPoster(byGenrePosters, g, poster);
       }
     }
-    const year: number | null = record?.release_year ?? null;
     if (year && year >= 1900) {
       const decadeStart = Math.floor(year / 10) * 10;
       byDecade.set(decadeStart, (byDecade.get(decadeStart) || 0) + 1);
       pushPoster(byDecadePosters, decadeStart, poster);
     }
   }
+
+  // Shared by all four suggestion builders below: project a SeenMovie down
+  // to the shape each *Suggestion['movies'] type expects, sorted by this
+  // user's own rating (highest first) — replaces the per-candidate `.order()`
+  // that came from re-querying Supabase.
+  const toSuggestionMovies = (rows: SeenMovie[]) =>
+    rows
+      .map((m) => ({
+        id: m.id,
+        title: m.title,
+        release_year: m.release_year,
+        poster_url: m.poster_url,
+        ranking: m.ranking,
+        seen_it: m.seen_it,
+      }))
+      .sort((a, b) => (b.ranking ?? 0) - (a.ranking ?? 0));
   // Genre suggestions (ready >=10, almost 6-9)
   const genreCandidates = [...byGenre.entries()]
     .filter(([genre, c]) => c >= 10 && !savedGenres.has(genre) && !dismissedGenres.has(genre))
@@ -319,74 +369,23 @@ async function getSuggestions() {
     .slice(0, 18)
     .map(([start, seen_count]) => ({ decade: `${start}s`, startYear: start, seen_count, posterUrls: byDecadePosters.get(start) || [] }));
 
-  const genreSuggestions: GenreSuggestion[] = [];
-  for (const [genre, seen_count] of genreCandidates) {
-    const { data: items } = await supabase
-      .from('rankings')
-      .select('ranking, seen_it, movie:movies(id, title, poster_url, release_year, genres)')
-      .eq('user_id', user.id)
-      .eq('seen_it', true);
-    let movies = ((((items as any[] | null) || [])
-      .filter((r) => {
-        const mv: any = r.movie;
-        const m = Array.isArray(mv) ? mv?.[0] : mv;
-        return Array.isArray(m?.genres) && m.genres.includes(genre);
-      })
-      .map((r) => {
-        const mv: any = r.movie;
-        const m = Array.isArray(mv) ? mv?.[0] : mv;
-        if (!m) return null;
-        return {
-          id: m.id as string,
-          title: m.title as string,
-          release_year: (m.release_year as number | null) ?? null,
-          poster_url: (m.poster_url as string | null),
-          ranking: (r.ranking as number | null) ?? null,
-          seen_it: !!r.seen_it,
-        };
-      })
-      .filter(Boolean)) as GenreSuggestion['movies'])
-      .sort((a, b) => (b.ranking ?? 0) - (a.ranking ?? 0));
+  const genreSuggestions: GenreSuggestion[] = genreCandidates.map(([genre, seen_count]) => {
+    let movies = toSuggestionMovies(seenMovies.filter((m) => m.genres?.includes(genre)));
     if (seen_count > 100) {
       movies = movies.filter((m) => (m.ranking ?? 0) >= 9);
     }
-    genreSuggestions.push({ genre, seen_count, movies });
-  }
+    return { genre, seen_count, movies };
+  });
 
-  const decadeSuggestions: DecadeSuggestion[] = [];
-  for (const [startYear, seen_count] of decadeCandidates) {
-    const { data: items } = await supabase
-      .from('rankings')
-      .select('ranking, seen_it, movie:movies(id, title, poster_url, release_year)')
-      .eq('user_id', user.id)
-      .eq('seen_it', true);
-    let movies = ((((items as any[] | null) || [])
-      .filter((r) => {
-        const mv: any = r.movie;
-        const m = Array.isArray(mv) ? mv?.[0] : mv;
-        const yr: number | null = m?.release_year ?? null;
-        return yr != null && yr >= startYear && yr < startYear + 10;
-      })
-      .map((r) => {
-        const mv: any = r.movie;
-        const m = Array.isArray(mv) ? mv?.[0] : mv;
-        if (!m) return null;
-        return {
-          id: m.id as string,
-          title: m.title as string,
-          release_year: (m.release_year as number | null) ?? null,
-          poster_url: (m.poster_url as string | null),
-          ranking: (r.ranking as number | null) ?? null,
-          seen_it: !!r.seen_it,
-        };
-      })
-      .filter(Boolean)) as DecadeSuggestion['movies'])
-      .sort((a, b) => (b.ranking ?? 0) - (a.ranking ?? 0));
+  const decadeSuggestions: DecadeSuggestion[] = decadeCandidates.map(([startYear, seen_count]) => {
+    let movies = toSuggestionMovies(
+      seenMovies.filter((m) => m.release_year != null && m.release_year >= startYear && m.release_year < startYear + 10)
+    );
     if (seen_count > 100) {
       movies = movies.filter((m) => (m.ranking ?? 0) >= 9);
     }
-    decadeSuggestions.push({ decade: `${startYear}s`, startYear, seen_count, movies });
-  }
+    return { decade: `${startYear}s`, startYear, seen_count, movies };
+  });
 
   const candidates = [...byDirector.entries()]
     .filter(([dir, c]) => c >= 10 && !savedDirectors.has(dir) && !dismissed.has(dir))
@@ -410,68 +409,15 @@ async function getSuggestions() {
     .slice(0, 18)
     .map(([actor, seen_count]) => ({ actor, seen_count, posterUrls: byActorPosters.get(actor) || [] }));
 
-  const actorSuggestions: ActorSuggestion[] = [];
-  for (const [actor, seen_count] of actorCandidates) {
-    // Fetch this user's movies where cast_list includes actor
-    const { data: items } = await supabase
-      .from('rankings')
-      .select('ranking, seen_it, movie:movies(id, title, poster_url, release_year, cast_list)')
-      .eq('user_id', user.id)
-      .eq('seen_it', true);
-    const movies = ((((items as any[] | null) || [])
-      .filter((r) => {
-        const mv: any = r.movie;
-        const m = Array.isArray(mv) ? mv?.[0] : mv;
-        return Array.isArray(m?.cast_list) && m.cast_list.includes(actor);
-      })
-      .map((r) => {
-        const mv: any = r.movie;
-        const m = Array.isArray(mv) ? mv?.[0] : mv;
-        if (!m) return null;
-        return {
-          id: m.id as string,
-          title: m.title as string,
-          release_year: (m.release_year as number | null) ?? null,
-          poster_url: (m.poster_url as string | null),
-          ranking: (r.ranking as number | null) ?? null,
-          seen_it: !!r.seen_it,
-        };
-      })
-      .filter(Boolean)) as ActorSuggestion['movies'])
-      .sort((a, b) => (b.ranking ?? 0) - (a.ranking ?? 0));
-    actorSuggestions.push({ actor, seen_count, movies });
-  }
+  const actorSuggestions: ActorSuggestion[] = actorCandidates.map(([actor, seen_count]) => {
+    const movies = toSuggestionMovies(seenMovies.filter((m) => m.cast_list?.includes(actor)));
+    return { actor, seen_count, movies };
+  });
 
-  const suggestions: DirectorSuggestion[] = [];
-  for (const [director, seen_count] of candidates) {
-    // Fetch this user's movies for the director with ranking/seen
-    const { data: items } = await supabase
-      .from('rankings')
-      .select('ranking, seen_it, movie:movies(id, title, poster_url, release_year, director)')
-      .eq('user_id', user.id)
-      .eq('seen_it', true)
-      .eq('movie.director', director)
-      .order('ranking', { ascending: false, nullsFirst: false });
-
-    const movies = ((((items as any[] | null) || [])
-      .map((r) => {
-        const mv: any = r.movie;
-        const m = Array.isArray(mv) ? mv?.[0] : mv;
-        if (!m) return null;
-        return {
-          id: m.id as string,
-          title: m.title as string,
-          release_year: (m.release_year as number) ?? null,
-          poster_url: (m.poster_url as string | null),
-          ranking: (r.ranking as number | null) ?? null,
-          seen_it: !!r.seen_it,
-        };
-      })
-      .filter(Boolean)) as DirectorSuggestion['movies'])
-      .sort((a, b) => (b.ranking ?? 0) - (a.ranking ?? 0));
-
-    suggestions.push({ director, seen_count, movies });
-  }
+  const suggestions: DirectorSuggestion[] = candidates.map(([director, seen_count]) => {
+    const movies = toSuggestionMovies(seenMovies.filter((m) => m.director === director));
+    return { director, seen_count, movies };
+  });
 
   return { user, suggestions, almost, actorSuggestions, actorAlmost, genreSuggestions, genreAlmost, decadeSuggestions, decadeAlmost };
 }
