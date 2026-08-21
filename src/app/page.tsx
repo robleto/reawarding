@@ -1053,7 +1053,11 @@ export default function HomePage() {
             ═══════════════════════════════════════════════════ */}
         <div className={isGuest ? "pb-32" : ""}>
           {formattedYears.length > 1 && (
-            <div className="sticky top-[var(--header-height,calc(4.3rem+env(safe-area-inset-top)))] z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-2 mb-4 bg-charcoal-900/85 backdrop-blur-md [&>div]:mb-0">
+            // No background here at all — MuseumYearTimeline's own tokens
+            // are already opaque, so this wrapper doesn't need a panel
+            // behind them (and can't look "off" the way a translucent one
+            // did). Just sticky positioning + breathing room.
+            <div className="sticky top-[var(--header-height,calc(4.3rem+env(safe-area-inset-top)))] z-30 pt-2 mb-4 [&>div]:mb-0">
               <MuseumYearTimeline
                 years={formattedYears.map((y) => ({
                   year: Number(y.year),
@@ -1309,7 +1313,6 @@ export default function HomePage() {
               above rather than replacing it. */}
           {isMature && (
             <AlternateOscarHistoryPanel
-              movies={movies}
               currentUserId={userId}
               onUpdateMovie={handleUpdateMovieRanking}
             />

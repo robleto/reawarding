@@ -4,69 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useSupabaseClient, useUser } from "@supabase/auth-helpers-react";
 import type { Database } from "@/types/supabase";
 import useGuestRankingStore from "@/hooks/useGuestRankingStore";
+import { toNormalizedAward, type UserAward } from "@/utils/normalizeUserAward";
 
-export interface UserAward {
-  year: number;
-  category: string;
-  winnerId: string | number | null;
-  nomineeIds: (string | number)[];
-}
-
-function isBestPictureCategory(category: unknown): boolean {
-  if (typeof category !== "string") return false;
-  const normalized = category.trim().toLowerCase().replace(/[_\s]+/g, "-");
-  return normalized === "best-picture";
-}
-
-function toNormalizedAward(raw: any): UserAward | null {
-  const year = Number(raw?.year);
-  if (!Number.isFinite(year)) return null;
-
-  const payload =
-    raw?.nominations && typeof raw.nominations === "object"
-      ? { ...raw, ...raw.nominations }
-      : raw;
-
-  const rawCategory = typeof raw?.category === "string" ? raw.category : "best-picture";
-  const category = rawCategory.trim().toLowerCase().replace(/[_\s]+/g, "-");
-  if (!isBestPictureCategory(category)) return null;
-
-  const rawWinnerId =
-    payload?.winnerId ??
-    payload?.winner_id ??
-    payload?.winner?.id ??
-    payload?.winner_movie_id ??
-    null;
-
-  const nomineeSource = Array.isArray(payload?.nomineeIds)
-    ? payload.nomineeIds
-    : Array.isArray(payload?.nominee_ids)
-      ? payload.nominee_ids
-      : Array.isArray(payload?.nominees)
-        ? payload.nominees.map((n: any) => n?.id ?? n)
-        : [];
-
-  const nomineeIds = nomineeSource
-    .filter((id: unknown) => id != null && id !== "")
-    .map((id: unknown) => {
-      const asNum = Number(id);
-      return Number.isFinite(asNum) && String(asNum) === String(id) ? asNum : id;
-    }) as (string | number)[];
-  const winnerId: string | number | null =
-    rawWinnerId != null && rawWinnerId !== ""
-      ? (() => {
-          const asNum = Number(rawWinnerId);
-          return Number.isFinite(asNum) && String(asNum) === String(rawWinnerId) ? asNum : rawWinnerId;
-        })()
-      : nomineeIds[0] ?? null;
-
-  return {
-    year,
-    category,
-    winnerId,
-    nomineeIds,
-  };
-}
+export type { UserAward };
 
 /**
  * useUserAwards — returns the current user's awards for homepage state.
