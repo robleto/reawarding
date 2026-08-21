@@ -10,6 +10,7 @@ import { getRatingStyle } from "@/utils/getRatingStyle";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { normalizeImageUrl } from "@/utils/imageUrl";
 import { slugifyTitle } from "@/utils/slug";
+import { useGlobalToast } from "@/hooks/useGlobalToast";
 
 // ─── Timing constants ─────────────────────────────────────────────────────────
 const DWELL_MS        = 500;  // confirmation visible before fade begins
@@ -70,6 +71,7 @@ export default function RatingModal({
   const router = useRouter();
   const pathname = usePathname();
   const user = useUser();
+  const { toast } = useGlobalToast();
   const panelRef    = useRef<HTMLDivElement>(null);
   const dwellTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -458,17 +460,46 @@ export default function RatingModal({
 
           {/* Clear rating — hidden during confirmation. Awaits the outcome
               (like handleRate) instead of closing unconditionally, so a
-              failed clear doesn't read as a successful one. */}
+              failed clear doesn't read as a successful one. On success,
+              shows an Undo toast (LOOP-2) instead of just closing — this
+              permanently deletes the rating row (and demotes a 7+ nominee)
+              with a single tap otherwise, with no recovery path. */}
           {!isConfirming && currentRating && (
             <button
               type="button"
               disabled={pendingRating !== null}
               onClick={async () => {
                 setSaveError(false);
+                const clearedRating = currentRating;
                 const outcome = onRate(null);
                 const result = outcome === undefined ? true : await outcome;
-                if (result !== false) onClose();
-                else setSaveError(true);
+                if (result !== false) {
+                  onClose();
+                  toast(
+                    (t) => (
+                      <span className="flex items-center gap-3">
+                        <span>Rating cleared</span>
+                        <button
+                          onClick={async () => {
+                            toast.dismiss(t.id);
+                            const restoreOutcome = onRate(clearedRating);
+                            const restoreResult =
+                              restoreOutcome === undefined ? true : await restoreOutcome;
+                            if (restoreResult === false) {
+                              toast.error("Couldn't restore your rating.");
+                            }
+                          }}
+                          className="font-semibold underline hover:no-underline"
+                        >
+                          Undo
+                        </button>
+                      </span>
+                    ),
+                    { duration: 6000 }
+                  );
+                } else {
+                  setSaveError(true);
+                }
               }}
               className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm font-medium text-gray-300 hover:bg-gray-700 transition-colors mt-2 disabled:opacity-50"
             >
