@@ -330,6 +330,25 @@ export default function ImportPage() {
             </div>
           </div>
 
+          {/* IMP-2: Letterboxd's watched.csv and watchlist.csv share identical
+              headers (no Rating column in either), so normalizeLetterboxd's
+              only signal — "no Rating column" — can't tell them apart. If
+              every parsed row came back watchlist-only, that's the exact
+              shape either file produces, so warn rather than silently
+              importing a watched.csv as 100% watchlist. */}
+          {source === "letterboxd" && watchedRows.length === 0 && watchlistRows.length > 0 && (
+            <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+              <AlertCircle className="h-4 w-4 text-amber-400 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-gray-300">
+                None of these rows have a rating — that's expected for watchlist.csv, but
+                it&apos;s also what watched.csv looks like (Letterboxd gives both the same
+                columns). If this is meant to be your watched films, we can&apos;t tell the
+                difference and everything below will be added to your watchlist instead. If
+                that&apos;s not right, go back and re-export ratings.csv or diary.csv instead.
+              </p>
+            </div>
+          )}
+
           {/* Sample rows */}
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-600 mb-2">
@@ -439,6 +458,12 @@ export default function ImportPage() {
               <p className="text-2xl font-bold text-gold-400">{result.imported}</p>
               <p className="text-xs text-gray-500 mt-0.5">Films imported</p>
             </div>
+            {result.watchlistAdded > 0 && (
+              <div className="rounded-xl border border-gray-700/30 bg-gray-900/40 px-4 py-4 text-center">
+                <p className="text-2xl font-bold text-gold-400">{result.watchlistAdded}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Added to watchlist</p>
+              </div>
+            )}
             {result.skipped > 0 && (
               <div className="rounded-xl border border-gray-700/30 bg-gray-900/40 px-4 py-4 text-center">
                 <p className="text-2xl font-bold text-gray-400">{result.skipped}</p>

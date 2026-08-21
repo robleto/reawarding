@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { isPremiumUser } from "@/lib/premium";
 import { findTmdbIdByImdbId, importTmdbMovie, searchTmdbMovies } from "@/lib/tmdbImport";
+import { ensureUserWatchlist } from "@/utils/watchlist";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -227,6 +228,19 @@ export async function POST(req: NextRequest) {
 
   class RankingsGuardError extends Error {}
 
+  // IMP-2: watched:false rows used to only be counted, never written anywhere
+  // ("full watchlist import is a separate concern"). Memoized so the two
+  // resolveWatchedAndUpsert calls (local match, then live-backfill match)
+  // share one ensureUserWatchlist round trip instead of racing to create the
+  // list twice, and so a request with zero watchlist rows never calls it.
+  let watchlistListIdPromise: Promise<string | null> | null = null;
+  function getWatchlistListId(): Promise<string | null> {
+    if (!watchlistListIdPromise) {
+      watchlistListIdPromise = ensureUserWatchlist(supabase, userId);
+    }
+    return watchlistListIdPromise;
+  }
+
   async function resolveWatchedAndUpsert(
     candidateRows: ImportRow[],
     resolveMovie: (row: ImportRow) => MovieMatch | undefined
@@ -239,7 +253,7 @@ export async function POST(req: NextRequest) {
     watchlistCount: number;
   }> {
     const notFoundKeys: string[] = [];
-    let watchlistCount = 0;
+    const watchlistMovieIds = new Set<string>();
     const candidatesByMovieId = new Map<string, { movieId: string; row: ImportRow }>();
 
     for (const row of candidateRows) {
@@ -251,9 +265,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (!row.watched) {
-        // Watchlist-only rows: handled separately via movie_list_items
-        // For now just count them — full watchlist import is a separate concern
-        watchlistCount++;
+        watchlistMovieIds.add(movie.id);
         continue;
       }
 
@@ -368,6 +380,60 @@ export async function POST(req: NextRequest) {
           const source = rowByMovieId.get(entry.movie_id);
           if (source) failedToSave.push(`${source.title} (${source.year})`);
         }
+      }
+    }
+
+    // IMP-2: actually write watchlist-only rows into the user's watchlist
+    // (movie_list_items under the list ensureUserWatchlist owns), instead of
+    // only counting them. Dedup against what's already there so a re-import
+    // of the same file doesn't error on a unique-constraint conflict.
+    let watchlistCount = 0;
+    if (watchlistMovieIds.size > 0) {
+      const listId = await getWatchlistListId();
+      if (!listId) {
+        console.error("Import: could not resolve/create the user's watchlist; skipping watchlist rows for this batch.");
+      } else {
+        const candidateIds = [...watchlistMovieIds];
+        const alreadyOnWatchlist = new Set<string>();
+        for (let i = 0; i < candidateIds.length; i += RESCUE_CHUNK_SIZE) {
+          const chunk = candidateIds.slice(i, i + RESCUE_CHUNK_SIZE);
+          const { data: existingItems, error: existingItemsError } = await supabase
+            .from("movie_list_items")
+            .select("movie_id")
+            .eq("list_id", listId)
+            .in("movie_id", chunk);
+          if (existingItemsError) {
+            console.error("Import: failed to check existing watchlist items:", existingItemsError.message);
+            continue;
+          }
+          for (const item of existingItems ?? []) {
+            if (item.movie_id) alreadyOnWatchlist.add(item.movie_id);
+          }
+        }
+
+        const newWatchlistIds = candidateIds.filter((id) => !alreadyOnWatchlist.has(id));
+        const watchlistRows = newWatchlistIds.map((movie_id) => ({
+          list_id: listId,
+          movie_id,
+          ranking: null,
+        }));
+
+        for (let i = 0; i < watchlistRows.length; i += CHUNK) {
+          const chunk = watchlistRows.slice(i, i + CHUNK);
+          const { error: watchlistInsertError } = await supabase
+            .from("movie_list_items")
+            .insert(chunk);
+          if (watchlistInsertError) {
+            console.error("Import: failed to write watchlist chunk:", watchlistInsertError.message);
+          } else {
+            watchlistCount += chunk.length;
+          }
+        }
+        // Rows already on the watchlist are still a successful outcome from
+        // the user's perspective (the film they wanted there IS there) —
+        // count them too, matching the prior "just count them" total so a
+        // re-import of the same file reports the same number, not zero.
+        watchlistCount += alreadyOnWatchlist.size;
       }
     }
 
