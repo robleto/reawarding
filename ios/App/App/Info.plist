@@ -14,23 +14,6 @@
 	     every upload (which otherwise blocks the build from reaching testers). -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<!-- TEMPORARY — local testing only, for the feature/lists-fullscreen-pager
-	     branch. Lets the WKWebView load plain http://localhost so the app can
-	     point at `npm run dev` instead of production. Remove this whole
-	     NSAppTransportSecurity block before merging. -->
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>localhost</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-				<key>NSIncludesSubdomains</key>
-				<false/>
-			</dict>
-		</dict>
-	</dict>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
