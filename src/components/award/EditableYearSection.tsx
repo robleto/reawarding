@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from "react";
+import { createPortal } from "react-dom";
 import { useSupabaseClient, useUser, useSessionContext } from '@supabase/auth-helpers-react';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -148,7 +149,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   const supabase = useSupabaseClient<Database>();
   const user = useUser();
   const { isLoading: sessionLoading } = useSessionContext();
-  const { showToast } = useGlobalToast();
+  const { showToast, toast } = useGlobalToast();
   const resolvedCategory = category ?? 'best-picture';
   const isWorkshop = mode === "workshop";
 
@@ -205,6 +206,14 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   }
 
   const [isEditing, setIsEditing] = useState(false);
+  // Shared by LOOP-3 (reset confirm) and LOOP-5 (discard-unsaved-changes
+  // confirm) — one generic confirm dialog instead of two near-identical ones.
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    body: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
   const [nominees, setNominees] = useState<Movie[]>([]);
   // Workshop mode: seed selectedWinner from the winner prop so the crown
   // reflects the user's saved choice immediately on open.
@@ -526,7 +535,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     setShowErrorDetails(false);
   };
 
-  const handleCancelEditing = () => {
+  const performCancelEditing = () => {
     setIsEditing(false);
     onEditingChange?.(false);
     setNominees([]);
@@ -535,6 +544,30 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     setError(null);
     setErrorDetails(null);
     setShowErrorDetails(false);
+  };
+
+  // LOOP-5: closing the editor (backdrop click, X, Escape, or Cancel) used to
+  // silently discard in-session add/remove/reorder/winner edits. Only prompt
+  // when something has actually changed since handleStartEditing seeded
+  // nominees/selectedWinner from currentNominees/currentWinner — order-
+  // sensitive, since a pure reorder with no add/remove is still a real edit.
+  const handleCancelEditing = () => {
+    const changed =
+      nominees.length !== currentNominees.length ||
+      nominees.some((m, i) => m.id !== currentNominees[i]?.id) ||
+      (selectedWinner?.id ?? null) !== (currentWinner?.id ?? null);
+
+    if (!changed) {
+      performCancelEditing();
+      return;
+    }
+
+    setConfirmDialog({
+      title: "Discard unsaved changes?",
+      body: "Your edits to this year's ballot haven't been saved yet. Closing now will discard them.",
+      confirmLabel: "Discard",
+      onConfirm: performCancelEditing,
+    });
   };
 
   const handleAddNominee = (movie: Movie) => {
@@ -821,7 +854,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     }
   };
 
-  const handleResetToDefault = async () => {
+  const performReset = async () => {
     // LOOP-M1 defense-in-depth: never let a non-owner viewer delete/reset
     // nominations for the year being shown — see the matching guard in
     // handleSave.
@@ -866,6 +899,27 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // LOOP-3: Reset used to fire performReset (a hard DELETE of the whole
+  // saved ballot) directly on click with no confirmation — a misclick could
+  // destroy real curation work with no way back.
+  const handleResetToDefault = () => {
+    if (!viewerOwnsBallot) {
+      const msg = "You don't have permission to edit this ballot.";
+      setError(msg);
+      showToast(msg, 'error');
+      return;
+    }
+    const nomineeCount = currentNominees.length;
+    setConfirmDialog({
+      title: "Reset this year's ballot?",
+      body: `All ${nomineeCount} nominee${nomineeCount === 1 ? "" : "s"}${
+        currentWinner ? " and your winner pick" : ""
+      } will be removed. This can't be undone.`,
+      confirmLabel: "Reset",
+      onConfirm: performReset,
+    });
   };
 
   const handleOpenModal = (movie: Movie) => {
@@ -1201,12 +1255,39 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     await applyWorkshopState([...activeWorkshopNominees], movie);
   };
 
+  // LOOP-4: this auto-saves immediately on tap (no confirm step, unlike the
+  // non-workshop editor's Cancel/Save flow) — an Undo toast is the only
+  // recovery path for an accidental removal.
   const handleWorkshopRemove = async (movieId: string) => {
     if (!isWorkshop) return;
+    const removeIndex = activeWorkshopNominees.findIndex((m) => m.id === movieId);
+    if (removeIndex === -1) return;
+    const removedMovie = activeWorkshopNominees[removeIndex];
+    const previousWinner = activeWorkshopWinner;
     const nextNominees = activeWorkshopNominees.filter((m) => m.id !== movieId);
     const nextWinner =
-      activeWorkshopWinner?.id === movieId ? nextNominees[0] ?? null : activeWorkshopWinner;
+      previousWinner?.id === movieId ? nextNominees[0] ?? null : previousWinner;
     await applyWorkshopState(nextNominees, nextWinner);
+
+    toast(
+      (t) => (
+        <span className="flex items-center gap-3">
+          <span>Removed “{removedMovie.title}” from your nominees</span>
+          <button
+            onClick={() => {
+              toast.dismiss(t.id);
+              const restoredNominees = [...nextNominees];
+              restoredNominees.splice(removeIndex, 0, removedMovie);
+              void applyWorkshopState(restoredNominees, previousWinner);
+            }}
+            className="font-semibold underline hover:no-underline"
+          >
+            Undo
+          </button>
+        </span>
+      ),
+      { duration: 6000 }
+    );
   };
 
   const handleWorkshopReset = async () => {
@@ -1283,6 +1364,40 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   // in place.
   const contentBlock = (
     <>
+    {/* Shared Reset (LOOP-3) / discard-unsaved-changes (LOOP-5) confirm —
+        portaled above BallotEditorOverlay (z-[45]) and the mobile edit
+        action bar (z-50). */}
+    {confirmDialog && typeof document !== "undefined" && createPortal(
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
+        <div className="bg-charcoal-900 border border-gray-700 rounded-lg w-full max-w-md shadow-xl">
+          <div className="p-5 border-b border-gray-800">
+            <h3 className="text-lg font-semibold text-white">{confirmDialog.title}</h3>
+          </div>
+          <div className="p-5 text-gray-300">
+            <p>{confirmDialog.body}</p>
+          </div>
+          <div className="p-5 border-t border-gray-800 flex justify-end gap-2">
+            <button
+              onClick={() => setConfirmDialog(null)}
+              className="px-4 py-2 rounded-md border border-gray-700 text-gray-200 hover:bg-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                const { onConfirm } = confirmDialog;
+                setConfirmDialog(null);
+                onConfirm();
+              }}
+              className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+            >
+              {confirmDialog.confirmLabel}
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    )}
     {!isEditing && (
     <div className={`award-editable-section relative flex flex-col w-full rounded-xl shadow-md p-4 md:p-8 dark-glass${compact ? '' : ' mb-12 md:mb-24'} overflow-hidden`}>
 
@@ -1342,10 +1457,12 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         above (previously a plain FeaturedCard via WinnerCard —
                         the biggest screen had the least ceremony for the one
                         thing on the page that's supposed to have the most).
-                        academyStatus is intentionally omitted here: the
-                        larger floating AcademyStamp below the grid already
-                        covers desktop, so passing it would double-stamp with
-                        AwardCard's own small internal corner stamp. */}
+                        academyStatus IS passed here now (unlike before) so
+                        the "The Academy chose X" caption renders under the
+                        winner's title — showCornerStamp={false} keeps this
+                        card's own small corner stamp off, since the larger
+                        floating AcademyStamp below the grid already covers
+                        the verdict graphic for desktop. */}
                     <div className="hidden md:flex justify-center">
                       <AwardCard
                         year={Number(year)}
@@ -1355,6 +1472,8 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         nomineeCount={nomineeCount}
                         onClick={() => handleOpenModal(displayWinner)}
                         fullWidth
+                        academyStatus={academyStatus}
+                        showCornerStamp={false}
                       />
                     </div>
                   </>
@@ -1749,39 +1868,48 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                 </div>
               </div>
             </div>
+
+        {/* Mobile action bar — visible only when editing on small screens.
+            Lives inside BallotEditorOverlay's portal (mounted straight onto
+            document.body) rather than beside it in the normal tree: this
+            section's outer year-container ancestor (see the awards archive's
+            GSAP scroll effect that recedes the previous year) can end up
+            with an inline `transform`, and any `position: fixed` descendant
+            of a transformed ancestor is positioned relative to THAT
+            ancestor instead of the viewport — which is exactly how this bar
+            went missing while editing a year that had already scrolled
+            "back." Portaled, it has no such ancestor to inherit from. */}
+        {isEditing && (
+          <div className="fixed bottom-0 inset-x-0 z-50 md:hidden flex items-center justify-end gap-2 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-charcoal-900/95 backdrop-blur-sm border-t border-gray-700">
+            <button
+              type="button"
+              onClick={handleResetToDefault}
+              className="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-orange-300 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 active:scale-[0.98] transition-all"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Reset
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelEditing}
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 text-sm font-medium text-gray-300 rounded-lg bg-gray-800/60 hover:bg-gray-700 active:scale-[0.98] transition-all"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="inline-flex items-center gap-1.5 h-9 px-4 text-sm font-medium text-white rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-600 active:scale-[0.98] transition-all"
+            >
+              <Save className="w-4 h-4" />
+              {isSaving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        )}
       </BallotEditorOverlay>
     )}
-
-      {/* Mobile action bar — visible only when editing on small screens */}
-      {isEditing && (
-        <div className="fixed bottom-0 inset-x-0 z-50 md:hidden flex items-center justify-end gap-2 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-charcoal-900/95 backdrop-blur-sm border-t border-gray-700">
-          <button
-            type="button"
-            onClick={handleResetToDefault}
-            className="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-orange-300 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 active:scale-[0.98] transition-all"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Reset
-          </button>
-          <button
-            type="button"
-            onClick={handleCancelEditing}
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 text-sm font-medium text-gray-300 rounded-lg bg-gray-800/60 hover:bg-gray-700 active:scale-[0.98] transition-all"
-          >
-            <X className="w-4 h-4" />
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="inline-flex items-center gap-1.5 h-9 px-4 text-sm font-medium text-white rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-600 active:scale-[0.98] transition-all"
-          >
-            <Save className="w-4 h-4" />
-            {isSaving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
-      )}
 
       {/* Movie Detail Modal */}
       {selectedMovie && (
