@@ -96,16 +96,33 @@ export function useCollectionFilms(collectionId: string | null, userId: string |
   // Lightweight partial-update path, matching MovieCard's onUpdate signature,
   // without pulling in useMovieDataWithGuest's full (up to 2999-row) catalog
   // fetch just to reach its updateMovieRanking function. Optimistic: patches
-  // local state immediately, upserts in the background.
+  // local state immediately, upserts in the background — and, per CC-2,
+  // rolls the optimistic patch back and returns `false` if the upsert
+  // errors, instead of leaving local state showing a change that was never
+  // saved. Return type mirrors sharedMovieUtils.ts's updateMovieRanking
+  // (Promise<boolean>) so this is a drop-in for MovieCard's onUpdate/
+  // RatingModal's onRate, both typed `void | Promise<boolean | void>`.
+  // The merged ranking is computed once inside the setFilms updater and
+  // reused for both the optimistic state and the upsert payload (the
+  // previous version derived the payload from the `films` closure
+  // separately, which could disagree with the optimistic merge on rapid
+  // repeated calls).
   const updateFilmRanking = useCallback(
-    async (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => {
-      if (!userId) return;
+    async (
+      movieId: string,
+      updates: { seen_it?: boolean; ranking?: number | null }
+    ): Promise<boolean> => {
+      if (!userId) return false;
+
+      let previous: Movie["rankings"][number] | undefined;
+      let merged: Movie["rankings"][number] | undefined;
 
       setFilms((prev) =>
         prev.map((m) => {
           if (m.id !== movieId) return m;
           const existing = m.rankings[0];
-          const merged = {
+          previous = existing;
+          merged = {
             id: existing?.id,
             user_id: userId,
             seen_it: updates.seen_it ?? existing?.seen_it ?? false,
@@ -115,19 +132,29 @@ export function useCollectionFilms(collectionId: string | null, userId: string |
         })
       );
 
-      const current = films.find((m) => m.id === movieId);
-      const existing = current?.rankings[0];
-      await supabase.from("rankings").upsert(
+      if (!merged) return false;
+
+      const { error } = await supabase.from("rankings").upsert(
         {
           user_id: userId,
           movie_id: movieId,
-          seen_it: updates.seen_it ?? existing?.seen_it ?? false,
-          ranking: updates.ranking !== undefined ? updates.ranking : existing?.ranking ?? null,
+          seen_it: merged.seen_it,
+          ranking: merged.ranking,
         },
         { onConflict: "user_id,movie_id" }
       );
+
+      if (error) {
+        console.error("useCollectionFilms updateFilmRanking error:", error.message);
+        setFilms((prev) =>
+          prev.map((m) => (m.id === movieId ? { ...m, rankings: previous ? [previous] : [] } : m))
+        );
+        return false;
+      }
+
+      return true;
     },
-    [films, userId]
+    [userId]
   );
 
   return { films, loading, updateFilmRanking };

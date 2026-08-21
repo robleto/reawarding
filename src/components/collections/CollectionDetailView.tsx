@@ -8,6 +8,7 @@ import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import Loader from "@/components/ui/Loading";
 import { useCollectionFilms } from "@/hooks/useCollectionFilms";
+import { useGlobalToast } from "@/hooks/useGlobalToast";
 import type { Movie } from "@/types/types";
 
 type SortKey = "release_year" | "title" | "seen";
@@ -55,6 +56,7 @@ export default function CollectionDetailView({
   onProgressChange,
 }: CollectionDetailViewProps) {
   const { films, loading, updateFilmRanking } = useCollectionFilms(collectionId, userId);
+  const { showToast } = useGlobalToast();
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -206,7 +208,11 @@ export default function CollectionDetailView({
               seenIt={movie.rankings[0]?.seen_it ?? false}
               showYear
               dimUnseen
-              onUpdate={updateFilmRanking}
+              onUpdate={async (movieId, updates) => {
+                const success = await updateFilmRanking(movieId, updates);
+                if (!success) showToast("Couldn't save that change. Please try again.", "error");
+                return success;
+              }}
               onClick={() => handleMovieClick(movie)}
             />
             ))
@@ -223,7 +229,11 @@ export default function CollectionDetailView({
             setSelectedMovie(null);
           }}
           onUpdate={(movieId, newRanking, newSeenIt) => {
-            updateFilmRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
+            void updateFilmRanking(movieId, { ranking: newRanking, seen_it: newSeenIt }).then(
+              (success) => {
+                if (!success) showToast("Couldn't save that change. Please try again.", "error");
+              }
+            );
           }}
           initialRanking={selectedMovie.rankings[0]?.ranking ?? null}
           initialSeenIt={selectedMovie.rankings[0]?.seen_it ?? false}
