@@ -1,13 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from "@/lib/supabaseBrowser";
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/ui/Logo';
 import { buildSiteUrl } from '@/utils/siteUrl';
+import { sanitizeNextPath, RESET_PASSWORD_NEXT_STORAGE_KEY } from '@/utils/sanitizeNextPath';
 
 export default function ForgotPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
+        <div className="w-8 h-8 border-4 border-gold-400/30 border-t-gold-400 rounded-full animate-spin" />
+      </div>
+    }>
+      <ForgotPasswordContent />
+    </Suspense>
+  );
+}
+
+function ForgotPasswordContent() {
+  const searchParams = useSearchParams();
+  const next = sanitizeNextPath(searchParams?.get('next'));
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -16,19 +32,31 @@ export default function ForgotPasswordPage() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     if (!email) {
       setError('Please enter your email address');
       return;
     }
 
     setLoading(true);
-    
+
     try {
+      // The recovery email itself can't carry `next` through (Supabase's
+      // template hardcodes its own redirect target — see AUTH-1 in
+      // docs/audits/2026-08-21-launch-readiness.md), so stash it here for
+      // /auth/reset-password to read back on the same device/browser.
+      if (typeof window !== 'undefined') {
+        if (next !== '/') {
+          window.localStorage.setItem(RESET_PASSWORD_NEXT_STORAGE_KEY, next);
+        } else {
+          window.localStorage.removeItem(RESET_PASSWORD_NEXT_STORAGE_KEY);
+        }
+      }
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: buildSiteUrl('/auth/reset-password'),
       });
-      
+
       if (error) {
         setError(error.message);
       } else {

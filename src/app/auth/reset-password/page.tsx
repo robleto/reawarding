@@ -6,6 +6,7 @@ import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Logo } from '@/components/ui/Logo';
+import { sanitizeNextPath, RESET_PASSWORD_NEXT_STORAGE_KEY } from '@/utils/sanitizeNextPath';
 
 export default function ResetPasswordPage() {
   return (
@@ -151,8 +152,21 @@ function ResetPasswordContent() {
         setError(error.message);
       } else {
         setSuccess(true);
+        // AUTH-1: same-device fallback for the destination the user was
+        // originally headed to before being bounced to /login — the email
+        // round trip itself can't carry `next` (see the storage key's own
+        // comment in sanitizeNextPath.ts). Sanitized again defensively;
+        // this is user-controlled storage, not just a URL param.
+        const storedNext =
+          typeof window !== 'undefined'
+            ? window.localStorage.getItem(RESET_PASSWORD_NEXT_STORAGE_KEY)
+            : null;
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(RESET_PASSWORD_NEXT_STORAGE_KEY);
+        }
+        const destination = sanitizeNextPath(storedNext);
         setTimeout(() => {
-          router.push('/');
+          router.push(destination);
         }, 2000);
       }
     } catch (err) {

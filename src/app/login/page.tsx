@@ -348,7 +348,7 @@ function LoginPageContent() {
             {!isSignUp && (
               <div className="text-center">
                 <a
-                  href="/auth/forgot-password"
+                  href={`/auth/forgot-password?next=${encodeURIComponent(next)}`}
                   className="text-sm text-gold-500 hover:text-gold-400 transition-colors"
                 >
                   Forgot your password?

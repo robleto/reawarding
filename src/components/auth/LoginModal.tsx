@@ -258,7 +258,7 @@ export default function LoginModal({
 
           <div className="flex items-center justify-between text-sm">
             <Link
-              href="/auth/forgot-password"
+              href={`/auth/forgot-password?next=${encodeURIComponent(safeNext)}`}
               onClick={handleClose}
               className="text-gold-500 hover:text-gold-400 font-medium transition-colors"
             >
