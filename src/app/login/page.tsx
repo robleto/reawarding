@@ -46,49 +46,12 @@ function LoginPageContent() {
   const [emailOptIn, setEmailOptIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
-  const [confirmationEmailSent, setConfirmationEmailSent] = useState(false);
-
-  const handleResendConfirmation = async () => {
-    if (!email) {
-      setError('Please enter your email address first');
-      return;
-    }
-
-    setLoading('resend');
-    setError(null);
-    setMessage(null);
-
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: {
-          emailRedirectTo: buildSiteUrl(`/auth/callback?next=${encodeURIComponent(next)}`) || undefined,
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-      } else {
-        setConfirmationEmailSent(true);
-        setShowResendConfirmation(false);
-        setMessage('Confirmation email sent! Check your inbox.');
-      }
-    } catch {
-      setError('Failed to resend confirmation email');
-    } finally {
-      setLoading(null);
-    }
-  };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setMessage(null);
-    setShowResendConfirmation(false);
-    setConfirmationEmailSent(false);
-    
+
     if (!email || !password) {
       setError('Please fill in all fields');
       return;
@@ -142,27 +105,22 @@ function LoginPageContent() {
           setError(error.message);
         } else if (data.session) {
           // Email confirmation is off in this project (auto-confirm), so
-          // signUp() already returns a live session here — telling the user
-          // to "check your email" would dead-end them on this page forever
-          // (AUTH-1, docs/audits/2026-08-21-launch-readiness-round3.md).
+          // signUp() always returns a live session here.
           window.location.href = next;
         } else {
-          setMessage('Check your email for a confirmation link!');
+          // Shouldn't happen with auto-confirm on — but if it ever does,
+          // don't tell the user to check an email that was never sent
+          // (AUTH-2, docs/audits/2026-08-21-launch-readiness-round3.md).
+          setError('Something went wrong finishing your signup. Please try signing in.');
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        
-        if (error) {
-          const msg = error.message || 'Failed to sign in';
-          setError(msg);
 
-          const lower = msg.toLowerCase();
-          if (lower.includes('not confirmed') || lower.includes('confirm your email') || lower.includes('email not confirmed')) {
-            setShowResendConfirmation(true);
-          }
+        if (error) {
+          setError(error.message || 'Failed to sign in');
         } else {
           // Redirect on successful login — back to wherever the user was headed.
           window.location.href = next;
@@ -216,19 +174,6 @@ function LoginPageContent() {
           {error && (
             <div className="mb-4 p-3 bg-red-900/20 border border-red-800 rounded-xl text-red-400 text-sm">
               {error}
-            </div>
-          )}
-
-          {showResendConfirmation && !confirmationEmailSent && (
-            <div className="mb-4">
-              <button
-                type="button"
-                onClick={handleResendConfirmation}
-                disabled={loading !== null}
-                className="text-sm text-gold-500 hover:text-gold-400 transition-colors"
-              >
-                Resend confirmation email
-              </button>
             </div>
           )}
 

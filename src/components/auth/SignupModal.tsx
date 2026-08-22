@@ -55,7 +55,6 @@ export default function SignupModal({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [emailSent, setEmailSent] = useState(false);
   const [emailOptIn, setEmailOptIn] = useState(false);
   const router = useRouter();
   const { showToast } = useGlobalToast();
@@ -115,15 +114,17 @@ export default function SignupModal({
       }
       if (data.user) {
         if (data.user.email_confirmed_at) {
-          // User is already confirmed (shouldn't happen with email confirmation enabled)
+          // Email confirmation is off in this project (auto-confirm), so
+          // this is always true in practice.
           showToast("Welcome to Reawarding!", "success");
           onAuthSuccess?.(data.user);
           onClose();
           router.push(safeNext);
         } else {
-          // User needs to confirm email
-          setEmailSent(true);
-          showToast("Please check your email to confirm your account", "info");
+          // Shouldn't happen with confirmations off — but if it ever does,
+          // don't tell the user to check an email that was never sent
+          // (AUTH-2, docs/audits/2026-08-21-launch-readiness-round3.md).
+          setError("Something went wrong finishing your signup. Please try signing in.");
         }
       } else {
         setError("No user returned from Supabase");
@@ -156,7 +157,6 @@ export default function SignupModal({
     setShowConfirmPassword(false);
     setEmailOptIn(false);
     setError(null);
-    setEmailSent(false);
   };
 
   const handleClose = () => {
@@ -172,7 +172,7 @@ export default function SignupModal({
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-unbounded text-xl font-bold text-white">
-            {emailSent ? "Check your email" : "Create account"}
+            Create account
           </h2>
           <button
             onClick={handleClose}
@@ -183,34 +183,7 @@ export default function SignupModal({
           </button>
         </div>
 
-        {emailSent ? (
-          <div className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gold-900/30">
-              <Mail className="h-6 w-6 text-gold-400" />
-            </div>
-            <p className="text-gray-300">
-              A confirmation link has been sent to <strong>{email}</strong>.
-            </p>
-            <p className="mt-3 text-sm text-gray-400">
-              Click the link in the email to activate your account. Check spam if you don&apos;t see it.
-            </p>
-            <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-4 text-left">
-              <p className="text-xs font-medium text-gray-300 mb-2">While you wait:</p>
-              <ul className="space-y-1.5 text-xs text-gray-400">
-                <li>You&apos;ll pick movies you love and rate them</li>
-                <li>Your highest-rated films become nominees for that year</li>
-                <li>Fill 10 nominees to crown your Best Picture winner</li>
-              </ul>
-            </div>
-            <button
-              onClick={handleClose}
-              className="mt-5 w-full py-3 px-4 rounded-full border border-gold-300/40 bg-gold-500 text-black shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-charcoal-900 focus:ring-gold-500/60 font-medium transition-colors touch-manipulation min-h-[44px]"
-            >
-              Got it
-            </button>
-          </div>
-        ) : (
-          <>
+        <>
             <div className="space-y-4">
               <button
                 onClick={() => handleOAuthSignup('apple')}
@@ -418,8 +391,7 @@ export default function SignupModal({
                 </button>
               </p>
             )}
-          </>
-        )}
+        </>
       </div>
     </div>
   );

@@ -1,57 +1,18 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { AlertCircle, Home, Mail, CheckCircle2 } from "lucide-react";
-import { Suspense, useState } from "react";
-import { supabase } from "@/lib/supabaseBrowser";
-import { buildSiteUrl } from "@/utils/siteUrl";
+import { AlertCircle, Home, LogIn } from "lucide-react";
+import { Suspense } from "react";
 
 function AuthErrorContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const error = searchParams?.get("error") || "Unknown error";
   const description = searchParams?.get("description") || "An unexpected error occurred during authentication.";
-  // Threaded through from /auth/confirm — lets us tell a failed signup
-  // confirmation link apart from every other kind of auth failure so we can
-  // offer a real recovery action instead of a dead end.
+  // Threaded through from /auth/confirm — lets us give a failed signup
+  // confirmation link slightly different copy than any other auth failure.
   const type = searchParams?.get("type");
   const isSignupConfirmation = type === "signup";
-
-  const [email, setEmail] = useState("");
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendError, setResendError] = useState<string | null>(null);
-  const [resendSent, setResendSent] = useState(false);
-
-  const handleResend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      setResendError("Please enter your email address first");
-      return;
-    }
-
-    setResendLoading(true);
-    setResendError(null);
-
-    try {
-      const { error: resendErr } = await supabase.auth.resend({
-        type: "signup",
-        email,
-        options: {
-          emailRedirectTo: buildSiteUrl("/auth/callback") || undefined,
-        },
-      });
-
-      if (resendErr) {
-        setResendError(resendErr.message);
-      } else {
-        setResendSent(true);
-      }
-    } catch {
-      setResendError("Failed to resend confirmation email");
-    } finally {
-      setResendLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gray-950">
@@ -96,49 +57,19 @@ function AuthErrorContent() {
         </div>
 
         {isSignupConfirmation ? (
-          /* Resend confirmation — the actual recovery path for an expired or
-           * already-used signup link. Works without an active session and
-           * without first requiring a failed password sign-in attempt. */
+          // AUTH-2 (docs/audits/2026-08-21-launch-readiness-round3.md):
+          // email confirmation is off — no signup confirmation email is ever
+          // sent, so a "resend confirmation email" affordance here would be
+          // just as theatrical as the flow that landed someone on this page.
+          // The honest recovery is that they can already sign in directly.
           <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
             <h2 className="text-sm font-semibold text-white">
-              Get a new confirmation link
+              You can sign in directly
             </h2>
-            {resendSent ? (
-              <div className="flex items-start gap-2 text-sm text-green-300 bg-green-900/20 border border-green-800 rounded-xl p-3">
-                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>Confirmation email sent! Check your inbox.</span>
-              </div>
-            ) : (
-              <form onSubmit={handleResend} className="space-y-3">
-                <div>
-                  <label htmlFor="resend-email" className="sr-only">
-                    Email address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
-                    <input
-                      id="resend-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      className="w-full pl-10 pr-3 py-2 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white text-sm"
-                      required
-                    />
-                  </div>
-                </div>
-                {resendError && (
-                  <p className="text-sm text-red-400">{resendError}</p>
-                )}
-                <button
-                  type="submit"
-                  disabled={resendLoading}
-                  className="w-full flex items-center justify-center gap-2 rounded-full border border-gold-300/40 bg-gold-500 text-black shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 px-4 py-2.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {resendLoading ? "Sending..." : "Resend confirmation email"}
-                </button>
-              </form>
-            )}
+            <p className="text-sm text-gray-400">
+              Reawarding doesn&apos;t require confirming your email — your account is
+              already active. Try signing in with your email and password instead.
+            </p>
           </div>
         ) : (
           /* Common Solutions — neutral, not an error/success state, so it
@@ -161,8 +92,15 @@ function AuthErrorContent() {
         {/* Action Buttons */}
         <div className="space-y-3">
           <button
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/login")}
             className="w-full flex items-center justify-center gap-2 rounded-full border border-gold-300/40 bg-gold-500 text-black shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 px-4 py-2.5 font-medium transition-colors"
+          >
+            <LogIn className="w-4 h-4" />
+            Go to sign in
+          </button>
+          <button
+            onClick={() => router.push("/")}
+            className="w-full flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white px-4 py-2.5 font-medium transition-colors"
           >
             <Home className="w-4 h-4" />
             Go to home

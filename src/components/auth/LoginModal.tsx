@@ -7,7 +7,6 @@ import { X, Mail, Eye, EyeOff } from "lucide-react";
 import type { User } from "@supabase/auth-helpers-nextjs";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
 import { supabase } from "@/lib/supabaseBrowser";
-import { buildSiteUrl } from "@/utils/siteUrl";
 import { sanitizeNextPath } from "@/utils/sanitizeNextPath";
 import { startOAuthSignIn } from "@/utils/oauthSignIn";
 
@@ -36,8 +35,6 @@ export default function LoginModal({
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmationEmailSent, setConfirmationEmailSent] = useState(false);
-  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const router = useRouter();
   const { showToast } = useGlobalToast();
   const safeNext = sanitizeNextPath(next);
@@ -53,8 +50,6 @@ export default function LoginModal({
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setShowResendConfirmation(false);
-    setConfirmationEmailSent(false);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -62,19 +57,7 @@ export default function LoginModal({
         password,
       });
       if (error) {
-        const msg = error.message || "Failed to sign in";
-        const lower = msg.toLowerCase();
-        const isUnconfirmed =
-          lower.includes("email not confirmed") ||
-          lower.includes("confirm your email") ||
-          lower.includes("not confirmed");
-
-        if (isUnconfirmed) {
-          setError("Email not confirmed. Please confirm your email, or resend the confirmation link.");
-          setShowResendConfirmation(true);
-        } else {
-          setError(msg);
-        }
+        setError(error.message || "Failed to sign in");
         setLoading(false);
         return;
       }
@@ -102,45 +85,11 @@ export default function LoginModal({
     // No need to setLoading(false) on success — the page/browser redirects.
   };
 
-  const handleResendConfirmation = async () => {
-    if (!email) {
-      setError("Please enter your email address first");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email,
-        options: {
-          emailRedirectTo: buildSiteUrl(`/auth/callback?next=${encodeURIComponent(safeNext)}`) || undefined,
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-      } else {
-        setConfirmationEmailSent(true);
-        setShowResendConfirmation(false);
-        showToast("Confirmation email sent! Check your inbox.", "success");
-      }
-    } catch (err) {
-      setError("An unexpected error occurred: " + (err instanceof Error ? err.message : String(err)));
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const resetForm = () => {
     setEmail("");
     setPassword("");
     setShowPassword(false);
     setError(null);
-    setConfirmationEmailSent(false);
-    setShowResendConfirmation(false);
   };
 
   const handleClose = () => {
@@ -267,27 +216,9 @@ export default function LoginModal({
           </div>
 
 
-          {confirmationEmailSent && (
-            <div className="text-sm p-3 rounded-xl bg-green-900/20 text-green-300 border border-green-800">
-              Confirmation email resent! Check your inbox and click the link to verify your account.
-            </div>
-          )}
-
           {error && (
             <div className="text-sm p-3 rounded-xl bg-red-900/20 text-red-300 border border-red-800">
               {error}
-              {showResendConfirmation && (
-                <div className="mt-2 pt-2 border-t border-red-700">
-                  <button
-                    type="button"
-                    onClick={handleResendConfirmation}
-                    disabled={loading}
-                    className="text-red-300 hover:text-red-200 font-medium underline disabled:opacity-50"
-                  >
-                    Resend confirmation email
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
