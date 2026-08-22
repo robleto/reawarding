@@ -548,8 +548,11 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 	const thumbW = native ? 60 : 48;
 	const thumbH = native ? 90 : 72;
 
+	// Returns onUpdate's result (rather than discarding it) so
+	// RankingDropdown's commitRating can await success/failure and show its
+	// Undo/error toasts — LOOP-2, docs/audits/2026-08-21-launch-readiness-round3.md.
 	const handleRatingSelect = (newRating: number | null) => {
-		onUpdate?.(movie.id, { ranking: newRating });
+		return onUpdate?.(movie.id, { ranking: newRating });
 	};
 
 	const toggleSeenIt = () => {

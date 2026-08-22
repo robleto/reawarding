@@ -3,10 +3,17 @@ import { createPortal } from "react-dom";
 import { Minus } from "lucide-react";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
+import { useGlobalToast } from "@/hooks/useGlobalToast";
 
 interface RankingDropdownProps {
   ranking: number | null;
-  onChange: (value: number | null) => void;
+  /** May resolve `false` on a failed write — commitRating awaits this to
+   * surface a failure toast and, on a successful clear, an Undo toast
+   * (LOOP-2, docs/audits/2026-08-21-launch-readiness-round3.md — this
+   * control used to fire-and-forget with no error handling or undo at all,
+   * unlike RatingModal's equivalent Clear rating action). Callers that
+   * don't report success/failure (void) are treated as always-succeeding. */
+  onChange: (value: number | null) => void | Promise<boolean | void>;
   disabled?: boolean;
   /** Round pill badge instead of the old rounded-square — this is the app's
    * one rating-badge design now, defaults to true. */
@@ -32,14 +39,50 @@ export default function RankingDropdown({ ranking, onChange, disabled = false, n
   const [isMobile, setIsMobile] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const style = getRatingStyle(ranking ?? 0);
+  const { toast } = useGlobalToast();
 
   // This control sets ratings without going through RatingModal, so it needs
   // its own haptics — same vocabulary as the modal: 7+ is the emergence
   // moment (firmer thunk), everything else is a light tick.
-  const commitRating = (value: number | null) => {
+  const commitRating = async (value: number | null) => {
     void (value !== null && value >= 7 ? hapticMedium() : hapticLight());
-    onChange(value);
+    const previousRanking = ranking;
     setShowDropdown(false);
+
+    const outcome = onChange(value);
+    const result = outcome === undefined ? true : await outcome;
+
+    if (result === false) {
+      toast.error("Couldn't save your rating. Please try again.");
+      return;
+    }
+
+    // Clearing permanently deletes the rating row (and demotes a 7+ nominee)
+    // with a single tap otherwise — same Undo pattern as RatingModal's Clear
+    // rating action.
+    if (value === null && previousRanking !== null) {
+      toast(
+        (t) => (
+          <span className="flex items-center gap-3">
+            <span>Rating cleared</span>
+            <button
+              onClick={async () => {
+                toast.dismiss(t.id);
+                const restoreOutcome = onChange(previousRanking);
+                const restoreResult = restoreOutcome === undefined ? true : await restoreOutcome;
+                if (restoreResult === false) {
+                  toast.error("Couldn't restore your rating.");
+                }
+              }}
+              className="font-semibold underline hover:no-underline"
+            >
+              Undo
+            </button>
+          </span>
+        ),
+        { duration: 6000 }
+      );
+    }
   };
 
   useEffect(() => {
