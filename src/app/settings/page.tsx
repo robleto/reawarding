@@ -236,6 +236,12 @@ export default function SettingsPage() {
     profile?.subscription_status && ENTITLED_STATUSES.has(profile.subscription_status)
   );
   const isNative = isNativeApp();
+  // PAY-4 (docs/audits/2026-08-21-launch-readiness-round3.md): a native user
+  // with a Stripe customer already (e.g. past_due/unpaid, not a fresh
+  // purchase) still needs a way to reach the Billing Portal to fix their
+  // card — only a native user who's never had a subscription at all is the
+  // "would require IAP" case this gate exists to hide.
+  const hasStripeCustomer = Boolean(profile?.stripe_customer_id);
 
   const handleManageBilling = async () => {
     setBillingLoading(true);
@@ -625,13 +631,19 @@ export default function SettingsPage() {
               </>
             )}
           </div>
-          {!(isNative && !isPremium) && (
+          {!(isNative && !isPremium && !hasStripeCustomer) && (
             <button
               onClick={handleManageBilling}
               disabled={billingLoading}
               className="px-4 py-2 text-sm font-medium text-black rounded-full border border-gold-300/40 bg-gold-500 shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 disabled:opacity-50 transition-colors whitespace-nowrap"
             >
-              {billingLoading ? "Redirecting…" : isPremium ? "Manage subscription" : "Unlock Premium — $19/yr"}
+              {billingLoading
+                ? "Redirecting…"
+                : isPremium
+                  ? "Manage subscription"
+                  : hasStripeCustomer
+                    ? "Manage billing"
+                    : "Unlock Premium — $19/yr"}
             </button>
           )}
         </div>

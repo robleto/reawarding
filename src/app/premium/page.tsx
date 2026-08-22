@@ -115,7 +115,11 @@ export default function PremiumPage() {
             .
           </p>
         </div>
-      ) : isNative ? null : (
+      ) : isNative && !hasStripeCustomer ? null : (
+        // PAY-4 (docs/audits/2026-08-21-launch-readiness-round3.md): a
+        // native user who already has a Stripe customer (past_due/unpaid,
+        // not a fresh purchase) still needs a way to reach the Billing
+        // Portal to fix their card — hiding this entirely stranded them.
         <div className="text-center">
           <button
             onClick={handleUpgrade}
@@ -123,7 +127,7 @@ export default function PremiumPage() {
             className="inline-flex items-center gap-2 px-6 py-3 text-black bg-gold-500 rounded-full border border-gold-300/40 shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 disabled:opacity-50 font-medium transition-colors"
           >
             <Lock className="w-4 h-4" />
-            {loading ? "Redirecting…" : "Unlock Premium — $19/yr"}
+            {loading ? "Redirecting…" : hasStripeCustomer ? "Manage billing" : "Unlock Premium — $19/yr"}
           </button>
           {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
         </div>
