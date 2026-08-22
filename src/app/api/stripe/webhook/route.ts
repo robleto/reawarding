@@ -39,14 +39,46 @@ export async function POST(req: NextRequest) {
     );
   };
 
-  // Shared by every handler that might grant entitlement: only the premium
+  // PAY-2 (docs/audits/2026-08-22-launch-readiness-round4.md): defense
+  // against a retried/replayed delivery being processed twice. The
+  // customer.subscription.* branch below writes event.data.object's status
+  // directly (not a re-fetch), so a stale out-of-order redelivery would
+  // genuinely write a stale subscription_status without this. Insert-
+  // before-process; a unique-violation means we've already handled this
+  // event id, so skip reprocessing. Fails OPEN on any other insert error
+  // (e.g. the dedup table itself being briefly unreachable) — losing this
+  // defense for one event is far cheaper than blocking every real
+  // entitlement update on a bookkeeping-table hiccup.
+  const { error: dedupError } = await supabaseAdmin
+    .from("stripe_webhook_events")
+    .insert({ event_id: event.id, event_type: event.type });
+  if (dedupError) {
+    if (dedupError.code === "23505") {
+      return NextResponse.json({ received: true, deduped: true });
+    }
+    console.warn(
+      `[stripe/webhook] Could not record event ${event.id} for dedup (continuing anyway):`,
+      dedupError.message
+    );
+  }
+
+  // Shared by every handler that might grant entitlement: only a premium
   // price should ever flip subscription_status to an entitled value, no
-  // matter which webhook event carries the subscription.
+  // matter which webhook event carries the subscription. Accepts a
+  // comma-separated set (STRIPE_PREMIUM_PRICE_IDS) so rotating/adding a
+  // price doesn't strand subscribers still on an older one; falls back to
+  // the original singular env var if that's all that's configured.
+  const PREMIUM_PRICE_IDS = new Set(
+    (process.env.STRIPE_PREMIUM_PRICE_IDS || process.env.STRIPE_PREMIUM_PRICE_ID || "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean)
+  );
   const getSubscriptionPriceId = (subscription: Stripe.Subscription) =>
     subscription.items.data[0]?.price?.id;
   const isPremiumPrice = (subscription: Stripe.Subscription) => {
     const priceId = getSubscriptionPriceId(subscription);
-    return Boolean(priceId) && priceId === process.env.STRIPE_PREMIUM_PRICE_ID;
+    return Boolean(priceId) && PREMIUM_PRICE_IDS.has(priceId);
   };
 
   switch (event.type) {
@@ -185,6 +217,56 @@ export async function POST(req: NextRequest) {
           `profiles update matched 0 rows for stripe_customer_id=${customerId} (${event.type})`
         );
       }
+      break;
+    }
+
+    // A refund on its own doesn't touch the subscription — a customer can
+    // be refunded for a charge while their subscription stays live. Cancel
+    // the underlying subscription if it isn't already, so a refund actually
+    // revokes entitlement instead of leaving them premium indefinitely
+    // despite having their money back. The cancellation itself triggers
+    // customer.subscription.deleted/.updated above, which is what actually
+    // writes profiles.subscription_status — this handler doesn't duplicate
+    // that write.
+    case "charge.refunded": {
+      const charge = event.data.object as Stripe.Charge;
+      const customerId =
+        typeof charge.customer === "string" ? charge.customer : charge.customer?.id;
+      if (!customerId) break; // No customer on this charge — nothing to revoke.
+
+      try {
+        // This app's checkout flow only ever creates one live subscription
+        // per customer (src/app/api/stripe/checkout/route.ts's own
+        // duplicate guard assumes the same) — cancel whatever's still live
+        // for them rather than threading through the specific invoice this
+        // charge belonged to, which avoids depending on exactly how the
+        // installed Stripe API version links a Charge back to an Invoice.
+        const subscriptions = await stripe.subscriptions.list({
+          customer: customerId,
+          status: "all",
+        });
+        const stillLive = subscriptions.data.filter((s) => s.status !== "canceled");
+        await Promise.all(stillLive.map((s) => stripe.subscriptions.cancel(s.id)));
+      } catch (err) {
+        return failEvent(
+          `failed to cancel subscription(s) for customer ${customerId} after refund`,
+          err
+        );
+      }
+      break;
+    }
+
+    // No entitlement write here — customer.subscription.updated already
+    // carries past_due to profiles.subscription_status when a renewal
+    // fails. This is purely an explicit signal for observability/future
+    // customer messaging, not the source of truth for the entitlement.
+    case "invoice.payment_failed": {
+      const invoice = event.data.object as Stripe.Invoice;
+      const customerId =
+        typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+      console.warn(
+        `[stripe/webhook] invoice.payment_failed for event ${event.id}: customer=${customerId ?? "unknown"} invoice=${invoice.id}`
+      );
       break;
     }
 
