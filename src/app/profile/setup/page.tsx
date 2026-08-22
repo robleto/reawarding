@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from "@/lib/supabaseBrowser";
 import type { User } from '@supabase/supabase-js';
 import { User as UserIcon, Save, Check, X } from 'lucide-react';
+import { sanitizeNextPath } from '@/utils/sanitizeNextPath';
 
 interface Profile {
   id: string;
@@ -17,7 +18,23 @@ interface Profile {
 }
 
 export default function ProfileSetupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <div className="w-8 h-8 border-4 border-gold-400/30 border-t-gold-400 rounded-full animate-spin" />
+      </div>
+    }>
+      <ProfileSetupContent />
+    </Suspense>
+  );
+}
+
+function ProfileSetupContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Where to continue after claiming a username — threaded from the OAuth
+  // callback (AUTH-1, docs/audits/2026-08-22-launch-readiness-round4.md).
+  const next = sanitizeNextPath(searchParams?.get('next'));
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -195,9 +212,13 @@ export default function ProfileSetupPage() {
       
       setSuccess('Profile saved successfully!');
 
-      // First-time profile creation → taste setup. Edits go back home.
+      // If the caller threaded a specific destination through (e.g. the
+      // page a not-yet-signed-in visit originally bounced from), honor
+      // it. Otherwise: first-time profile creation → taste setup; edits
+      // go back home.
+      const destination = next !== '/' ? next : profile ? '/' : '/onboarding';
       setTimeout(() => {
-        router.push(profile ? '/' : '/onboarding');
+        router.push(destination);
       }, 1500);
       
     } catch (error) {
@@ -210,34 +231,34 @@ export default function ProfileSetupPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <div className="w-8 h-8 border-4 border-gold-400/30 border-t-gold-400 rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4">
+    <main className="min-h-screen bg-gray-950 p-4">
       <div className="max-w-2xl mx-auto pt-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
+          <h1 className="font-unbounded text-2xl sm:text-3xl font-bold text-white mb-2">
             {profile ? 'Edit Profile' : 'Complete Your Profile'}
           </h1>
           <p className="text-gray-400">
-            {profile ? 'Update your profile information' : 'Let\'s set up your profile to get started'}
+            {profile ? 'Update your profile information' : 'Choose your own username — this becomes your public profile URL.'}
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="rounded-2xl border border-white/10 bg-charcoal-900/95 backdrop-blur-xl shadow-2xl p-8">
           {/* Error/Success Messages */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            <div className="mb-6 p-4 bg-red-900/20 border border-red-800 rounded-xl text-red-400">
               {error}
             </div>
           )}
-          
+
           {success && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+            <div className="mb-6 p-4 bg-green-900/20 border border-green-800 rounded-xl text-green-400">
               {success}
             </div>
           )}
@@ -245,53 +266,53 @@ export default function ProfileSetupPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Username */}
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
                 Username *
               </label>
               <div className="relative">
-                <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <UserIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
                 <input
                   id="username"
                   type="text"
                   value={username}
                   onChange={(e) => handleUsernameChange(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-11 pr-12 py-3 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white placeholder-gray-500"
                   placeholder="your_username"
                   required
                 />
                 {usernameChecking && (
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                    <div className="w-5 h-5 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 )}
                 {!usernameChecking && usernameAvailable === true && (
-                  <Check className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
+                  <Check className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-400" />
                 )}
                 {!usernameChecking && usernameAvailable === false && (
-                  <X className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-red-500" />
+                  <X className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-red-400" />
                 )}
               </div>
               {username && username.length >= 3 && usernameAvailable === true && (
-                <p className="text-sm text-green-600 mt-1">Username is available!</p>
+                <p className="text-sm text-green-400 mt-1">Username is available!</p>
               )}
               {username && username.length >= 3 && usernameAvailable === false && (
-                <p className="text-sm text-red-600 mt-1">Username is already taken</p>
+                <p className="text-sm text-red-400 mt-1">Username is already taken</p>
               )}
             </div>
 
             {/* Full Name */}
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-300 mb-2">
                 Full Name
               </label>
               <div className="relative">
-                <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <UserIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
                 <input
                   id="fullName"
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-11 pr-4 py-3 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white placeholder-gray-500"
                   placeholder="Your Full Name"
                 />
               </div>
@@ -299,7 +320,7 @@ export default function ProfileSetupPage() {
 
             {/* Bio */}
             <div>
-              <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="bio" className="block text-sm font-medium text-gray-300 mb-2">
                 Bio
               </label>
               <textarea
@@ -307,14 +328,14 @@ export default function ProfileSetupPage() {
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white placeholder-gray-500 resize-none"
                 placeholder="Tell us about yourself..."
               />
             </div>
 
             {/* Avatar URL */}
             <div>
-              <label htmlFor="avatarUrl" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="avatarUrl" className="block text-sm font-medium text-gray-300 mb-2">
                 Avatar URL
               </label>
               <input
@@ -322,7 +343,7 @@ export default function ProfileSetupPage() {
                 type="url"
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white placeholder-gray-500"
                 placeholder="https://example.com/your-avatar.jpg"
               />
             </div>
@@ -331,19 +352,19 @@ export default function ProfileSetupPage() {
             <div className="flex items-center justify-between pt-4">
               <button
                 type="button"
-                onClick={() => router.push('/')}
-                className="text-gray-500 hover:text-gray-700"
+                onClick={() => router.push(next)}
+                className="text-gray-400 hover:text-gray-200 transition-colors"
               >
                 {profile ? 'Cancel' : 'Skip for now'}
               </button>
-              
+
               <button
                 type="submit"
                 disabled={loading || usernameAvailable === false}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                className="flex items-center gap-2 px-6 py-3 rounded-full border border-gold-300/40 bg-gold-500 text-black shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
               >
                 {loading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                 ) : (
                   <Save className="w-5 h-5" />
                 )}
