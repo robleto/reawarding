@@ -286,8 +286,15 @@ function RankingsPageContent() {
     updateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
   };
 
+  // LOOP-1 (docs/audits/2026-08-21-launch-readiness-round3.md): this used to
+  // write a fabricated ranking: 10 the instant a movie was picked, with no
+  // rating UI at all — collapsing Watch and Rate into one gesture (CLAUDE.md
+  // Guardrail 10) and silently promoting the film into that year's Best
+  // Picture ballot via the 7+ auto-nominate rule. Open the same
+  // MovieDetailModal every other movie uses instead, so the user goes
+  // through the real Watch→Rate flow and chooses their own score.
   const handleEmptyStateSelect = (movie: Movie) => {
-    updateMovieRanking(movie.id, { seen_it: true, ranking: 10 });
+    handleOpenModal(movie);
   };
 
   const isDataReady =
