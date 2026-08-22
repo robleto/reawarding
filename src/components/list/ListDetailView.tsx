@@ -186,46 +186,32 @@ export default function ListDetailView({
   };
 
   const saveNewOrder = async (items: ListItem[]) => {
-    try {
-      // STEP 1: Set all rankings to negative values to avoid unique constraint conflicts
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const tempRanking = -(i + 1); // Use negative values as temporary
+    // PERF-2 (docs/audits/2026-08-21-launch-readiness-round3.md): this used
+    // to be two sequential per-item update loops (2N+1 serial round trips
+    // for N items — the first pass existed only to dodge a unique-ranking
+    // conflict). update_list_item_rankings does the same two-pass dance
+    // server-side, atomically, in one call — see
+    // supabase/migrations/20250715120000_update_list_item_rankings.sql,
+    // which shipped with zero call sites until now.
+    const updates = items.map((item, index) => ({
+      id: item.id,
+      ranking: items.length - index,
+    }));
 
-        const { error } = await supabase
-          .from("movie_list_items")
-          .update({ ranking: tempRanking })
-          .eq("id", item.id);
+    const { error } = await supabase.rpc("update_list_item_rankings", { updates });
 
-        if (error) {
-          console.error(`❌ Error setting temp ranking for ${item.id}:`, error);
-          return;
-        }
-      }
+    if (error) {
+      console.error("Error saving reordered list:", error.message);
+      showToast("Couldn't save the new order. Please try again.", "error");
+      return;
+    }
 
-      // STEP 2: Set the actual final rankings (top-of-display item = highest ranking)
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const newRanking = items.length - i;
-
-        const { error } = await supabase
-          .from("movie_list_items")
-          .update({ ranking: newRanking })
-          .eq("id", item.id);
-
-        if (error) {
-          console.error(`❌ Error updating item ${item.id}:`, error);
-          return;
-        }
-      }
-
-      // Update the list's updated_at timestamp
-      await supabase
-        .from("movie_lists")
-        .update({ updated_at: new Date().toISOString() })
-        .eq("id", listId);
-    } catch (error) {
-      console.error("❌ Error in saveNewOrder:", error);
+    const { error: touchError } = await supabase
+      .from("movie_lists")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", listId);
+    if (touchError) {
+      console.error("Error touching list updated_at:", touchError.message);
     }
   };
 
