@@ -1040,6 +1040,16 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
         })
       : null;
   const nomineesNeededForComplete = Math.max(0, 5 - nomineeCount);
+  // Ballot card states (docs/design/ballot-card-states.md, States 1 & 2 —
+  // No nominees / Thin): below the 5-nominee legitimacy floor (Law 2), the
+  // full gilt AwardCard + 5-grid frame reads as mostly-empty ceremony for
+  // zero or one data points. Covers nomineeCount 0-4 in one branch since the
+  // row shape is identical; only the copy differs (handled inline via
+  // displayWinner/nomineeCount checks) between "hasn't started" and "started,
+  // still forming." View-mode, non-workshop, non-compact only — compact
+  // already renders its own reduced (nominees-only) layout, and the workshop
+  // keeps its own editing-specific guidance above the drag list.
+  const isThinBallot = !isWorkshop && !compact && nomineeCount < 5;
   const defaultNomineeIds = movies.map((m) => m.id);
   const defaultWinnerId = winner?.id ?? movies[0]?.id ?? null;
   const activeWorkshopNominees = isWorkshop ? nominees : displayNominees;
@@ -1434,6 +1444,67 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
 
           {/* Content */}
           {/* READ MODE LAYOUT */}
+          {isThinBallot ? (
+            /* Thin ballot (1-4 nominees) — docs/design/ballot-card-states.md.
+               No gilt AwardCard (gold is reserved for a Set ballot, per
+               .impeccable.md), no 5-grid frame with mostly-empty tiles.
+               Small poster of the leading pick + the completion nudge
+               promoted from a footnote into the actual primary action. */
+            <div className="flex items-center gap-4">
+              <div className="w-16 flex-shrink-0 sm:w-20">
+                {displayWinner ? (
+                  <MovieCard
+                    movie={displayWinner}
+                    variant="grid"
+                    onClick={() => handleOpenModal(displayWinner)}
+                  />
+                ) : (
+                  <div className="flex aspect-[2/3] w-full items-center justify-center rounded-xl bg-gray-800">
+                    <Film className="h-4 w-4 text-gray-600" />
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm text-gray-300">
+                  {displayWinner ? (
+                    <>
+                      <span className="font-semibold text-white">{displayWinner.title}</span> is leading — rate {5 - nomineeCount} more 7+ to fill the ballot
+                    </>
+                  ) : (
+                    <>You haven&apos;t rated any {year} films yet.</>
+                  )}
+                </p>
+                <div className="mt-2 flex items-center gap-1.5">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span
+                      key={i}
+                      className={`h-1.5 w-1.5 rounded-full ${i < nomineeCount ? "bg-gold-500" : "bg-gray-700"}`}
+                    />
+                  ))}
+                  <span className="ml-1 font-mono text-[10px] tabular-nums text-gray-500">{nomineeCount} of 5</span>
+                </div>
+                {user && viewerOwnsBallot && (
+                  <button
+                    type="button"
+                    onClick={onEditRequest ?? handleStartEditing}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-gold-400 to-gold-600 px-3.5 py-2 text-xs font-semibold text-charcoal-900 transition hover:brightness-110"
+                  >
+                    {nomineeCount === 0 ? <>Rate a {year} film to start</> : <>Rate a {year} film →</>}
+                  </button>
+                )}
+              </div>
+              {user && viewerOwnsBallot && (
+                <button
+                  type="button"
+                  onClick={onEditRequest ?? handleStartEditing}
+                  className="flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-gray-700/40 px-3 text-xs font-medium text-gray-300 transition-all hover:border-gray-600 hover:bg-gray-800/60 hover:text-white min-h-[36px]"
+                >
+                  <Edit3 className="h-3 w-3" />
+                  Edit
+                </button>
+              )}
+            </div>
+          ) : (
             <div className="relative flex flex-col gap-6 md:flex-row md:gap-8">
               {/* Academy stamp — sits in the open space under the winner
                   title and the first couple nominees of row 2, run past the
@@ -1747,6 +1818,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                 )}
               </div>
             </div>
+          )}
         </div>
     )}
 
