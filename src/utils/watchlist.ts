@@ -28,7 +28,23 @@ export async function ensureUserWatchlist(
       .select("id")
       .single();
 
-    if (insertRes.error) throw insertRes.error;
+    if (insertRes.error) {
+      // CC-1 (docs/audits/2026-08-22-launch-readiness-round4.md): two call
+      // sites (useAuthMigration, WatchlistProvider) both call this the
+      // instant a session appears, so a losing concurrent insert (unique
+      // violation on the partial uniq_user_watchlist index) is expected,
+      // not exceptional — re-select for the winning row before giving up,
+      // instead of returning null and leaving the watchlist stuck empty.
+      const retry = await supabase
+        .from("movie_lists")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("list_type", "watchlist")
+        .limit(1)
+        .maybeSingle();
+      if (retry.data?.id) return retry.data.id as string;
+      throw insertRes.error;
+    }
     return insertRes.data?.id ?? null;
   } catch (error) {
     const message =
