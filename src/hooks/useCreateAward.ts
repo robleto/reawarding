@@ -54,8 +54,8 @@ export function useCreateAward() {
   const guestStore = useGuestRankingStore();
   const lastMutationRef = useRef<LastMutation | null>(null);
   const guestSessionIdRef = useRef<string>(generateUUID());
-  /** Per-year mutex: prevents concurrent double-click from bypassing dedup. */
-  const yearLocksRef = useRef<Map<number, Promise<AwardResult>>>(new Map());
+  /** Per-year-and-category mutex: prevents concurrent double-click from bypassing dedup. */
+  const yearLocksRef = useRef<Map<string, Promise<AwardResult>>>(new Map());
   const isGuest = !user;
 
   const actorKey = user?.id ?? guestSessionIdRef.current;
@@ -63,12 +63,13 @@ export function useCreateAward() {
   const buildSignature = useCallback(
     (
       year: number,
+      category: string,
       winnerId: string,
       nomineeIds: string[],
       source: AwardResult["source"]
     ) => {
       const normalizedNominees = [...new Set(nomineeIds)].sort().join(",");
-      return `${year}|${winnerId}|${normalizedNominees}|${source}`;
+      return `${year}|${category}|${winnerId}|${normalizedNominees}|${source}`;
     },
     []
   );
@@ -181,9 +182,12 @@ export function useCreateAward() {
   );
 
   const fetchExistingAward = useCallback(
-    async (year: number): Promise<ExistingAwardLookup> => {
+    async (year: number, category: string): Promise<ExistingAwardLookup> => {
       if (isGuest) {
-        const guest = guestStore.getAward(year);
+        // v1 simplification (see GuestAward in useGuestRankingStore.ts): guest
+        // awards are keyed by year only, category always "best-picture" —
+        // a non-best-picture category has no guest storage to read from.
+        const guest = category === "best-picture" ? guestStore.getAward(year) : null;
         if (!guest) return { award: null };
         return {
           award: {
@@ -195,7 +199,7 @@ export function useCreateAward() {
       }
 
       try {
-        const res = await fetch(`/api/awards?year=${year}&category=best-picture`);
+        const res = await fetch(`/api/awards?year=${year}&category=${category}`);
         if (res.status === 404) return { award: null };
         if (res.status === 401) {
           return { award: null, error: "Your session expired. Please sign in again." };
@@ -222,6 +226,7 @@ export function useCreateAward() {
   const persistAward = useCallback(
     async (
       year: number,
+      category: string,
       nomineeIds: string[],
       winnerId: string,
       _source: AwardResult["source"],
@@ -235,7 +240,7 @@ export function useCreateAward() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             year,
-            category: "best-picture",
+            category,
             nominee_ids: nomineeIds,
             winner_id: winnerId,
           }),
@@ -264,12 +269,31 @@ export function useCreateAward() {
   const createAwardInner = useCallback(
     async (
       movie: Pick<Movie, "id" | "title" | "release_year">,
-      existingRankingsMap?: Record<string, number | null | undefined>
+      existingRankingsMap?: Record<string, number | null | undefined>,
+      category: string = "best-picture"
     ): Promise<AwardResult> => {
       const source: AwardResult["source"] = "seed_pick";
       const year = movie.release_year;
 
-      const existingLookup = await fetchExistingAward(year);
+      // v1 simplification (see GuestAward in useGuestRankingStore.ts): guest
+      // award storage only has a "best-picture" slot. Rather than silently
+      // dropping a guest's non-best-picture pick, fail it explicitly so the
+      // calling UI can react (e.g. prompt sign-in) instead of looking like a
+      // successful nomination that then vanishes on refresh.
+      if (isGuest && category !== "best-picture") {
+        return {
+          success: false,
+          year,
+          winnerId: movie.id,
+          nomineeIds: [movie.id],
+          contextMessage: "",
+          agreedWithAcademy: false,
+          source,
+          error: "Sign in to build a ballot in this category.",
+        };
+      }
+
+      const existingLookup = await fetchExistingAward(year, category);
       if (existingLookup.error) {
         const failed: AwardResult = {
           success: false,
@@ -293,17 +317,19 @@ export function useCreateAward() {
         : [movie.id];
       const revisionNumber = (existing?.revisionNumber ?? 0) + 1;
 
-      const signature = buildSignature(year, winnerId, mergedNominees, source);
+      const signature = buildSignature(year, category, winnerId, mergedNominees, source);
       const duplicate = getDuplicateResult(signature);
       if (duplicate) return duplicate;
 
+      // isGuest is already guaranteed category === "best-picture" here (see
+      // the guard above), so the guest store's best-picture-only shape holds.
       const previousGuestAward = isGuest ? guestStore.getAward(year) : null;
 
       if (isGuest) {
         guestStore.setAward(year, winnerId, mergedNominees, source);
       }
 
-      const persisted = await persistAward(year, mergedNominees, winnerId, source, revisionNumber);
+      const persisted = await persistAward(year, category, mergedNominees, winnerId, source, revisionNumber);
       if (!persisted) {
         if (isGuest) {
           if (previousGuestAward) {
@@ -335,7 +361,7 @@ export function useCreateAward() {
       const rankings = existingRankingsMap ?? (await getExistingRankings(mergedNominees));
       await applyInferredRankings(winnerId, mergedNominees, rankings);
 
-      const officialWinners = await fetchOfficialAwardWinners();
+      const officialWinners = await fetchOfficialAwardWinners(category);
       const context = getAcademyContextMessage(movie.id, movie.title, year, officialWinners);
       const success: AwardResult = {
         success: true,
@@ -370,21 +396,23 @@ export function useCreateAward() {
   const createAward = useCallback(
     (
       movie: Pick<Movie, "id" | "title" | "release_year">,
-      existingRankingsMap?: Record<string, number | null | undefined>
+      existingRankingsMap?: Record<string, number | null | undefined>,
+      category: string = "best-picture"
     ): Promise<AwardResult> => {
       const year = movie.release_year;
-      const pending = yearLocksRef.current.get(year);
+      const lockKey = `${year}:${category}`;
+      const pending = yearLocksRef.current.get(lockKey);
       const execute = async (): Promise<AwardResult> => {
         if (pending) await pending.catch(() => {});
-        return createAwardInner(movie, existingRankingsMap);
+        return createAwardInner(movie, existingRankingsMap, category);
       };
       const promise = execute().finally(() => {
-        // Release lock only if this is still the active promise for this year
-        if (yearLocksRef.current.get(year) === promise) {
-          yearLocksRef.current.delete(year);
+        // Release lock only if this is still the active promise for this year+category
+        if (yearLocksRef.current.get(lockKey) === promise) {
+          yearLocksRef.current.delete(lockKey);
         }
       });
-      yearLocksRef.current.set(year, promise);
+      yearLocksRef.current.set(lockKey, promise);
       return promise;
     },
     [createAwardInner]

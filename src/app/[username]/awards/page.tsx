@@ -6,9 +6,11 @@ import Link from "next/link";
 import { Trophy } from "lucide-react";
 import EditableYearSection from "@/components/award/EditableYearSection";
 import MuseumYearTimeline from "@/components/home/MuseumYearTimeline";
+import { AwardsTabs, CATEGORY_LABELS, type AwardsTabKey } from "@/components/award/AwardsTabs";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
 import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
 import { usePrefersReducedMotion } from "@/lib/motion";
+import { isEligibleForCategory } from "@/utils/categoryEligibility";
 import type { Movie } from "@/types/types";
 
 interface YearData {
@@ -21,7 +23,8 @@ interface YearData {
 export default function ProfileAwardsPage() {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
-  const { profile, movies, awards, loading } = usePublicProfile(username);
+  const [category, setCategory] = useState<AwardsTabKey>("best-picture");
+  const { profile, movies, awards, loading } = usePublicProfile(username, category);
 
   // LOOP-M1/M2: this page renders ANY user's public ballot to ANY signed-in
   // visitor. EditableYearSection must only treat this as an editable, "my
@@ -43,7 +46,11 @@ export default function ProfileAwardsPage() {
     if (movies.length === 0) return [];
 
     const moviesWithRankings = movies.filter(
-      (movie) => movie.rankings && movie.rankings.length > 0 && movie.rankings[0].ranking !== null
+      (movie) =>
+        movie.rankings &&
+        movie.rankings.length > 0 &&
+        movie.rankings[0].ranking !== null &&
+        isEligibleForCategory(movie, category)
     );
 
     const groupedByYear = moviesWithRankings.reduce<Record<string, Movie[]>>((acc, movie) => {
@@ -93,7 +100,7 @@ export default function ProfileAwardsPage() {
       })
       .filter((yearData) => yearData.allMovies.length >= 1)
       .sort((a, b) => Number(b.year) - Number(a.year));
-  }, [movies, awards]);
+  }, [movies, awards, category]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -221,6 +228,7 @@ export default function ProfileAwardsPage() {
     // the same effect that flips `loading` off), so this can't branch on it.
     return (
       <div className="w-full min-w-0 max-w-screen-xl mx-auto">
+        <AwardsTabs value={category} onChange={setCategory} />
         {/* award-editable-section: shares the real year sections' mobile
             full-bleed treatment (globals.css) so this placeholder doesn't
             visibly shrink/reflow once real content replaces it. */}
@@ -243,15 +251,19 @@ export default function ProfileAwardsPage() {
   }
 
   if (formattedYears.length === 0) {
+    const categoryLabel = CATEGORY_LABELS[category];
     return (
       <div className="w-full min-w-0 max-w-screen-xl mx-auto">
+        <AwardsTabs value={category} onChange={setCategory} />
         <div className="dark-glass rounded-xl px-6 py-16 text-center">
           <Trophy className="mx-auto mb-4 h-8 w-8 text-gold-400" />
           {viewerOwnsBallot ? (
             <>
-              <h3 className="text-lg font-semibold text-white mb-2">No awards yet</h3>
+              <h3 className="text-lg font-semibold text-white mb-2">No {categoryLabel} awards yet</h3>
               <p className="text-gray-400 text-sm max-w-sm mx-auto">
-                Rate a few films you loved — your first ballot starts here.
+                {category === "best-picture"
+                  ? "Rate a few films you loved — your first ballot starts here."
+                  : "Rate a few eligible films you loved — your first ballot starts here."}
               </p>
               <Link href="/" className="mt-6 inline-block text-sm font-medium text-gold-400 hover:text-gold-300">
                 Find something to rate
@@ -259,9 +271,9 @@ export default function ProfileAwardsPage() {
             </>
           ) : (
             <>
-              <h3 className="text-lg font-semibold text-white mb-2">No awards yet</h3>
+              <h3 className="text-lg font-semibold text-white mb-2">No {categoryLabel} awards yet</h3>
               <p className="text-gray-400 text-sm">
-                @{username} hasn&apos;t created any Best Picture awards yet.
+                @{username} hasn&apos;t created any {categoryLabel} awards yet.
               </p>
             </>
           )}
@@ -275,6 +287,7 @@ export default function ProfileAwardsPage() {
        min-w-0, wide intrinsic children propagate their width up here and
        inflate the page past the viewport on mobile (same guard as /awards). */
     <div className="w-full min-w-0 max-w-screen-xl mx-auto">
+      <AwardsTabs value={category} onChange={setCategory} />
       {/* Same sticky year scrubber Home uses above its own archive — this
           page rendered the identical EditableYearSection list with no
           navigation chrome at all above it. */}
@@ -307,10 +320,11 @@ export default function ProfileAwardsPage() {
                 winner={yearData.winner}
                 movies={yearData.nominees}
                 allMoviesForYear={yearData.allMovies}
-                category="best-picture"
+                category={category}
                 mode="view"
                 nomineeImageMode="poster"
                 viewerOwnsBallot={viewerOwnsBallot}
+                profileUsername={username}
                 // PERF-1 (docs/audits/2026-08-21-launch-readiness-round3.md):
                 // usePublicProfile already fetched every year's award above
                 // (see the savedAward lookup) — skip this instance's own

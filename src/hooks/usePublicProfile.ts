@@ -79,13 +79,22 @@ interface PublicProfileCacheEntry {
 
 const publicProfileCache = new Map<string, PublicProfileCacheEntry>();
 
-function loadPublicProfileForUsername(username: string): PublicProfileCacheEntry {
-  const existing = publicProfileCache.get(username);
+// Cache key includes category — this cache is module-level (shared across
+// every usePublicProfile call in the app), so a best-animated fetch for
+// "robleto" must never collide with, or overwrite, the best-picture entry
+// the Overview/Films/Rankings/etc. pages already rely on for that username.
+function cacheKey(username: string, category: string) {
+  return `${username}:${category}`;
+}
+
+function loadPublicProfileForUsername(username: string, category: string): PublicProfileCacheEntry {
+  const key = cacheKey(username, category);
+  const existing = publicProfileCache.get(key);
   if (existing) {
     const isStale =
       existing.fetchedAt !== null && Date.now() - existing.fetchedAt > CACHE_STALE_MS;
     if (!isStale) return existing;
-    publicProfileCache.delete(username);
+    publicProfileCache.delete(key);
   }
 
   const entry: PublicProfileCacheEntry = {
@@ -96,7 +105,9 @@ function loadPublicProfileForUsername(username: string): PublicProfileCacheEntry
 
   entry.promise = (async () => {
     try {
-      const res = await fetch(`/api/users/${encodeURIComponent(username)}`);
+      const res = await fetch(
+        `/api/users/${encodeURIComponent(username)}?category=${encodeURIComponent(category)}`
+      );
 
       if (res.status === 404) {
         entry.data = { ...EMPTY_DATA, notFound: true };
@@ -117,8 +128,8 @@ function loadPublicProfileForUsername(username: string): PublicProfileCacheEntry
         entry.data = { ...EMPTY_DATA, error: message };
         entry.fetchedAt = Date.now();
         // Don't cache a hard failure — let the next mount retry.
-        if (publicProfileCache.get(username) === entry) {
-          publicProfileCache.delete(username);
+        if (publicProfileCache.get(key) === entry) {
+          publicProfileCache.delete(key);
         }
         return;
       }
@@ -139,17 +150,20 @@ function loadPublicProfileForUsername(username: string): PublicProfileCacheEntry
         error: err instanceof Error ? err.message : "Unknown error",
       };
       entry.fetchedAt = Date.now();
-      if (publicProfileCache.get(username) === entry) {
-        publicProfileCache.delete(username);
+      if (publicProfileCache.get(key) === entry) {
+        publicProfileCache.delete(key);
       }
     }
   })();
 
-  publicProfileCache.set(username, entry);
+  publicProfileCache.set(key, entry);
   return entry;
 }
 
-export function usePublicProfile(username: string): UsePublicProfileResult {
+export function usePublicProfile(
+  username: string,
+  category: string = "best-picture"
+): UsePublicProfileResult {
   const [data, setData] = useState<PublicProfileData>(EMPTY_DATA);
   const [loading, setLoading] = useState(true);
 
@@ -159,7 +173,7 @@ export function usePublicProfile(username: string): UsePublicProfileResult {
     let cancelled = false;
     setLoading(true);
 
-    const entry = loadPublicProfileForUsername(username);
+    const entry = loadPublicProfileForUsername(username, category);
     entry.promise.then(() => {
       if (cancelled) return;
       // Read entry.data fresh (not a value captured at promise-creation
@@ -172,7 +186,7 @@ export function usePublicProfile(username: string): UsePublicProfileResult {
     return () => {
       cancelled = true;
     };
-  }, [username]);
+  }, [username, category]);
 
   return { ...data, loading };
 }

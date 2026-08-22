@@ -7,11 +7,16 @@ const normalizeCategory = (value: string | null | undefined) =>
   (value || "").trim().toLowerCase().replace(/[_\s]+/g, "-");
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
 ) {
   try {
     const { username } = await params;
+    // Which category's rows populate the `awards` field below — defaults to
+    // best-picture so every existing caller (Overview/Films/Rankings/etc.,
+    // none of which pass this) sees identical behavior. `stats.awards` is
+    // intentionally NOT driven by this param — see below.
+    const category = normalizeCategory(request.nextUrl.searchParams.get("category")) || "best-picture";
     const supabase = await createSupabaseServerClient();
 
     // 1. Fetch profile by username
@@ -105,17 +110,20 @@ export async function GET(
       films: seenMovies.length,
     };
 
-    // Surface best-picture awards so the public AwardsGallery can respect the
-    // user's actual saved winner instead of guessing "highest-rated nominee".
-    const bestPictureAwards = (awards || []).filter(
-      (a: any) => normalizeCategory(a.category) === "best-picture"
+    // Surface this category's awards so the public AwardsGallery (or a
+    // category tab on /[username]/awards) can respect the user's actual
+    // saved winner instead of guessing "highest-rated nominee". stats.awards
+    // above stays pinned to best-picture regardless of `category` — it's the
+    // profile header's overall count, not meant to fluctuate per tab.
+    const categoryAwards = (awards || []).filter(
+      (a: any) => normalizeCategory(a.category) === category
     );
 
     return NextResponse.json({
       profile,
       movies: allMovies,
       stats,
-      awards: bestPictureAwards,
+      awards: categoryAwards,
     }, {
       // Public profile data: profiles/movies/rankings/awards all carry public
       // "readable by anyone" RLS policies (qual: true), so this response does

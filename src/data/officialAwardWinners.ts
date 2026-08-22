@@ -27,17 +27,21 @@ import type { OfficialAwardWinner } from "@/utils/academyStatus";
 export type { OfficialAwardWinner, AcademyStatus, AcademyStatusResult } from "@/utils/academyStatus";
 export { getAcademyStatus, getAcademyContextMessage } from "@/utils/academyStatus";
 
-let cached: Promise<Map<number, OfficialAwardWinner>> | null = null;
+// Keyed by category so best-picture (the original, still-only-100%-matched
+// category) and any other category each get their own cached promise/request
+// instead of sharing one — every existing caller omits the category param and
+// gets "best-picture", identical to this module's pre-multi-category behavior.
+const cached = new Map<string, Promise<Map<number, OfficialAwardWinner>>>();
 
-async function loadOfficialAwardWinners(): Promise<Map<number, OfficialAwardWinner>> {
+async function loadOfficialAwardWinners(category: string): Promise<Map<number, OfficialAwardWinner>> {
   const { data, error } = await supabase
     .from("official_award_winners")
     .select("year, category, film_title, movie_id, match_status")
-    .eq("category", "best-picture");
+    .eq("category", category);
 
   if (error) {
     console.warn("[officialAwardWinners] fetch failed:", error.message);
-    cached = null; // allow retry on next call rather than caching a failure
+    cached.delete(category); // allow retry on next call rather than caching a failure
     return new Map<number, OfficialAwardWinner>();
   }
 
@@ -54,14 +58,18 @@ async function loadOfficialAwardWinners(): Promise<Map<number, OfficialAwardWinn
   return map;
 }
 
-export function fetchOfficialAwardWinners(): Promise<Map<number, OfficialAwardWinner>> {
-  if (!cached) {
-    cached = loadOfficialAwardWinners();
+export function fetchOfficialAwardWinners(
+  category: string = "best-picture"
+): Promise<Map<number, OfficialAwardWinner>> {
+  let promise = cached.get(category);
+  if (!promise) {
+    promise = loadOfficialAwardWinners(category);
+    cached.set(category, promise);
   }
-  return cached;
+  return promise;
 }
 
-export function useOfficialAwardWinners(): {
+export function useOfficialAwardWinners(category: string = "best-picture"): {
   winners: Map<number, OfficialAwardWinner>;
   loading: boolean;
 } {
@@ -70,7 +78,8 @@ export function useOfficialAwardWinners(): {
 
   useEffect(() => {
     let cancelled = false;
-    fetchOfficialAwardWinners().then((map) => {
+    setLoading(true);
+    fetchOfficialAwardWinners(category).then((map) => {
       if (!cancelled) {
         setWinners(map);
         setLoading(false);
@@ -79,7 +88,7 @@ export function useOfficialAwardWinners(): {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [category]);
 
   return { winners, loading };
 }

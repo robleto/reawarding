@@ -1,20 +1,34 @@
 #!/usr/bin/env ts-node
 /**
- * One-time backfill of public.official_award_winners from the curated Best Picture
- * list in scripts/data/best-picture-winners.json. Matches each winner to an existing
- * row in public.movies by normalized title + release year (±1, since a film's
- * Academy eligibility year and its movies.release_year can disagree by a year for
- * festival/limited releases). No fuzzy guessing across a year gap wider than that —
- * ambiguous or missing matches are written with match_status='needs_review' or
- * 'unmatched' and logged, never silently resolved (Law 5).
+ * One-time (per category) backfill of public.official_award_winners from the
+ * curated winner lists in scripts/data/*-winners.json. Matches each winner to
+ * an existing row in public.movies by normalized title + release year (±1,
+ * since a film's Academy eligibility year and its movies.release_year can
+ * disagree by a year for festival/limited releases). No fuzzy guessing across
+ * a year gap wider than that — ambiguous or missing matches are written with
+ * match_status='needs_review' or 'unmatched' and logged, never silently
+ * resolved (Law 5).
  *
- * `year` in the source list is each film's real calendar release year (i.e. what
- * ends up in movies.release_year), not the ceremony's eligibility-period label —
- * those disagree for the 2nd-6th ceremonies, which used split "19XX/YY" eligibility
- * windows (e.g. the 5th ceremony, "1931/32", awarded Grand Hotel, a 1932 release).
+ * `year` in each source list is the film's real calendar release year (i.e.
+ * what ends up in movies.release_year), not the ceremony's eligibility-period
+ * label — those disagree for the 2nd-6th Best Picture ceremonies, which used
+ * split "19XX/YY" eligibility windows (e.g. the 5th ceremony, "1931/32",
+ * awarded Grand Hotel, a 1932 release).
  *
- * This is not a recurring ingest job. Re-run only to append one new year after each
- * ceremony, or after adding entries to the source list.
+ * Genre categories (best-animated, best-documentary, best-international) —
+ * see PRODUCT_DECISION_LOG.md, July 2026, "the intended expansion path" —
+ * have two known real-history gaps, deliberately NOT encoded as rows rather
+ * than guessed: the 19th ceremony (1946 films) gave no Best Documentary award
+ * at all, and the 59th ceremony (1986 films) had a two-way tie (Artie Shaw:
+ * Time Is All You've Got / Down and Out in America) that the unique(year,
+ * category) constraint can't represent without picking one and silently
+ * erasing the other — so best-documentary-winners.json has no 1946 or 1986
+ * entry, and those two years are simply absent from Alternate Oscar History's
+ * documentary comparison rather than misrepresented.
+ *
+ * This is not a recurring ingest job. Re-run a single category only to append
+ * one new year after each ceremony, or after correcting entries in that
+ * category's source list.
  *
  * Requirements:
  *  - NEXT_PUBLIC_SUPABASE_URL
@@ -23,16 +37,35 @@
  * Usage:
  *   TS_NODE_TRANSPILE_ONLY=1 npx ts-node scripts/backfill-official-winners.ts --dry-run
  *   TS_NODE_TRANSPILE_ONLY=1 npx ts-node scripts/backfill-official-winners.ts
+ *   TS_NODE_TRANSPILE_ONLY=1 npx ts-node scripts/backfill-official-winners.ts --category=best-animated
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 
-interface OfficialBestPictureWinner {
+interface OfficialWinnerEntry {
   ceremony: number;
   year: number;
   title: string;
+}
+
+// Every category currently backed by a curated source file. Add a new entry
+// here (plus its scripts/data/*-winners.json) to onboard another category —
+// nothing else in this script is category-specific.
+const CATEGORY_SOURCES: Record<string, string> = {
+  'best-picture': 'best-picture-winners.json',
+  'best-animated': 'best-animated-winners.json',
+  'best-documentary': 'best-documentary-winners.json',
+  'best-international': 'best-international-winners.json',
+};
+
+const categoryArg = process.argv.find((a) => a.startsWith('--category='))?.split('=')[1];
+const categoriesToRun = categoryArg ? [categoryArg] : Object.keys(CATEGORY_SOURCES);
+
+if (categoryArg && !CATEGORY_SOURCES[categoryArg]) {
+  console.error(`Unknown --category=${categoryArg}. Known categories: ${Object.keys(CATEGORY_SOURCES).join(', ')}`);
+  process.exit(1);
 }
 
 // Loaded as JSON rather than imported as a TS module — this script runs under
@@ -42,9 +75,10 @@ interface OfficialBestPictureWinner {
 // from process.cwd() (always the repo root via `npm run`) rather than
 // __dirname/import.meta.url, since which of those is even defined depends on
 // which module mode Node decides to sniff this file as.
-const BEST_PICTURE_WINNERS: OfficialBestPictureWinner[] = JSON.parse(
-  fs.readFileSync(path.join(process.cwd(), 'scripts', 'data', 'best-picture-winners.json'), 'utf8')
-);
+function loadWinners(category: string): OfficialWinnerEntry[] {
+  const file = CATEGORY_SOURCES[category];
+  return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'scripts', 'data', file), 'utf8'));
+}
 
 // Self-loads env from .env/.env.local, same pattern as scripts/dev-db.mjs —
 // never cat/grep these files from a terminal, load them in-process instead.
@@ -122,8 +156,9 @@ function pickMatch(title: string, year: number, candidates: MovieCandidate[]) {
   return { match: ties > 0 ? null : best, hadTie: ties > 0 };
 }
 
-async function main() {
-  console.log(`${DRY_RUN ? '[dry-run] ' : ''}Backfilling ${BEST_PICTURE_WINNERS.length} official Best Picture winners...\n`);
+async function backfillCategory(category: string) {
+  const winners = loadWinners(category);
+  console.log(`\n${DRY_RUN ? '[dry-run] ' : ''}Backfilling ${winners.length} official ${category} winners...\n`);
 
   const rows: Array<{
     year: number;
@@ -137,7 +172,7 @@ async function main() {
   const needsReview: string[] = [];
   const unmatched: string[] = [];
 
-  for (const winner of BEST_PICTURE_WINNERS) {
+  for (const winner of winners) {
     const candidates = await findCandidates(winner.year);
     const { match, hadTie } = pickMatch(winner.title, winner.year, candidates);
 
@@ -150,7 +185,7 @@ async function main() {
 
     rows.push({
       year: winner.year,
-      category: 'best-picture',
+      category,
       ceremony_number: winner.ceremony,
       film_title: winner.title,
       movie_id: match?.id ?? null,
@@ -158,14 +193,14 @@ async function main() {
     });
   }
 
-  console.log(`Matched: ${rows.filter((r) => r.match_status === 'matched').length}`);
-  console.log(`Needs review: ${needsReview.length}`);
+  console.log(`[${category}] Matched: ${rows.filter((r) => r.match_status === 'matched').length} / ${rows.length}`);
+  console.log(`[${category}] Needs review: ${needsReview.length}`);
   needsReview.forEach((l) => console.log(`  - ${l}`));
-  console.log(`Unmatched: ${unmatched.length}`);
+  console.log(`[${category}] Unmatched: ${unmatched.length}`);
   unmatched.forEach((l) => console.log(`  - ${l}`));
 
   if (DRY_RUN) {
-    console.log('\nDry run — no rows written.');
+    console.log(`[${category}] Dry run — no rows written.`);
     return;
   }
 
@@ -174,7 +209,13 @@ async function main() {
     .upsert(rows, { onConflict: 'year,category' });
 
   if (error) throw error;
-  console.log(`\nWrote ${rows.length} rows to official_award_winners.`);
+  console.log(`[${category}] Wrote ${rows.length} rows to official_award_winners.`);
+}
+
+async function main() {
+  for (const category of categoriesToRun) {
+    await backfillCategory(category);
+  }
 }
 
 main().catch((err) => {

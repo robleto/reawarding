@@ -11,6 +11,8 @@ import MovieCard from "./MovieCard";
 import NomineeCardCarousel from "./NomineeCardCarousel";
 import { hapticSuccess } from "@/lib/haptics";
 import AwardCard from "@/components/home/AwardCard";
+import ShareSheet from "@/components/social/ShareSheet";
+import { CATEGORY_LABELS } from "@/components/award/AwardsTabs";
 import AcademyStamp from "./AcademyStamp";
 import DraggableNomineeCard from "./DraggableNomineeCard";
 import SelectableMovieItem from "./SelectableMovieItem";
@@ -141,6 +143,11 @@ interface EditableYearSectionProps {
    * (e.g. the standalone /year/[year] workshop route).
    */
   preloadedNomination?: { nominee_ids: string[]; winner_id: string | null } | null;
+  /** Username of the profile whose ballot this is — used to build the share
+      link/OG card for a set year's AwardCard. Home passes the signed-in
+      user's own username; the public profile route passes its `[username]`
+      route param. Omit to skip rendering the Share action entirely. */
+  profileUsername?: string;
 }
 
 const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSectionProps>(function EditableYearSection({
@@ -159,6 +166,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   onEditRequest,
   viewerOwnsBallot,
   preloadedNomination,
+  profileUsername,
 }: EditableYearSectionProps, ref) {
   const supabase = useSupabaseClient<Database>();
   const user = useUser();
@@ -273,6 +281,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   // Modal state
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   // Current display nominees and winner (either custom or default)
   const [currentNominees, setCurrentNominees] = useState<Movie[]>(() => [...initialNominees]);
@@ -1546,6 +1555,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         onClick={() => handleOpenModal(displayWinner)}
                         fullWidth
                         academyStatus={academyStatus}
+                        onShare={profileUsername ? () => setIsShareOpen(true) : undefined}
                       />
                     </div>
                     <NomineeCardCarousel
@@ -1574,6 +1584,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         fullWidth
                         academyStatus={academyStatus}
                         showCornerStamp={false}
+                        onShare={profileUsername ? () => setIsShareOpen(true) : undefined}
                       />
                     </div>
                   </>
@@ -2023,6 +2034,24 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
           initialSeenIt={selectedMovie.rankings?.[0]?.seen_it ?? false}
           // Force re-mount on update to always get latest props
           key={selectedMovie.id + '-' + (selectedMovie.rankings?.[0]?.ranking ?? 'null') + '-' + (selectedMovie.rankings?.[0]?.seen_it ?? 'false')}
+        />
+      )}
+
+      {/* Share sheet — only reachable via AwardCard's onShare, which is only
+          wired when profileUsername is known, so displayWinner is guaranteed
+          set here (onShare only renders inside the displayWinner branch). */}
+      {isShareOpen && displayWinner && profileUsername && (
+        <ShareSheet
+          year={year}
+          winner={displayWinner.title}
+          nominees={displayNominees
+            .filter((m) => m.id !== displayWinner.id)
+            .slice(0, 5)
+            .map((m) => m.title)}
+          username={profileUsername}
+          awardUrl={`/${profileUsername}/awards`}
+          categoryLabel={CATEGORY_LABELS[resolvedCategory] ?? "Best Picture"}
+          onClose={() => setIsShareOpen(false)}
         />
       )}
     </>

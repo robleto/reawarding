@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
   const winner = searchParams.get("winner") ?? "—";
   const nomineesRaw = searchParams.get("nominees") ?? "";
   const username = searchParams.get("username") ?? "";
+  const categoryLabel = searchParams.get("category") || "Best Picture";
   const format: Format = (searchParams.get("format") as Format) ?? "og";
 
   const nominees = nomineesRaw
@@ -102,7 +103,7 @@ export async function GET(req: NextRequest) {
             marginBottom: 12,
           }}
         >
-          Best Picture
+          {categoryLabel}
         </div>
 
         {/* Winner */}

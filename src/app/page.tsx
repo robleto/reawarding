@@ -12,6 +12,7 @@ import PanelTimeline from "@/app/components/home/PanelTimeline";
 import PanelReassurance from "@/app/components/home/PanelReassurance";
 import PanelFinalCTA from "@/app/components/home/PanelFinalCTA";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
+import { useProfile } from "@/contexts/ProfileContext";
 import { scrollToElementById, usePrefersReducedMotion } from "@/lib/motion";
 import { useMovieDataWithGuest } from "@/utils/sharedMovieUtils";
 import { useCreateAward } from "@/hooks/useCreateAward";
@@ -84,6 +85,7 @@ export default function HomePage() {
   const { status: authStatus, isAuthenticated, user } = useAuthState();
   const { movies, userId, updateMovieRanking, isGuest, loading, authChecked, error: moviesError } = useMovieDataWithGuest();
   const { createAward } = useCreateAward();
+  const { profile } = useProfile();
   const { awards, loading: awardsLoading, error: awardsError } = useUserAwards();
   const [activePanelId, setActivePanelId] = useState<string>(PANEL_IDS[0]);
   const [showIndicator, setShowIndicator] = useState(false);
@@ -1098,6 +1100,7 @@ export default function HomePage() {
                     // guard against a not-yet-signed-in/guest render the same
                     // way the page already gates elsewhere (isGuest).
                     viewerOwnsBallot={!isGuest}
+                    profileUsername={isGuest ? undefined : profile?.username}
                     onEditRequest={() => setEditingYear(Number(yearData.year))}
                     // PERF-1: useUserAwards already fetched every year's
                     // award in one query above — skip this instance's own

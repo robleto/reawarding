@@ -19,7 +19,7 @@ export type { UserAward };
  * Authenticated: queries `awards` table.
  * Guest: reads from Zustand guest store.
  */
-export function useUserAwards() {
+export function useUserAwards(category: string = "best-picture") {
   const supabase = useSupabaseClient<Database>();
   const user = useUser();
   // Subscribe to the awards slice with a selector so this hook re-renders
@@ -38,6 +38,14 @@ export function useUserAwards() {
     setError(null);
 
     if (isGuest) {
+      // v1 simplification (see GuestAward in useGuestRankingStore.ts): guest
+      // award storage only has a "best-picture" slot — any other category
+      // has no guest data to return.
+      if (category !== "best-picture") {
+        setAwards([]);
+        setLoading(false);
+        return;
+      }
       // guestAwards is a Record<number, GuestAward> — convert to array
       const awardsArray = Object.values(guestAwards) as any[];
       setAwards(
@@ -56,7 +64,7 @@ export function useUserAwards() {
         .from("awards")
         .select("year, category, winner_id, nominee_ids")
         .eq("user_id", user!.id)
-        .eq("category", "best-picture")
+        .eq("category", category)
         .order("year", { ascending: false });
 
       if (error) {
@@ -81,7 +89,7 @@ export function useUserAwards() {
     }
 
     setLoading(false);
-  }, [isGuest, guestAwards, supabase, user]);
+  }, [isGuest, guestAwards, supabase, user, category]);
 
   useEffect(() => {
     fetchAwards();

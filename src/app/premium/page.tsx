@@ -67,30 +67,43 @@ export default function PremiumPage() {
           Reawarding Premium
         </p>
         <h1 className="text-3xl md:text-4xl font-unbounded font-semibold text-white mb-3">
-          Bigger, not faster.
+          See your whole track record against the Academy&apos;s.
         </h1>
         <p className="text-gray-400 max-w-md mx-auto">
-          Premium never skips a step the free tier already earns through your own ratings — it
-          expands what you can reach.
+          Bigger, not faster — premium only expands what you&apos;ve already earned.
         </p>
       </div>
 
       <div className="dark-glass rounded-xl p-6 mb-6">
-        <h2 className="text-lg font-semibold text-white mb-1">Your Alternate Oscar History</h2>
+        <h2 className="text-lg font-semibold text-white mb-1">
+          Your Alternate Oscar History — Lifetime Edition
+        </h2>
         <p className="text-sm text-gray-400 mb-3">
-          Your per-year Upheld/Reawarded/Unscreened verdict against the Academy is free on every
-          year card. Premium unlocks the lifetime picture: your overall Upheld rate, trends by
-          decade, and your most controversial calls against real Oscar history.
+          Every year card already shows your free Upheld/Reawarded/Unscreened verdict. Premium
+          zooms out to the full picture:
         </p>
+        <ul className="text-sm text-gray-400 space-y-1.5 list-disc list-inside">
+          <li>Your overall Upheld rate across every year you&apos;ve ranked</li>
+          <li>Trends by decade — where your taste and the Academy&apos;s drift apart</li>
+          <li>
+            Your single most controversial call, ranked by how far it strayed from the real
+            winner
+          </li>
+        </ul>
       </div>
 
       <div className="dark-glass rounded-xl p-6 mb-8">
         <h2 className="text-lg font-semibold text-white mb-1">Automation</h2>
-        <p className="text-sm text-gray-400 mb-3">
-          Ready-Made Lists (auto-built collections by director, actor, genre, and decade) and
-          importing your Letterboxd or IMDb history — both free to detect and preview, premium to
-          actually save or import.
-        </p>
+        <ul className="text-sm text-gray-400 space-y-1.5 list-disc list-inside">
+          <li>
+            Save Ready-Made Lists — the director, actor, genre, and decade collections
+            you&apos;ve already earned by watching, instead of losing them when you close the tab
+          </li>
+          <li>
+            Unlimited import — free imports your first 50 titles from Letterboxd or IMDb;
+            Premium removes the cap and lets you re-import anytime your history changes
+          </li>
+        </ul>
       </div>
 
       {status === "loading" ? null : !isAuthenticated ? (
@@ -129,6 +142,11 @@ export default function PremiumPage() {
             <Lock className="w-4 h-4" />
             {loading ? "Redirecting…" : hasStripeCustomer ? "Manage billing" : "Unlock Premium — $19/yr"}
           </button>
+          {!hasStripeCustomer && (
+            <p className="mt-3 text-xs text-gray-500">
+              Less than two movie tickets, for something you&apos;ll check every awards season.
+            </p>
+          )}
           {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
         </div>
       )}
