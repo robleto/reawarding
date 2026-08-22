@@ -161,24 +161,49 @@ export async function POST(req: NextRequest) {
     if (data) matchedMovies.push(...(data as MovieMatch[]));
   }
 
-  // Fetch by title+year for the rest
+  // Fetch by title+year for the rest. PostgREST caps every response at
+  // max_rows (supabase/config.toml, currently 1000) regardless of what
+  // .range() asks for, so a single .in('release_year', years) call across
+  // a Letterboxd diary spanning even a handful of well-populated years can
+  // come back silently truncated — an arbitrary subset of real catalog
+  // matches, with the rest reported as false "not in our catalog" misses
+  // (IMP-1, docs/audits/2026-08-21-launch-readiness-round3.md). Page
+  // through with an explicit, stable order until a page comes back short
+  // of max_rows, which is the only reliable "no more rows" signal.
   if (titleYearPairs.length > 0) {
     const years = [...new Set(titleYearPairs.map((p) => p.year))];
-    const { data } = await supabase
-      .from("movies")
-      .select("id, title, release_year, imdb_id")
-      .in("release_year", years);
+    const PAGE_SIZE = 1000;
+    let offset = 0;
+    const yearMatches: MovieMatch[] = [];
+    for (;;) {
+      const { data, error } = await supabase
+        .from("movies")
+        .select("id, title, release_year, imdb_id")
+        .in("release_year", years)
+        .order("id", { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1);
 
-    if (data) {
-      // Filter client-side for title match to avoid N+1 queries
-      const byYearTitle = new Map<string, MovieMatch>();
-      for (const m of data as MovieMatch[]) {
-        byYearTitle.set(`${normalizeTitle(m.title)}::${m.release_year}`, m);
+      if (error) {
+        console.error(
+          `Import: title+year match page at offset ${offset} failed:`,
+          error.message
+        );
+        break;
       }
-      for (const p of titleYearPairs) {
-        const hit = byYearTitle.get(`${p.title}::${p.year}`);
-        if (hit) matchedMovies.push(hit);
-      }
+      if (!data || data.length === 0) break;
+      yearMatches.push(...(data as MovieMatch[]));
+      if (data.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+
+    // Filter client-side for title match to avoid N+1 queries
+    const byYearTitle = new Map<string, MovieMatch>();
+    for (const m of yearMatches) {
+      byYearTitle.set(`${normalizeTitle(m.title)}::${m.release_year}`, m);
+    }
+    for (const p of titleYearPairs) {
+      const hit = byYearTitle.get(`${p.title}::${p.year}`);
+      if (hit) matchedMovies.push(hit);
     }
   }
 
