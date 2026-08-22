@@ -21,11 +21,19 @@ interface Props {
 }
 
 /**
- * MuseumYearTimeline — horizontal dot-and-line timeline of touched years.
- * Each year is a circular node with year label + nominee count below.
- * Consecutive years share a solid connector; a heartbeat waveform marks
- * skipped years. Sorted newest → oldest. The active chip scrolls into
+ * MuseumYearTimeline — "medal rail": each year is a struck-coin token (the
+ * full year, once — an earlier pass showed an abbreviated numeral inside
+ * the token AND the full year below it, which just said the same thing
+ * twice), threaded on a thin gold rail. Consecutive years share a solid
+ * rail segment; skipped years get a dashed one instead of a connecting
+ * token — a break in the rail already reads as "missing," no separate
+ * glyph needed. Sorted newest → oldest. The active medal scrolls into
  * view when activeYear changes.
+ *
+ * Deliberately has no panel/background of its own — each token is already
+ * opaque enough to read on its own over whatever's behind the row (the
+ * page background, ambient glow, scrolled content), so there's no
+ * rectangle here that could ever look "off" against it.
  */
 export default function MuseumYearTimeline({ years, activeYear, onSelectYear, subLabelSuffix = "/10", showSubLabel = true }: Props) {
   const activeChipRef = useRef<HTMLButtonElement>(null);
@@ -61,30 +69,21 @@ export default function MuseumYearTimeline({ years, activeYear, onSelectYear, su
                 ref={isActive ? activeChipRef : undefined}
                 type="button"
                 onClick={() => onSelectYear(yl.year)}
-                className="flex flex-col items-center gap-1 min-w-[52px] px-1 group"
+                className="relative z-10 flex flex-col items-center gap-1.5 min-w-[56px] px-1 group"
               >
-                <div className="w-8 h-8 flex items-center justify-center">
-                  <div
-                    className={`rounded-full transition-all ${
-                      isActive
-                        ? "w-3 h-3 bg-gold-400"
-                        : "w-2 h-2 bg-gray-600 group-hover:bg-gray-400"
-                    }`}
-                  />
-                </div>
-                <span
-                  className={`text-[10px] font-bold font-unbounded leading-tight mt-0.5 transition-colors ${
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-unbounded font-normal text-[10px] tabular-nums transition-all ${
                     isActive
-                      ? "text-gold-300"
-                      : "text-gray-400 group-hover:text-gray-200"
+                      ? "bg-gradient-to-br from-gold-300 to-gold-500 text-charcoal-900 shadow-[0_0_0_4px_rgba(212,175,55,0.14),0_2px_10px_rgba(212,175,55,0.25)] scale-105"
+                      : "bg-gray-900 border-[1.5px] border-gray-700 text-gray-400 group-hover:border-gray-500 group-hover:text-gray-200"
                   }`}
                 >
                   {yl.year}
-                </span>
+                </div>
                 {showSubLabel && (
                   <span
-                    className={`text-[10px] tabular-nums leading-none ${
-                      isActive ? "text-gold-500/60" : "text-gray-700"
+                    className={`text-[9px] tabular-nums leading-none ${
+                      isActive ? "text-gold-500" : "text-gray-600"
                     }`}
                   >
                     {yl.nomineeCount}{subLabelSuffix}
@@ -93,27 +92,16 @@ export default function MuseumYearTimeline({ years, activeYear, onSelectYear, su
               </button>
 
               {nextYl && (
-                <div className="flex items-center mt-4">
-                  {gapSize === 1 ? (
-                    <div className="w-4 h-[2px] bg-gray-700 rounded-full" />
-                  ) : (
-                    <svg
-                      width="24"
-                      height="12"
-                      viewBox="0 0 24 12"
-                      fill="none"
-                      aria-hidden="true"
-                      className="text-gray-600"
-                    >
-                      <polyline
-                        points="0,6 4,6 6,1 8,11 10,6 24,6"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
+                <div className="flex-shrink-0 flex items-center" style={{ width: gapSize === 1 ? 20 : 32, height: 40 }}>
+                  <div
+                    className={gapSize === 1 ? "h-px w-full bg-gold-500/25" : "h-px w-full"}
+                    style={
+                      gapSize === 1
+                        ? undefined
+                        : { backgroundImage: "repeating-linear-gradient(90deg, rgb(212 175 55 / 0.3) 0 3px, transparent 3px 7px)" }
+                    }
+                    aria-hidden="true"
+                  />
                 </div>
               )}
             </div>

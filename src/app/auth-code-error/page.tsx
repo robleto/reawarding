@@ -1,57 +1,18 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { AlertCircle, Home, Mail, CheckCircle2 } from "lucide-react";
-import { Suspense, useState } from "react";
-import { supabase } from "@/lib/supabaseBrowser";
-import { buildSiteUrl } from "@/utils/siteUrl";
+import { AlertCircle, Home, LogIn } from "lucide-react";
+import { Suspense } from "react";
 
 function AuthErrorContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const error = searchParams?.get("error") || "Unknown error";
   const description = searchParams?.get("description") || "An unexpected error occurred during authentication.";
-  // Threaded through from /auth/confirm — lets us tell a failed signup
-  // confirmation link apart from every other kind of auth failure so we can
-  // offer a real recovery action instead of a dead end.
+  // Threaded through from /auth/confirm — lets us give a failed signup
+  // confirmation link slightly different copy than any other auth failure.
   const type = searchParams?.get("type");
   const isSignupConfirmation = type === "signup";
-
-  const [email, setEmail] = useState("");
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendError, setResendError] = useState<string | null>(null);
-  const [resendSent, setResendSent] = useState(false);
-
-  const handleResend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      setResendError("Please enter your email address first");
-      return;
-    }
-
-    setResendLoading(true);
-    setResendError(null);
-
-    try {
-      const { error: resendErr } = await supabase.auth.resend({
-        type: "signup",
-        email,
-        options: {
-          emailRedirectTo: buildSiteUrl("/auth/callback") || undefined,
-        },
-      });
-
-      if (resendErr) {
-        setResendError(resendErr.message);
-      } else {
-        setResendSent(true);
-      }
-    } catch {
-      setResendError("Failed to resend confirmation email");
-    } finally {
-      setResendLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-gray-950">
@@ -65,8 +26,8 @@ function AuthErrorContent() {
 
         {/* Error Message */}
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-white">
-            Authentication Failed
+          <h1 className="font-unbounded text-2xl font-bold text-white">
+            Authentication failed
           </h1>
           <p className="text-gray-400">
             {isSignupConfirmation
@@ -76,12 +37,12 @@ function AuthErrorContent() {
         </div>
 
         {/* Error Details */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 space-y-2">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
           <div className="space-y-1">
             <p className="text-sm font-medium text-gray-300">
-              Error Code
+              Error code
             </p>
-            <p className="text-sm text-gray-400 font-mono bg-gray-900 px-2 py-1 rounded">
+            <p className="text-sm text-gray-400 font-mono bg-black/30 px-2.5 py-1 rounded-full inline-block">
               {error}
             </p>
           </div>
@@ -96,57 +57,30 @@ function AuthErrorContent() {
         </div>
 
         {isSignupConfirmation ? (
-          /* Resend confirmation — the actual recovery path for an expired or
-           * already-used signup link. Works without an active session and
-           * without first requiring a failed password sign-in attempt. */
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 space-y-3">
+          // AUTH-2 (docs/audits/2026-08-21-launch-readiness-round3.md):
+          // email confirmation is off — no signup confirmation email is ever
+          // sent, so a "resend confirmation email" affordance here would be
+          // just as theatrical as the flow that landed someone on this page.
+          // The honest recovery is that they can already sign in directly.
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
             <h2 className="text-sm font-semibold text-white">
-              Get a new confirmation link
+              You can sign in directly
             </h2>
-            {resendSent ? (
-              <div className="flex items-start gap-2 text-sm text-green-300 bg-green-900/20 border border-green-800 rounded-lg p-3">
-                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>Confirmation email sent! Check your inbox.</span>
-              </div>
-            ) : (
-              <form onSubmit={handleResend} className="space-y-3">
-                <div>
-                  <label htmlFor="resend-email" className="sr-only">
-                    Email address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
-                    <input
-                      id="resend-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      className="w-full pl-9 pr-3 py-2 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-gray-700 text-white text-sm"
-                      required
-                    />
-                  </div>
-                </div>
-                {resendError && (
-                  <p className="text-sm text-red-400">{resendError}</p>
-                )}
-                <button
-                  type="submit"
-                  disabled={resendLoading}
-                  className="w-full flex items-center justify-center gap-2 bg-gold-500 hover:bg-yellow-600 text-gray-900 px-4 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {resendLoading ? "Sending..." : "Resend confirmation email"}
-                </button>
-              </form>
-            )}
+            <p className="text-sm text-gray-400">
+              Reawarding doesn&apos;t require confirming your email — your account is
+              already active. Try signing in with your email and password instead.
+            </p>
           </div>
         ) : (
-          /* Common Solutions */
-          <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4">
-            <h2 className="text-sm font-semibold text-blue-300 mb-2">
-              Common Solutions
+          /* Common Solutions — neutral, not an error/success state, so it
+             gets the same glass treatment as the resend/details boxes above
+             rather than the semantic red/green tints. (Was blue — the one
+             color nowhere else in the app's palette.) */
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <h2 className="text-sm font-semibold text-gray-200 mb-2">
+              Common solutions
             </h2>
-            <ul className="text-sm text-blue-300 space-y-1 list-disc list-inside">
+            <ul className="text-sm text-gray-400 space-y-1 list-disc list-inside">
               <li>Try signing in again with a different method</li>
               <li>Clear your browser cache and cookies</li>
               <li>Make sure your email is verified (check your inbox)</li>
@@ -158,11 +92,18 @@ function AuthErrorContent() {
         {/* Action Buttons */}
         <div className="space-y-3">
           <button
+            onClick={() => router.push("/login")}
+            className="w-full flex items-center justify-center gap-2 rounded-full border border-gold-300/40 bg-gold-500 text-black shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 px-4 py-2.5 font-medium transition-colors"
+          >
+            <LogIn className="w-4 h-4" />
+            Go to sign in
+          </button>
+          <button
             onClick={() => router.push("/")}
-            className="w-full flex items-center justify-center gap-2 bg-gold-500 hover:bg-yellow-600 text-gray-900 px-4 py-2.5 rounded-lg font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white px-4 py-2.5 font-medium transition-colors"
           >
             <Home className="w-4 h-4" />
-            Go to Home
+            Go to home
           </button>
         </div>
 
@@ -178,8 +119,8 @@ function AuthErrorContent() {
 export default function AuthCodeErrorPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-400">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <div className="w-8 h-8 border-4 border-gold-400/30 border-t-gold-400 rounded-full animate-spin" />
       </div>
     }>
       <AuthErrorContent />

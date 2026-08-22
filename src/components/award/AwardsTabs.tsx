@@ -8,7 +8,20 @@ export type AwardsTabKey =
   | "best-comedy"
   | "best-blockbuster";
 
+// Shared with ShareSheet/the OG image route so a shared card's category label
+// always matches the ballot it was actually generated from.
+export const CATEGORY_LABELS: Record<AwardsTabKey, string> = {
+  "best-picture": "Best Picture",
+  "best-animated": "Best Animated",
+  "best-comedy": "Best Comedy",
+  "best-blockbuster": "Best Blockbuster",
+};
+
 export function AwardsTabs({ value, onChange }: { value: AwardsTabKey; onChange: (v: AwardsTabKey) => void }) {
+  // Best Animated is built (category-aware data layer, eligibility filter,
+  // ShareSheet/OG category label) but hidden from the tab strip until the
+  // remaining gaps are closed — see docs/FEATURE-STATUS.md. Re-add
+  // { key: "best-animated", label: "Best Animated" } to switch it back on.
   const tabs: { key: AwardsTabKey; label: string; separator?: boolean }[] = [
     { key: "best-picture", label: "Best Picture" },
   ];

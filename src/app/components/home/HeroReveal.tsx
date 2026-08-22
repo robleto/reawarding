@@ -1,43 +1,35 @@
 "use client";
 
-// Replaces HomeHero + PanelPremise on the logged-out homepage. Instead of
-// opening on an empty search box, it leads with a real Awards-card reveal
-// (built from the same production components as EditableYearSection —
-// AwardCard, WinnerCard, MovieCard, AcademyStamp — not a bespoke marketing
-// panel) before asking the visitor to act. See PRODUCT_DECISION_LOG for the
-// July 2026 "show the payoff before the prompt" direction.
-//
-// Staged reveal sequence:
-//   0. On load: "Ever disagree with the Academy?" (compact, gold) is visible
-//      immediately, above where the real headline will land. Below it, the
-//      awards card plays its own four steps:
-//        1. Hold — real 2025 Academy nominees, One Battle After Another as
-//           winner.
-//        2. Wicked: For Good + KPop Demon Hunters just appear in place of
-//           The Secret Agent + It Was Just an Accident. Winner unchanged.
-//        3. The winner drag-and-drop: Sinners and One Battle physically
-//           slide/cross between the winner slot and the nominee grid — the
-//           same FLIP technique used for Forrest Gump → Shawshank, retargeted
-//           at this real card layout. Desktop only; mobile cuts straight to
-//           the settled state (still gets the stamp).
-//        4. The "Reawarded" stamp slams in with an overshoot, like a rubber
-//           stamp coming down.
-//   1. Once the card settles, the intro line fades out and the real header
-//      ("The Academy had its say. Now so do you.") + closing line collapse in
-//      together, right where the intro line was.
-//   2. Once that settles, the real search collapses in below the header,
-//      above the card.
-// Respects reducedMotion: skips straight to the fully settled state with no
-// timers/slide/stamp animation, matching the rest of the home panels.
+// Redo (2026-08): the previous version staged a ~6s bespoke GSAP show —
+// FLIP-sliding poster clones between grid cells, an elastic slam-in stamp,
+// separate mobile/desktop choreography — that existed nowhere else in the
+// product, and it gated the real headline/search behind that sequence.
+// The real Awards page presents this exact "your winner vs. the Academy's"
+// moment completely at rest (see EditableYearSection.tsx's read-mode card:
+// a static AwardCard, a static AcademyStamp, no slam, no slide). This
+// version borrows that real language instead of inventing new marketing
+// chrome:
+//   - Headline + search render immediately, not gated behind any animation.
+//   - Both mobile and desktop use the same real AwardCard(fullWidth)
+//     artifact EditableYearSection uses — the old desktop path rendered a
+//     plain WinnerCard with no gold-frame ceremony, which is why the
+//     hero read as a notch below the rest of the app.
+//   - Exactly one motion beat: after a short hold on the Academy's actual
+//     2025 pick, the winner card cross-fades (CSS opacity only, no GSAP,
+//     no DOM measurement) to the visitor's pick, and AcademyStamp settles
+//     in at rest.
+//   - Nominees render in their final, real state from the start — one
+//     focal motion moment, not a second simultaneous nominee-list swap.
+//   - The card plays the same one-shot arrival glow (award-year-enter /
+//     award-year-arrived) real /awards year-sections get on scroll-into-view.
+// Respects reducedMotion: renders the settled "reawarded" state immediately.
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
-import gsap from "gsap";
+import { useEffect, useRef, useState } from "react";
+import { Trophy } from "lucide-react";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
 import AwardCard from "@/components/home/AwardCard";
-import WinnerCard from "@/components/award/WinnerCard";
 import MovieCard from "@/components/award/MovieCard";
-import AcademyStamp from "@/components/award/AcademyStamp";
+import { useMotionReveal } from "@/hooks/useMotionReveal";
 import type { Movie } from "@/types/types";
 import type { AcademyStatusResult } from "@/data/officialAwardWinners";
 
@@ -57,30 +49,19 @@ function makeMovie(id: string, title: string, rating: number): Movie {
   };
 }
 
-// Real 2025 titles + real DB ids/posters. A curated fixed demo year, same
-// pattern as PanelHook's 2010 King's Speech/Social Network comparison — not
-// tied to the visiting user's own data.
+// Real 2025 titles + real DB ids/posters — same curated demo year as before,
+// not tied to the visiting user's own data.
 const ONE_BATTLE = makeMovie("fb4f7c6c-efa9-4bb2-9698-f1d9d83299d1", "One Battle After Another", 9);
 const SINNERS = makeMovie("1659d7dd-dcda-4d25-a5d2-c2dbd5b9e9e8", "Sinners", 10);
 const HAMNET = makeMovie("8d923f0d-a395-4ec3-9a65-17710ca4c905", "Hamnet", 8);
 const MARTY_SUPREME = makeMovie("91f59cd0-af51-4c50-a9f1-bd1959e6fa1b", "Marty Supreme", 8);
 const HOUSE_OF_DYNAMITE = makeMovie("0772e4f6-01ef-459f-adf7-3b81971f8c7c", "A House of Dynamite", 7);
-const SECRET_AGENT = makeMovie("f78b7458-dacc-4381-97d5-afb7b8e6678e", "The Secret Agent", 7);
-const JUST_AN_ACCIDENT = makeMovie("acaa6cef-ea9c-4fd6-8359-85075cfcc8e7", "It Was Just an Accident", 7);
 const WICKED_FOR_GOOD = makeMovie("df23fd76-3087-4f22-91f3-0dfe788f1546", "Wicked: For Good", 8);
 const KPOP_DEMON_HUNTERS = makeMovie("fb95f933-0c39-4c7f-90c1-e82fd05062be", "KPop Demon Hunters", 9);
 
-// Step 0 — the real Academy's 2025 Best Picture nominee conversation.
-const ACADEMY_NOMINEES = [ONE_BATTLE, SINNERS, HAMNET, MARTY_SUPREME, HOUSE_OF_DYNAMITE, SECRET_AGENT, JUST_AN_ACCIDENT];
-const ACADEMY_WINNER = ONE_BATTLE;
-
-// Step 1 — Wicked: For Good + KPop Demon Hunters just appear in place of The
-// Secret Agent + It Was Just an Accident. Winner hasn't changed yet.
-const NOMINEES_SWAPPED = [ONE_BATTLE, SINNERS, HAMNET, MARTY_SUPREME, HOUSE_OF_DYNAMITE, WICKED_FOR_GOOD, KPOP_DEMON_HUNTERS];
-
-// Step 2/3 — Sinners promoted to winner (drag-and-drop slide), stamp slams in.
-const REAWARDED_NOMINEES = [SINNERS, ONE_BATTLE, HAMNET, MARTY_SUPREME, HOUSE_OF_DYNAMITE, WICKED_FOR_GOOD, KPOP_DEMON_HUNTERS];
-const REAWARDED_WINNER = SINNERS;
+// Final, real nominee set — shown from the start, unanimated. Only the
+// winner slot crosses over from the Academy's pick to the visitor's.
+const NOMINEES = [ONE_BATTLE, SINNERS, HAMNET, MARTY_SUPREME, HOUSE_OF_DYNAMITE, WICKED_FOR_GOOD, KPOP_DEMON_HUNTERS];
 
 const REAWARDED_STATUS: AcademyStatusResult = {
   status: "reawarded",
@@ -88,457 +69,8 @@ const REAWARDED_STATUS: AcademyStatusResult = {
   officialTitle: "One Battle After Another",
 };
 
-const HOLD_BEFORE_SWAP_MS = 1800;
-const NOMINEES_SWAP_SETTLE_MS = 900;
-const SLIDE_DURATION_S = 0.9;
-const SETTLE_AFTER_SWAP_MS = 700;
-const SETTLE_AFTER_HEADLINE_MS = 1400;
-
-// Poster boxes are always aspect-[2/3] (see MovieCard's FeaturedCard/GridCard)
-// with the title sitting below — derive just the poster sub-rect from the
-// full container rect so the sliding clone doesn't drag the title along.
-function posterRectFromContainer(el: HTMLElement): DOMRect {
-  const rect = el.getBoundingClientRect();
-  const posterHeight = rect.width * 1.5;
-  return new DOMRect(rect.left, rect.top, rect.width, Math.min(posterHeight, rect.height));
-}
-
-// Animates both directions: mounts + grows in when `show` flips true, and
-// shrinks back out (rather than snapping away) when it flips back to false.
-// If `show` is already true on first render (reducedMotion skip-ahead), it
-// mounts already expanded — no animation plays.
-function CollapseIn({
-  show,
-  durationMs = 700,
-  children,
-}: {
-  show: boolean;
-  durationMs?: number;
-  children: ReactNode;
-}) {
-  const [mounted, setMounted] = useState(show);
-  const [expanded, setExpanded] = useState(show);
-  // Only clip while the grid-template-rows transition is actually animating.
-  // Once settled+expanded, overflow must go visible or anything absolutely
-  // positioned inside (e.g. the search dropdown) gets clipped to the
-  // collapsed track's own content height instead of overlaying what's below.
-  const [overflowVisible, setOverflowVisible] = useState(show);
-
-  useEffect(() => {
-    if (show) {
-      setMounted(true);
-      setOverflowVisible(false);
-      const raf1 = requestAnimationFrame(() => {
-        requestAnimationFrame(() => setExpanded(true));
-      });
-      return () => cancelAnimationFrame(raf1);
-    }
-    setExpanded(false);
-    setOverflowVisible(false);
-    const t = window.setTimeout(() => setMounted(false), durationMs);
-    return () => window.clearTimeout(t);
-  }, [show, durationMs]);
-
-  if (!mounted) return null;
-
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateRows: expanded ? "1fr" : "0fr",
-        opacity: expanded ? 1 : 0,
-        transition: `grid-template-rows ${durationMs}ms cubic-bezier(0.22,1,0.36,1), opacity ${durationMs}ms ease`,
-      }}
-      onTransitionEnd={(e) => {
-        if (e.propertyName === "grid-template-rows" && expanded) setOverflowVisible(true);
-      }}
-    >
-      <div style={{ overflow: overflowVisible ? "visible" : "hidden", minHeight: 0 }}>{children}</div>
-    </div>
-  );
-}
-
-function AwardsCardReveal({
-  reducedMotion,
-  onSettled,
-}: {
-  reducedMotion: boolean;
-  onSettled: () => void;
-}) {
-  const [phase, setPhase] = useState<
-    "before" | "nomineesSwapped" | "swapping" | "mobileSwapping" | "after"
-  >(reducedMotion ? "after" : "before");
-  const [overlayRects, setOverlayRects] = useState<{ winner: DOMRect; challenger: DOMRect } | null>(null);
-  const [mobileRect, setMobileRect] = useState<DOMRect | null>(null);
-
-  const winnerBoxRef = useRef<HTMLDivElement>(null);
-  const challengerBoxRef = useRef<HTMLDivElement>(null);
-  const overlayWinnerRef = useRef<HTMLDivElement>(null);
-  const overlayChallengerRef = useRef<HTMLDivElement>(null);
-  const stampWrapperRef = useRef<HTMLDivElement>(null);
-  const mobileCardRef = useRef<HTMLDivElement>(null);
-  const mobileOldPosterRef = useRef<HTMLDivElement>(null);
-  const mobileNewPosterRef = useRef<HTMLDivElement>(null);
-
-  // Step 0 → 1: hold, then let Wicked/KPop appear.
-  useEffect(() => {
-    if (reducedMotion) return;
-    const holdTimer = window.setTimeout(() => setPhase("nomineesSwapped"), HOLD_BEFORE_SWAP_MS);
-    return () => window.clearTimeout(holdTimer);
-  }, [reducedMotion]);
-
-  // Step 1 → 2: brief settle, then measure the two real poster boxes and
-  // kick off the winner slide.
-  useEffect(() => {
-    if (reducedMotion || phase !== "nomineesSwapped") return;
-    const t = window.setTimeout(() => {
-      const isDesktop = typeof window !== "undefined" && window.innerWidth >= 768;
-      if (!isDesktop) {
-        const mobileEl = mobileCardRef.current;
-        if (!mobileEl) {
-          setPhase("after");
-          return;
-        }
-        setMobileRect(posterRectFromContainer(mobileEl));
-        setPhase("mobileSwapping");
-        return;
-      }
-      const winnerEl = winnerBoxRef.current;
-      const challengerEl = challengerBoxRef.current;
-      if (!winnerEl || !challengerEl) {
-        setPhase("after");
-        return;
-      }
-      setOverlayRects({
-        winner: posterRectFromContainer(winnerEl),
-        challenger: posterRectFromContainer(challengerEl),
-      });
-      setPhase("swapping");
-    }, NOMINEES_SWAP_SETTLE_MS);
-    return () => window.clearTimeout(t);
-  }, [phase, reducedMotion]);
-
-  // Mobile counterpart to the desktop FLIP swap above: there's no separate
-  // nominee-grid cell to slide from on mobile (the AwardCard is the whole
-  // hero visual), so instead the old winner's poster gets knocked out to one
-  // side while the new winner's poster slides in from the other — same
-  // "bumped out" read, confined to a single card slot instead of two.
-  useEffect(() => {
-    if (phase !== "mobileSwapping" || !mobileRect) return;
-    const oldEl = mobileOldPosterRef.current;
-    const newEl = mobileNewPosterRef.current;
-    if (!oldEl || !newEl) {
-      setPhase("after");
-      return;
-    }
-
-    gsap.set(oldEl, {
-      position: "fixed",
-      top: mobileRect.top,
-      left: mobileRect.left,
-      width: mobileRect.width,
-      height: mobileRect.height,
-      margin: 0,
-      rotate: 0,
-      opacity: 1,
-    });
-    gsap.set(newEl, {
-      position: "fixed",
-      top: mobileRect.top,
-      left: mobileRect.left + mobileRect.width * 0.6,
-      width: mobileRect.width,
-      height: mobileRect.height,
-      margin: 0,
-      rotate: 6,
-      opacity: 0,
-    });
-
-    const tl = gsap.timeline({
-      onComplete: () => {
-        setPhase("after");
-        setMobileRect(null);
-      },
-    });
-    // One Battle gets knocked out to the left and fades...
-    tl.to(
-      oldEl,
-      {
-        left: mobileRect.left - mobileRect.width * 0.75,
-        rotate: -10,
-        opacity: 0,
-        duration: SLIDE_DURATION_S,
-        ease: "power2.in",
-      },
-      0
-    );
-    // ...while Sinners slides in from the right to take the winner's spot.
-    tl.to(
-      newEl,
-      {
-        left: mobileRect.left,
-        rotate: 0,
-        opacity: 1,
-        duration: SLIDE_DURATION_S,
-        ease: "power2.out",
-      },
-      0
-    );
-
-    return () => {
-      tl.kill();
-    };
-  }, [phase, mobileRect]);
-
-  // Drive the actual GSAP slide once both overlay clones are mounted.
-  useEffect(() => {
-    if (phase !== "swapping" || !overlayRects) return;
-    const winnerEl = overlayWinnerRef.current;
-    const challengerEl = overlayChallengerRef.current;
-    if (!winnerEl || !challengerEl) {
-      setPhase("after");
-      return;
-    }
-
-    const { winner: winnerRect, challenger: challengerRect } = overlayRects;
-
-    gsap.set(winnerEl, {
-      position: "fixed",
-      top: winnerRect.top,
-      left: winnerRect.left,
-      width: winnerRect.width,
-      height: winnerRect.height,
-      margin: 0,
-    });
-    gsap.set(challengerEl, {
-      position: "fixed",
-      top: challengerRect.top,
-      left: challengerRect.left,
-      width: challengerRect.width,
-      height: challengerRect.height,
-      margin: 0,
-    });
-
-    const tl = gsap.timeline({
-      onComplete: () => {
-        setPhase("after");
-        setOverlayRects(null);
-      },
-    });
-    // One Battle shrinks from the winner slot into the challenger's grid cell...
-    tl.to(
-      winnerEl,
-      {
-        top: challengerRect.top,
-        left: challengerRect.left,
-        width: challengerRect.width,
-        height: challengerRect.height,
-        duration: SLIDE_DURATION_S,
-        ease: "power2.inOut",
-      },
-      0
-    );
-    // ...while Sinners grows from its grid cell into the winner slot.
-    tl.to(
-      challengerEl,
-      {
-        top: winnerRect.top,
-        left: winnerRect.left,
-        width: winnerRect.width,
-        height: winnerRect.height,
-        duration: SLIDE_DURATION_S,
-        ease: "power2.inOut",
-      },
-      0
-    );
-
-    return () => {
-      tl.kill();
-    };
-  }, [phase, overlayRects]);
-
-  // Step 3: the stamp slams in — starts big, rotated, and invisible, then
-  // punches down to rest with an overshoot, like an actual rubber stamp.
-  useEffect(() => {
-    if (phase !== "after") return;
-    if (!reducedMotion) {
-      const el = stampWrapperRef.current;
-      if (el) {
-        gsap.fromTo(
-          el,
-          { scale: 2.6, opacity: 0, rotate: 14 },
-          { scale: 1, opacity: 1, rotate: 0, duration: 0.55, ease: "back.out(2.4)" }
-        );
-      }
-    }
-    const t = window.setTimeout(onSettled, reducedMotion ? 0 : SETTLE_AFTER_SWAP_MS);
-    return () => window.clearTimeout(t);
-  }, [phase, onSettled, reducedMotion]);
-
-  // "before" and "nomineesSwapped" both show One Battle as winner — the
-  // winner only actually changes once the slide completes ("after").
-  const winner = phase === "after" ? REAWARDED_WINNER : ACADEMY_WINNER;
-  const nominees =
-    phase === "before" ? ACADEMY_NOMINEES : phase === "after" ? REAWARDED_NOMINEES : NOMINEES_SWAPPED;
-  const academyStatus = phase === "after" ? REAWARDED_STATUS : null;
-  const nomineeCount = nominees.length;
-  const isSwapping = phase === "swapping";
-  // Sinners is still a plain nominee (not yet winner) during before/swapped/swapping.
-  const showingBefore = phase !== "after";
-
-  return (
-    <>
-      {/* Outer wrapper matches the real per-year timeline treatment (see
-          src/components/award/YearSection.tsx lines 46-59) — vertical rotated
-          year label + dot-and-line rail to the left of the card, exactly as
-          it renders on the real Awards archive. Not reinvented, just reused. */}
-      <div className="relative flex flex-col gap-3 md:flex-row md:gap-8">
-        <h2 className="hidden md:block md:absolute top-0 md:top-[125px] left-0 text-3xl font-bold text-gray-400 mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-widest">
-          2025
-        </h2>
-        <div className="top-0 bottom-0 flex-col items-center hidden md:absolute md:flex left-4">
-          <div className="w-5 h-5 mt-2 rounded-full bg-gray-400 border-2 border-gray-800" />
-          <div className="w-[2px] flex-1 bg-gray-600" />
-        </div>
-        <div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
-
-        <div className="award-editable-section relative flex flex-col w-full rounded-xl shadow-md dark-glass p-4 md:p-8 overflow-hidden">
-          <div className="relative flex flex-col gap-6 md:flex-row md:gap-8">
-            {/* Academy stamp — slams in once the reawarding has happened */}
-            <div
-              ref={stampWrapperRef}
-              className="pointer-events-none absolute -bottom-10 left-[20%] z-10 hidden md:block"
-            >
-              <AcademyStamp academyStatus={academyStatus} />
-            </div>
-
-            {/* Winner column */}
-            <div className="w-full md:w-1/3">
-              <div className="hidden md:flex items-center gap-2 mb-3">
-                <span className="text-[12px] font-semibold uppercase tracking-[0.2em] text-gold-500/60">Best Picture</span>
-              </div>
-              <div
-                ref={mobileCardRef}
-                className="flex justify-center md:hidden"
-                style={{ opacity: phase === "mobileSwapping" ? 0 : 1 }}
-              >
-                <AwardCard
-                  year={2025}
-                  winnerTitle={winner.title}
-                  winnerPoster={winner.poster_url}
-                  winnerMovieId={winner.id}
-                  nomineeCount={nomineeCount}
-                  fullWidth
-                  academyStatus={academyStatus}
-                />
-              </div>
-              <div
-                ref={winnerBoxRef}
-                className="hidden md:block"
-                style={{ opacity: isSwapping ? 0 : 1 }}
-              >
-                <WinnerCard movie={winner} hideRating />
-              </div>
-            </div>
-
-            <div className="hidden w-px bg-gray-700/40 md:block" />
-
-            {/* Nominees column — desktop only. On mobile the nominee grid
-                sits below the fold with none of the swap-animation context
-                that explains it on desktop (mobile cuts straight to the
-                settled state), so it reads as an unexplained list of movies
-                under the search box. The AwardCard winner is the whole
-                mobile hero visual; nominees stay a desktop-only flourish. */}
-            <div className="hidden md:block md:w-2/3">
-              <div className="flex items-baseline gap-3 mb-3">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-gray-500">Nominees</p>
-                {nomineeCount >= 10 ? (
-                  <span className="text-sm font-medium text-emerald-400">Full Ballot</span>
-                ) : (
-                  <span className="font-mono text-sm font-medium tabular-nums text-gray-400">{nomineeCount}</span>
-                )}
-              </div>
-              <div className="grid grid-cols-5 gap-2">
-                {nominees.map((movie) => {
-                  const isChallenger = movie.id === SINNERS.id && showingBefore;
-                  return (
-                    <div
-                      key={movie.id}
-                      ref={isChallenger ? challengerBoxRef : undefined}
-                      style={{ opacity: isChallenger && isSwapping ? 0 : 1 }}
-                    >
-                      <MovieCard movie={movie} variant="grid" isWinner={winner.id === movie.id} />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Sliding overlay clones — fixed to the viewport so the card's own
-          overflow-hidden doesn't clip them mid-flight. Poster art only, no
-          title (matches ReawardAnimation precedent: titles crossfade in
-          place, only the art physically travels). */}
-      {overlayRects && (
-        <>
-          <div
-            ref={overlayWinnerRef}
-            className="pointer-events-none rounded-xl overflow-hidden shadow-2xl shadow-black/60"
-            style={{ zIndex: 200 }}
-          >
-            <img
-              src={ACADEMY_WINNER.poster_url}
-              alt=""
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            />
-          </div>
-          <div
-            ref={overlayChallengerRef}
-            className="pointer-events-none rounded-lg overflow-hidden shadow-2xl shadow-black/60"
-            style={{ zIndex: 200 }}
-          >
-            <img
-              src={SINNERS.poster_url}
-              alt=""
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            />
-          </div>
-        </>
-      )}
-
-      {/* Mobile bump-out clones — same idea as the desktop overlay above,
-          but sliding out of and into a single card slot (see the
-          mobileSwapping effect). */}
-      {mobileRect && (
-        <>
-          <div
-            ref={mobileOldPosterRef}
-            className="pointer-events-none rounded-xl overflow-hidden shadow-2xl shadow-black/60 md:hidden"
-            style={{ zIndex: 200 }}
-          >
-            <img
-              src={ACADEMY_WINNER.poster_url}
-              alt=""
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            />
-          </div>
-          <div
-            ref={mobileNewPosterRef}
-            className="pointer-events-none rounded-xl overflow-hidden shadow-2xl shadow-black/60 md:hidden"
-            style={{ zIndex: 200 }}
-          >
-            <img
-              src={SINNERS.poster_url}
-              alt=""
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            />
-          </div>
-        </>
-      )}
-    </>
-  );
-}
+const HOLD_MS = 1100;
+const CROSSFADE_MS = 550;
 
 interface HeroRevealProps {
   reducedMotion: boolean;
@@ -546,76 +78,164 @@ interface HeroRevealProps {
 }
 
 export default function HeroReveal({ reducedMotion, onSelectMovie }: HeroRevealProps) {
-  // 0 = reveal only · 1 = + headline · 2 = + big search
-  const [stage, setStage] = useState<0 | 1 | 2>(reducedMotion ? 2 : 0);
+  const [reawarded, setReawarded] = useState(reducedMotion);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const arrived = useMotionReveal(reducedMotion, cardRef);
 
-  const handleRevealSettled = useCallback(() => {
-    setStage((s) => (s < 1 ? 1 : s));
-  }, []);
-
+  // Hold starts once the card has actually scrolled into view, not at
+  // mount — otherwise the swap can finish before a visitor on a shorter
+  // viewport (where the card sits below the headline/search) ever scrolls
+  // down far enough to see the "before" state at all.
   useEffect(() => {
-    if (reducedMotion || stage !== 1) return;
-    const t = window.setTimeout(() => setStage(2), SETTLE_AFTER_HEADLINE_MS);
+    if (reducedMotion || reawarded || !arrived) return;
+    const t = window.setTimeout(() => setReawarded(true), HOLD_MS);
     return () => window.clearTimeout(t);
-  }, [stage, reducedMotion]);
+  }, [reducedMotion, reawarded, arrived]);
 
   return (
     <div className="flex flex-col">
-      {/* ─── Text block — question visible from load, above the header.
-          Header + closing line collapse in below it together, once the
-          reveal card settles ─── */}
+      {/* ─── Headline + search — visible from first paint, never gated
+          behind the card's own crossfade ─── */}
       <div className="max-w-4xl mx-auto text-center px-4 pt-10 pb-4">
-        <CollapseIn show={stage < 1} durationMs={500}>
-          <h2
-            className="font-unbounded font-normal text-gold-400 sm:whitespace-nowrap"
-            style={{ fontSize: "clamp(1rem, 2vw, 1.25rem)", letterSpacing: "-0.005em" }}
-          >
-            Ever disagree with the Academy?
-          </h2>
-        </CollapseIn>
-        <CollapseIn show={stage >= 1}>
-          <h1
-            className="home-headline font-unbounded sm:whitespace-nowrap"
-            style={{ fontSize: "clamp(1.75rem, 4vw, 2.75rem)" }}
-          >
-            {/* Mobile breaks after "The Academy" instead of wrapping
-                mid-sentence and orphaning "say." on its own line — the
-                sm:hidden <br/> disappears once whitespace-nowrap takes over
-                and the full line fits on one row. */}
-            The Academy
-            <br className="sm:hidden" />
-            {" "}had its say.
-            <br />
-            Now so do you.
-          </h1>
-          <p className="mt-4 max-w-2xl mx-auto text-base text-white/80">
-            Rate the films you&apos;ve seen, reaward your own nominees — and your
-            own winner.
-          </p>
-        </CollapseIn>
+        <h2
+          className="font-unbounded font-normal text-gold-400 sm:whitespace-nowrap"
+          style={{ fontSize: "clamp(1rem, 2vw, 1.25rem)", letterSpacing: "-0.005em" }}
+        >
+          Ever disagree with the Academy?
+        </h2>
+        <h1
+          className="home-headline font-unbounded sm:whitespace-nowrap mt-2"
+          style={{ fontSize: "clamp(1.75rem, 4vw, 2.75rem)" }}
+        >
+          The Academy
+          <br className="sm:hidden" />
+          {" "}had its say.
+          <br />
+          Now so do you.
+        </h1>
+        <p className="mt-4 max-w-2xl mx-auto text-base text-white/80">
+          Rate the films you&apos;ve seen, reaward your own nominees — and your
+          own winner.
+        </p>
       </div>
 
-      {/* ─── Search — collapses in below the headline block, above the
-          reveal card, once the headline has settled ─── */}
-      <CollapseIn show={stage >= 2}>
-        <div className="pt-6 pb-2 px-4 text-center">
-          <div className="home-hero__search mx-auto" style={{ maxWidth: 560 }}>
-            <MovieSearchPicker
-              onSelect={onSelectMovie}
-              placeholder="Search for a film you've watched"
-              className="home-search-picker"
-            />
-            <p className="home-hero__microcopy">No account needed to get started.</p>
+      <div className="pt-6 pb-2 px-4 text-center">
+        <div className="home-hero__search mx-auto" style={{ maxWidth: 560 }}>
+          <MovieSearchPicker
+            onSelect={onSelectMovie}
+            placeholder="Search for a film you've watched"
+            className="home-search-picker"
+          />
+          <p className="home-hero__microcopy">No account needed to get started.</p>
+        </div>
+      </div>
+
+      {/* ─── The card — same YearSection scaffold real /awards renders
+          (rotated year label + dot rail + dark-glass card), reused as-is,
+          not reinvented. No max-width here — AppShell's <main> already
+          caps content at max-w-screen-xl. ─── */}
+      <div className="flex flex-col justify-center px-4 py-10">
+        <div
+          ref={cardRef}
+          className={`relative flex flex-col gap-3 md:flex-row md:gap-8 award-year-enter ${arrived ? "award-year-arrived" : ""}`}
+        >
+          <h2 className="hidden md:block md:absolute top-0 md:top-[125px] left-0 text-3xl font-bold text-gray-400 mt-2 md:rotate-[-90deg] origin-left font-['Unbounded'] tracking-widest">
+            2025
+          </h2>
+          <div className="top-0 bottom-0 flex-col items-center hidden md:absolute md:flex left-4">
+            <div className="w-5 h-5 mt-2 rounded-full bg-gray-400 border-2 border-gray-800" />
+            <div className="w-[2px] flex-1 bg-gray-600" />
+          </div>
+          <div className="hidden md:inline-block w-0 md:w-[20px] shrink-0" />
+
+          <div className="award-editable-section relative flex flex-col w-full rounded-2xl shadow-md dark-glass p-4 md:p-8 overflow-hidden">
+            <div className="flex flex-col gap-6 md:flex-row md:gap-8">
+              {/* Winner column — same real AwardCard for both breakpoints,
+                  matching EditableYearSection's desktop treatment (the old
+                  hero's desktop path used a plain WinnerCard here, with no
+                  gold-frame ceremony). */}
+              <div className="w-full md:w-1/3">
+                <div className="hidden md:flex items-center gap-2 mb-3">
+                  <Trophy className="w-3.5 h-3.5 text-gold-500/60" />
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-gold-500/60">Best Picture</p>
+                </div>
+                {/* Capped narrower than AwardCard's own 360px ceiling on
+                    mobile — at full width the poster (aspect 2:3) ran
+                    taller than a phone viewport could show alongside the
+                    headline/search above it, so the crossfade played
+                    partly or fully off-screen. Desktop keeps the real cap. */}
+                <div className="relative flex justify-center md:block max-w-[210px] mx-auto md:max-w-none md:mx-0">
+                  {/* Before layer — Academy's actual pick, normal flow,
+                      establishes the box size. Fades out on reawarded. */}
+                  <div
+                    aria-hidden={reawarded || undefined}
+                    inert={reawarded ? true : undefined}
+                    style={{
+                      opacity: reawarded ? 0 : 1,
+                      transition: `opacity ${CROSSFADE_MS}ms var(--home-ease, ease)`,
+                    }}
+                  >
+                    <AwardCard
+                      year={2025}
+                      winnerTitle={ONE_BATTLE.title}
+                      winnerPoster={ONE_BATTLE.poster_url}
+                      winnerMovieId={ONE_BATTLE.id}
+                      nomineeCount={NOMINEES.length}
+                      fullWidth
+                      academyStatus={null}
+                    />
+                  </div>
+                  {/* After layer — visitor's real pick, absolute overlay.
+                      Fades in on reawarded; inert until then so it never
+                      steals keyboard focus from the visible layer. */}
+                  <div
+                    className="absolute inset-0"
+                    aria-hidden={!reawarded || undefined}
+                    inert={reawarded ? undefined : true}
+                    style={{
+                      opacity: reawarded ? 1 : 0,
+                      transition: `opacity ${CROSSFADE_MS}ms var(--home-ease, ease)`,
+                      pointerEvents: reawarded ? "auto" : "none",
+                    }}
+                  >
+                    <AwardCard
+                      year={2025}
+                      winnerTitle={SINNERS.title}
+                      winnerPoster={SINNERS.poster_url}
+                      winnerMovieId={SINNERS.id}
+                      nomineeCount={NOMINEES.length}
+                      fullWidth
+                      academyStatus={REAWARDED_STATUS}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="hidden w-px bg-white/10 md:block" />
+
+              {/* Nominees column — desktop only, final real set from the
+                  start (see file header: one focal motion moment, not two). */}
+              <div className="hidden md:block md:w-2/3">
+                <div className="flex items-baseline gap-3 mb-3">
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-gray-500">Nominees</p>
+                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-sm font-medium tabular-nums text-gray-300">
+                    {NOMINEES.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {NOMINEES.map((movie) => (
+                    <MovieCard
+                      key={movie.id}
+                      movie={movie}
+                      variant="grid"
+                      isWinner={reawarded ? movie.id === SINNERS.id : movie.id === ONE_BATTLE.id}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </CollapseIn>
-
-      {/* ─── The reveal itself, always present, plays on load ───
-          No max-width here — AppShell's <main> already caps content at
-          max-w-screen-xl; the card should fill that same column like the
-          real Awards page does, not get boxed into a narrower one. ─── */}
-      <div className="flex flex-col justify-center px-4 py-10">
-        <AwardsCardReveal reducedMotion={reducedMotion} onSettled={handleRevealSettled} />
       </div>
     </div>
   );

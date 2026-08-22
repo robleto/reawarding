@@ -25,10 +25,6 @@ import HotTakeIndicator from "@/components/rankings/HotTakeIndicator";
 import { getRatingDefinition } from "@/lib/ratingScale";
 import { useAuthState } from "@/hooks/useAuthState";
 
-// Loading skeleton constants
-const GRID_SKELETON_COUNT = 12;
-const LIST_SKELETON_COUNT = 8;
-
 // Progressive rendering — the full list can exceed 1,000 rows, which locks up
 // mobile browsers if mounted all at once. Render in batches; a sentinel below
 // the list extends the window as the user approaches it.
@@ -80,7 +76,7 @@ function RankingsPageContent() {
   }, [viewMode]);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "unranked" | "hot-takes">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "hot-takes">("all");
   
   const rankedMovies = movies.filter(isRankedMovie);
   const unrankedMovies = movies.filter(isUnrankedMovie);
@@ -115,13 +111,14 @@ function RankingsPageContent() {
     };
   }).sort((a, b) => Math.abs(b.disparity) - Math.abs(a.disparity)); // Sort by biggest disparity
   
-  // Use appropriate movie list based on active tab
+  // Use appropriate movie list based on active tab. "All" includes unranked
+  // (seen but not yet rated) movies too, so the Filter By: Rating -> "No
+  // Rating" option below has something to narrow down to — there's no
+  // dedicated Unranked tab anymore.
   const displayMovies =
     activeTab === "hot-takes"
       ? hotTakes
-      : activeTab === "unranked"
-        ? [...unrankedMovies, ...rankedMovies]
-        : rankedMovies;
+      : [...unrankedMovies, ...rankedMovies];
   
   // Rankings-specific filter state with custom defaults
   const [hasMounted, setHasMounted] = useState(false);
@@ -203,7 +200,9 @@ function RankingsPageContent() {
       return filterValue === "all" || movie.release_year === Number(filterValue);
     }
     if (filterType === "rank") {
-      return filterValue === "all" || movie.rankings?.[0]?.ranking === Number(filterValue);
+      if (filterValue === "all") return true;
+      if (filterValue === "unranked") return isUnrankedMovie(movie);
+      return movie.rankings?.[0]?.ranking === Number(filterValue);
     }
     if (filterType === "movie") {
       return String(movie.id) === filterValue;
@@ -216,7 +215,6 @@ function RankingsPageContent() {
   
   // Use shared grouping/sorting for consistency across pages
   const groupedMovies = groupMovies(filteredMovies, groupBy, sortBy, sortOrder);
-  const filteredUnrankedMovies = filteredMovies.filter(isUnrankedMovie);
 
   // ── Progressive rendering window ──
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_ROWS);
@@ -245,12 +243,11 @@ function RankingsPageContent() {
   }, [hasMoreRows, visibleCount]);
 
   // Full per-group totals for the heading tallies — visibleGroupedMovies
-  // below is sliced to the render window, so its lengths undercount. The
-  // unranked tab renders only its unranked subset, so count the same way.
+  // below is sliced to the render window, so its lengths undercount.
   const groupTotals = new Map(
     groupedMovies.map((g) => [
       g.key,
-      (activeTab === "unranked" ? g.movies.filter(isUnrankedMovie) : g.movies).length,
+      g.movies.length,
     ])
   );
 
@@ -289,8 +286,15 @@ function RankingsPageContent() {
     updateMovieRanking(movieId, { ranking: newRanking, seen_it: newSeenIt });
   };
 
+  // LOOP-1 (docs/audits/2026-08-21-launch-readiness-round3.md): this used to
+  // write a fabricated ranking: 10 the instant a movie was picked, with no
+  // rating UI at all — collapsing Watch and Rate into one gesture (CLAUDE.md
+  // Guardrail 10) and silently promoting the film into that year's Best
+  // Picture ballot via the 7+ auto-nominate rule. Open the same
+  // MovieDetailModal every other movie uses instead, so the user goes
+  // through the real Watch→Rate flow and chooses their own score.
   const handleEmptyStateSelect = (movie: Movie) => {
-    updateMovieRanking(movie.id, { seen_it: true, ranking: 10 });
+    handleOpenModal(movie);
   };
 
   const isDataReady =
@@ -310,40 +314,12 @@ function RankingsPageContent() {
     );
   }
 
-  // Show skeleton loader while loading
+  // Same loading spinner every other page uses (Films, Lists) instead of a
+  // bespoke skeleton — the skeleton's fixed proportions (w-20 h-28 thumb,
+  // generic gray blocks) don't track the actual native row layout and drift
+  // out of sync with it, which reads as "wrong layout" while loading.
   if (!hasMounted || loading) {
-    return (
-      <div className="max-w-screen-xl px-6 py-10 mx-auto">
-        <div className="mb-6">
-          <div className="h-8 w-48 bg-gray-700 rounded animate-pulse mb-4" />
-          <div className="h-4 w-64 bg-gray-700 rounded animate-pulse" />
-        </div>
-        {viewMode === "grid" ? (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
-            {Array.from({ length: GRID_SKELETON_COUNT }).map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="aspect-[2/3] bg-gray-700 rounded-lg mb-2" />
-                <div className="h-4 bg-gray-700 rounded w-3/4 mb-2" />
-                <div className="h-3 bg-gray-700 rounded w-1/2" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {Array.from({ length: LIST_SKELETON_COUNT }).map((_, i) => (
-              <div key={i} className="flex gap-4 p-4 bg-gray-800 rounded-lg border border-gray-700 animate-pulse">
-                <div className="w-20 h-28 bg-gray-700 rounded flex-shrink-0" />
-                <div className="flex-1">
-                  <div className="h-5 bg-gray-700 rounded w-3/4 mb-2" />
-                  <div className="h-4 bg-gray-700 rounded w-1/2 mb-2" />
-                  <div className="h-4 bg-gray-700 rounded w-2/3" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
+    return <Loader message="Loading rankings..." />;
   }
 
   if (status === "authenticated" && error) {
@@ -369,8 +345,7 @@ function RankingsPageContent() {
 
   return (
     <div className="max-w-screen-xl">
-      {/* Tab Navigation — nowrap + compact mobile labels so all three tabs fit
-          a 390px screen without clipping; full labels return at sm:. */}
+      {/* Tab Navigation */}
       <div className="mb-3 sm:mb-6 flex gap-1 sm:gap-2 border-b border-gray-700 overflow-x-auto [scrollbar-width:none]">
         <button
           onClick={() => setActiveTab("all")}
@@ -382,18 +357,7 @@ function RankingsPageContent() {
         >
           <span className="sm:hidden">All</span>
           <span className="hidden sm:inline">All Rankings</span>
-          <span className="ml-1.5 font-mono text-xs text-gray-500">({rankedMovies.length})</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("unranked")}
-          className={`px-2.5 sm:px-4 py-2.5 sm:py-3 text-sm font-medium transition-colors relative whitespace-nowrap flex-shrink-0 ${
-            activeTab === "unranked"
-              ? "text-blue-300 border-b-2 border-blue-300"
-              : "text-gray-400 hover:text-gray-300"
-          }`}
-        >
-          Unranked
-          <span className="ml-1.5 font-mono text-xs text-gray-500">({unrankedMovies.length})</span>
+          <span className="ml-1.5 font-mono text-xs text-gray-500">({rankedMovies.length + unrankedMovies.length})</span>
         </button>
         <button
           onClick={() => setActiveTab("hot-takes")}
@@ -412,7 +376,7 @@ function RankingsPageContent() {
       <MovieFilters
         localSearchMode={true}
         availableMovies={displayMovies}
-        searchContext={activeTab === "hot-takes" ? "hot takes" : activeTab === "unranked" ? "unranked films" : "rankings"}
+        searchContext={activeTab === "hot-takes" ? "hot takes" : "rankings"}
         viewMode={viewMode}
         setViewMode={setViewMode}
         sortBy={sortBy}
@@ -435,128 +399,96 @@ function RankingsPageContent() {
           filterType: "none",
           filterValue: "all"
         }}
+        compact
       />
 
-      {activeTab === "unranked" && filteredUnrankedMovies.length === 0
-        ? (
-          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-6 py-8 text-center">
-            <h2 className="text-2xl font-semibold text-emerald-200">You&apos;re all caught up</h2>
-            <p className="mt-2 text-sm text-emerald-100/80">
-              Congrats. Every film you&apos;ve marked as seen has a rating.
-            </p>
-          </div>
-        )
-        : visibleGroupedMovies.map(({ key, movies }: { key: string; movies: Movie[] }) => {
-            const rankedGroupMovies = movies.filter(isRankedMovie);
-            const unrankedGroupMovies = activeTab === "unranked" ? movies.filter(isUnrankedMovie) : [];
+      {visibleGroupedMovies.map(({ key, movies }: { key: string; movies: Movie[] }) => (
+        <div key={key} className="mb-6 sm:mb-10">
+          {groupBy !== "none" && (
+            <h2
+              className="mb-2 text-2xl sm:mb-5 sm:text-4xl font-unbounded font-regular text-gray-100 tracking-wider flex items-baseline gap-2.5"
+            >
+              {key}
+              <span className="font-mono text-xs sm:text-sm font-normal tracking-normal text-gray-500">
+                {groupTotals.get(key)} {groupTotals.get(key) === 1 ? "film" : "films"}
+              </span>
+            </h2>
+          )}
 
-            const renderMovieSection = (sectionMovies: Movie[], sectionType: "unranked" | "ranked") => {
-              if (sectionMovies.length === 0) return null;
+          {viewMode === "grid" ? (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {movies.map((movie, index) => {
+                const r = movie.rankings?.[0];
+                if (!r) return null;
 
-              return (
-                <div className={sectionType === "unranked" ? "mb-8" : ""}>
-                  {activeTab === "unranked" && (
-                    <div className="mb-4">
-                      <h3 className="text-lg font-semibold text-gray-100">Unranked</h3>
-                      <p className="mt-1 text-sm text-gray-400">
-                        Films you&apos;ve seen but haven&apos;t rated yet
-                      </p>
-                    </div>
-                  )}
+                const rating = getMovieRating(movie);
+                const def = rating != null ? getRatingDefinition(rating) : null;
 
-                  {viewMode === "grid" ? (
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                      {sectionMovies.map((movie, index) => {
-                        const r = movie.rankings?.[0];
-                        if (!r) return null;
-
-                        const rating = getMovieRating(movie);
-                        const def = rating != null ? getRatingDefinition(rating) : null;
-
-                        return (
-                          <div
-                            key={movie.id}
-                            className="relative [content-visibility:auto] [contain-intrinsic-size:auto_320px]"
-                          >
-                            <MovieCard
-                              movie={movie}
-                              variant="large"
-                              rank={sectionType === "ranked" ? index + 1 : undefined}
-                              ranking={rating}
-                              seenIt={r.seen_it ?? false}
-                              onUpdate={updateMovieRanking}
-                              onClick={() => handleOpenModal(movie)}
-                            />
-                            {activeTab === "hot-takes" && rating != null && (
-                              <div className="mt-2">
-                                <HotTakeIndicator
-                                  myRating={rating}
-                                  imdbRating={movie.imdb_rating}
-                                  metacriticScore={movie.metacritic_score}
-                                  compact={true}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col">
-                      {sectionMovies.map((movie, index) => {
-                        const r = movie.rankings?.[0];
-                        if (!r) return null;
-
-                        const rating = getMovieRating(movie);
-                        const def = rating != null ? getRatingDefinition(rating) : null;
-
-                        return (
-                          // content-visibility skips layout/paint for offscreen
-                          // rows so long lists stay scrollable once mounted.
-                          <div
-                            key={movie.id}
-                            className="[content-visibility:auto] [contain-intrinsic-size:auto_84px]"
-                          >
-                            <MovieCard
-                              movie={movie}
-                              variant="compact"
-                              rank={sectionType === "ranked" ? index + 1 : undefined}
-                              ranking={rating}
-                              ratingLabel={def?.label ?? null}
-                              seenIt={r.seen_it ?? false}
-                              showHotTake={activeTab === "hot-takes"}
-                              showYear
-                              incomplete={sectionType === "unranked"}
-                              onUpdate={updateMovieRanking}
-                              onClick={() => handleOpenModal(movie)}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            };
-
-            return (
-              <div key={key} className="mb-6 sm:mb-10">
-                {groupBy !== "none" && (
-                  <h2
-                    className="mb-2 text-2xl sm:mb-5 sm:text-4xl font-unbounded font-regular text-gray-100 tracking-wider flex items-baseline gap-2.5"
+                return (
+                  <div
+                    key={movie.id}
+                    className="relative [content-visibility:auto] [contain-intrinsic-size:auto_320px]"
                   >
-                    {key}
-                    <span className="font-mono text-xs sm:text-sm font-normal tracking-normal text-gray-500">
-                      {groupTotals.get(key)} {groupTotals.get(key) === 1 ? "film" : "films"}
-                    </span>
-                  </h2>
-                )}
-                {activeTab === "unranked"
-                  ? renderMovieSection(unrankedGroupMovies, "unranked")
-                  : renderMovieSection(rankedGroupMovies, "ranked")}
-              </div>
-            );
-          })}
+                    <MovieCard
+                      movie={movie}
+                      variant="large"
+                      rank={index + 1}
+                      ranking={rating}
+                      seenIt={r.seen_it ?? false}
+                      onUpdate={updateMovieRanking}
+                      onClick={() => handleOpenModal(movie)}
+                    />
+                    {activeTab === "hot-takes" && rating != null && (
+                      <div className="mt-2">
+                        <HotTakeIndicator
+                          myRating={rating}
+                          imdbRating={movie.imdb_rating}
+                          metacriticScore={movie.metacritic_score}
+                          compact={true}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {movies.map((movie, index) => {
+                const r = movie.rankings?.[0];
+                if (!r) return null;
+
+                const rating = getMovieRating(movie);
+                const def = rating != null ? getRatingDefinition(rating) : null;
+
+                return (
+                  // content-visibility skips layout/paint for offscreen
+                  // rows so long lists stay scrollable once mounted.
+                  <div
+                    key={movie.id}
+                    className="[content-visibility:auto] [contain-intrinsic-size:auto_120px]"
+                  >
+                    <MovieCard
+                      movie={movie}
+                      variant="compact"
+                      rank={index + 1}
+                      ranking={rating}
+                      ratingLabel={def?.label ?? null}
+                      seenIt={r.seen_it ?? false}
+                      showHotTake={activeTab === "hot-takes"}
+                      showYear
+                      incomplete={!isRankedMovie(movie)}
+                      onUpdate={updateMovieRanking}
+                      onClick={() => handleOpenModal(movie)}
+                      native
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ))}
 
       {/* Sentinel — extends the progressive-render window before the user
           reaches the bottom. Renders only while rows remain. */}

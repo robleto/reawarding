@@ -324,10 +324,10 @@ export default function OnboardingPage() {
             above. A brand-new user has zero data, so surfacing this here (the
             very first moments in the app) is the highest-leverage place to
             offer it. Does not block or replace any step — just an escape
-            hatch. Note: clicking through as a non-premium user currently hits
-            the import paywall (src/app/api/import/library/route.ts) — that's
-            an existing, separately-flagged product question, not something
-            fixed here. */}
+            hatch. A non-premium user can import up to FREE_IMPORT_ROW_CAP
+            films free (src/app/api/import/library/route.ts) — larger/repeat
+            imports are the premium pillar, but the first-run path here never
+            hits a paywall. */}
         <div className="mt-8 text-center">
           <p className="text-xs text-gray-600">
             Already on Letterboxd or IMDb?{" "}

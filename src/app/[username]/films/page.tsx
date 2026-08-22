@@ -3,6 +3,9 @@
 import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
+import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
+import { useRedirectOwnerToWorkbench } from "@/hooks/useRedirectOwnerToWorkbench";
+import { useProfile } from "@/contexts/ProfileContext";
 import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieFilters from "@/components/filters/MovieFilters";
@@ -17,7 +20,10 @@ import type { Movie } from "@/types/types";
 export default function ProfileFilmsPage() {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
-  const { movies: allMovies, loading } = usePublicProfile(username);
+  const { movies: allMovies, profile, loading } = usePublicProfile(username);
+  const isOwnProfile = useIsProfileOwner(profile?.id);
+  const { viewMode: profileViewMode } = useProfile();
+  const redirecting = useRedirectOwnerToWorkbench("/films", isOwnProfile, profileViewMode);
 
   // Films page shows only "seen" movies
   const movies = useMemo(
@@ -63,6 +69,10 @@ export default function ProfileFilmsPage() {
   };
 
 
+  if (redirecting) {
+    return null;
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
@@ -76,9 +86,11 @@ export default function ProfileFilmsPage() {
 
   if (movies.length === 0) {
     return (
-      <div className="text-center py-16">
-        <h3 className="text-lg font-semibold text-white mb-2">No films logged yet</h3>
-        <p className="text-gray-400 text-sm">@{username} hasn&apos;t marked any movies as seen yet.</p>
+      <div>
+        <div className="text-center py-16">
+          <h3 className="text-lg font-semibold text-white mb-2">No films logged yet</h3>
+          <p className="text-gray-400 text-sm">@{username} hasn&apos;t marked any movies as seen yet.</p>
+        </div>
       </div>
     );
   }

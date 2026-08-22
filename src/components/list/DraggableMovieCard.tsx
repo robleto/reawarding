@@ -22,6 +22,12 @@ type Props = {
   onUpdate: (updates: { seen_it?: boolean; score?: number | null }) => void;
   onRemove: () => void;
   isEditing: boolean;
+  /** Native-feeling glass row styling (list viewMode only) — see MovieCard's
+   * `native` prop, same default. */
+  native?: boolean;
+  /** Suppress the bookmark toggle — passed when this list IS the watchlist,
+   * so the icon isn't redundant with the list itself. */
+  hideBookmark?: boolean;
 };
 
 export default function DraggableMovieCard({
@@ -32,6 +38,8 @@ export default function DraggableMovieCard({
   onUpdate,
   onRemove,
   isEditing,
+  native = true,
+  hideBookmark,
 }: Props) {
   const {
     attributes,
@@ -98,6 +106,7 @@ export default function DraggableMovieCard({
           ranking={userScore}
           seenIt={userSeenIt}
           onUpdate={handleUpdate}
+          hideBookmark={hideBookmark}
         />
       </div>
     );
@@ -130,6 +139,8 @@ export default function DraggableMovieCard({
           seenIt={userSeenIt}
           showYear
           onUpdate={handleUpdate}
+          native={native}
+          hideBookmark={hideBookmark}
         />
       </div>
 

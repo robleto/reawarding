@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { Film, Trophy, Flame, TrendingUp, TrendingDown, Star, Bookmark, RefreshCcw, EyeOff } from "lucide-react";
+import { Film, Trophy, Flame, TrendingUp, TrendingDown, Star, Bookmark, RefreshCcw, EyeOff, Check } from "lucide-react";
 import { shimmer, toBase64 } from "@/utils/imagePlaceholders";
 import { getRatingStyle } from "@/utils/getRatingStyle";
 import type { Movie } from "@/types/types";
@@ -40,7 +40,12 @@ export interface MovieCardProps {
 	/* ── Interactive features (all optional) ── */
 
 	/** When provided, enables interactive controls (SeenIt, Rating) */
-	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+	/** May resolve `false` on a failed write — RatingModal awaits this via its
+	 *  onRate prop so it can show an error instead of a fabricated "Done"
+	 *  confirmation (see docs/audits/2026-08-21-launch-readiness.md LOOP-1).
+	 *  Implementations that don't report success/failure (void, or a Promise
+	 *  resolving to undefined) are treated as always-succeeding. */
+	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void | Promise<boolean | void>;
 	/** Explicit ranking value — overrides movie.rankings[0].ranking */
 	ranking?: number | null;
 	/** Seen-it state */
@@ -63,6 +68,18 @@ export interface MovieCardProps {
 	hideRating?: boolean;
 	/** Grid, non-interactive: move the winner badge to bottom-left instead of top-right, so it doesn't compete with a rank badge up top and leaves bottom-right free for the rating */
 	winnerLabel?: boolean;
+	/** Compact variant only: native-feeling glass row (rounded-2xl, translucent
+	 * surface, more padding, mono numerals). This is the app's one row design
+	 * now — defaults to true. Pass `native={false}` to opt a surface out. */
+	native?: boolean;
+	/** Suppress the bookmark/watchlist toggle — for surfaces where being on the
+	 * watchlist is already the point (the Watchlist screen itself), so the icon
+	 * isn't redundant. */
+	hideBookmark?: boolean;
+	/** Compact, display-only rows only: desaturate/dim unseen films and add
+	 * a small check badge for seen ones — a checklist treatment for a
+	 * canonical membership list (e.g. a collection), not the default. */
+	dimUnseen?: boolean;
 }
 
 /* ── Shared helpers ── */
@@ -76,12 +93,12 @@ const resolveImage = (movie: Movie, prefer: "poster" | "thumb") => {
 	return null;
 };
 
-export const RatingBadge = ({ rating, className = "" }: { rating: number; className?: string }) => {
+export const RatingBadge = ({ rating, className = "", pill = false }: { rating: number; className?: string; pill?: boolean }) => {
 	const { text, background } = getRatingStyle(rating);
 	if (rating <= 0) return null;
 	return (
 		<span
-			className={`inline-flex items-center font-mono font-bold tabular-nums rounded-md shadow-sm ${className}`}
+			className={`inline-flex items-center font-mono font-bold tabular-nums shadow-sm ${pill ? "rounded-full" : "rounded-md"} ${className}`}
 			style={{ backgroundColor: background, color: text }}
 		>
 			{rating}
@@ -205,21 +222,27 @@ interface GridCardProps {
 	onClick?: () => void;
 	// interactive
 	interactive: boolean;
-	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+	/** May resolve `false` on a failed write — RatingModal awaits this via its
+	 *  onRate prop so it can show an error instead of a fabricated "Done"
+	 *  confirmation (see docs/audits/2026-08-21-launch-readiness.md LOOP-1).
+	 *  Implementations that don't report success/failure (void, or a Promise
+	 *  resolving to undefined) are treated as always-succeeding. */
+	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void | Promise<boolean | void>;
 	seenIt?: boolean;
 	ratingLabel?: string | null;
 	ratingOnly?: boolean;
 	footerAction?: React.ReactNode;
 	hideRating?: boolean;
 	winnerLabel?: boolean;
+	hideBookmark?: boolean;
 }
 
-function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interactive, onUpdate, seenIt, ratingLabel, ratingOnly, footerAction, hideRating, winnerLabel }: GridCardProps) {
+function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interactive, onUpdate, seenIt, ratingLabel, ratingOnly, footerAction, hideRating, winnerLabel, hideBookmark }: GridCardProps) {
 	const [showRatingModal, setShowRatingModal] = useState(false);
 	const style = getRatingStyle(rating);
 	const { watchlistMovieIds, toggle: toggleWatchlist, removeIfWatched } = useWatchlistContext();
 	const isOnWatchlist = watchlistMovieIds.has(movie.id);
-	const showBookmark = !isWinner && !seenIt;
+	const showBookmark = !isWinner && !seenIt && !hideBookmark;
 
 	const handleClick = (e: React.MouseEvent) => {
 		if (interactive && e.target instanceof HTMLElement) {
@@ -441,7 +464,7 @@ function GridCard({ movie, rating, posterSrc, rank, isWinner, onClick, interacti
 						    gets its second line clipped by the carousel's shared frame
 						    height (see NomineeCardCarousel). Also keeps grid rows level
 						    when title lengths vary. */}
-						<p className="text-xs font-medium text-always-white leading-snug line-clamp-2 min-h-[33px]">
+						<p className="text-xs font-medium text-white leading-snug line-clamp-2 min-h-[33px]">
 							{movie.title}
 						</p>
 					</div>
@@ -479,14 +502,27 @@ interface CompactCardProps {
 	showYear?: boolean;
 	// interactive
 	interactive: boolean;
-	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+	/** May resolve `false` on a failed write — RatingModal awaits this via its
+	 *  onRate prop so it can show an error instead of a fabricated "Done"
+	 *  confirmation (see docs/audits/2026-08-21-launch-readiness.md LOOP-1).
+	 *  Implementations that don't report success/failure (void, or a Promise
+	 *  resolving to undefined) are treated as always-succeeding. */
+	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void | Promise<boolean | void>;
 	seenIt?: boolean;
 	ratingLabel?: string | null;
 	showHotTake?: boolean;
 	incomplete?: boolean;
+	native?: boolean;
+	hideBookmark?: boolean;
+	/** Opt-in checklist treatment — desaturates/dims the poster when
+	    `seenIt` is false and adds a small check badge when true. Off by
+	    default so it doesn't change how every other existing display-only
+	    compact row looks; collection membership lists (a real checklist
+	    against a canonical film list) are the intended caller. */
+	dimUnseen?: boolean;
 }
 
-function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYear, interactive, onUpdate, seenIt, ratingLabel, showHotTake, incomplete }: CompactCardProps) {
+function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYear, interactive, onUpdate, seenIt, ratingLabel, showHotTake, incomplete, native = true, hideBookmark, dimUnseen }: CompactCardProps) {
 	// Hot-take calculation
 	const myRating = rating;
 	const imdbRating = movie.imdb_rating || 0;
@@ -505,10 +541,18 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 
 	const { watchlistMovieIds, toggle: toggleWatchlist, removeIfWatched } = useWatchlistContext();
 	const isOnWatchlist = watchlistMovieIds.has(movie.id);
-	const showBookmark = !isWinner && !seenIt;
+	const showBookmark = !isWinner && !seenIt && !hideBookmark;
+	// Native rows (mobile layout only) run a bigger poster so it stays
+	// legible at this row height, with tighter card padding around it so the
+	// extra size doesn't just inflate the row.
+	const thumbW = native ? 60 : 48;
+	const thumbH = native ? 90 : 72;
 
+	// Returns onUpdate's result (rather than discarding it) so
+	// RankingDropdown's commitRating can await success/failure and show its
+	// Undo/error toasts — LOOP-2, docs/audits/2026-08-21-launch-readiness-round3.md.
 	const handleRatingSelect = (newRating: number | null) => {
-		onUpdate?.(movie.id, { ranking: newRating });
+		return onUpdate?.(movie.id, { ranking: newRating });
 	};
 
 	const toggleSeenIt = () => {
@@ -521,40 +565,58 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 		// Display-only compact card — same row anatomy as the interactive
 		// variant (rank slot, fixed thumb box, clamped title, rating chip on
 		// the right) so ballot and ranking lists read identically; the only
-		// difference is the absence of edit controls. Spacing is left to the
-		// parent container.
+		// difference is the absence of edit controls. mb-2 md:mb-2 mirrors the
+		// interactive branch below so rows space out the same way regardless
+		// of which branch renders.
 		return (
 			<button
 				type="button"
 				onClick={onClick}
-				className={`w-full px-1 py-1 md:px-2 md:py-2 text-left rounded-xl border transition-colors shadow-sm ${
-					isWinner
-						? "border-gold-500/40 bg-gold-500/5 hover:bg-gold-500/10"
-						: "border-gray-700/50 bg-gray-900/60 hover:bg-gray-800/80"
+				className={`w-full text-left border transition-colors shadow-sm mb-2 md:mb-2 ${
+					native
+						? "px-2.5 py-2 rounded-2xl backdrop-blur-sm border-white/10 bg-white/5 hover:bg-white/[0.08]"
+						: `px-1 py-1 md:px-2 md:py-2 rounded-xl ${
+								isWinner
+									? "border-gold-500/40 bg-gold-500/5 hover:bg-gold-500/10"
+									: "border-gray-700/50 bg-gray-900/60 hover:bg-gray-800/80"
+							}`
 				}`}
 			>
-				<div className="flex items-center gap-1 min-h-[72px]">
+				<div className={`flex items-center ${native ? "gap-3" : "gap-1"}`} style={{ minHeight: thumbH }}>
 					{typeof rank === "number" && (
 						<div className="w-5 flex items-center justify-end text-xs font-mono font-bold text-gray-400 tabular-nums select-none pr-1">
 							{rank}
 						</div>
 					)}
-					<div className="flex-shrink-0">
+					<div className="relative flex-shrink-0">
 						{thumbSrc ? (
 							<Image
 								src={thumbSrc}
 								alt=""
-								width={48}
-								height={72}
-								className="w-12 h-[72px] rounded-md shadow-md object-cover"
-								sizes="48px"
+								width={thumbW}
+								height={thumbH}
+								className={`shadow-md object-cover transition-all ${native ? "rounded-lg" : "rounded-md"} ${
+									dimUnseen && !seenIt ? "grayscale opacity-40" : ""
+								}`}
+								style={{ width: thumbW, height: thumbH }}
+								sizes={`${thumbW}px`}
 								placeholder="blur"
-								blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(48, 72))}`}
+								blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(thumbW, thumbH))}`}
 							/>
 						) : (
-							<div className="flex items-center justify-center bg-gray-800 rounded-md" style={{ width: 48, height: 72 }}>
+							<div
+								className={`flex items-center justify-center bg-gray-800 ${native ? "rounded-lg" : "rounded-md"} ${
+									dimUnseen && !seenIt ? "opacity-40" : ""
+								}`}
+								style={{ width: thumbW, height: thumbH }}
+							>
 								<Film className="w-4 h-4 text-gray-600" />
 							</div>
+						)}
+						{dimUnseen && seenIt && (
+							<span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-black ring-2 ring-gray-900 shadow-md">
+								<Check className="w-3 h-3" strokeWidth={3} />
+							</span>
 						)}
 					</div>
 					<div className="flex-1 min-w-0 flex items-center justify-between">
@@ -566,7 +628,7 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 							{isWinner && <Trophy className="w-3.5 h-3.5 text-gold-400 flex-shrink-0" />}
 							<div className="flex flex-col items-center">
 								{/* Same 44px scale as the interactive rows' RankingDropdown chip */}
-							<RatingBadge rating={rating} className="min-w-[44px] min-h-[44px] justify-center text-base" />
+							<RatingBadge rating={rating} className="min-w-[44px] min-h-[44px] justify-center text-base" pill={native} />
 								{ratingLabel && (
 									<span className="mt-0.5 text-xs leading-tight text-gray-400">{ratingLabel}</span>
 								)}
@@ -581,10 +643,14 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 	// Interactive compact card — matches MovieRowCard behavior
 	return (
 		<div
-			className={`px-1 py-1 md:px-2 md:py-2 mb-2 md:mb-2 rounded-xl border transition duration-200 shadow-sm ${
-				incomplete
-					? "border-gray-600/50 bg-gray-900/45 hover:bg-gray-800/70"
-					: "border-gray-700/50 bg-gray-900/60 hover:bg-gray-800/80"
+			className={`mb-2 md:mb-2 border transition duration-200 shadow-sm ${
+				native
+					? "px-2.5 py-2 rounded-2xl backdrop-blur-sm border-white/10 bg-white/5 hover:bg-white/[0.08]"
+					: `px-1 py-1 md:px-2 md:py-2 rounded-xl ${
+							incomplete
+								? "border-gray-600/50 bg-gray-900/45 hover:bg-gray-800/70"
+								: "border-gray-700/50 bg-gray-900/60 hover:bg-gray-800/80"
+						}`
 			} ${
 				onClick ? "cursor-pointer" : ""
 			}`}
@@ -593,22 +659,36 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 		>
 			{/* Desktop Layout */}
 			<div className="hidden md:flex items-center justify-between gap-2">
-				{thumbSrc ? (
-					<Image
-						src={thumbSrc}
-						alt={movie.title}
-						width={48}
-						height={72}
-						className="w-12 h-[72px] rounded-md shadow-md object-cover"
-						sizes="48px"
-						placeholder="blur"
-						blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(48, 72))}`}
-					/>
-				) : (
-					<div className="flex items-center justify-center bg-gray-800 rounded-md" style={{ width: 48, height: 72 }}>
-						<Film className="w-4 h-4 text-gray-600" />
-					</div>
-				)}
+				<div className="relative flex-shrink-0">
+					{thumbSrc ? (
+						<Image
+							src={thumbSrc}
+							alt={movie.title}
+							width={48}
+							height={72}
+							className={`w-12 h-[72px] rounded-md shadow-md object-cover transition-all ${
+								dimUnseen && !seenIt ? "grayscale opacity-35" : ""
+							}`}
+							sizes="48px"
+							placeholder="blur"
+							blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(48, 72))}`}
+						/>
+					) : (
+						<div
+							className={`flex items-center justify-center bg-gray-800 rounded-md ${
+								dimUnseen && !seenIt ? "opacity-35" : ""
+							}`}
+							style={{ width: 48, height: 72 }}
+						>
+							<Film className="w-4 h-4 text-gray-600" />
+						</div>
+					)}
+					{dimUnseen && seenIt && (
+						<span className="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500 text-black ring-2 ring-gray-900 shadow-md">
+							<Check className="w-3.5 h-3.5" strokeWidth={3} />
+						</span>
+					)}
+				</div>
 				<div className="flex-1 min-w-0">
 					<h3 className="text-base font-semibold text-white leading-snug truncate">{movie.title}</h3>
 					{showYear && <p className="text-sm text-gray-400">{movie.release_year}</p>}
@@ -616,7 +696,7 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 				</div>
 				<div className="flex items-center gap-2">
 					{showHotTakeIndicator ? (
-						<div className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold ${
+						<div className={`flex items-center gap-1.5 px-2 py-1 text-xs font-mono font-semibold ${native ? "rounded-full" : "rounded"} ${
 							disparity > 0 ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
 						}`}>
 							<Flame className="w-3 h-3" />
@@ -655,7 +735,7 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 						</button>
 					)}
 					<div className="flex flex-col items-center">
-						<RankingDropdown ranking={rating || null} onChange={handleRatingSelect} />
+						<RankingDropdown ranking={rating || null} onChange={handleRatingSelect} native={native} />
 						{ratingLabel && (
 							<span className="mt-0.5 text-xs leading-tight text-gray-400">{ratingLabel}</span>
 						)}
@@ -665,28 +745,41 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 
 			{/* Mobile Layout */}
 			<div className="md:hidden">
-				<div className="flex items-center gap-1 min-h-[72px]">
+				<div className={`flex items-center ${native ? "gap-3" : "gap-1"}`} style={{ minHeight: thumbH }}>
 					{typeof rank === "number" && (
-						<div className="w-5 flex items-center justify-end text-xs font-bold text-gray-400 select-none pr-1">
+						<div className={`w-5 flex items-center justify-end text-gray-400 select-none pr-1 ${native ? "text-xs font-mono tabular-nums" : "text-xs font-bold"}`}>
 							{rank}
 						</div>
 					)}
-					<div className="flex-shrink-0">
+					<div className="relative flex-shrink-0">
 						{thumbSrc ? (
 							<Image
 								src={thumbSrc}
 								alt={movie.title}
-								width={48}
-								height={72}
-								className="w-12 h-[72px] rounded-md shadow-md object-cover"
-								sizes="48px"
+								width={thumbW}
+								height={thumbH}
+								className={`shadow-md object-cover transition-all ${native ? "rounded-lg" : "rounded-md"} ${
+									dimUnseen && !seenIt ? "grayscale opacity-35" : ""
+								}`}
+								style={{ width: thumbW, height: thumbH }}
+								sizes={`${thumbW}px`}
 								placeholder="blur"
-								blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(48, 72))}`}
+								blurDataURL={`data:image/svg+xml;base64,${toBase64(shimmer(thumbW, thumbH))}`}
 							/>
 						) : (
-							<div className="flex items-center justify-center bg-gray-800 rounded-md" style={{ width: 48, height: 72 }}>
+							<div
+								className={`flex items-center justify-center bg-gray-800 ${native ? "rounded-lg" : "rounded-md"} ${
+									dimUnseen && !seenIt ? "opacity-35" : ""
+								}`}
+								style={{ width: thumbW, height: thumbH }}
+							>
 								<Film className="w-4 h-4 text-gray-600" />
 							</div>
+						)}
+						{dimUnseen && seenIt && (
+							<span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-black ring-2 ring-gray-900 shadow-md">
+								<Check className="w-3 h-3" strokeWidth={3} />
+							</span>
 						)}
 					</div>
 					<div className="flex-1 min-w-0 flex items-center justify-between">
@@ -701,13 +794,23 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 						    other; a wider gap here (a full-width list row, not the cramped 3-up
 						    grid) is the cheap fix vs. shrinking either below its 44px floor. */}
 						<div className="flex items-center gap-4 ml-2">
-							<SeenItButton
-								seenIt={seenIt ?? false}
-								onClick={toggleSeenIt}
-								showText={false}
-								size="sm"
-								variant="compact"
-							/>
+							{showHotTakeIndicator ? (
+								<div className={`flex items-center gap-1 px-2 py-1 text-xs font-mono font-semibold ${native ? "rounded-full" : "rounded"} ${
+									disparity > 0 ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+								}`}>
+									<Flame className="w-3 h-3" />
+									{disparity > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+									<span>{disparity > 0 ? "+" : ""}{Math.abs(disparity).toFixed(1)}</span>
+								</div>
+							) : (
+								<SeenItButton
+									seenIt={seenIt ?? false}
+									onClick={toggleSeenIt}
+									showText={false}
+									size="sm"
+									variant="compact"
+								/>
+							)}
 							{showBookmark && (
 								<button
 									type="button"
@@ -721,7 +824,7 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 								</button>
 							)}
 							<div className="flex flex-col items-center">
-								<RankingDropdown ranking={rating || null} onChange={handleRatingSelect} />
+								<RankingDropdown ranking={rating || null} onChange={handleRatingSelect} native={native} />
 								{ratingLabel && (
 									<span className="mt-0.5 text-xs leading-tight text-gray-400">{ratingLabel}</span>
 								)}
@@ -749,11 +852,22 @@ interface LargeCardProps {
 	onClick?: () => void;
 	// interactive
 	interactive: boolean;
-	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void;
+	/** May resolve `false` on a failed write — RatingModal awaits this via its
+	 *  onRate prop so it can show an error instead of a fabricated "Done"
+	 *  confirmation (see docs/audits/2026-08-21-launch-readiness.md LOOP-1).
+	 *  Implementations that don't report success/failure (void, or a Promise
+	 *  resolving to undefined) are treated as always-succeeding. */
+	onUpdate?: (movieId: string, updates: { seen_it?: boolean; ranking?: number | null }) => void | Promise<boolean | void>;
 	seenIt?: boolean;
+	hideBookmark?: boolean;
+	/** Extra control rendered beside the title/year (e.g. Awards' "Nominate"
+	    button) — unlike GridCard's footerAction, this sits below the poster
+	    rather than inside the already-busy SeenIt/Rate overlay row, since
+	    there's no room to add a third item there. */
+	footerAction?: React.ReactNode;
 }
 
-function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interactive, onUpdate, seenIt }: LargeCardProps) {
+function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interactive, onUpdate, seenIt, hideBookmark, footerAction }: LargeCardProps) {
 	const [showRatingModal, setShowRatingModal] = useState(false);
 	const style = getRatingStyle(rating);
 	const { watchlistMovieIds, toggle: toggleWatchlist, removeIfWatched } = useWatchlistContext();
@@ -808,16 +922,18 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 					)}
 
 					{/* Bookmark — top-right, icon-only, hover-only (always present via context) */}
-					<button
-						type="button"
-						onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie.id); }}
-						className={`movie-card-overlay absolute top-2 right-2 flex items-center justify-center w-8 h-8 rounded-md bg-always-black/70 backdrop-blur-sm transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-always-black/85 ${
-							isOnWatchlist ? "text-amber-400" : "text-always-white/80 hover:text-amber-300"
-						}`}
-						title={isOnWatchlist ? "Remove from watchlist" : "Add to watchlist"}
-					>
-						<Bookmark className={`w-4 h-4 ${isOnWatchlist ? "fill-current" : ""}`} />
-					</button>
+					{!hideBookmark && (
+						<button
+							type="button"
+							onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie.id); }}
+							className={`movie-card-overlay absolute top-2 right-2 flex items-center justify-center w-8 h-8 rounded-md bg-always-black/70 backdrop-blur-sm transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-always-black/85 ${
+								isOnWatchlist ? "text-amber-400" : "text-always-white/80 hover:text-amber-300"
+							}`}
+							title={isOnWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+						>
+							<Bookmark className={`w-4 h-4 ${isOnWatchlist ? "fill-current" : ""}`} />
+						</button>
+					)}
 
 					{/* Rating badge (display-only mode) */}
 					{!interactive && (
@@ -877,13 +993,16 @@ function LargeCard({ movie, rating, posterSrc, rank, isWinner, onClick, interact
 				</div>
 
 				{/* ── Title below poster ── */}
-				<div className="px-3 py-2.5">
-					<p className="text-sm font-semibold text-white leading-snug line-clamp-2">
-						{movie.title}
-					</p>
-					{movie.release_year && (
-						<p className="text-xs text-gray-500 mt-0.5">{movie.release_year}</p>
-					)}
+				<div className="px-3 py-2.5 flex items-start justify-between gap-2">
+					<div className="min-w-0">
+						<p className="text-sm font-semibold text-white leading-snug line-clamp-2">
+							{movie.title}
+						</p>
+						{movie.release_year && (
+							<p className="text-xs text-gray-500 mt-0.5">{movie.release_year}</p>
+						)}
+					</div>
+					{footerAction && <div className="flex-shrink-0 movie-card-overlay">{footerAction}</div>}
 				</div>
 			</div>
 
@@ -926,6 +1045,9 @@ export default function MovieCard({
 	academyStatus,
 	hideRating,
 	winnerLabel,
+	native = true,
+	hideBookmark,
+	dimUnseen,
 }: MovieCardProps) {
 	// Use explicit ranking if provided, otherwise pull from movie data
 	const resolvedRating = ranking !== undefined ? Math.round(ranking ?? 0) : Math.round(movie.rankings?.[0]?.ranking ?? 0);
@@ -955,6 +1077,9 @@ export default function MovieCard({
 					ratingLabel={ratingLabel}
 					showHotTake={showHotTake}
 					incomplete={incomplete}
+					native={native}
+					hideBookmark={hideBookmark}
+					dimUnseen={dimUnseen}
 				/>
 			);
 		case "large":
@@ -969,6 +1094,8 @@ export default function MovieCard({
 					interactive={interactive}
 					onUpdate={onUpdate}
 					seenIt={seenIt}
+					hideBookmark={hideBookmark}
+					footerAction={footerAction}
 				/>
 			);
 		case "grid":
@@ -989,6 +1116,7 @@ export default function MovieCard({
 					footerAction={footerAction}
 					hideRating={hideRating}
 					winnerLabel={winnerLabel}
+					hideBookmark={hideBookmark}
 				/>
 			);
 	}

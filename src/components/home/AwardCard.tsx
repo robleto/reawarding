@@ -29,6 +29,12 @@ interface Props {
       the card then falls back to a simple title/id match with no screening
       check. */
   academyStatus?: AcademyStatusResult | null;
+  /** Set false to skip this card's own small corner AcademyStamp even when
+      academyStatus is passed — for the desktop award-editable-section call,
+      which already shows a larger floating AcademyStamp beside the card;
+      academyStatus is still passed there so the caption below can render.
+      Defaults to true (the mobile call's stamp-in-the-corner behavior). */
+  showCornerStamp?: boolean;
 }
 
 /**
@@ -36,7 +42,7 @@ interface Props {
  * Receives pre-resolved movie data — no database fetching of its own beyond
  * the shared, cached official-winners lookup (see src/data/officialAwardWinners.ts).
  */
-export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCount, winnerMovieId, onClick, onShare, fullWidth, academyStatus }: Props) {
+export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCount, winnerMovieId, onClick, onShare, fullWidth, academyStatus, showCornerStamp = true }: Props) {
   const { winners } = useOfficialAwardWinners();
   const actualWinner = winners.get(year) ?? null;
   // ID comparison when the caller passes one (exact, immune to title formatting
@@ -110,7 +116,7 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
             {/* Academy stamp — lower-right, fullWidth only. Same ink-stamp
                 treatment as the desktop card's open-corner stamp, scaled down
                 to fit the poster corner instead of floating beside the grid. */}
-            {fullWidth && academyStatus && (
+            {fullWidth && academyStatus && showCornerStamp && (
               <div className="absolute bottom-1 right-1 origin-bottom-right scale-[0.45]">
                 <AcademyStamp academyStatus={academyStatus} />
               </div>
@@ -177,6 +183,16 @@ export default function AwardCard({ year, winnerTitle, winnerPoster, nomineeCoun
       {fullWidth && (
         <p className="mt-2.5 text-center font-unbounded text-base font-semibold text-white line-clamp-2">
           {winnerTitle}
+        </p>
+      )}
+      {/* What the Academy actually picked — a quiet line under the winner's
+          own title rather than crammed into the AcademyStamp graphic (see
+          AcademyStamp for why that moved). Skipped for "unscreened", same as
+          the stamp itself: nothing to compare yet. */}
+      {fullWidth && academyStatus && academyStatus.status !== "unscreened" && (
+        <p className="mt-0.5 text-center text-[11px] text-gray-500">
+          {academyStatus.status === "upheld" ? "The Academy also chose " : "The Academy chose "}
+          <span className="text-gray-400">{academyStatus.officialTitle}</span>
         </p>
       )}
     </button>

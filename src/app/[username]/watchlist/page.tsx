@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
 import { useAuthState } from "@/hooks/useAuthState";
+import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
 import { useWatchlistContext } from "@/contexts/WatchlistContext";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieCard from "@/components/award/MovieCard";
@@ -22,8 +23,7 @@ export default function ProfileWatchlistPage() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Determine ownership by matching profile id with user id
-  const isViewer = !!user && !!profile && profile.id === user.id;
+  const isViewer = useIsProfileOwner(profile?.id);
 
   // Shared app-wide watchlist state — same instance MovieCard/FilmActions/
   // MovieDetailModal read from, so a bookmark toggled anywhere is reflected here.
@@ -203,6 +203,7 @@ export default function ProfileWatchlistPage() {
               ranking={r?.ranking ?? null}
               seenIt={r?.seen_it ?? false}
               onUpdate={isViewer ? handleUpdateMovie : undefined}
+              hideBookmark
               onClick={() => {
                 setSelectedMovie(movie);
                 setIsModalOpen(true);

@@ -236,6 +236,12 @@ export default function SettingsPage() {
     profile?.subscription_status && ENTITLED_STATUSES.has(profile.subscription_status)
   );
   const isNative = isNativeApp();
+  // PAY-4 (docs/audits/2026-08-21-launch-readiness-round3.md): a native user
+  // with a Stripe customer already (e.g. past_due/unpaid, not a fresh
+  // purchase) still needs a way to reach the Billing Portal to fix their
+  // card — only a native user who's never had a subscription at all is the
+  // "would require IAP" case this gate exists to hide.
+  const hasStripeCustomer = Boolean(profile?.stripe_customer_id);
 
   const handleManageBilling = async () => {
     setBillingLoading(true);
@@ -309,11 +315,11 @@ export default function SettingsPage() {
       </div>
 
       {/* Profile */}
-      <div className="dark-glass rounded-xl shadow-lg p-6 mb-6 border border-gray-600/50">
+      <div className="dark-glass rounded-xl shadow-lg p-6 mb-6">
         <h2 className="text-xl font-semibold text-white mb-6">Profile</h2>
 
         {profileError && (
-          <div className="mb-4 p-4 bg-red-900/20 border border-red-800 rounded-lg">
+          <div className="mb-4 p-4 bg-red-900/20 border border-red-800 rounded-xl">
             <p className="text-red-400 text-sm">{profileError}</p>
           </div>
         )}
@@ -339,7 +345,7 @@ export default function SettingsPage() {
                   type="url"
                   value={editForm.avatar_url}
                   onChange={(e) => setEditForm({ ...editForm, avatar_url: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-600 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400"
+                  className="w-full px-4 py-2.5 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white placeholder-gray-400"
                   placeholder="https://example.com/your-avatar.jpg"
                 />
               </div>
@@ -351,7 +357,7 @@ export default function SettingsPage() {
                 type="text"
                 value={editForm.username}
                 onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400"
+                className="w-full px-4 py-3 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white placeholder-gray-400"
                 placeholder="Enter your username"
               />
             </div>
@@ -363,7 +369,7 @@ export default function SettingsPage() {
                   type="text"
                   value={editForm.first_name}
                   onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400"
+                  className="w-full px-4 py-3 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white placeholder-gray-400"
                   placeholder="Enter your first name"
                 />
               </div>
@@ -374,7 +380,7 @@ export default function SettingsPage() {
                   type="text"
                   value={editForm.last_name}
                   onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400"
+                  className="w-full px-4 py-3 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white placeholder-gray-400"
                   placeholder="Enter your last name"
                 />
               </div>
@@ -387,7 +393,7 @@ export default function SettingsPage() {
                 onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
                 placeholder="Tell us about yourself..."
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400"
+                className="w-full px-4 py-3 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white placeholder-gray-400"
               />
             </div>
 
@@ -403,7 +409,7 @@ export default function SettingsPage() {
                   <select
                     value={nameBuilder.title}
                     onChange={(e) => setNameBuilder({ ...nameBuilder, title: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white text-base sm:text-sm"
+                    className="w-full px-4 py-2 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white text-base sm:text-sm"
                   >
                     <option value="">None</option>
                     <option value="Mr.">Mr.</option>
@@ -430,7 +436,7 @@ export default function SettingsPage() {
                           customNickname: "",
                         })
                       }
-                      className="w-4 h-4 text-gold-500"
+                      className="w-4 h-4 accent-gold-500"
                     />
                     <span className="text-sm text-gray-300">
                       Use First Name {editForm.first_name && `(${editForm.first_name})`}
@@ -443,7 +449,7 @@ export default function SettingsPage() {
                       checked={nameBuilder.useLastName}
                       onChange={(e) => setNameBuilder({ ...nameBuilder, useLastName: e.target.checked })}
                       disabled={!nameBuilder.useFirstName}
-                      className="w-4 h-4 text-gold-500 disabled:opacity-50"
+                      className="w-4 h-4 accent-gold-500 disabled:opacity-50"
                     />
                     <span className="text-sm text-gray-300">
                       Include Last Name {editForm.last_name && `(${editForm.last_name})`}
@@ -463,7 +469,7 @@ export default function SettingsPage() {
                           customNickname: "",
                         })
                       }
-                      className="w-4 h-4 text-gold-500"
+                      className="w-4 h-4 accent-gold-500"
                     />
                     <span className="text-sm text-gray-300">
                       Use Username {editForm.username && `(@${editForm.username})`}
@@ -486,11 +492,11 @@ export default function SettingsPage() {
                       })
                     }
                     placeholder="e.g., Greg, GregR, Coach, etc."
-                    className="w-full px-4 py-2 border border-gray-600 rounded-lg bg-gray-700 text-white text-sm placeholder-gray-400"
+                    className="w-full px-4 py-2 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white text-sm placeholder-gray-400"
                   />
                 </div>
 
-                <div className="mt-4 p-3 bg-gold-500/10 rounded-lg border border-gold-500/30">
+                <div className="mt-4 p-3 bg-gold-500/10 rounded-xl border border-gold-500/30">
                   <p className="text-xs text-gray-400 mb-1">Preview:</p>
                   <p className="text-lg font-semibold text-white">
                     &quot;Good morning, {buildPreferredName() || "..."}!&quot;
@@ -503,7 +509,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleSaveProfile}
                 disabled={profileSaving}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gold-500 rounded-lg hover:bg-gold-400 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black rounded-full border border-gold-300/40 bg-gold-500 shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 transition-colors disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 {profileSaving ? "Saving..." : "Save Profile"}
@@ -515,7 +521,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Account */}
-      <div className="dark-glass rounded-xl shadow-lg p-6 mb-6 border border-gray-600/50">
+      <div className="dark-glass rounded-xl shadow-lg p-6 mb-6">
         <div className="flex items-center gap-3 mb-6">
           <Mail className="w-5 h-5 text-gray-400" />
           <h2 className="text-xl font-semibold text-white">Account</h2>
@@ -531,25 +537,25 @@ export default function SettingsPage() {
             <p className="text-sm font-medium text-white">Change password</p>
 
             {passwordError && (
-              <div className="p-3 text-sm text-red-400 border border-red-800 rounded-lg bg-red-900/20">
+              <div className="p-3 text-sm text-red-400 border border-red-800 rounded-xl bg-red-900/20">
                 {passwordError}
               </div>
             )}
             {passwordSuccess && (
-              <div className="p-3 text-sm text-green-400 border border-green-800 rounded-lg bg-green-900/20">
+              <div className="p-3 text-sm text-green-400 border border-green-800 rounded-xl bg-green-900/20">
                 Password updated.
               </div>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="relative">
-                <Lock className="absolute w-4 h-4 text-gray-400 -translate-y-1/2 left-3 top-1/2" />
+                <Lock className="absolute w-4 h-4 text-gray-400 -translate-y-1/2 left-4 top-1/2" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="New password"
-                  className="w-full py-2.5 pl-9 pr-9 border border-gray-600 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400"
+                  className="w-full py-2.5 pl-10 pr-9 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white placeholder-gray-400"
                 />
                 <button
                   type="button"
@@ -561,13 +567,13 @@ export default function SettingsPage() {
               </div>
 
               <div className="relative">
-                <Lock className="absolute w-4 h-4 text-gray-400 -translate-y-1/2 left-3 top-1/2" />
+                <Lock className="absolute w-4 h-4 text-gray-400 -translate-y-1/2 left-4 top-1/2" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm new password"
-                  className="w-full py-2.5 pl-9 pr-4 border border-gray-600 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400"
+                  className="w-full py-2.5 pl-10 pr-4 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white placeholder-gray-400"
                 />
               </div>
             </div>
@@ -575,7 +581,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={passwordSaving}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gold-500 rounded-lg hover:bg-gold-400 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-black rounded-full border border-gold-300/40 bg-gold-500 shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 disabled:opacity-50 transition-colors"
             >
               <Lock className="w-4 h-4" />
               {passwordSaving ? "Updating..." : "Update password"}
@@ -583,7 +589,7 @@ export default function SettingsPage() {
           </form>
 
           {signOutError && (
-            <div className="p-3 text-sm text-red-400 border border-red-800 rounded-lg bg-red-900/20">
+            <div className="p-3 text-sm text-red-400 border border-red-800 rounded-xl bg-red-900/20">
               {signOutError}
             </div>
           )}
@@ -592,7 +598,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSignOut}
               disabled={signOutLoading}
-              className="inline-flex items-center gap-2 px-4 py-2 mt-4 text-sm font-medium text-gray-200 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 mt-4 text-sm font-medium text-gray-200 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:text-white disabled:opacity-50 transition-colors"
             >
               <LogOut className="w-4 h-4" />
               {signOutLoading ? "Signing out..." : "Sign Out"}
@@ -602,7 +608,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Premium */}
-      <div className="dark-glass rounded-xl shadow-lg p-6 mb-6 border border-gray-600/50">
+      <div className="dark-glass rounded-xl shadow-lg p-6 mb-6">
         <h2 className="text-xl font-semibold text-white mb-4">Premium</h2>
 
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -625,13 +631,19 @@ export default function SettingsPage() {
               </>
             )}
           </div>
-          {!(isNative && !isPremium) && (
+          {!(isNative && !isPremium && !hasStripeCustomer) && (
             <button
               onClick={handleManageBilling}
               disabled={billingLoading}
-              className="px-4 py-2 text-sm font-medium text-black bg-gold-500 rounded-lg hover:bg-gold-400 disabled:opacity-50 transition-colors whitespace-nowrap"
+              className="px-4 py-2 text-sm font-medium text-black rounded-full border border-gold-300/40 bg-gold-500 shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 disabled:opacity-50 transition-colors whitespace-nowrap"
             >
-              {billingLoading ? "Redirecting…" : isPremium ? "Manage subscription" : "Unlock Premium — $19/yr"}
+              {billingLoading
+                ? "Redirecting…"
+                : isPremium
+                  ? "Manage subscription"
+                  : hasStripeCustomer
+                    ? "Manage billing"
+                    : "Unlock Premium — $19/yr"}
             </button>
           )}
         </div>
@@ -640,7 +652,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Import */}
-      <div className="dark-glass rounded-xl border border-gray-700/40 p-5">
+      <div className="dark-glass rounded-xl p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Upload className="w-4 h-4 text-gray-400" />
@@ -651,7 +663,7 @@ export default function SettingsPage() {
           </div>
           <Link
             href="/settings/import"
-            className="text-sm font-medium text-yellow-300 hover:text-yellow-200 transition-colors"
+            className="text-sm font-medium text-gold-300 hover:text-gold-400 transition-colors"
           >
             Import →
           </Link>
@@ -668,7 +680,7 @@ export default function SettingsPage() {
         {!deleteConfirming ? (
           <button
             onClick={() => setDeleteConfirming(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-300 border border-red-900/60 rounded-lg hover:bg-red-900/20 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-300 border border-red-900/60 rounded-full hover:bg-red-900/20 transition-colors"
           >
             <Trash2 className="w-4 h-4" />
             Delete account
@@ -680,7 +692,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleDeleteAccount}
                 disabled={deleteLoading}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-700 rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-700 rounded-full hover:bg-red-600 disabled:opacity-50 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
                 {deleteLoading ? "Deleting…" : "Yes, delete my account"}
@@ -688,7 +700,7 @@ export default function SettingsPage() {
               <button
                 onClick={() => setDeleteConfirming(false)}
                 disabled={deleteLoading}
-                className="px-4 py-2 text-sm font-medium text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-300 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 hover:text-white disabled:opacity-50 transition-colors"
               >
                 Cancel
               </button>

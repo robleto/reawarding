@@ -110,6 +110,40 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // AUTH-1 (docs/audits/2026-08-22-launch-readiness-round4.md): an OAuth
+    // signup (Apple/Google/Facebook) never gets a chance to pick their own
+    // username — signInWithOAuth has no user-metadata option, so the DB
+    // trigger falls back to the email local-part, and that becomes their
+    // permanent public /[username] URL with no claim step anywhere in the
+    // flow. Detect that still-default username here (the one place every
+    // OAuth sign-in passes through) and route to /profile/setup — which
+    // already has a full username-claim UI (availability check, validation)
+    // but had zero call sites — before continuing to `next`.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user?.email) {
+      const { data: profileRow } = await supabase
+        .from('profiles_self')
+        .select('username')
+        .eq('id', user.id)
+        .maybeSingle();
+      const emailLocalPart = user.email.split('@')[0];
+      if (profileRow?.username && profileRow.username === emailLocalPart) {
+        const claimUrl = new URL('/profile/setup', requestUrl.origin);
+        claimUrl.searchParams.set('next', next);
+        const claimResponse = NextResponse.redirect(claimUrl);
+        // Carry the session cookies exchangeCodeForSession just set on
+        // `response` over to this redirect instead, preserving every
+        // attribute (domain/path/secure/httpOnly/sameSite) so the browser
+        // arrives at /profile/setup already signed in.
+        response.cookies.getAll().forEach((cookie) => {
+          claimResponse.cookies.set(cookie);
+        });
+        return claimResponse;
+      }
+    }
+
     // Successful authentication - redirect to intended destination
     return response;
   }

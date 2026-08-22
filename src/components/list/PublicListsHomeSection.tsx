@@ -27,7 +27,7 @@ export default function PublicListsHomeSection() {
               .from("movie_list_items")
               .select("movie_id")
               .eq("list_id", list.id)
-              .order("ranking", { ascending: true })
+              .order("ranking", { ascending: false })
               .limit(5);
             const movieIds = (items || []).map((item) => item.movie_id);
             let posterUrls: string[] = [];

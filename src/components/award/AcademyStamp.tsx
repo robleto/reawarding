@@ -7,6 +7,10 @@ import type { AcademyStatusResult } from "@/data/officialAwardWinners";
  * short nominee grid). Deliberately does not render for "unscreened": even
  * though it's a real state, the user's own award still stands regardless of
  * whether they've seen the Academy's pick, so there's nothing to stamp here.
+ *
+ * Just the verdict word, no film name — the Academy's actual pick now shows
+ * as a small caption under the winner's own title (see AwardCard) instead
+ * of crammed into the stamp itself.
  */
 export default function AcademyStamp({ academyStatus }: { academyStatus: AcademyStatusResult | null | undefined }) {
   if (!academyStatus || academyStatus.status === "unscreened") return null;
@@ -21,18 +25,11 @@ export default function AcademyStamp({ academyStatus }: { academyStatus: Academy
       aria-label={isUpheld ? "Upheld: your winner matches the Academy's" : `Reawarded: you overruled the Academy's pick, ${academyStatus.officialTitle}`}
       className="pointer-events-none select-none -rotate-6 opacity-70"
     >
-      <div className={`relative flex h-32 w-32 items-center justify-center rounded-full border-[3px] ${ringColor}`}>
+      <div className={`relative flex h-40 w-40 items-center justify-center rounded-full border-[3px] ${ringColor}`}>
         <div className={`absolute inset-2 rounded-full border ${ringColor} opacity-70`} />
-        <div className="flex flex-col items-center justify-center text-center leading-none px-2.5">
-          <span className={`font-unbounded text-base font-extrabold uppercase tracking-wide ${textColor}`}>
-            {isUpheld ? "Upheld" : "Reawarded"}
-          </span>
-          {!isUpheld && (
-            <span className="mt-1 max-w-[92px] truncate text-[9px] uppercase tracking-wider text-gray-400">
-              Over {academyStatus.officialTitle}
-            </span>
-          )}
-        </div>
+        <span className={`font-unbounded text-lg font-extrabold uppercase tracking-wide ${textColor}`}>
+          {isUpheld ? "Upheld" : "Reawarded"}
+        </span>
       </div>
     </div>
   );

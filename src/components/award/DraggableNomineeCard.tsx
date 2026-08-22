@@ -66,7 +66,7 @@ export default function DraggableNomineeCard({
         <button
           {...attributes}
           {...listeners}
-          className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center touch-none text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing"
+          className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center touch-none text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing active:scale-[0.98] transition-all"
           aria-label="Drag to reorder"
         >
           <GripVertical className="w-5 h-5" />
@@ -121,7 +121,7 @@ export default function DraggableNomineeCard({
           <div className="flex flex-col">
             <button
               onClick={() => onSetWinner(movie)}
-              className={`p-2 rounded transition-colors ${
+              className={`p-2 rounded transition-all active:scale-[0.98] ${
                 isWinner
                   ? 'text-gold-400 bg-gold-500/15 hover:bg-gold-500/25'
                   : 'text-gray-500 hover:text-gold-400 hover:bg-gold-500/10'
@@ -132,7 +132,7 @@ export default function DraggableNomineeCard({
             </button>
             <button
               onClick={() => onRemove(movie.id)}
-              className="p-2 text-red-400/80 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+              className="p-2 text-red-400/80 hover:text-red-400 hover:bg-red-500/10 rounded transition-all active:scale-[0.98]"
               title="Remove from nominees"
             >
               <X className="w-4 h-4" />

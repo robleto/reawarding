@@ -6,13 +6,14 @@ import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Logo } from '@/components/ui/Logo';
+import { sanitizeNextPath, RESET_PASSWORD_NEXT_STORAGE_KEY } from '@/utils/sanitizeNextPath';
 
 export default function ResetPasswordPage() {
   return (
     <Suspense fallback={
-      <main className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-        <div className="w-8 h-8 border-4 border-blue-600 rounded-full border-t-transparent animate-spin" />
-      </main>
+      <div className="flex items-center justify-center min-h-screen p-4 bg-gray-950">
+        <div className="w-8 h-8 border-4 border-gold-400/30 border-t-gold-400 rounded-full animate-spin" />
+      </div>
     }>
       <ResetPasswordContent />
     </Suspense>
@@ -151,8 +152,21 @@ function ResetPasswordContent() {
         setError(error.message);
       } else {
         setSuccess(true);
+        // AUTH-1: same-device fallback for the destination the user was
+        // originally headed to before being bounced to /login — the email
+        // round trip itself can't carry `next` (see the storage key's own
+        // comment in sanitizeNextPath.ts). Sanitized again defensively;
+        // this is user-controlled storage, not just a URL param.
+        const storedNext =
+          typeof window !== 'undefined'
+            ? window.localStorage.getItem(RESET_PASSWORD_NEXT_STORAGE_KEY)
+            : null;
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(RESET_PASSWORD_NEXT_STORAGE_KEY);
+        }
+        const destination = sanitizeNextPath(storedNext);
         setTimeout(() => {
-          router.push('/');
+          router.push(destination);
         }, 2000);
       }
     } catch (err) {
@@ -164,36 +178,36 @@ function ResetPasswordContent() {
 
   if (success) {
     return (
-      <main className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+      <div className="flex items-center justify-center min-h-screen p-4 bg-gray-950">
         <div className="w-full max-w-md">
-          <div className="p-8 text-center bg-gray-800 shadow-gray-700 rounded-2xl">
+          <div className="p-8 text-center rounded-2xl border border-white/10 bg-charcoal-900/95 backdrop-blur-xl shadow-2xl">
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-green-900/20 rounded-full">
                 <CheckCircle className="w-8 h-8 text-green-400" />
               </div>
             </div>
-            
-            <h1 className="mb-2 text-2xl font-bold text-white">
+
+            <h1 className="mb-2 font-unbounded text-2xl font-bold text-white">
               Password updated!
             </h1>
-            
+
             <p className="mb-6 text-gray-400">
               Your password has been successfully updated. You&apos;ll be redirected to your dashboard in a moment.
             </p>
 
-            <div className="w-8 h-8 mx-auto border-4 border-blue-600 rounded-full border-t-transparent animate-spin" />
+            <div className="w-8 h-8 mx-auto border-4 border-gold-400/30 border-t-gold-400 rounded-full animate-spin" />
           </div>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (linkInvalid) {
     return (
-      <main className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+      <div className="flex items-center justify-center min-h-screen p-4 bg-gray-950">
         <div className="w-full max-w-md">
-          <div className="p-8 text-center bg-gray-800 shadow-gray-700 rounded-2xl">
-            <h1 className="mb-2 text-2xl font-bold text-white">
+          <div className="p-8 text-center rounded-2xl border border-white/10 bg-charcoal-900/95 backdrop-blur-xl shadow-2xl">
+            <h1 className="mb-2 font-unbounded text-2xl font-bold text-white">
               Reset link problem
             </h1>
 
@@ -203,18 +217,18 @@ function ResetPasswordContent() {
 
             <Link
               href="/auth/forgot-password"
-              className="flex items-center justify-center w-full gap-2 px-4 py-3 font-medium text-gray-900 transition-colors bg-gold-500 rounded-lg hover:bg-yellow-600"
+              className="flex items-center justify-center w-full gap-2 px-4 py-3 font-medium text-black transition-colors rounded-full border border-gold-300/40 bg-gold-500 shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35"
             >
               Request a new reset link
             </Link>
           </div>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+    <div className="flex items-center justify-center min-h-screen p-4 bg-gray-950">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -225,9 +239,9 @@ function ResetPasswordContent() {
         </div>
 
         {/* Reset Form Card */}
-        <div className="p-8 bg-gray-800 shadow-gray-700 rounded-2xl">
+        <div className="p-8 rounded-2xl border border-white/10 bg-charcoal-900/95 backdrop-blur-xl shadow-2xl">
           <div className="mb-6 text-center">
-            <h3 className="mb-2 text-xl font-semibold text-white">
+            <h3 className="mb-2 font-unbounded text-xl font-bold text-white">
               Choose a new password
             </h3>
             <p className="text-sm text-gray-400">
@@ -237,7 +251,7 @@ function ResetPasswordContent() {
 
           {/* Error Message */}
           {error && (
-            <div className="p-3 mb-4 text-sm text-red-400 border border-red-800 rounded-lg bg-red-900/20">
+            <div className="p-3 mb-4 text-sm text-red-400 border border-red-800 rounded-xl bg-red-900/20">
               {error}
             </div>
           )}
@@ -249,20 +263,20 @@ function ResetPasswordContent() {
                 New Password
               </label>
               <div className="relative">
-                <Lock className="absolute w-5 h-5 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
+                <Lock className="absolute w-5 h-5 text-gray-400 transform -translate-y-1/2 left-4 top-1/2" />
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full py-3 pl-10 pr-12 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-500"
+                  className="w-full py-3 pl-11 pr-12 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white placeholder-gray-500"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute text-gray-500 transform -translate-y-1/2 right-3 top-1/2 hover:text-gray-400"
+                  className="absolute text-gray-500 transform -translate-y-1/2 right-4 top-1/2 hover:text-gray-400"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -274,21 +288,21 @@ function ResetPasswordContent() {
                 Confirm New Password
               </label>
               <div className="relative">
-                <Lock className="absolute w-5 h-5 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
+                <Lock className="absolute w-5 h-5 text-gray-400 transform -translate-y-1/2 left-4 top-1/2" />
                 <input
                   id="confirmPassword"
                   type={showPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full py-3 pl-10 pr-4 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-500"
+                  className="w-full py-3 pl-11 pr-4 border border-white/10 rounded-full focus:outline-none focus:ring-2 focus:ring-gold-500/40 focus:border-gold-400/60 bg-white/5 text-white placeholder-gray-500"
                   placeholder="••••••••"
                   required
                 />
               </div>
             </div>
 
-            <div className="p-3 text-xs text-gray-500 rounded-lg bg-gray-50">
-              <p className="mb-1 font-medium">Password requirements:</p>
+            <div className="p-3 text-xs text-gray-400 rounded-xl border border-white/10 bg-white/5">
+              <p className="mb-1 font-medium text-gray-300">Password requirements:</p>
               <ul className="space-y-1 list-disc list-inside">
                 <li>At least 6 characters long</li>
                 <li>Should be unique and not used elsewhere</li>
@@ -298,10 +312,10 @@ function ResetPasswordContent() {
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center w-full gap-2 px-4 py-3 font-medium text-gray-900 transition-colors bg-gold-500 rounded-lg hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center w-full gap-2 px-4 py-3 font-medium text-black transition-colors rounded-full border border-gold-300/40 bg-gold-500 shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white rounded-full border-t-transparent animate-spin" />
+                <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
               ) : (
                 <Lock className="w-5 h-5" />
               )}
@@ -310,6 +324,6 @@ function ResetPasswordContent() {
           </form>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

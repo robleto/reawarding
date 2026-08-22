@@ -4,6 +4,9 @@ import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { Flame } from "lucide-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
+import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
+import { useRedirectOwnerToWorkbench } from "@/hooks/useRedirectOwnerToWorkbench";
+import { useProfile } from "@/contexts/ProfileContext";
 import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieFilters from "@/components/filters/MovieFilters";
@@ -20,7 +23,10 @@ import type { Movie } from "@/types/types";
 export default function ProfileRankingsPage() {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
-  const { movies, loading } = usePublicProfile(username);
+  const { movies, profile, loading } = usePublicProfile(username);
+  const isOwnProfile = useIsProfileOwner(profile?.id);
+  const { viewMode: profileViewMode } = useProfile();
+  const redirecting = useRedirectOwnerToWorkbench("/rankings", isOwnProfile, profileViewMode);
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -103,6 +109,10 @@ export default function ProfileRankingsPage() {
   };
 
 
+  if (redirecting) {
+    return null;
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
@@ -116,9 +126,11 @@ export default function ProfileRankingsPage() {
 
   if (moviesWithRankings.length === 0) {
     return (
-      <div className="text-center py-16">
-        <h3 className="text-lg font-semibold text-white mb-2">No rankings yet</h3>
-        <p className="text-gray-400 text-sm">@{username} hasn&apos;t rated any movies yet.</p>
+      <div>
+        <div className="text-center py-16">
+          <h3 className="text-lg font-semibold text-white mb-2">No rankings yet</h3>
+          <p className="text-gray-400 text-sm">@{username} hasn&apos;t rated any movies yet.</p>
+        </div>
       </div>
     );
   }
@@ -178,6 +190,7 @@ export default function ProfileRankingsPage() {
           filterType: "none",
           filterValue: "all",
         }}
+        compact
       />
 
       {groupedMovies.map(({ key, movies: groupMovieList }: { key: string; movies: Movie[] }) => (
@@ -235,6 +248,7 @@ export default function ProfileRankingsPage() {
                     showHotTake={activeTab === "hot-takes"}
                     showYear
                     onClick={() => handleOpenModal(movie)}
+                    native
                   />
                 );
               })}

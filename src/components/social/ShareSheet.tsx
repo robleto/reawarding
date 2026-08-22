@@ -19,13 +19,16 @@ export type ShareSheetProps = {
   username?: string;
   /** Canonical URL for this ballot, e.g. "/greg/awards/2023" */
   awardUrl?: string;
+  /** Category label shown on the card/tweet text — e.g. "Best Animated".
+      Defaults to "Best Picture" for callers that predate multi-category. */
+  categoryLabel?: string;
   onClose: () => void;
 };
 
 // ── Platform configs ──────────────────────────────────────────────────────────
 
-function buildShareText(year: number | string, winner: string, url: string) {
-  return `My Best Picture for ${year}: ${winner}. See my full ballot → ${url} #Reawarding`;
+function buildShareText(year: number | string, winner: string, categoryLabel: string, url: string) {
+  return `My ${categoryLabel} for ${year}: ${winner}. See my full ballot → ${url} #Reawarding`;
 }
 
 function buildOgUrl(
@@ -33,6 +36,7 @@ function buildOgUrl(
   winner: string,
   nominees: string[],
   username: string,
+  categoryLabel: string,
   format: "og" | "square"
 ) {
   const base = typeof window !== "undefined" ? window.location.origin : "";
@@ -41,6 +45,7 @@ function buildOgUrl(
     winner,
     nominees: nominees.join(","),
     username,
+    category: categoryLabel,
     format,
   });
   return `${base}/api/og/award?${params.toString()}`;
@@ -54,6 +59,7 @@ export default function ShareSheet({
   nominees = [],
   username = "",
   awardUrl,
+  categoryLabel = "Best Picture",
   onClose,
 }: ShareSheetProps) {
   const [copied, setCopied] = useState(false);
@@ -66,9 +72,9 @@ export default function ShareSheet({
       ? window.location.href
       : "";
 
-  const shareText = buildShareText(year, winner, canonicalUrl);
-  const ogUrl = buildOgUrl(year, winner, nominees, username, "og");
-  const squareUrl = buildOgUrl(year, winner, nominees, username, "square");
+  const shareText = buildShareText(year, winner, categoryLabel, canonicalUrl);
+  const ogUrl = buildOgUrl(year, winner, nominees, username, categoryLabel, "og");
+  const squareUrl = buildOgUrl(year, winner, nominees, username, categoryLabel, "square");
 
   // ── Text platforms ────────────────────────────────────────────────────────
 

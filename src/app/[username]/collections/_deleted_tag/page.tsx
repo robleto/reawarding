@@ -1,3 +1,10 @@
+// DELETE ME — superseded by src/app/[username]/collections/[slug]/page.tsx.
+// This whole [tag] route ran on useQualityTagCollections, which has been
+// retired (personal quality-tag "Collections" replaced by the editorial
+// film_collections system, confirmed with the user 2026-08-20). Left in
+// place rather than removed by the agent, per the user's request to mark
+// files as deletable rather than delete them directly — safe to delete
+// this whole [tag] directory once you've confirmed the [slug] route works.
 "use client";
 
 import { useMemo } from "react";
@@ -5,7 +12,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
-import { useProfile } from "@/contexts/ProfileContext";
+import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
 import { useQualityTagCollections } from "@/hooks/useQualityTagCollections";
 import { slugifyTitle } from "@/utils/slug";
 import MovieCard from "@/components/award/MovieCard";
@@ -19,13 +26,7 @@ export default function CollectionDetailPage() {
   const tagSlug = params?.tag ?? "";
 
   const { movies, profile, loading } = usePublicProfile(username);
-  const { profile: ownerProfile } = useProfile();
-
-  const isOwner = !!(
-    ownerProfile?.username &&
-    profile?.username &&
-    ownerProfile.username.toLowerCase() === profile.username.toLowerCase()
-  );
+  const isOwner = useIsProfileOwner(profile?.id);
   const ownerUserId = isOwner ? profile?.id ?? null : null;
 
   const { collections, loading: collectionsLoading } = useQualityTagCollections(ownerUserId, movies);

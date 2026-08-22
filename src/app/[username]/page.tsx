@@ -12,6 +12,7 @@ import {
   Clock,
   Clapperboard,
   Sparkles,
+  Star,
   X,
   Film,
   RotateCcw,
@@ -20,12 +21,9 @@ import {
   Check,
 } from "lucide-react";
 import { usePublicProfile, type PublicAward } from "@/hooks/usePublicProfile";
-import { useProfile } from "@/contexts/ProfileContext";
-import { useQualityTagCollections } from "@/hooks/useQualityTagCollections";
+import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
 import { normalizeImageUrl } from "@/utils/imageUrl";
-import { slugifyTitle } from "@/utils/slug";
 import AwardCard from "@/components/home/AwardCard";
-import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
 import { useOfficialAwardWinners, getAcademyStatus } from "@/data/officialAwardWinners";
 import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
@@ -649,57 +647,6 @@ function AwardsGallery({
   );
 }
 
-// ─── My Collections Preview ─────────────────────────────
-// Films grouped by the quality tags you've applied (e.g. "Great score").
-// expressions RLS is owner-only, so ownerUserId is only non-null when this
-// is your own profile — for anyone else the hook returns an empty list and
-// this section renders nothing, no extra check needed.
-function MyCollectionsPreview({
-  movies,
-  username,
-  ownerUserId,
-}: {
-  movies: Movie[];
-  username: string;
-  ownerUserId: string | null;
-}) {
-  const { collections } = useQualityTagCollections(ownerUserId, movies);
-
-  if (collections.length === 0) {
-    return null;
-  }
-
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-lg font-semibold text-white">My Collections</h2>
-          <p className="text-xs text-gray-500">Films grouped by what you noticed</p>
-        </div>
-        <Link
-          href={`/${username}/collections`}
-          className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-yellow-300 transition-colors"
-        >
-          See all <ArrowRight className="w-3 h-3" />
-        </Link>
-      </div>
-      <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-        {collections.map((collection) => (
-          <div key={collection.tag} className="min-w-[260px] max-w-[260px] flex-shrink-0 snap-start">
-            <ReadyMadeCard
-              title={collection.tag}
-              count={collection.count}
-              subtitle={<span>Tagged films</span>}
-              posterUrls={collection.posterUrls}
-              viewHref={`/${username}/collections/${slugifyTitle(collection.tag)}`}
-            />
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 // ─── Signature Taste Stats ──────────────────────────────
 // Curated, editorial stat cards — not raw metrics.
 function SignatureTasteStats({ movies }: { movies: Movie[] }) {
@@ -788,16 +735,115 @@ function SignatureTasteStats({ movies }: { movies: Movie[] }) {
         {cards.slice(0, 4).map((card) => (
           <div
             key={card.label}
-            className="rounded-xl bg-gray-800/30 border border-gray-700/30 p-4 flex flex-col"
+            className="dark-glass rounded-xl border border-gold-500/10 p-4 flex flex-col cursor-default"
           >
-            <div className="flex items-center gap-1.5 text-gray-500 mb-2">
+            <div className="flex items-center gap-1.5 text-gold-500/60 mb-2">
               {card.icon}
               <span className="text-[10px] uppercase tracking-wider font-medium">{card.label}</span>
             </div>
-            <span className="text-xl font-bold text-white leading-tight">{card.value}</span>
+            <span className="font-unbounded text-xl font-bold text-white leading-tight">
+              {card.value}
+            </span>
             <span className="text-[11px] text-gray-400 mt-1 leading-tight line-clamp-1">
               {card.sublabel}
             </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── Profile Stats Row ───────────────────────────────────
+// Awards/Rankings/Films counts — MeepleGo-inspired. Lives on Overview only
+// (used to render in the shared [username] layout, showing on every tab).
+function ProfileStatsRow({
+  movies,
+  awards,
+  stats,
+}: {
+  movies: Movie[];
+  awards: PublicAward[];
+  stats: { awards: number; rated: number; films: number };
+}) {
+  const [statsScope, setStatsScope] = useState<"all" | "year">("all");
+
+  // "This Year" scopes the same all-time data (already fetched by the
+  // parent) down to films released in the current year — mirrors the
+  // Settings page's StatsSummary scope semantics (release_year, not
+  // rating/watch date, since each year is its own ballot here). Awards
+  // mirrors the API's own all-time fallback: use recorded best-picture
+  // award years when any exist, else derive from rated films.
+  const yearStats = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const ratedThisYear = movies.filter(
+      (m) => m.release_year === currentYear && typeof m.rankings?.[0]?.ranking === "number"
+    );
+    const seenThisYear = movies.filter(
+      (m) => m.release_year === currentYear && m.rankings?.[0]?.seen_it
+    );
+    const hasRecordedAwards = awards.length > 0;
+    const awardedThisYear = hasRecordedAwards
+      ? awards.some((a) => Number(a.year) === currentYear)
+      : ratedThisYear.length > 0;
+
+    return {
+      rated: ratedThisYear.length,
+      seen: seenThisYear.length,
+      awards: awardedThisYear ? 1 : 0,
+      films: seenThisYear.length,
+    };
+  }, [movies, awards]);
+
+  const activeStats = statsScope === "year" ? yearStats : stats;
+
+  const statItems = [
+    { label: "AWARDS", value: activeStats.awards, icon: <Trophy className="w-3.5 h-3.5" /> },
+    { label: "RANKINGS", value: activeStats.rated, icon: <Star className="w-3.5 h-3.5" /> },
+    { label: "FILMS", value: activeStats.films, icon: <Film className="w-3.5 h-3.5" /> },
+  ];
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-lg font-semibold text-white">By the Numbers</h2>
+          <p className="text-xs text-gray-500">A quick tally, if you're curious</p>
+        </div>
+        <div className="inline-flex rounded-md overflow-hidden border border-gray-700/50">
+          <button
+            type="button"
+            onClick={() => setStatsScope("all")}
+            className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+              statsScope === "all" ? "bg-gold-500/90 text-gray-900" : "bg-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            All-time
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatsScope("year")}
+            className={`px-2.5 py-1 text-[11px] font-medium transition-colors ${
+              statsScope === "year" ? "bg-gold-500/90 text-gray-900" : "bg-transparent text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            This Year
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 rounded-xl dark-glass border border-gold-500/10">
+        {statItems.map((s, index) => (
+          <div
+            key={s.label}
+            className={`flex flex-col items-center py-3 px-1 ${
+              index > 0 ? "border-l border-gray-700/30" : ""
+            }`}
+          >
+            <div className="flex items-center gap-1 text-gold-500/60 mb-0.5">
+              {s.icon}
+              <span className="text-[10px] uppercase tracking-wider font-medium">{s.label}</span>
+            </div>
+            <span className="font-unbounded text-xl sm:text-2xl font-bold text-white">{s.value}</span>
           </div>
         ))}
       </div>
@@ -809,15 +855,8 @@ function SignatureTasteStats({ movies }: { movies: Movie[] }) {
 export default function ProfileOverviewPage() {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
-  const { movies, profile, awards, loading } = usePublicProfile(username);
-  const { profile: ownerProfile } = useProfile();
-
-  // Owner detection: logged-in user's profile username matches the route
-  const isOwner = !!(
-    ownerProfile?.username &&
-    profile?.username &&
-    ownerProfile.username.toLowerCase() === profile.username.toLowerCase()
-  );
+  const { movies, profile, awards, stats, loading } = usePublicProfile(username);
+  const isOwner = useIsProfileOwner(profile?.id);
 
   const ownerUserId = isOwner ? profile?.id ?? null : null;
 
@@ -829,6 +868,14 @@ export default function ProfileOverviewPage() {
           <div className="grid grid-cols-5 gap-3">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="aspect-[2/3] bg-gray-700/40 rounded-lg" />
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="h-5 w-32 bg-gray-700/60 rounded mb-3" />
+          <div className="flex gap-3 overflow-hidden">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="w-[160px] flex-shrink-0 aspect-[2/3] bg-gray-700/40 rounded-xl" />
             ))}
           </div>
         </div>
@@ -854,8 +901,8 @@ export default function ProfileOverviewPage() {
         persistedPickIds={Array.isArray(profile?.signature_picks) ? profile?.signature_picks : null}
       />
       <AwardsGallery movies={movies} awards={awards} username={username} />
-      <MyCollectionsPreview movies={movies} username={username} ownerUserId={ownerUserId} />
       <SignatureTasteStats movies={movies} />
+      <ProfileStatsRow movies={movies} awards={awards} stats={stats} />
     </div>
   );
 }

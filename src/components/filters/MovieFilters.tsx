@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { SORT_OPTIONS, GROUP_OPTIONS } from "@/utils/sharedMovieUtils";
 import type { SortKey, GroupKey, SortOrder } from "@/utils/sharedMovieUtils";
 import { supabase } from "@/lib/supabaseBrowser";
@@ -35,7 +36,12 @@ interface MovieFiltersProps {
   localSearchMode?: boolean;
   availableMovies?: Movie[];
   searchContext?: string; // e.g., "rankings", "watchlist", "this list"
-  
+
+  /** Smaller, pill-shaped native-feeling controls — icon-only Filters button,
+   * no label. This is the app's one filter-bar design now, defaults to true.
+   * Purely visual; every other prop/behavior is unchanged. */
+  compact?: boolean;
+
   // Default values for reset functionality
   defaults?: {
     viewMode?: "grid" | "list";
@@ -69,6 +75,7 @@ export default function MovieFilters({
   availableMovies = [],
   searchContext = "this list",
   persistentFilterLabels = [],
+  compact = true,
   defaults = {
     viewMode: "grid",
     sortBy: "ranking",
@@ -202,10 +209,12 @@ export default function MovieFilters({
               onChange={handleSearchChange}
               onFocus={() => setShowSuggestions(!localSearchMode && !!searchTerm)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-              className={`w-full pl-10 pr-4 py-2.5 border rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 text-gray-300 placeholder-gray-400 transition-all duration-300 ${
-                localSearchMode 
-                  ? "border-yellow-500/30 bg-yellow-500/5 focus:ring-yellow-500/50" 
-                  : "border-gray-600/50 bg-gray-800/50 focus:ring-blue-500"
+              className={`w-full pl-10 pr-4 border text-base sm:text-sm focus:outline-none focus:ring-2 text-gray-300 placeholder-gray-400 transition-all duration-300 ${
+                compact
+                  ? "py-2 rounded-full border-white/10 bg-white/5 focus:ring-white/20 backdrop-blur-sm"
+                  : `py-2.5 rounded-lg ${localSearchMode
+                      ? "border-yellow-500/30 bg-yellow-500/5 focus:ring-yellow-500/50"
+                      : "border-gray-600/50 bg-gray-800/50 focus:ring-blue-500"}`
               }`}
             />
           </div>
@@ -245,14 +254,18 @@ export default function MovieFilters({
         {/* Filters Button */}
         <button
           onClick={() => setShowFiltersModal(true)}
-          className={`relative flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-colors whitespace-nowrap ${
+          className={`relative flex items-center gap-2 border transition-colors whitespace-nowrap ${
+            compact ? "p-2.5 rounded-full backdrop-blur-sm" : "px-4 py-2.5 rounded-lg"
+          } ${
             activeFilterCount > 0
               ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-              : "text-gray-400 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30"
+              : compact
+                ? "text-gray-300 border-white/10 bg-white/5 hover:bg-white/10"
+                : "text-gray-400 border-gray-600/50 hover:bg-gray-800/50 bg-gray-800/30"
           }`}
         >
           <Filter className="w-4 h-4" />
-          <span className="text-sm">Filters</span>
+          {!compact && <span className="text-sm">Filters</span>}
           {activeFilterCount > 0 && (
             <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
               {activeFilterCount}
@@ -264,13 +277,15 @@ export default function MovieFilters({
       {/* Active Filter Pills */}
       {(activeFilters.length > 0 || persistentFilterLabels.length > 0) && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <div className="text-xs text-gray-400 uppercase tracking-wider py-1">
+          <div className="text-xs text-gray-400 uppercase tracking-wider py-1 font-mono">
             Active Filters ({activeFilterCount})
           </div>
           {persistentFilterLabels.map((label) => (
             <div
               key={`persistent-${label}`}
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-800/60 border border-gray-600/50 rounded-md text-xs text-gray-300"
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs text-gray-300 ${
+                compact ? "rounded-full border border-white/10 bg-white/5 backdrop-blur-sm" : "rounded-md bg-gray-800/60 border border-gray-600/50"
+              }`}
             >
               <span>{label}</span>
             </div>
@@ -279,7 +294,11 @@ export default function MovieFilters({
             <button
               key={index}
               onClick={filter.onRemove}
-              className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-800/60 border border-gray-600/50 rounded-md text-xs text-gray-300 hover:bg-gray-700/60 transition-colors"
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs text-gray-300 transition-colors ${
+                compact
+                  ? "rounded-full border border-white/10 bg-white/5 hover:bg-white/10 backdrop-blur-sm"
+                  : "rounded-md bg-gray-800/60 border border-gray-600/50 hover:bg-gray-700/60"
+              }`}
             >
               <span>{filter.label}</span>
               <X className="w-3 h-3" />
@@ -288,8 +307,12 @@ export default function MovieFilters({
         </div>
       )}
 
-      {/* Filters Modal/Overlay */}
-      {showFiltersModal && (
+      {/* Filters Modal/Overlay — portaled straight to document.body. It's
+          `fixed inset-0`, which breaks if a transformed ancestor is in the
+          tree (e.g. ListExpandOverlay's pager track), since `transform` makes
+          an element the containing block for its `position: fixed`
+          descendants. Same escape hatch MovieDetailModal already uses. */}
+      {showFiltersModal && typeof document !== "undefined" && createPortal(
         <>
           {/* Backdrop */}
           <div 
@@ -529,7 +552,8 @@ export default function MovieFilters({
               </button>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );

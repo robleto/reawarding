@@ -46,14 +46,19 @@ Do NOT introduce new card types. All UI uses these canonical components:
 
 | Type | Component | Path |
 |---|---|---|
-| Movie card (poster) | `MoviePosterCard` | `src/components/movie/MoviePosterCard.tsx` |
-| Movie card (row) | `MovieRowCard` | `src/components/movie/MovieRowCard.tsx` |
-| Year/ballot card | `ExpandableYearCard` | `src/components/home/ExpandableYearCard.tsx` |
-| Award card | `AwardCard` | `src/components/home/AwardCard.tsx` |
+| Movie card (all variants: grid/large/compact/featured) | `MovieCard` | `src/components/award/MovieCard.tsx` |
+| Award card (gilt ceremonial winner card) | `AwardCard` | `src/components/home/AwardCard.tsx` |
 | Horizontal row | `HorizontalListRow` | `src/components/list/HorizontalListRow.tsx` |
-| Discovery feed | `RecognitionFeed` | `src/components/home/RecognitionFeed.tsx` |
 | Watch action | `SeenItButton` | `src/components/movie/SeenItButton.tsx` |
 | Rate action | `RatingModal` | `src/components/movie/RatingModal.tsx` |
+
+`MovieCard` lives in the `award` folder for historical reasons but is not
+award-specific — it's the actual shared card used everywhere (Films,
+Rankings, Watchlist, Collections, Awards). `MoviePosterCard` does not exist
+in the codebase; if you see it referenced anywhere else, that's stale.
+`ExpandableYearCard`, `RecognitionFeed`, `AwardsTabs`, `AwardsEmptyState`,
+and `ShareButton` are built but currently unwired (zero call sites) — verify
+before assuming any of them render anywhere.
 
 See `docs/COMPONENT-REGISTRY.md` for full registry and Storybook story index.
 

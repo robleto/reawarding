@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Button from "@/components/ui/Button";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import type { Database } from "@/types/supabase";
@@ -123,21 +124,22 @@ export default function AddMovieModal({
     if (selectedMovies.length === 0) return;
 
     try {
-      // Get the current max ranking for proper ordering
-      const { data: maxRankingData } = await supabase
+      // Get the current min ranking so new movies land at the bottom of the
+      // list's default descending display (ranking 10 down to 1), not the top.
+      const { data: minRankingData } = await supabase
         .from("movie_list_items")
         .select("ranking")
         .eq("list_id", listId)
-        .order("ranking", { ascending: false })
+        .order("ranking", { ascending: true })
         .limit(1);
 
-      const maxRanking = maxRankingData?.[0]?.ranking || 0;
+      const minRanking = minRankingData?.[0]?.ranking || 0;
 
       // Add each selected movie to the list
       const itemsToInsert = selectedMovies.map((movie, index) => ({
         list_id: listId,
         movie_id: movie.id,
-        ranking: maxRanking + index + 1,
+        ranking: minRanking - index - 1,
         seen_it: false,
         score: null,
       }));
@@ -180,8 +182,14 @@ export default function AddMovieModal({
   }, [isOpen]);
 
   if (!isOpen) return null;
+  if (typeof document === "undefined") return null;
 
-  return (
+  // Portaled straight to document.body — this is `fixed inset-0`, which
+  // breaks if a transformed ancestor is in the tree (e.g. ListExpandOverlay's
+  // pager track), since `transform` makes an element the containing block
+  // for its `position: fixed` descendants. Same escape hatch MovieDetailModal
+  // already uses.
+  return createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={handleClose}>
       <div className="bg-charcoal-900 rounded-lg max-w-2xl w-full max-h-[80vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
@@ -385,6 +393,7 @@ export default function AddMovieModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

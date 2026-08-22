@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { isPremiumUser } from "@/lib/premium";
 import { findTmdbIdByImdbId, importTmdbMovie, searchTmdbMovies } from "@/lib/tmdbImport";
+import { ensureUserWatchlist } from "@/utils/watchlist";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -49,7 +50,16 @@ export type ImportResult = {
   failedToSave?: string[];
   /** Set when more unmatched rows existed than the live-backfill cap could attempt this request. */
   backfillCapped?: number;
+  /** Set when a non-premium user submitted more rows than FREE_IMPORT_ROW_CAP — the excess was never processed. */
+  premiumCapped?: number;
 };
+
+// Free users can import up to this many rows per request so anyone can
+// experience their history in Reawarding before being asked to pay; larger
+// or repeat imports are the premium "automation" pillar (IMP-1 —
+// docs/audits/2026-08-21-launch-readiness.md — the prior all-or-nothing
+// paywall blocked exactly the pre-conversion users onboarding sends here).
+const FREE_IMPORT_ROW_CAP = 50;
 
 // Netlify function time limits make unbounded sequential TMDB calls risky for
 // large Letterboxd exports — cap how many unmatched rows get a live lookup
@@ -107,22 +117,25 @@ export async function POST(req: NextRequest) {
   // don't need TS to re-prove `user` is non-null across a function boundary.
   const userId = user.id;
 
-  // Importing your watch history is the "automation" premium pillar —
-  // free users can still upload/preview (that happens client-side before
-  // this route is ever called); only the actual write is gated.
-  if (!(await isPremiumUser(supabase, userId))) {
-    return NextResponse.json(
-      { error: "Importing your library is a premium feature. Unlock premium to continue." },
-      { status: 403 }
-    );
-  }
+  // Importing your watch history is free up to FREE_IMPORT_ROW_CAP rows so
+  // any new user can bring their history in before being asked to pay;
+  // importing more than that (or re-importing later) is the "automation"
+  // premium pillar. Only the row count is gated — never an all-or-nothing
+  // block (see FREE_IMPORT_ROW_CAP comment above).
+  const premium = await isPremiumUser(supabase, userId);
 
   const body = (await req.json()) as ImportRequestBody;
-  const { rows, source } = body;
+  const { rows: submittedRows, source } = body;
 
-  if (!Array.isArray(rows) || rows.length === 0) {
+  if (!Array.isArray(submittedRows) || submittedRows.length === 0) {
     return NextResponse.json({ error: "No rows provided" }, { status: 400 });
   }
+
+  const premiumCapped =
+    !premium && submittedRows.length > FREE_IMPORT_ROW_CAP
+      ? submittedRows.length - FREE_IMPORT_ROW_CAP
+      : 0;
+  const rows = premiumCapped > 0 ? submittedRows.slice(0, FREE_IMPORT_ROW_CAP) : submittedRows;
 
   const importedAt = new Date().toISOString();
 
@@ -148,24 +161,49 @@ export async function POST(req: NextRequest) {
     if (data) matchedMovies.push(...(data as MovieMatch[]));
   }
 
-  // Fetch by title+year for the rest
+  // Fetch by title+year for the rest. PostgREST caps every response at
+  // max_rows (supabase/config.toml, currently 1000) regardless of what
+  // .range() asks for, so a single .in('release_year', years) call across
+  // a Letterboxd diary spanning even a handful of well-populated years can
+  // come back silently truncated — an arbitrary subset of real catalog
+  // matches, with the rest reported as false "not in our catalog" misses
+  // (IMP-1, docs/audits/2026-08-21-launch-readiness-round3.md). Page
+  // through with an explicit, stable order until a page comes back short
+  // of max_rows, which is the only reliable "no more rows" signal.
   if (titleYearPairs.length > 0) {
     const years = [...new Set(titleYearPairs.map((p) => p.year))];
-    const { data } = await supabase
-      .from("movies")
-      .select("id, title, release_year, imdb_id")
-      .in("release_year", years);
+    const PAGE_SIZE = 1000;
+    let offset = 0;
+    const yearMatches: MovieMatch[] = [];
+    for (;;) {
+      const { data, error } = await supabase
+        .from("movies")
+        .select("id, title, release_year, imdb_id")
+        .in("release_year", years)
+        .order("id", { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1);
 
-    if (data) {
-      // Filter client-side for title match to avoid N+1 queries
-      const byYearTitle = new Map<string, MovieMatch>();
-      for (const m of data as MovieMatch[]) {
-        byYearTitle.set(`${normalizeTitle(m.title)}::${m.release_year}`, m);
+      if (error) {
+        console.error(
+          `Import: title+year match page at offset ${offset} failed:`,
+          error.message
+        );
+        break;
       }
-      for (const p of titleYearPairs) {
-        const hit = byYearTitle.get(`${p.title}::${p.year}`);
-        if (hit) matchedMovies.push(hit);
-      }
+      if (!data || data.length === 0) break;
+      yearMatches.push(...(data as MovieMatch[]));
+      if (data.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+
+    // Filter client-side for title match to avoid N+1 queries
+    const byYearTitle = new Map<string, MovieMatch>();
+    for (const m of yearMatches) {
+      byYearTitle.set(`${normalizeTitle(m.title)}::${m.release_year}`, m);
+    }
+    for (const p of titleYearPairs) {
+      const hit = byYearTitle.get(`${p.title}::${p.year}`);
+      if (hit) matchedMovies.push(hit);
     }
   }
 
@@ -215,6 +253,19 @@ export async function POST(req: NextRequest) {
 
   class RankingsGuardError extends Error {}
 
+  // IMP-2: watched:false rows used to only be counted, never written anywhere
+  // ("full watchlist import is a separate concern"). Memoized so the two
+  // resolveWatchedAndUpsert calls (local match, then live-backfill match)
+  // share one ensureUserWatchlist round trip instead of racing to create the
+  // list twice, and so a request with zero watchlist rows never calls it.
+  let watchlistListIdPromise: Promise<string | null> | null = null;
+  function getWatchlistListId(): Promise<string | null> {
+    if (!watchlistListIdPromise) {
+      watchlistListIdPromise = ensureUserWatchlist(supabase, userId);
+    }
+    return watchlistListIdPromise;
+  }
+
   async function resolveWatchedAndUpsert(
     candidateRows: ImportRow[],
     resolveMovie: (row: ImportRow) => MovieMatch | undefined
@@ -227,7 +278,7 @@ export async function POST(req: NextRequest) {
     watchlistCount: number;
   }> {
     const notFoundKeys: string[] = [];
-    let watchlistCount = 0;
+    const watchlistMovieIds = new Set<string>();
     const candidatesByMovieId = new Map<string, { movieId: string; row: ImportRow }>();
 
     for (const row of candidateRows) {
@@ -239,9 +290,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (!row.watched) {
-        // Watchlist-only rows: handled separately via movie_list_items
-        // For now just count them — full watchlist import is a separate concern
-        watchlistCount++;
+        watchlistMovieIds.add(movie.id);
         continue;
       }
 
@@ -356,6 +405,60 @@ export async function POST(req: NextRequest) {
           const source = rowByMovieId.get(entry.movie_id);
           if (source) failedToSave.push(`${source.title} (${source.year})`);
         }
+      }
+    }
+
+    // IMP-2: actually write watchlist-only rows into the user's watchlist
+    // (movie_list_items under the list ensureUserWatchlist owns), instead of
+    // only counting them. Dedup against what's already there so a re-import
+    // of the same file doesn't error on a unique-constraint conflict.
+    let watchlistCount = 0;
+    if (watchlistMovieIds.size > 0) {
+      const listId = await getWatchlistListId();
+      if (!listId) {
+        console.error("Import: could not resolve/create the user's watchlist; skipping watchlist rows for this batch.");
+      } else {
+        const candidateIds = [...watchlistMovieIds];
+        const alreadyOnWatchlist = new Set<string>();
+        for (let i = 0; i < candidateIds.length; i += RESCUE_CHUNK_SIZE) {
+          const chunk = candidateIds.slice(i, i + RESCUE_CHUNK_SIZE);
+          const { data: existingItems, error: existingItemsError } = await supabase
+            .from("movie_list_items")
+            .select("movie_id")
+            .eq("list_id", listId)
+            .in("movie_id", chunk);
+          if (existingItemsError) {
+            console.error("Import: failed to check existing watchlist items:", existingItemsError.message);
+            continue;
+          }
+          for (const item of existingItems ?? []) {
+            if (item.movie_id) alreadyOnWatchlist.add(item.movie_id);
+          }
+        }
+
+        const newWatchlistIds = candidateIds.filter((id) => !alreadyOnWatchlist.has(id));
+        const watchlistRows = newWatchlistIds.map((movie_id) => ({
+          list_id: listId,
+          movie_id,
+          ranking: null,
+        }));
+
+        for (let i = 0; i < watchlistRows.length; i += CHUNK) {
+          const chunk = watchlistRows.slice(i, i + CHUNK);
+          const { error: watchlistInsertError } = await supabase
+            .from("movie_list_items")
+            .insert(chunk);
+          if (watchlistInsertError) {
+            console.error("Import: failed to write watchlist chunk:", watchlistInsertError.message);
+          } else {
+            watchlistCount += chunk.length;
+          }
+        }
+        // Rows already on the watchlist are still a successful outcome from
+        // the user's perspective (the film they wanted there IS there) —
+        // count them too, matching the prior "just count them" total so a
+        // re-import of the same file reports the same number, not zero.
+        watchlistCount += alreadyOnWatchlist.size;
       }
     }
 
@@ -483,6 +586,7 @@ export async function POST(req: NextRequest) {
       failed,
       failedToSave: failedToSave.length > 0 ? failedToSave : undefined,
       backfillCapped: backfillCapped > 0 ? backfillCapped : undefined,
+      premiumCapped: premiumCapped > 0 ? premiumCapped : undefined,
     } satisfies ImportResult);
   } catch (e) {
     if (e instanceof RankingsGuardError) {

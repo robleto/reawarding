@@ -62,32 +62,62 @@ export default async function MovieDetailPage({ params }: any) {
     release_year?: number | null;
     similarity_score?: number | null;
   };
+  type PeerMovie = { id: string; title: string; poster_url?: string | null };
+  type CommunityStats = {
+    totalRatings: number;
+    avgRating: number | null;
+    seenCount: number;
+    watchlists: number;
+    listsTotal: number;
+    histogram: number[];
+  };
+  type AwardsApiData = { badges?: string[]; nominations?: any[]; stats?: { nominations: number; wins: number } } | null;
+
+  const emptyCommunityStats: CommunityStats = {
+    totalRatings: 0,
+    avgRating: null,
+    seenCount: 0,
+    watchlists: 0,
+    listsTotal: 0,
+    histogram: Array.from({ length: 10 }, () => 0),
+  };
+
+  // PERF-2 (docs/audits/2026-08-22-launch-readiness-round4.md): these four
+  // blocks only depend on `movie` (id/release_year/imdb_id) and `isGuest`,
+  // not on each other's results, but used to be awaited one after another —
+  // the page paid the SUM of their round-trip latencies (RPC with up to a
+  // 2s timeout race, a query, a multi-query stats block, an external API
+  // call) instead of the MAX. Each keeps its own try/catch exactly as
+  // before, so a failure in one still can't affect the others; wrapping
+  // them in Promise.allSettled just runs them concurrently instead of
+  // serially.
 
   // Fetch similar movies using content-based filtering (non-blocking - don't fail if slow)
-  let similarMovies: SimilarMovie[] = [];
-  try {
-    const result = await Promise.race([
-      supabaseAdmin.rpc("get_similar_movies", {
-        target_movie_id: id,
-        limit_count: 12,
-      }),
-      new Promise<{ data: SimilarMovie[] | null; error: null }>((resolve) =>
-        setTimeout(() => resolve({ data: null, error: null }), 2000)
-      ),
-    ]);
+  const fetchSimilarMovies = async (): Promise<SimilarMovie[]> => {
+    try {
+      const result = await Promise.race([
+        supabaseAdmin.rpc("get_similar_movies", {
+          target_movie_id: id,
+          limit_count: 12,
+        }),
+        new Promise<{ data: SimilarMovie[] | null; error: null }>((resolve) =>
+          setTimeout(() => resolve({ data: null, error: null }), 2000)
+        ),
+      ]);
 
-    if (result.data && Array.isArray(result.data)) {
-      similarMovies = result.data;
+      if (result.data && Array.isArray(result.data)) {
+        return result.data;
+      }
+    } catch (error) {
+      console.error("Similar movies error:", error);
     }
-  } catch (error) {
-    console.error("Similar movies error:", error);
-  }
+    return [];
+  };
 
   // Peer movies for FilmEntryPanel — top acclaimed films from the same year (logged-out only)
   // Non-blocking: failures silently produce an empty array so the page still renders.
-  type PeerMovie = { id: string; title: string; poster_url?: string | null };
-  let peerMovies: PeerMovie[] = [];
-  if (isGuest && movie.release_year) {
+  const fetchPeerMovies = async (): Promise<PeerMovie[]> => {
+    if (!isGuest || !movie.release_year) return [];
     try {
       const { data: peerData } = await supabaseAdmin
         .from("movies")
@@ -97,114 +127,134 @@ export default async function MovieDetailPage({ params }: any) {
         .gte("tmdb_rating", 6.5)
         .order("vote_count", { ascending: false, nullsFirst: false })
         .limit(5);
-      if (peerData) peerMovies = peerData as PeerMovie[];
+      if (peerData) return peerData as PeerMovie[];
     } catch {
       // Non-critical — panel renders without thumbnails if this fails
     }
-  }
+    return [];
+  };
 
   // Community stats (server-side) – simple aggregation from rankings
-  let communityStats: { totalRatings: number; avgRating: number | null; seenCount: number; watchlists: number; listsTotal: number; histogram: number[] } = {
-    totalRatings: 0,
-    avgRating: null,
-    seenCount: 0,
-    watchlists: 0,
-    listsTotal: 0,
-    histogram: Array.from({ length: 10 }, () => 0),
+  const fetchCommunityStats = async (): Promise<CommunityStats> => {
+    try {
+      const attemptIds: any[] = [];
+      const asNumber = typeof movie.id === 'number' ? movie.id : Number(movie.id);
+      if (!Number.isNaN(asNumber)) attemptIds.push(asNumber);
+      attemptIds.push(movie.id as any);
+
+      // Try queries with numeric first (if valid), then fallback to raw id
+      let totalRatings = 0;
+      let seen = 0;
+      let ratingsRows: { ranking: number }[] = [];
+      let watchlists = 0;
+      let listsTotal = 0;
+
+      // Find IDs of default Watchlist lists via list_type flag (authoritative)
+      const watchlistListsRes = await supabaseAdmin
+        .from("movie_lists")
+        .select("id")
+        .eq("list_type", "watchlist");
+      const watchlistListIds: string[] = (watchlistListsRes.data ?? []).map((r: any) => r.id);
+
+      // PERF-4: ratingsCountRes/seenRes/ratingsRes were three separate queries
+      // all reading the same `rankings` rows for the same movie_id with
+      // overlapping filters — one `select('ranking, seen_it')` gives everything
+      // needed (count of non-null ranking, count of seen_it, and the ranking
+      // values themselves) in a single round trip. That query, the list-items
+      // count, and the watchlist-membership count now run concurrently per
+      // attempt via Promise.all instead of five sequential awaits; the loop
+      // over attemptIds itself stays sequential so a movie whose first attempt
+      // (the numeric id) already has data never issues the second attempt's
+      // queries at all.
+      for (const movieId of attemptIds) {
+        const [rankingsRes, listsTotalRes, watchRes] = await Promise.all([
+          supabaseAdmin
+            .from("rankings")
+            .select("ranking, seen_it")
+            .eq("movie_id", movieId),
+          supabaseAdmin
+            .from("movie_list_items")
+            .select("*", { count: "exact", head: true })
+            .eq("movie_id", movieId),
+          watchlistListIds.length > 0
+            ? supabaseAdmin
+                .from("movie_list_items")
+                .select("*", { count: "exact", head: true })
+                .eq("movie_id", movieId)
+                .in("list_id", watchlistListIds)
+            : Promise.resolve({ count: 0 } as { count: number | null }),
+        ]);
+
+        const rankingRows = (rankingsRes.data as { ranking: number | null; seen_it: boolean }[] | null) ?? [];
+        const ratedRows = rankingRows.filter((r) => r.ranking !== null) as { ranking: number }[];
+        const seenForAttempt = rankingRows.filter((r) => r.seen_it).length;
+        const listsTotalForAttempt = listsTotalRes.count ?? 0;
+
+        if (ratedRows.length > 0 || seenForAttempt > 0 || listsTotalForAttempt > 0) {
+          totalRatings = ratedRows.length;
+          seen = seenForAttempt;
+          ratingsRows = ratedRows;
+          listsTotal = listsTotalForAttempt;
+          watchlists = watchRes.count ?? 0;
+          break;
+        }
+      }
+
+      let avg: number | null = null;
+      if (ratingsRows.length > 0) {
+        const sum = ratingsRows.reduce((acc: number, row: any) => acc + (row.ranking as number), 0);
+        avg = sum / ratingsRows.length;
+      }
+      const histogram = Array.from({ length: 10 }, () => 0);
+      for (const row of ratingsRows) {
+        const v = Number(row.ranking);
+        if (Number.isFinite(v) && v >= 1 && v <= 10) histogram[v - 1] += 1;
+      }
+      return { totalRatings, avgRating: avg, seenCount: seen, watchlists, listsTotal, histogram };
+    } catch (e) {
+      console.warn("Community stats load failed:", e);
+      return emptyCommunityStats;
+    }
   };
-  try {
-    const attemptIds: any[] = [];
-    const asNumber = typeof movie.id === 'number' ? movie.id : Number(movie.id);
-    if (!Number.isNaN(asNumber)) attemptIds.push(asNumber);
-    attemptIds.push(movie.id as any);
-
-    // Try queries with numeric first (if valid), then fallback to raw id
-    let totalRatings = 0;
-    let seen = 0;
-    let ratingsRows: { ranking: number }[] = [];
-    let watchlists = 0;
-    let listsTotal = 0;
-
-    // Find IDs of default Watchlist lists via list_type flag (authoritative)
-    const watchlistListsRes = await supabaseAdmin
-      .from("movie_lists")
-      .select("id")
-      .eq("list_type", "watchlist");
-    const watchlistListIds: string[] = (watchlistListsRes.data ?? []).map((r: any) => r.id);
-
-    for (const movieId of attemptIds) {
-      const ratingsCountRes = await supabaseAdmin
-        .from("rankings")
-        .select("*", { count: "exact", head: true })
-        .eq("movie_id", movieId)
-        .not("ranking", "is", null);
-      const seenRes = await supabaseAdmin
-        .from("rankings")
-        .select("*", { count: "exact", head: true })
-        .eq("movie_id", movieId)
-        .eq("seen_it", true);
-      const ratingsRes = await supabaseAdmin
-        .from("rankings")
-        .select("ranking")
-        .eq("movie_id", movieId)
-        .not("ranking", "is", null);
-
-      const listsTotalRes = await supabaseAdmin
-        .from("movie_list_items")
-        .select("*", { count: "exact", head: true })
-        .eq("movie_id", movieId);
-      let watchRes = { count: 0 } as { count: number | null };
-      if (watchlistListIds.length > 0) {
-        watchRes = await supabaseAdmin
-          .from("movie_list_items")
-          .select("*", { count: "exact", head: true })
-          .eq("movie_id", movieId)
-          .in("list_id", watchlistListIds);
-      }
-
-      if ((ratingsCountRes.count ?? 0) > 0 || (seenRes.count ?? 0) > 0 || (ratingsRes.data?.length ?? 0) > 0 || (listsTotalRes.count ?? 0) > 0) {
-        totalRatings = ratingsCountRes.count ?? 0;
-        seen = seenRes.count ?? 0;
-        ratingsRows = (ratingsRes.data as any) || [];
-        listsTotal = listsTotalRes.count ?? 0;
-        watchlists = watchRes.count ?? 0;
-        break;
-      }
-    }
-
-    let avg: number | null = null;
-    if (ratingsRows.length > 0) {
-      const sum = ratingsRows.reduce((acc: number, row: any) => acc + (row.ranking as number), 0);
-      avg = sum / ratingsRows.length;
-    }
-    const histogram = Array.from({ length: 10 }, () => 0);
-    for (const row of ratingsRows) {
-      const v = Number(row.ranking);
-      if (Number.isFinite(v) && v >= 1 && v <= 10) histogram[v - 1] += 1;
-    }
-    communityStats = { totalRatings, avgRating: avg, seenCount: seen, watchlists, listsTotal, histogram };
-  } catch (e) {
-    console.warn("Community stats load failed:", e);
-  }
 
   // Fetch awards data from Awards API (if configured and movie has imdb_id)
-  let awardsData: { badges?: string[]; nominations?: any[]; stats?: { nominations: number; wins: number } } | null = null;
-  if (movie.imdb_id && process.env.AWARDS_API_BASE_URL && process.env.AWARDS_API_KEY) {
+  const fetchAwardsData = async (): Promise<AwardsApiData> => {
+    if (!(movie.imdb_id && process.env.AWARDS_API_BASE_URL && process.env.AWARDS_API_KEY)) {
+      return null;
+    }
     try {
       const awardsRes = await fetch(
         `${process.env.AWARDS_API_BASE_URL}/film-awards?imdb_id=${movie.imdb_id}`,
-        { 
+        {
           headers: { 'x-api-key': process.env.AWARDS_API_KEY },
           next: { revalidate: 3600 } // Cache for 1 hour
         }
       );
       if (awardsRes.ok) {
-        awardsData = await awardsRes.json();
+        return await awardsRes.json();
       }
     } catch (e) {
       console.warn('Awards API fetch failed:', e);
     }
-  }
+    return null;
+  };
+
+  const [similarMoviesResult, peerMoviesResult, communityStatsResult, awardsDataResult] =
+    await Promise.allSettled([
+      fetchSimilarMovies(),
+      fetchPeerMovies(),
+      fetchCommunityStats(),
+      fetchAwardsData(),
+    ]);
+
+  const similarMovies: SimilarMovie[] =
+    similarMoviesResult.status === "fulfilled" ? similarMoviesResult.value : [];
+  const peerMovies: PeerMovie[] =
+    peerMoviesResult.status === "fulfilled" ? peerMoviesResult.value : [];
+  const communityStats: CommunityStats =
+    communityStatsResult.status === "fulfilled" ? communityStatsResult.value : emptyCommunityStats;
+  const awardsData: AwardsApiData =
+    awardsDataResult.status === "fulfilled" ? awardsDataResult.value : null;
 
   // Format currency
   const formatCurrency = (amount: number) => {

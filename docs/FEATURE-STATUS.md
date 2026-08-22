@@ -2,7 +2,7 @@
 
 Reference before building anything new. Most features in this codebase already exist — some are active, some are dormant (built but disconnected from the nav or homepage).
 
-Last updated: 2026-07-22 (Ready-made lists, CSV import, OG export/Share sheet, and Alternate Oscar History re-verified against actual code — they'd drifted from this doc)
+Last updated: 2026-08-22 (OG export/Share sheet gained a real trigger point and moved to Active; genre-category official-winner backfill shipped; Best Animated ballot UI built but hidden — see Dormant; three design-exploration wireframes from chat added to Post-launch)
 
 ---
 
@@ -23,6 +23,7 @@ Last updated: 2026-07-22 (Ready-made lists, CSV import, OG export/Share sheet, a
 | Letterboxd / IMDb CSV import | `/settings/import`, linked from `/settings` | `src/app/settings/import/page.tsx`, `src/app/api/import/library/route.ts` | Ratings/watched import works; watchlist-only rows are parsed but not inserted (`// full watchlist import is a separate concern`) |
 | Alternate Oscar History — per-year badge (free) | Year cards, via `AcademyStamp` | `src/components/award/AcademyStamp.tsx`, `src/data/officialAwardWinners.ts` (`getAcademyStatus`), rendered in `AwardCard.tsx` / `EditableYearSection.tsx` | Upheld/Reawarded/Unscreened per year, fully wired, not premium-gated — matches `PRODUCT_DECISION_LOG.md` |
 | Alternate Oscar History — lifetime aggregate (premium) | Homepage Canon section (Mature-tier) | `src/hooks/useAlternateOscarHistory.ts`, `src/components/home/AlternateOscarHistoryPanel.tsx`, gated by `src/hooks/useIsPremium.ts` | Headline stats, by-decade breakdown, most-controversial-calls all built; entitlement now backed by real Stripe subscription status (`/api/stripe/webhook`) as of 2026-07-22 — previously a stub that always returned `false` |
+| Shareable award cards | Share button under any set-ballot winner (`AwardCard`'s `onShare`, wired from `EditableYearSection`) on Home and `/[username]/awards` | `src/components/social/ShareSheet.tsx`, `src/app/api/og/award/route.tsx` | Generates 1200×630 (OG/Twitter) and 1080×1080 (IG/TikTok) share cards + copy-link/social-intent links; category label (`categoryLabel` prop, defaults "Best Picture") threads through to both the image and the share text via `AwardsTabs.tsx`'s `CATEGORY_LABELS` |
 
 ---
 
@@ -33,12 +34,12 @@ Last updated: 2026-07-22 (Ready-made lists, CSV import, OG export/Share sheet, a
 | Watchlist | DB exists, no card UI | `src/utils/watchlist.ts`, `list_type='watchlist'` in DB | Needs `useWatchlist` hook + bookmark icon on cards |
 | Manual list building | Pages exist, no nav link | `src/app/lists/` (all pages) | Restore nav link in `HeaderNav.tsx` + `MobileTabBar.tsx` |
 | Public lists | Page exists, no homepage row | `src/app/lists/public.tsx` | Surface as `HorizontalListRow` for established users |
-| OG image export + Share sheet | Fully built, zero call sites | `src/app/api/og/award/route.tsx`, `src/components/social/ShareSheet.tsx` | Only an award-image route exists (no `[year]` dynamic segment, no list-image route despite earlier plan); `ShareSheet` isn't imported anywhere — needs a trigger point (e.g. a share button on the award/year card) |
 | Recognition feed | Component exists, queries may be empty | `src/components/home/RecognitionFeed.tsx`, `src/hooks/useRecognitionFeed.ts` | Fix query reliability |
 | Profile: Lists tab | No `/[username]/lists` page | — | Port `src/app/lists/mine.tsx` into profile sub-page |
 | Profile: Watchlist tab | No `/[username]/watchlist` page | — | New page reading `movie_list_items` for user's watchlist |
 | Profile: Activity tab | No `/[username]/activity` page | — | New page reading `rankings` updates as timeline |
 | Profile: Following tab | No `/[username]/following` page | — | Blocked on follows DB table (see New Builds) |
+| Best Animated ballot UI | Data layer + tab UI built, tab intentionally commented out of `AwardsTabs.tsx`'s `tabs` array (2026-08-22) | `src/components/award/AwardsTabs.tsx`, `src/app/[username]/awards/page.tsx`, `src/utils/categoryEligibility.ts`, `src/hooks/usePublicProfile.ts` (`category` param), `src/app/api/users/[username]/route.ts` (`?category=`), `src/hooks/useCreateAward.ts`/`useUserAwards.ts`/`src/data/officialAwardWinners.ts` (all category-aware, default `"best-picture"`) | Official winner data backfilled (25/25 matched, see `scripts/data/best-animated-winners.json`). Derived nominees (rated 7+, `genres` includes `"Animation"`) work and are ready to display the moment the tab is re-enabled. Known gaps before re-enabling: no dedicated "add a new animated film" search flow (only pre-rated films surface); no per-category homepage maturity state (rides the global one); Alternate Oscar History still best-picture-only, not extended to this category yet. Re-add `{ key: "best-animated", label: "Best Animated" }` to `AwardsTabs.tsx`'s `tabs` array to switch it back on. |
 
 ---
 
@@ -50,6 +51,18 @@ Last updated: 2026-07-22 (Ready-made lists, CSV import, OG export/Share sheet, a
 | Adaptive homepage (3 user states) | P4 | `src/app/page.tsx` (state detection logic) |
 | Friends / following | P6 | `supabase/migrations/follows.sql`, `src/hooks/useFollowing.ts`, `src/hooks/useFriendFeed.ts` |
 | Storybook | P1 | `.storybook/`, `src/stories/*.stories.tsx` |
+
+---
+
+## Post-launch (design exploration, no code yet — not scheduled)
+
+Wireframed in chat on 2026-08-22, inspired by a competitor ad tracking per-year Oscar-nomination-watching progress. Not yet reconciled against a phase; treat as candidate ideas, not commitments.
+
+| Feature | Status | Notes |
+|---|---|---|
+| Oscar Night Readiness | Wireframed, no code | Free, current-cycle only ("current year" = the film year running Jan 1 → ceremony date, i.e. the *prior* calendar year's crop). Plain per-category "X of Y seen" list, incomplete categories sorted first, so the user never has to do the math. Ceremony countdown shown as a separate plain typographic stat next to it — deliberately **not** wrapped in a ring, since a ring there would misleadingly read as depleting alongside the days remaining rather than showing category completion. Proposed home: inside Collections (not new nav), with seasonal homepage promotion Jan 1 → ceremony date, when the current-year Awards section is otherwise thin. |
+| Collection detail view (e.g. "Best Picture Winners: 2000s") | Wireframed, no code | **Verify against the existing Film collections feature (`/films/collections/[slug]`, Active above) before building — this may just be a new collection type on that existing page, not a new screen.** Concept: header completion ring (valid here — a bounded, specific collection, unlike an all-categories rollup), flat list of films (poster, title, ceremony year, winner tag, seen/unseen check), unseen winners flagged with a gold accent. Plain browsing/tracking only — no ratings, opinions, or comparison on this screen. Should use `MovieCard`/`HorizontalListRow` per the component reuse mandate rather than the bespoke row markup used in the wireframe. |
+| "Compare" screen — full year-by-year "They said vs. I said" browse | Wireframed, no code — **CONFIRMED duplicate of an Active feature's logic; only the presentation is new** | Verified by reading the actual implementation (2026-08-22): every data point this screen needs already exists as a reusable pure function/hook — Academy's per-year winner via `fetchOfficialAwardWinners()` (`src/data/officialAwardWinners.ts:61-94`); the user's own ballot winner via `UserAward.winnerId` resolved against that year's `Movie[]` (`src/utils/alternateOscarHistory.ts:108`), with the user's rating already on `movie.rankings[0].ranking`; the categorical status via `getAcademyStatus()` (`src/utils/academyStatus.ts:42-74`), aggregated across years by `computeAlternateOscarHistory()` (`src/utils/alternateOscarHistory.ts:51-148`); and the verdict-stamp visual itself already exists as `AcademyStamp.tsx` (rotated ink stamp, green Upheld / amber Reawarded, blank for Unscreened). None of that needs to be recomputed or redesigned. What's actually missing is presentation only: (1) a dedicated full-screen route for one collection — no such route exists; `AcademyStamp` currently renders one-at-a-time in a card corner (`AwardCard.tsx`, `EditableYearSection.tsx:1526-1528`), and `AlternateOscarHistoryPanel` shows numeric aggregates, not a scrollable per-year list; (2) a two-column poster layout with a per-film score badge — posters and scores aren't currently shown side-by-side anywhere in the Academy-comparison UI; (3) a placeholder treatment for Unscreened years in that two-column layout (today Unscreened is just "no stamp shown," not a designed empty state). **Any build here should be scoped as "new screen reusing `getAcademyStatus`/`computeAlternateOscarHistory`/`AcademyStamp`," not as a new feature** — and the wireframe's "Agreed" label should be renamed to **Upheld** to match. |
 
 ---
 

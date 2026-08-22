@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabaseServer';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { stripe } from '@/lib/stripe';
 
 // Deletes everything listed under "What Gets Deleted" in
 // src/app/legal/data-deletion/page.tsx. Rows are removed explicitly (rather
@@ -17,6 +18,53 @@ export async function POST() {
   }
 
   const userId = user.id;
+
+  // PAY-2 (docs/audits/2026-08-21-launch-readiness-round3.md): cancel any
+  // live Stripe subscription BEFORE touching any table. This has to be a
+  // hard abort, not just another entry in deleteErrors below — the
+  // deleteErrors pattern still deletes every other table even when one
+  // fails, and once the `profiles` row (the only stripe_customer_id link)
+  // is gone, a retry of this same request can no longer find the
+  // subscription to cancel. Fail here and nothing has been deleted yet.
+  const { data: profileForStripe, error: profileForStripeError } = await supabaseAdmin
+    .from('profiles')
+    .select('stripe_customer_id')
+    .eq('id', userId)
+    .single();
+
+  if (profileForStripeError) {
+    console.error(
+      `[account/delete] Failed to look up stripe_customer_id for user ${userId}: ${profileForStripeError.message}`
+    );
+    return NextResponse.json(
+      { error: 'Account deletion failed: could not verify billing status. No data was deleted. Please retry or contact support.' },
+      { status: 500 }
+    );
+  }
+
+  const stripeCustomerId = profileForStripe?.stripe_customer_id ?? null;
+  if (stripeCustomerId) {
+    try {
+      const subscriptions = await stripe.subscriptions.list({
+        customer: stripeCustomerId,
+        status: 'all',
+      });
+      await Promise.all(
+        subscriptions.data
+          .filter((sub) => sub.status !== 'canceled')
+          .map((sub) => stripe.subscriptions.cancel(sub.id))
+      );
+    } catch (err) {
+      console.error(
+        `[account/delete] Failed to cancel Stripe subscription(s) for user ${userId} (customer ${stripeCustomerId}):`,
+        err
+      );
+      return NextResponse.json(
+        { error: 'Account deletion failed: could not cancel your subscription. No data was deleted. Please retry or contact support.' },
+        { status: 500 }
+      );
+    }
+  }
 
   const { data: ownedLists } = await supabaseAdmin
     .from('movie_lists')

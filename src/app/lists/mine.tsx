@@ -65,12 +65,13 @@ export default function MyListsPage() {
                 .select("*", { count: "exact", head: true })
                 .eq("list_id", list.id);
 
-              // Get top 5 movie IDs in order
+              // Get top 5 movie IDs in order. Descending: highest ranking
+              // value is the top-of-list item (ListDetailView's convention).
               const { data: items } = await supabase
                 .from("movie_list_items")
                 .select("movie_id")
                 .eq("list_id", list.id)
-                .order("ranking", { ascending: true })
+                .order("ranking", { ascending: false })
                 .limit(5);
 
               const movieIds = (items || []).map((item) => item.movie_id);
@@ -131,7 +132,12 @@ export default function MyListsPage() {
 
   return (
     <div className="max-w-screen-xl px-6 py-10 mx-auto">
-      <h1 className="text-3xl font-unbounded text-white mb-6">My Lists</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-unbounded uppercase tracking-wide text-white">My Lists</h1>
+        <p className="mt-1 text-xs font-mono uppercase tracking-wider text-gray-500">
+          {myLists.length} {myLists.length === 1 ? "list" : "lists"}
+        </p>
+      </div>
       <HorizontalListRow title="All My Lists" lists={myLists} />
     </div>
   );

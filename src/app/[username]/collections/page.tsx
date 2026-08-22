@@ -1,72 +1,143 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
-import { useProfile } from "@/contexts/ProfileContext";
-import { useQualityTagCollections } from "@/hooks/useQualityTagCollections";
-import { slugifyTitle } from "@/utils/slug";
-import ReadyMadeCard from "@/components/lists/ReadyMadeCard";
+import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
+import { useUserCollectionProgress } from "@/hooks/useUserCollectionProgress";
+import CollectionCard from "@/components/collections/CollectionCard";
+import CollectionExpandOverlay from "@/components/collections/CollectionExpandOverlay";
 
-// Full grid of "My Collections" — films grouped by quality tag. expressions
-// RLS is owner-only, so this only ever has content on your own profile; a
-// visitor on someone else's profile sees the empty state below.
+// Editorial collections (film_collections/film_collection_items) with real
+// per-user progress (user_collection_progress_view). That view is hard-scoped
+// to auth.uid() internally, so it only ever reflects the CURRENT SESSION's
+// own progress — meaningful only when the viewer is looking at their own
+// profile, same practical constraint the old quality-tag feature had for a
+// different reason (expressions RLS, owner-only).
+//
+// No local heading or "back to profile" link — like every other profile tab
+// (films/rankings/awards/lists), this renders inside [username]/layout.tsx,
+// which already owns identity (ProfileHeader) and navigation (ProfileTabs);
+// duplicating either here read as a standalone page nested oddly inside one.
+//
+// Horizontal snap-scroll carousel + fullscreen swipe overlay, same as Lists
+// (src/app/lists/home.tsx) and Ready-Made (ReadyMadeCarousel) — one card
+// takes up the bulk of the available space, centered card in focus, swipe
+// left/right to browse, click/tap opens CollectionExpandOverlay for the full
+// pan-gesture pager. Height is a plain viewport fraction rather than an
+// exact fill-to-bottom calc — unlike the Lists page, this one sits below
+// ProfileHeader/ProfileTabs, whose height isn't a fixed constant (bio text
+// wraps, avatar size is responsive), so "the rest of the viewport" isn't a
+// number that can be computed statically here.
 export default function CollectionsPage() {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
-  const { movies, profile, loading } = usePublicProfile(username);
-  const { profile: ownerProfile } = useProfile();
+  const { profile, loading } = usePublicProfile(username);
+  const isOwner = useIsProfileOwner(profile?.id);
 
-  const isOwner = !!(
-    ownerProfile?.username &&
-    profile?.username &&
-    ownerProfile.username.toLowerCase() === profile.username.toLowerCase()
-  );
-  const ownerUserId = isOwner ? profile?.id ?? null : null;
+  const { collections, loading: collectionsLoading, updateProgress } = useUserCollectionProgress(isOwner);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const carouselRowRef = useRef<HTMLDivElement | null>(null);
+  const [focusedCardIndex, setFocusedCardIndex] = useState(0);
 
-  const { collections, loading: collectionsLoading } = useQualityTagCollections(ownerUserId, movies);
+  // Which card is centered in the carousel — measured directly (each card's
+  // rendered center vs. the row's center) rather than guessed from scroll
+  // position, same approach as the Lists home carousel. Drives the "focus"
+  // effect: the centered card is full color and slightly enlarged, neighbors
+  // are greyed out and slightly shrunk.
+  useEffect(() => {
+    const row = carouselRowRef.current;
+    if (!row) return;
+    let raf = 0;
+    const updateFocusedCard = () => {
+      const cards = Array.from(row.children) as HTMLElement[];
+      if (cards.length === 0) return;
+      const rowRect = row.getBoundingClientRect();
+      const rowCenter = rowRect.left + rowRect.width / 2;
+      let closestIndex = 0;
+      let closestDistance = Infinity;
+      cards.forEach((card, index) => {
+        const rect = card.getBoundingClientRect();
+        const cardCenter = rect.left + rect.width / 2;
+        const distance = Math.abs(cardCenter - rowCenter);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = index;
+        }
+      });
+      setFocusedCardIndex(closestIndex);
+    };
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(updateFocusedCard);
+    };
+    updateFocusedCard();
+    row.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      row.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, [collections.length]);
 
-  if (loading || collectionsLoading) {
+  if (loading || (isOwner && collectionsLoading)) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 animate-pulse">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="h-[260px] bg-gray-800/40 rounded-lg" />
+          <div key={i} className="h-[220px] bg-gray-800/40 rounded-lg" />
         ))}
       </div>
     );
   }
 
-  return (
-    <div>
-      <Link
-        href={`/${username}`}
-        className="inline-flex items-center gap-1.5 mb-6 text-sm text-gray-400 hover:text-gray-200 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to profile
-      </Link>
-      <h1 className="mb-1 text-2xl font-bold text-white font-unbounded">My Collections</h1>
-      <p className="mb-6 text-sm text-gray-500">Films grouped by what you noticed</p>
+  if (!isOwner) {
+    return <p className="text-sm text-gray-500">Collection progress is only visible on your own profile.</p>;
+  }
 
-      {collections.length === 0 ? (
-        <p className="text-sm text-gray-500">
-          No collections yet — tag 2 or more films with the same quality tag (from a film&apos;s
-          detail view, once you&apos;ve seen and rated it) and they&apos;ll show up here.
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {collections.map((collection) => (
-            <ReadyMadeCard
-              key={collection.tag}
-              title={collection.tag}
-              count={collection.count}
-              subtitle={<span>Tagged films</span>}
-              posterUrls={collection.posterUrls}
-              viewHref={`/${username}/collections/${slugifyTitle(collection.tag)}`}
+  if (collections.length === 0) {
+    return <p className="text-sm text-gray-500">No collections available yet.</p>;
+  }
+
+  return (
+    <div className="relative overflow-visible">
+      <div
+        ref={carouselRowRef}
+        className="flex items-start gap-5 overflow-x-auto pb-4 pt-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
+        style={{
+          // Symmetric inset matching each card's own width formula
+          // (w-[78vw] max-w-[280px]) — lets the first and last cards
+          // scroll to a truly centered position too, not just the ones
+          // in the middle.
+          paddingLeft: "calc((100% - min(78vw, 280px)) / 2)",
+          paddingRight: "calc((100% - min(78vw, 280px)) / 2)",
+        }}
+      >
+        {collections.map((collection, index) => (
+          // aspect-[3/4], not a viewport-height fraction: this page sits
+          // below ProfileHeader/ProfileTabs (variable height), so "fill the
+          // rest of the viewport" isn't a number available here the way it
+          // is on the standalone Lists page — sizing the card from its own
+          // width instead sidesteps that and keeps it proportionate rather
+          // than stretched into mostly-empty vertical space.
+          <div key={collection.collectionId} className="w-[78vw] max-w-[280px] aspect-[3/4] flex-shrink-0 overflow-visible snap-center snap-always">
+            <CollectionCard
+              collection={collection}
+              viewHref={`/${username}/collections/${collection.slug}`}
+              onOpen={() => setExpandedIndex(index)}
+              fillHeight
+              focused={index === focusedCardIndex}
             />
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
+
+      {expandedIndex !== null && (
+        <CollectionExpandOverlay
+          collections={collections}
+          userId={profile?.id ?? null}
+          initialIndex={expandedIndex}
+          onClose={() => setExpandedIndex(null)}
+          onProgressChange={updateProgress}
+        />
       )}
     </div>
   );

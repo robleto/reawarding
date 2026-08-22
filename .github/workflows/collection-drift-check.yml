@@ -1,0 +1,40 @@
+name: Collection Drift Check
+
+# Reconciles film_collections membership against the TMDB source each row
+# tracks (see scripts/check-collection-drift.mjs for the three source types
+# and their limits). A drift finding shows up as its own red run — visible
+# on its own terms, nothing blocked.
+on:
+  schedule:
+    # 1st and 15th of each month, 11:00 UTC (after the daily
+    # award-drift-check backstop) — roughly every two weeks, matching the
+    # "every week or two" cadence this was asked for. (A day-of-month list
+    # combined with a weekday field would use OR, not AND, semantics and
+    # fire every week instead — this sticks to day-of-month only.)
+    - cron: '0 11 1,15 * *'
+  workflow_dispatch:
+
+concurrency:
+  group: collection-drift-check
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # No `npm ci`: uses only built-in fetch, so the check needs no
+      # dependencies and doesn't depend on which secrets happen to be present.
+      - name: Check collection drift
+        run: node scripts/check-collection-drift.mjs --rest

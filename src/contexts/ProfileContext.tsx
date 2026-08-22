@@ -8,6 +8,8 @@ import { useAuthState } from "@/hooks/useAuthState";
 // by /api/stripe/webhook — active and trialing both count as premium.
 const ENTITLED_STATUSES = new Set(["active", "trialing"]);
 
+type ProfileViewMode = "personal" | "public";
+
 interface ProfileContextValue {
   profile: any;
   loading: boolean;
@@ -15,6 +17,13 @@ interface ProfileContextValue {
   created: boolean;
   isAdmin: boolean;
   isPremium: boolean;
+  // "personal" (default): the owner's own [username]/* pages render blank —
+  // no header, no tab strip — since UserMenu's nav links already cover that
+  // navigation. "public" previews the exact page a visitor sees (full
+  // header + tab strip). Deliberately not persisted to localStorage: a
+  // reload snapping back to "personal" keeps this a peek, not a setting.
+  viewMode: ProfileViewMode;
+  setViewMode: (mode: ProfileViewMode) => void;
 }
 
 const defaultValue: ProfileContextValue = {
@@ -24,6 +33,8 @@ const defaultValue: ProfileContextValue = {
   created: false,
   isAdmin: false,
   isPremium: false,
+  viewMode: "personal",
+  setViewMode: () => {},
 };
 
 const ProfileContext = createContext<ProfileContextValue>(defaultValue);
@@ -46,6 +57,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState(false);
+  const [viewMode, setViewMode] = useState<ProfileViewMode>("personal");
 
   useEffect(() => {
     if (!user || !userId) {
@@ -145,8 +157,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo<ProfileContextValue>(
-    () => ({ profile, loading, error, created, isAdmin, isPremium }),
-    [profile, loading, error, created, isAdmin, isPremium]
+    () => ({ profile, loading, error, created, isAdmin, isPremium, viewMode, setViewMode }),
+    [profile, loading, error, created, isAdmin, isPremium, viewMode]
   );
 
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;

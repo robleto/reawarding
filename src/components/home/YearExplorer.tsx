@@ -14,7 +14,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import Image from "next/image";
-import { ArrowLeft, X, Trophy, Info, Star, Plus, HelpCircle, Lock } from "lucide-react";
+import { ArrowLeft, X, Trophy, Info, Star, Plus, HelpCircle, Lock, Film } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import ContextualTip from "@/components/onboarding/ContextualTip";
 import { useGlobalToast } from "@/hooks/useGlobalToast";
@@ -39,6 +39,12 @@ interface Props {
     updates: { seen_it?: boolean; ranking?: number | null }
   ) => void;
   onClose: () => void;
+  /** Suppress the internal "Back to Home" button — for when a caller (like
+      BallotEditorOverlay) already renders its own close affordance around
+      this component, so there aren't two redundant close controls stacked
+      in the same corner. The standalone /year/[year] route has no such
+      wrapper, so it omits this and keeps the button. */
+  hideBackButton?: boolean;
   isGuest?: boolean;
   onEditingChange?: (editing: boolean) => void;
   /** True when YearExplorer was opened as a result of the new-user onboarding pick. */
@@ -61,6 +67,7 @@ export default function YearExplorer({
   onCreateAward,
   onUpdateMovieRanking,
   onClose,
+  hideBackButton = false,
   isGuest,
   onEditingChange,
   isOnboardingPick = false,
@@ -88,6 +95,11 @@ export default function YearExplorer({
   );
   const INITIAL_FILM_LIMIT = 12;
   const [showAllOther, setShowAllOther] = useState(false);
+  // "Movies you've ranked" and "Top nominees" used to render every match
+  // uncapped — the single biggest source of an overwhelming, scroll-forever
+  // list. Same cap + "Show more" pattern "Other notable films" already used.
+  const [showAllContenders, setShowAllContenders] = useState(false);
+  const [showAllTopContenders, setShowAllTopContenders] = useState(false);
   const rankingSectionRef = useRef<HTMLDivElement | null>(null);
   const contendersSectionRef = useRef<HTMLDivElement | null>(null);
   const candidatesSectionRef = useRef<HTMLDivElement | null>(null);
@@ -585,7 +597,15 @@ export default function YearExplorer({
           <p className="text-xs uppercase tracking-wide text-gray-400 font-medium mb-3">
             {rowTitle}
           </p>
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+          {/* Same card (variant="large") and grid rhythm Films/Rankings use for
+              their own grids, rather than the denser, one-off "grid" variant
+              this used to render — that variant's cramped bottom overlay is
+              exactly why the old Nominate button needed the z-index/hit-area
+              workarounds below; large's footerAction slot sits below the
+              poster instead, so none of that's needed anymore, and every row
+              can share one column scheme regardless of whether Nominate can
+              appear. */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {movies.map((movie) => {
               const justNominated = recentlyNominated.has(movie.id);
               const ranking = movie.rankings?.[0]?.ranking ?? null;
@@ -596,7 +616,7 @@ export default function YearExplorer({
                 !activeNomineeIdSet.has(String(movie.id));
 
               return (
-                <div key={`${rowKey}-${movie.id}`} className={`group relative rounded-lg${justNominated ? " nominee-glow" : ""}`}>
+                <div key={`${rowKey}-${movie.id}`} className={`group relative rounded-xl${justNominated ? " nominee-glow" : ""}`}>
                   {justNominated && (
                     <div className="absolute bottom-2 left-0 right-0 flex justify-center z-10 pointer-events-none animate-in fade-in duration-200">
                       <span className="px-2.5 py-1 rounded-full bg-gold-400 text-gold-900 text-[10px] font-bold uppercase tracking-wide shadow-lg">
@@ -605,7 +625,7 @@ export default function YearExplorer({
                     </div>
                   )}
                   <MovieCard
-                    variant="grid"
+                    variant="large"
                     movie={movie}
                     ranking={ranking}
                     seenIt={movie.rankings?.[0]?.seen_it ?? false}
@@ -619,29 +639,11 @@ export default function YearExplorer({
                             event.stopPropagation();
                             handlePromoteContender(movie);
                           }}
-                          // relative + z-10: this button renders as MovieCard's
-                          // footerAction, immediately to the right of the rate
-                          // pill in the grid overlay row. The rate pill uses a
-                          // symmetric before:-inset-2 hit-area (8px/side), which
-                          // is wider than this row's gap-1.5 (6px), so its
-                          // right-side reach spills a couple px onto this
-                          // button. Without its own stacking context, a
-                          // non-positioned element like this one loses to ANY
-                          // positioned sibling's pseudo-element regardless of
-                          // DOM order — so even correct inset math on the pill
-                          // isn't enough of a guarantee on its own. Explicit
-                          // position + z-index here makes sure taps on this
-                          // button's own visible pixels always resolve to
-                          // Nominate, never to the pill's overlapping
-                          // pseudo-element. (This is independent of the rate
-                          // pill's own effective tap width in this row, which
-                          // is necessarily short of 44px in this configuration
-                          // — see the comments on that pill in MovieCard.tsx.)
-                          className="relative z-10 inline-flex items-center justify-center rounded-md border border-gold-500/30 bg-gold-500/10 px-1.5 py-0.5 text-gold-300 transition-colors hover:border-gold-400/50 hover:bg-gold-500/20 hover:text-gold-200"
+                          className="flex items-center justify-center w-9 h-9 rounded-full border border-gold-500/30 bg-gold-500/10 text-gold-300 transition-colors hover:border-gold-400/50 hover:bg-gold-500/20 hover:text-gold-200 active:scale-[0.98]"
                           aria-label={`Nominate ${movie.title}`}
                           title="Nominate"
                         >
-                          <Plus className="h-3 w-3" />
+                          <Plus className="h-4 w-4" />
                         </button>
                       ) : null
                     }
@@ -775,20 +777,22 @@ export default function YearExplorer({
         <div className="flex items-center gap-1">
           <button
             onClick={() => setRatingTourStep(1)}
-            className="p-2 rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-white transition-colors"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-white transition-colors active:scale-[0.98]"
             aria-label={ratingTourStep > 0 ? "Restart walkthrough" : "Show walkthrough"}
             title="Show walkthrough"
           >
             <HelpCircle className="w-5 h-5" />
           </button>
+          {!hideBackButton && (
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 p-2 rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 min-h-[44px] px-2.5 rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-white transition-colors active:scale-[0.98]"
             aria-label="Back to Home"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="hidden sm:inline text-sm">Back to Home</span>
           </button>
+          )}
         </div>
       </div>
 
@@ -854,27 +858,19 @@ export default function YearExplorer({
           {/* Sentinel for sticky strip */}
           <div ref={editableSectionEndRef} className="h-0" />
 
-          {/* ─── Race progress indicator ─────────────────────────── */}
-          <div className="mt-3 mb-4 lg:mb-0">
-            <div className="flex items-center gap-2 mb-2">
-              <Trophy className={`w-3.5 h-3.5 ${liveNomineeCount >= 5 ? "text-gold-400" : "text-gold-400/70"}`} />
+          {/* Ballot progress — plain text, matching the "{count}/10" +
+              "Full Ballot" language EditableYearSection already uses
+              elsewhere, rather than the bespoke segmented bar this used to
+              be (a UI pattern that didn't exist anywhere else in the app). */}
+          <div className="mt-3 mb-4 lg:mb-0 flex items-center gap-2">
+            <Trophy className={`w-3.5 h-3.5 ${liveNomineeCount >= 5 ? "text-gold-400" : "text-gold-400/70"}`} />
+            {liveNomineeCount >= 10 ? (
+              <span className="text-xs font-medium text-emerald-400">Full Ballot</span>
+            ) : (
               <span className="text-xs font-medium text-gray-400">
                 {liveNomineeCount}/10 nominees
               </span>
-            </div>
-            {/* Progress bar — 10 segments with a subtle gap after the 5th to mark the minimum */}
-            <div className="flex gap-1">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1 flex-1 rounded-full transition-all duration-500 ${
-                    i < liveNomineeCount
-                      ? liveNomineeCount >= 5 ? "bg-emerald-400" : "bg-gold-400"
-                      : "bg-gray-700/60"
-                  } ${i === 5 ? "ml-1.5" : ""}`}
-                />
-              ))}
-            </div>
+            )}
           </div>
 
           {/* Contextual tips */}
@@ -911,12 +907,17 @@ export default function YearExplorer({
 
             {/* ─── Sticky nominee strip (mobile/tablet — ballot visible on lg+) ─── */}
             {showStickyNominees && displayNominees.length > 0 && (
-              <div className="sticky top-0 z-40 -mx-4 px-4 py-2 bg-charcoal-900/95 backdrop-blur-sm border-b border-gray-700/40 lg:hidden">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium shrink-0">
+              <div className="sticky top-0 z-40 -mx-4 px-4 py-2.5 bg-charcoal-900/95 backdrop-blur-sm border-b border-gray-700/40 lg:hidden">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-500 shrink-0">
                     Nominees ({displayNomineeCount}/10)
                   </span>
-                  <div className="flex gap-1.5 overflow-x-auto">
+                  {/* touch-pan-x + overscroll-x-contain: swiping over this strip
+                      scrolls only the strip, not the page underneath it — this
+                      row previously had no touch-action hint, so a horizontal
+                      flick here was ambiguous with the page's own vertical
+                      scroll and easily "lost" to it. */}
+                  <div className="flex gap-2 overflow-x-auto touch-pan-x overscroll-x-contain">
                     {displayNominees.map((m) => {
                       const isWinner = activeWinnerId != null && String(activeWinnerId) === String(m.id);
                       const isPickedMovie = pickedMovieId !== null && String(m.id) === String(pickedMovieId);
@@ -924,29 +925,29 @@ export default function YearExplorer({
                       const hasPoster = stickyPoster && stickyPoster.startsWith("http");
                       return (
                         <div key={`sticky-${m.id}`} className="relative shrink-0">
-                          <div className={`w-8 h-12 rounded overflow-hidden border ${isWinner ? "border-gold-500" : isPickedMovie ? "border-gold-400/70 ring-1 ring-gold-400/50" : "border-gray-600/60"}`}>
+                          <div className={`w-10 h-[60px] rounded overflow-hidden border ${isWinner ? "border-gold-500" : isPickedMovie ? "border-gold-400/70 ring-1 ring-gold-400/50" : "border-gray-600/60"}`}>
                             {hasPoster ? (
                               <Image
                                 src={stickyPoster}
                                 alt={m.title}
-                                width={32}
-                                height={48}
+                                width={40}
+                                height={60}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
                               <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                                <span className="text-[6px] text-gray-500 text-center leading-tight px-0.5">{m.title}</span>
+                                <Film className="w-3.5 h-3.5 text-gray-600" />
                               </div>
                             )}
                           </div>
                           {isWinner && (
-                            <Trophy className="absolute -top-1 -right-1 w-2.5 h-2.5 text-gold-400" />
+                            <Trophy className="absolute -top-1 -right-1 w-3 h-3 text-gold-400" />
                           )}
                         </div>
                       );
                     })}
                     {Array.from({ length: Math.max(0, 5 - displayNomineeCount) }).map((_, i) => (
-                      <div key={`empty-sticky-${i}`} className="w-8 h-12 rounded border border-dashed border-gray-700/40 bg-gray-800/30 shrink-0" />
+                      <div key={`empty-sticky-${i}`} className="w-10 h-[60px] rounded border border-dashed border-gray-700/40 bg-gray-800/30 shrink-0" />
                     ))}
                   </div>
                 </div>
@@ -980,12 +981,39 @@ export default function YearExplorer({
             )}
 
             {/* ─── Movie sections: recognition first ─────────────── */}
-            {renderMovieGrid("Movies you've ranked", contenderMovies, "contenders", contendersSectionRef)}
+            {renderMovieGrid(
+              "Movies you've ranked",
+              showAllContenders ? contenderMovies : contenderMovies.slice(0, INITIAL_FILM_LIMIT),
+              "contenders",
+              contendersSectionRef
+            )}
+            {contenderMovies.length > INITIAL_FILM_LIMIT && !showAllContenders && (
+              <button
+                type="button"
+                onClick={() => setShowAllContenders(true)}
+                className="mb-4 min-h-[44px] px-1 flex items-center text-xs font-medium text-gold-400 hover:text-gold-300 transition-colors"
+              >
+                Show {contenderMovies.length - INITIAL_FILM_LIMIT} more ranked films
+              </button>
+            )}
             {/* scroll-mt leaves space above for the step-3 tooltip when this
                 section is scrolled into view. Without it, scrollIntoView snaps
                 the section to the very top, pushing the tooltip off-screen. */}
             <div ref={candidatesSectionRef} data-tour-target="contenders" className="scroll-mt-[40vh]">
-              {renderMovieGrid(`Top nominees from ${year}`, topContenders, "top-contenders")}
+              {renderMovieGrid(
+                `Top nominees from ${year}`,
+                showAllTopContenders ? topContenders : topContenders.slice(0, INITIAL_FILM_LIMIT),
+                "top-contenders"
+              )}
+              {topContenders.length > INITIAL_FILM_LIMIT && !showAllTopContenders && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllTopContenders(true)}
+                  className="mb-4 min-h-[44px] px-1 flex items-center text-xs font-medium text-gold-400 hover:text-gold-300 transition-colors"
+                >
+                  Show {topContenders.length - INITIAL_FILM_LIMIT} more top nominees
+                </button>
+              )}
             </div>
             {renderMovieGrid(
               `Other notable films from ${year}`,
@@ -996,7 +1024,7 @@ export default function YearExplorer({
               <button
                 type="button"
                 onClick={() => setShowAllOther(true)}
-                className="mb-4 text-xs font-medium text-gold-400 hover:text-gold-300 transition-colors"
+                className="mb-4 min-h-[44px] px-1 flex items-center text-xs font-medium text-gold-400 hover:text-gold-300 transition-colors"
               >
                 Show {otherFilms.length - INITIAL_FILM_LIMIT} more notable films
               </button>

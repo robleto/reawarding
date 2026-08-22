@@ -17,28 +17,31 @@
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseBrowser";
-import type { UserAward } from "@/hooks/useUserAwards";
-import type { Movie } from "@/types/types";
+import type { OfficialAwardWinner } from "@/utils/academyStatus";
 
-export interface OfficialAwardWinner {
-  year: number;
-  category: string;
-  filmTitle: string;
-  movieId: string | null;
-  matchStatus: "matched" | "unmatched" | "needs_review";
-}
+// Re-exported for backward compatibility — getAcademyStatus/getAcademyContextMessage
+// used to live in this file. They moved to src/utils/academyStatus.ts (a pure
+// module with no Supabase import of any kind) specifically so server code
+// (src/app/api/alternate-oscar-history/route.ts) can use them without
+// pulling this file's browser-only `supabase` client into a server bundle.
+export type { OfficialAwardWinner, AcademyStatus, AcademyStatusResult } from "@/utils/academyStatus";
+export { getAcademyStatus, getAcademyContextMessage } from "@/utils/academyStatus";
 
-let cached: Promise<Map<number, OfficialAwardWinner>> | null = null;
+// Keyed by category so best-picture (the original, still-only-100%-matched
+// category) and any other category each get their own cached promise/request
+// instead of sharing one — every existing caller omits the category param and
+// gets "best-picture", identical to this module's pre-multi-category behavior.
+const cached = new Map<string, Promise<Map<number, OfficialAwardWinner>>>();
 
-async function loadOfficialAwardWinners(): Promise<Map<number, OfficialAwardWinner>> {
+async function loadOfficialAwardWinners(category: string): Promise<Map<number, OfficialAwardWinner>> {
   const { data, error } = await supabase
     .from("official_award_winners")
     .select("year, category, film_title, movie_id, match_status")
-    .eq("category", "best-picture");
+    .eq("category", category);
 
   if (error) {
     console.warn("[officialAwardWinners] fetch failed:", error.message);
-    cached = null; // allow retry on next call rather than caching a failure
+    cached.delete(category); // allow retry on next call rather than caching a failure
     return new Map<number, OfficialAwardWinner>();
   }
 
@@ -55,14 +58,18 @@ async function loadOfficialAwardWinners(): Promise<Map<number, OfficialAwardWinn
   return map;
 }
 
-export function fetchOfficialAwardWinners(): Promise<Map<number, OfficialAwardWinner>> {
-  if (!cached) {
-    cached = loadOfficialAwardWinners();
+export function fetchOfficialAwardWinners(
+  category: string = "best-picture"
+): Promise<Map<number, OfficialAwardWinner>> {
+  let promise = cached.get(category);
+  if (!promise) {
+    promise = loadOfficialAwardWinners(category);
+    cached.set(category, promise);
   }
-  return cached;
+  return promise;
 }
 
-export function useOfficialAwardWinners(): {
+export function useOfficialAwardWinners(category: string = "best-picture"): {
   winners: Map<number, OfficialAwardWinner>;
   loading: boolean;
 } {
@@ -71,7 +78,8 @@ export function useOfficialAwardWinners(): {
 
   useEffect(() => {
     let cancelled = false;
-    fetchOfficialAwardWinners().then((map) => {
+    setLoading(true);
+    fetchOfficialAwardWinners(category).then((map) => {
       if (!cancelled) {
         setWinners(map);
         setLoading(false);
@@ -80,88 +88,8 @@ export function useOfficialAwardWinners(): {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [category]);
 
   return { winners, loading };
 }
 
-export type AcademyStatus = "upheld" | "reawarded" | "unscreened";
-
-export interface AcademyStatusResult {
-  status: AcademyStatus;
-  intensity?: "mild" | "loud"; // only set when status === "reawarded"
-  officialTitle: string;
-}
-
-/**
- * Three-state comparison: Upheld / Reawarded / Unscreened. Gated on a set
- * ballot (5+ nominees AND an explicit winner) — thin/unset years return null,
- * per Law 3 (ballots must form, never appear) applied to this comparison too.
- */
-export function getAcademyStatus({
-  year,
-  existingAward,
-  liveNomineeCount,
-  yearMovies,
-  winners,
-}: {
-  year: number;
-  existingAward: UserAward | null;
-  liveNomineeCount: number;
-  yearMovies: Movie[]; // movies for this release year, each with rankings[0] populated
-  winners: Map<number, OfficialAwardWinner>;
-}): AcademyStatusResult | null {
-  const hasSetBallot = liveNomineeCount >= 5 && existingAward?.winnerId != null;
-  if (!hasSetBallot) return null;
-
-  const official = winners.get(year);
-  if (!official || official.matchStatus !== "matched" || !official.movieId) return null;
-
-  if (String(official.movieId) === String(existingAward!.winnerId)) {
-    return { status: "upheld", officialTitle: official.filmTitle };
-  }
-
-  const officialMovie = yearMovies.find((m) => String(m.id) === String(official.movieId));
-  const officialRating = officialMovie?.rankings?.[0]?.ranking;
-  if (officialMovie == null || officialRating == null) {
-    return { status: "unscreened", officialTitle: official.filmTitle };
-  }
-
-  const nomineeIds = new Set((existingAward!.nomineeIds ?? []).map(String));
-  const intensity = nomineeIds.has(String(official.movieId)) ? "mild" : "loud";
-  return { status: "reawarded", intensity, officialTitle: official.filmTitle };
-}
-
-/**
- * Simple ID-first, title-fallback comparison for message-building call sites
- * that only need "did this movie match the Academy's pick" (not the full
- * three-state model) — e.g. the toast copy shown right after creating an award.
- */
-export function getAcademyContextMessage(
-  movieId: string | number | null | undefined,
-  movieTitle: string,
-  year: number,
-  winners: Map<number, OfficialAwardWinner>
-): { message: string; agreedWithAcademy: boolean } {
-  const official = winners.get(year);
-
-  if (!official) {
-    return {
-      message: `You've chosen ${movieTitle} as Best Picture of ${year}.`,
-      agreedWithAcademy: false,
-    };
-  }
-
-  const agreedWithAcademy =
-    official.movieId != null && movieId != null
-      ? String(official.movieId) === String(movieId)
-      : official.filmTitle.toLowerCase() === movieTitle.toLowerCase();
-
-  if (agreedWithAcademy) {
-    return { message: "You agree with the Academy!", agreedWithAcademy: true };
-  }
-  return {
-    message: `The Academy picked ${official.filmTitle} instead.`,
-    agreedWithAcademy: false,
-  };
-}
