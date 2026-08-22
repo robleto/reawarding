@@ -103,6 +103,7 @@ export default function ListDetailView({
   const [showMobileManage, setShowMobileManage] = useState(false);
   const manageMenuRef = useRef<HTMLDivElement | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeletingList, setIsDeletingList] = useState(false);
 
   useEffect(() => {
     onEditingChange?.(isEditing);
@@ -621,19 +622,24 @@ export default function ListDetailView({
 
   const handleDeleteList = async () => {
     if (!list || !isOwner) return;
+    setIsDeletingList(true);
     try {
-      // Delete items first to avoid FK issues (if cascade not enabled)
-      await supabase.from("movie_list_items").delete().eq("list_id", list.id);
-      // Delete the list
+      // movie_list_items.list_id is ON DELETE CASCADE (base schema
+      // migration), so deleting the list itself is sufficient — no need to
+      // (and no error handling for) a separate items delete first.
       const { error } = await supabase.from("movie_lists").delete().eq("id", list.id);
       if (error) {
         console.error("Error deleting list:", error.message);
+        showToast("Couldn't delete this list. Please try again.", "error");
         return;
       }
       setShowDeleteConfirm(false);
       goToListsHome();
     } catch (err) {
       console.error("Unexpected error deleting list:", err);
+      showToast("Couldn't delete this list. Please try again.", "error");
+    } finally {
+      setIsDeletingList(false);
     }
   };
 
@@ -699,15 +705,17 @@ export default function ListDetailView({
             <div className="p-5 border-t border-gray-800 flex justify-end gap-2">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 rounded-md border border-gray-700 text-gray-200 hover:bg-gray-800"
+                disabled={isDeletingList}
+                className="px-4 py-2 rounded-md border border-gray-700 text-gray-200 hover:bg-gray-800 disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteList}
-                className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+                disabled={isDeletingList}
+                className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
               >
-                Delete
+                {isDeletingList ? "Deleting…" : "Delete"}
               </button>
             </div>
           </div>
