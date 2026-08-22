@@ -125,7 +125,7 @@ function LoginPageContent() {
     
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -137,9 +137,15 @@ function LoginPageContent() {
             }
           },
         });
-        
+
         if (error) {
           setError(error.message);
+        } else if (data.session) {
+          // Email confirmation is off in this project (auto-confirm), so
+          // signUp() already returns a live session here — telling the user
+          // to "check your email" would dead-end them on this page forever
+          // (AUTH-1, docs/audits/2026-08-21-launch-readiness-round3.md).
+          window.location.href = next;
         } else {
           setMessage('Check your email for a confirmation link!');
         }
