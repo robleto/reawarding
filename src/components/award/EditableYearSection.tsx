@@ -128,6 +128,19 @@ interface EditableYearSectionProps {
    * handleResetToDefault, applyWorkshopState) refuse to persist when false.
    */
   viewerOwnsBallot: boolean;
+  /**
+   * PERF-1 (docs/audits/2026-08-21-launch-readiness-round3.md): when the
+   * caller already has this year's saved nomination in memory (Home's
+   * useUserAwards, or a public profile's usePublicProfile — both fetch
+   * every year's awards in one query up front), pass it here so the mount
+   * effect applies it directly instead of firing its own
+   * `/api/awards?year=...` round trip. Pass `null` (not `undefined`) to
+   * mean "caller already checked, there's no saved ballot for this year" —
+   * `undefined` (the default, omitted prop) falls back to the original
+   * per-instance fetch, for callers that don't have the full list preloaded
+   * (e.g. the standalone /year/[year] workshop route).
+   */
+  preloadedNomination?: { nominee_ids: string[]; winner_id: string | null } | null;
 }
 
 const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSectionProps>(function EditableYearSection({
@@ -145,6 +158,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   onWorkshopNomineesChange,
   onEditRequest,
   viewerOwnsBallot,
+  preloadedNomination,
 }: EditableYearSectionProps, ref) {
   const supabase = useSupabaseClient<Database>();
   const user = useUser();
@@ -316,6 +330,71 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     [allMoviesForYear, movies, winner, isWorkshop, onWorkshopNomineesChange]
   );
 
+  // Shared by loadExistingNominations (the fetch path) and the mount effect's
+  // preloadedNomination path (PERF-1) — same "apply a saved nomination" logic
+  // regardless of whether it came from this component's own /api/awards call
+  // or from data the caller already had.
+  const applyNominationPayload = React.useCallback(
+    (nominations: AwardNomination | null) => {
+      setError(null);
+      setErrorDetails(null);
+      const savedIds = nominations?.nominee_ids ?? [];
+      if (savedIds.length > 0) {
+        const nomineeMovies = savedIds
+          .map((id: string) => allMoviesForYear.find(m => m.id === id))
+          .filter(Boolean) as Movie[];
+        const winnerMovie = nominations && nominations.winner_id
+          ? nomineeMovies.find(m => nominations && m.id === nominations.winner_id) || null
+          : null;
+        setCustomNominees(nomineeMovies);
+        setCustomWinner(winnerMovie);
+        customNomineesRef.current = nomineeMovies;
+        customWinnerRef.current = winnerMovie;
+        setHasCustomNominations(true);
+        if (user?.id) {
+          setCachedEntry(user.id, resolvedCategory, year, {
+            nominee_ids: savedIds,
+            winner_id: nominations?.winner_id ?? null,
+            updated_at: new Date().toISOString(),
+          });
+        }
+        // Use saved nominations unless the user has explicitly chosen 'default'.
+        // When storedPref is null (first visit, no preference yet), default to
+        // showing the saved data so the Awards page matches YearExplorer.
+        const storedPref = user?.id ? getViewPreference(user.id, resolvedCategory, year) : null;
+        const shouldUseCustom = (isWorkshop || storedPref !== 'default') && nomineeMovies.length > 0;
+        if (shouldUseCustom) {
+          syncView('custom', {
+            nominees: nomineeMovies,
+            winner: winnerMovie || null,
+          });
+          if (user?.id && !isWorkshop) {
+            setViewPreference(user.id, resolvedCategory, year, 'custom');
+          }
+        } else {
+          // Stay on defaults; ensure available list matches current default nominees
+          const defaultNomineeIds = movies.map((m) => m.id);
+          setAvailableMovies(allMoviesForYear.filter((m) => !defaultNomineeIds.includes(m.id)));
+        }
+      } else {
+        // No custom nominations - use defaults
+        setHasCustomNominations(false);
+        setCustomNominees(null);
+        setCustomWinner(null);
+        customNomineesRef.current = null;
+        customWinnerRef.current = null;
+        if (user?.id) {
+          setCachedEntry(user.id, resolvedCategory, year, null);
+          if (!isWorkshop) {
+            setViewPreference(user.id, resolvedCategory, year, 'default');
+          }
+        }
+        syncView('default');
+      }
+    },
+    [allMoviesForYear, movies, resolvedCategory, syncView, user?.id, isWorkshop, year]
+  );
+
   const loadExistingNominations = React.useCallback(async () => {
     setLoadingNominations(true);
     try {
@@ -323,65 +402,8 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
         credentials: 'same-origin',
       });
       if (response.ok) {
-        // Clear any previous load errors on success
-        setError(null);
-        setErrorDetails(null);
         const data: { nominations: AwardNomination | null } = await response.json();
-        const savedIds = data.nominations?.nominee_ids ?? [];
-        if (savedIds.length > 0) {
-          const nomineeMovies = savedIds
-            .map((id: string) => allMoviesForYear.find(m => m.id === id))
-            .filter(Boolean) as Movie[];
-          const winnerMovie = data.nominations && data.nominations.winner_id
-            ? nomineeMovies.find(m => data.nominations && m.id === data.nominations.winner_id) || null
-            : null;
-          setCustomNominees(nomineeMovies);
-          setCustomWinner(winnerMovie);
-          customNomineesRef.current = nomineeMovies;
-          customWinnerRef.current = winnerMovie;
-          setHasCustomNominations(true);
-          if (user?.id) {
-            setCachedEntry(user.id, resolvedCategory, year, {
-              nominee_ids: savedIds,
-              winner_id: data.nominations?.winner_id ?? null,
-              updated_at: new Date().toISOString(),
-            });
-          }
-          // Use saved nominations unless the user has explicitly chosen 'default'.
-          // When storedPref is null (first visit, no preference yet), default to
-          // showing the saved data so the Awards page matches YearExplorer.
-          const storedPref = user?.id ? getViewPreference(user.id, resolvedCategory, year) : null;
-          const shouldUseCustom = (isWorkshop || storedPref !== 'default') && nomineeMovies.length > 0;
-          if (shouldUseCustom) {
-            syncView('custom', {
-              nominees: nomineeMovies,
-              winner: winnerMovie || null,
-            });
-            if (user?.id && !isWorkshop) {
-              setViewPreference(user.id, resolvedCategory, year, 'custom');
-            }
-          } else {
-            // Stay on defaults; ensure available list matches current default nominees
-            const defaultNomineeIds = movies.map((m) => m.id);
-            setAvailableMovies(allMoviesForYear.filter((m) => !defaultNomineeIds.includes(m.id)));
-          }
-        } else {
-          // No custom nominations - use defaults
-          setError(null);
-          setErrorDetails(null);
-          setHasCustomNominations(false);
-          setCustomNominees(null);
-          setCustomWinner(null);
-          customNomineesRef.current = null;
-          customWinnerRef.current = null;
-          if (user?.id) {
-            setCachedEntry(user.id, resolvedCategory, year, null);
-            if (!isWorkshop) {
-              setViewPreference(user.id, resolvedCategory, year, 'default');
-            }
-          }
-          syncView('default');
-        }
+        applyNominationPayload(data.nominations);
       } else {
         console.warn('Failed to load nominations:', response.status, response.statusText);
         // For 503 errors (service unavailable), it's likely a database table issue
@@ -399,7 +421,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
     } finally {
       setLoadingNominations(false);
     }
-  }, [year, allMoviesForYear, movies, winner, resolvedCategory, syncView, user?.id, isWorkshop]);
+  }, [year, resolvedCategory, applyNominationPayload]);
 
   const hasStoredCustom = !isWorkshop && (customNominees?.length ?? 0) > 0;
 
@@ -490,7 +512,14 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
       hasInitializedGuestRef.current = false;
       if (!hasLoadedInitialRef.current) {
         hasLoadedInitialRef.current = true;
-        loadExistingNominations();
+        // PERF-1: skip this instance's own /api/awards round trip when the
+        // caller already fetched every year's award in one query and passed
+        // this year's slice down.
+        if (preloadedNomination !== undefined) {
+          applyNominationPayload(preloadedNomination);
+        } else {
+          loadExistingNominations();
+        }
       }
     } else {
       // Initialize guest state once per guest session. Re-runs of this effect
@@ -510,7 +539,7 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
       }
       syncView('default');
     }
-  }, [user, sessionLoading, loadExistingNominations, syncView, isWorkshop, viewerOwnsBallot]);
+  }, [user, sessionLoading, loadExistingNominations, applyNominationPayload, preloadedNomination, syncView, isWorkshop, viewerOwnsBallot]);
 
   // Keep display state in sync when defaults change and there are no custom nominations
   useEffect(() => {

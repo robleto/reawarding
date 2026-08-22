@@ -1099,6 +1099,24 @@ export default function HomePage() {
                     // way the page already gates elsewhere (isGuest).
                     viewerOwnsBallot={!isGuest}
                     onEditRequest={() => setEditingYear(Number(yearData.year))}
+                    // PERF-1: useUserAwards already fetched every year's
+                    // award in one query above — skip this instance's own
+                    // /api/awards round trip. `undefined` while that fetch
+                    // is still in flight so the mount effect falls back to
+                    // fetching rather than wrongly concluding "no ballot."
+                    preloadedNomination={
+                      awardsLoading
+                        ? undefined
+                        : (() => {
+                            const found = awards.find((a) => a.year === Number(yearData.year));
+                            return found
+                              ? {
+                                  nominee_ids: found.nomineeIds.map(String),
+                                  winner_id: found.winnerId != null ? String(found.winnerId) : null,
+                                }
+                              : null;
+                          })()
+                    }
                   />
                 ) : (
                   // Same glass-skeleton treatment [username]/awards/page.tsx

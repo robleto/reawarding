@@ -279,7 +279,8 @@ export default function ProfileAwardsPage() {
           page rendered the identical EditableYearSection list with no
           navigation chrome at all above it. */}
       {formattedYears.length > 1 && (
-        <div className="sticky top-[var(--header-height,calc(4.3rem+env(safe-area-inset-top)))] z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 pt-2 mb-4 bg-charcoal-900/85 backdrop-blur-md [&>div]:mb-0">
+        // No background — see src/app/page.tsx's identical bar for why.
+        <div className="sticky top-[var(--header-height,calc(4.3rem+env(safe-area-inset-top)))] z-30 pt-2 mb-4 [&>div]:mb-0">
           <MuseumYearTimeline
             years={formattedYears.map((y) => ({
               year: Number(y.year),
@@ -310,6 +311,22 @@ export default function ProfileAwardsPage() {
                 mode="view"
                 nomineeImageMode="poster"
                 viewerOwnsBallot={viewerOwnsBallot}
+                // PERF-1 (docs/audits/2026-08-21-launch-readiness-round3.md):
+                // usePublicProfile already fetched every year's award above
+                // (see the savedAward lookup) — skip this instance's own
+                // /api/awards round trip. Safe to compute unconditionally
+                // here (unlike Home): this component already returns early
+                // above while `loading` is true, so `awards` is fully
+                // resolved by the time this renders.
+                preloadedNomination={(() => {
+                  const found = awards.find((a) => a.year === Number(yearData.year));
+                  return found
+                    ? {
+                        nominee_ids: found.nominee_ids.map(String),
+                        winner_id: found.winner_id != null ? String(found.winner_id) : null,
+                      }
+                    : null;
+                })()}
               />
             ) : (
               <div className="award-editable-section dark-glass rounded-xl p-4 md:p-8" style={{ minHeight: "600px" }}>
