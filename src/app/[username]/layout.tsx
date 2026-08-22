@@ -9,18 +9,25 @@ import UserAvatar from "@/components/ui/UserAvatar";
 import FollowButton from "@/components/social/FollowButton";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useEffect, useRef, useState } from "react";
 
 function ProfileHeader({
   username,
+  profile,
+  loading,
+  notFound,
+  isOwnProfile,
 }: {
   username: string;
+  profile: ReturnType<typeof usePublicProfile>["profile"];
+  loading: boolean;
+  notFound: boolean;
+  isOwnProfile: boolean;
 }) {
-  const { profile, loading, notFound } = usePublicProfile(username);
   const sessionUser = useUser();
   const { followingIds, toggleFollow } = useFollowing(profile?.id ?? null);
   const [copied, setCopied] = useState(false);
-  const isOwnProfile = useIsProfileOwner(profile?.id);
 
   const handleCopyProfileUrl = async () => {
     try {
@@ -63,6 +70,45 @@ function ProfileHeader({
     profile.full_name ||
     profile.username;
 
+  // Visual chip stays compact (px-2.5 py-1 text-[11px]) to match the
+  // header's dense layout; the before:-inset-y-3 pseudo-element pads
+  // the real tappable area out to 44px+ tall on touch without
+  // enlarging the visible pill. Horizontal expansion is
+  // intentionally zero (before:inset-x-0) — this pill's own text
+  // ("Share Profile"/"Copied!") already clears 44px wide, and the
+  // old before:-inset-3 (12px, all sides) reached 4px past the
+  // 8px gap-2 onto the Follow button's own visible pixels; since
+  // Share renders later in DOM with z-index:auto, its invisible
+  // hit-box was winning the hit-test over Follow's real button in
+  // that 4px strip (tapping the right edge of "Follow" copied the
+  // URL instead of toggling follow). Removing the horizontal
+  // reach fixes that at the source; FollowButton's own z-10 is
+  // the backstop.
+  const shareButton = (
+    <button
+      onClick={handleCopyProfileUrl}
+      className="relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-gray-400 hover:text-white bg-gray-800/40 hover:bg-gray-700/60 border border-gray-700/30 hover:border-gray-600/50 transition-all before:content-[''] before:absolute before:inset-x-0 before:-inset-y-3"
+    >
+      {copied ? (
+        <>
+          <Check className="w-3 h-3 text-green-400" />
+          <span className="text-green-400">Copied!</span>
+        </>
+      ) : (
+        <>
+          <Share2 className="w-3 h-3" />
+          Share Profile
+        </>
+      )}
+    </button>
+  );
+
+  // This only ever renders "public" content now — UsernameLayout skips
+  // mounting ProfileHeader entirely for the owner's default "personal"
+  // view (see the isBlank check there), so there's no personal-mode
+  // branch to handle here. What's left is exactly what a visitor sees;
+  // the owner reaches it too by flipping to "Preview" in UserMenu's
+  // dropdown.
   return (
     <div className="mb-2">
       <div className="flex items-center gap-5 mb-5">
@@ -100,36 +146,7 @@ function ProfileHeader({
                 size="sm"
               />
             )}
-            {/* Visual chip stays compact (px-2.5 py-1 text-[11px]) to match the
-                header's dense layout; the before:-inset-y-3 pseudo-element pads
-                the real tappable area out to 44px+ tall on touch without
-                enlarging the visible pill. Horizontal expansion is
-                intentionally zero (before:inset-x-0) — this pill's own text
-                ("Share Profile"/"Copied!") already clears 44px wide, and the
-                old before:-inset-3 (12px, all sides) reached 4px past the
-                8px gap-2 onto the Follow button's own visible pixels; since
-                Share renders later in DOM with z-index:auto, its invisible
-                hit-box was winning the hit-test over Follow's real button in
-                that 4px strip (tapping the right edge of "Follow" copied the
-                URL instead of toggling follow). Removing the horizontal
-                reach fixes that at the source; FollowButton's own z-10 is
-                the backstop. */}
-            <button
-              onClick={handleCopyProfileUrl}
-              className="relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium text-gray-400 hover:text-white bg-gray-800/40 hover:bg-gray-700/60 border border-gray-700/30 hover:border-gray-600/50 transition-all before:content-[''] before:absolute before:inset-x-0 before:-inset-y-3"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-3 h-3 text-green-400" />
-                  <span className="text-green-400">Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Share2 className="w-3 h-3" />
-                  Share Profile
-                </>
-              )}
-            </button>
+            {shareButton}
           </div>
         </div>
       </div>
@@ -137,23 +154,42 @@ function ProfileHeader({
   );
 }
 
+// Shared by the tab strip (public/preview view) and the standalone page
+// title (personal/blank view) so which-tab-is-this logic exists in exactly
+// one place. `suffix` is relative to `${basePath}` (empty string = the
+// Overview/index route).
+const PROFILE_TAB_DEFS = [
+  { label: "Overview", suffix: "", icon: Home },
+  { label: "My Awards", suffix: "/awards", icon: Trophy },
+  { label: "My Rankings", suffix: "/rankings", icon: Star },
+  { label: "My Films", suffix: "/films", icon: Film },
+  { label: "Collections", suffix: "/collections", icon: Layers },
+  { label: "Watchlist", suffix: "/watchlist", icon: Bookmark },
+  { label: "Lists", suffix: "/lists", icon: List },
+  { label: "Activity", suffix: "/activity", icon: Activity },
+  { label: "Friends", suffix: "/following", icon: Users },
+];
+
+function findActiveProfileTab(currentPath: string, basePath: string) {
+  return PROFILE_TAB_DEFS.find((tab) => {
+    if (tab.suffix === "") return currentPath === basePath;
+    // Friends covers both /following and /followers — same tab, two routes.
+    if (tab.label === "Friends") {
+      return (
+        currentPath.startsWith(`${basePath}/following`) ||
+        currentPath.startsWith(`${basePath}/followers`)
+      );
+    }
+    return currentPath.startsWith(`${basePath}${tab.suffix}`);
+  });
+}
+
 function ProfileTabs({ username }: { username: string }) {
   const pathname = usePathname();
   const currentPath = pathname ?? "";
   const basePath = `/${username}`;
   const activeTabRef = useRef<HTMLAnchorElement | null>(null);
-
-  const tabs = [
-    { label: "Overview", href: basePath, icon: Home },
-    { label: "My Awards", href: `${basePath}/awards`, icon: Trophy },
-    { label: "My Rankings", href: `${basePath}/rankings`, icon: Star },
-    { label: "My Films", href: `${basePath}/films`, icon: Film },
-    { label: "Collections", href: `${basePath}/collections`, icon: Layers },
-    { label: "Watchlist", href: `${basePath}/watchlist`, icon: Bookmark },
-    { label: "Lists", href: `${basePath}/lists`, icon: List },
-    { label: "Activity", href: `${basePath}/activity`, icon: Activity },
-    { label: "Friends", href: `${basePath}/following`, icon: Users },
-  ];
+  const activeTab = findActiveProfileTab(currentPath, basePath);
 
   // Whichever tab is active — including landing on it via a deep sub-route
   // (a specific list, a specific collection) — gets centered in the bar
@@ -174,20 +210,16 @@ function ProfileTabs({ username }: { username: string }) {
     // background included.
     <nav className="mt-4 mb-6 overflow-x-auto">
       <div className="w-max flex items-center justify-start gap-2 rounded-xl bg-black/20 backdrop-blur-md border border-gray-700/40 shadow-lg p-1">
-        {tabs.map((tab) => {
+        {PROFILE_TAB_DEFS.map((tab) => {
           const Icon = tab.icon;
-          const isActive =
-            tab.href === basePath
-              ? currentPath === basePath
-              : tab.label === "Friends"
-              ? currentPath.startsWith(`${basePath}/following`) || currentPath.startsWith(`${basePath}/followers`)
-              : currentPath.startsWith(tab.href);
+          const href = `${basePath}${tab.suffix}`;
+          const isActive = tab === activeTab;
 
           return (
             <Link
               key={tab.label}
               ref={isActive ? activeTabRef : undefined}
-              href={tab.href}
+              href={href}
               className={`px-4 sm:px-5 py-2 text-sm font-medium whitespace-nowrap rounded-lg transition-colors ${
                 isActive
                   ? "text-gold bg-white/15 border border-white/10"
@@ -206,6 +238,31 @@ function ProfileTabs({ username }: { username: string }) {
   );
 }
 
+// Stand-in for the tab strip's active-tab highlight when that strip isn't
+// rendered at all (personal/blank view) — without it, landing on e.g.
+// /username/collections in that view has zero indication of which page
+// you're on. Skipped in public/preview view: the tab strip there already
+// gives that context, so a second label would be redundant.
+function PersonalViewTitle({ username }: { username: string }) {
+  const pathname = usePathname();
+  const currentPath = pathname ?? "";
+  const basePath = `/${username}`;
+  const activeTab = findActiveProfileTab(currentPath, basePath);
+
+  if (!activeTab) return null;
+  // Tab strip labels are possessive ("My Awards") because they sit next to
+  // a stranger's-eye-view profile header in public/preview mode. Here
+  // there's no such header to disambiguate against — it's unambiguously
+  // your own page — so the "My " reads redundant.
+  const title = activeTab.label.replace(/^My\s+/, "");
+
+  return (
+    <h1 className="mb-4 font-unbounded font-semibold text-lg text-gray-300 tracking-wide">
+      {title}
+    </h1>
+  );
+}
+
 export default function UsernameLayout({
   children,
 }: {
@@ -213,8 +270,23 @@ export default function UsernameLayout({
 }) {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
+  // Fetched once here (rather than inside ProfileHeader) so isOwnProfile is
+  // available for the isBlank check below without a second /api/users/*
+  // round trip for the same profile+movies+stats+awards payload.
+  const { profile, loading, notFound } = usePublicProfile(username);
+  const isOwnProfile = useIsProfileOwner(profile?.id);
+  const { viewMode } = useProfile();
 
   if (!username) return null;
+
+  // Owner's default view: no header, no tab strip. UserMenu's dropdown
+  // already links to every one of these tabs (Films, Rankings, Collections,
+  // Watchlist, Lists, ...), so the on-page header + tab strip was pure
+  // duplication of that nav for the one person who already has it one click
+  // away — and it cost every tab (Collections' carousel especially) real
+  // estate for chrome they didn't need. Visitors, and the owner previewing
+  // via "Preview" in the dropdown, still get the full experience below.
+  const isBlank = isOwnProfile && viewMode === "personal";
 
   return (
     /* w-full min-w-0: flex item of AppShell's <main> (a flex column) — without
@@ -222,8 +294,20 @@ export default function UsernameLayout({
        intrinsic width up here and inflate the page past the viewport on
        mobile (same guard as /awards and the homepage). */
     <div className="w-full min-w-0 max-w-screen-xl mx-auto py-4">
-      <ProfileHeader username={username} />
-      <ProfileTabs username={username} />
+      {isBlank ? (
+        <PersonalViewTitle username={username} />
+      ) : (
+        <>
+          <ProfileHeader
+            username={username}
+            profile={profile}
+            loading={loading}
+            notFound={notFound}
+            isOwnProfile={isOwnProfile}
+          />
+          <ProfileTabs username={username} />
+        </>
+      )}
       {children}
     </div>
   );

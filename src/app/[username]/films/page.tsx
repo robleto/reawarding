@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
 import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
+import { useRedirectOwnerToWorkbench } from "@/hooks/useRedirectOwnerToWorkbench";
+import { useProfile } from "@/contexts/ProfileContext";
 import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieFilters from "@/components/filters/MovieFilters";
@@ -21,7 +21,9 @@ export default function ProfileFilmsPage() {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
   const { movies: allMovies, profile, loading } = usePublicProfile(username);
-  const isOwner = useIsProfileOwner(profile?.id);
+  const isOwnProfile = useIsProfileOwner(profile?.id);
+  const { viewMode: profileViewMode } = useProfile();
+  const redirecting = useRedirectOwnerToWorkbench("/films", isOwnProfile, profileViewMode);
 
   // Films page shows only "seen" movies
   const movies = useMemo(
@@ -67,6 +69,10 @@ export default function ProfileFilmsPage() {
   };
 
 
+  if (redirecting) {
+    return null;
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
@@ -78,25 +84,9 @@ export default function ProfileFilmsPage() {
     );
   }
 
-  // Read-only, friend-facing view — logging/rating always happens on
-  // /films. When the owner lands here, point them back instead of leaving
-  // them in a view they can't edit.
-  const ownerNudge = isOwner ? (
-    <Link
-      href="/films"
-      className="mb-6 flex items-center justify-between gap-2 rounded-lg border border-gray-700/40 bg-gray-800/20 px-4 py-2.5 text-xs text-gray-400 hover:text-yellow-300 hover:border-gray-600/60 transition-colors"
-    >
-      <span>Viewing your public page</span>
-      <span className="inline-flex items-center gap-1 font-medium">
-        Edit in Films <ArrowRight className="w-3 h-3" />
-      </span>
-    </Link>
-  ) : null;
-
   if (movies.length === 0) {
     return (
       <div>
-        {ownerNudge}
         <div className="text-center py-16">
           <h3 className="text-lg font-semibold text-white mb-2">No films logged yet</h3>
           <p className="text-gray-400 text-sm">@{username} hasn&apos;t marked any movies as seen yet.</p>
@@ -107,7 +97,6 @@ export default function ProfileFilmsPage() {
 
   return (
     <div>
-      {ownerNudge}
       <MovieFilters
         localSearchMode={true}
         availableMovies={movies}

@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
-import { Flame, ArrowRight } from "lucide-react";
+import { Flame } from "lucide-react";
 import { usePublicProfile } from "@/hooks/usePublicProfile";
 import { useIsProfileOwner } from "@/hooks/useIsProfileOwner";
+import { useRedirectOwnerToWorkbench } from "@/hooks/useRedirectOwnerToWorkbench";
+import { useProfile } from "@/contexts/ProfileContext";
 import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
 import MovieFilters from "@/components/filters/MovieFilters";
@@ -23,7 +24,9 @@ export default function ProfileRankingsPage() {
   const params = useParams<{ username: string }>();
   const username = params?.username ?? "";
   const { movies, profile, loading } = usePublicProfile(username);
-  const isOwner = useIsProfileOwner(profile?.id);
+  const isOwnProfile = useIsProfileOwner(profile?.id);
+  const { viewMode: profileViewMode } = useProfile();
+  const redirecting = useRedirectOwnerToWorkbench("/rankings", isOwnProfile, profileViewMode);
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
@@ -106,6 +109,10 @@ export default function ProfileRankingsPage() {
   };
 
 
+  if (redirecting) {
+    return null;
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
@@ -117,25 +124,9 @@ export default function ProfileRankingsPage() {
     );
   }
 
-  // This is the read-only, friend-facing view — rating/editing always
-  // happens on /rankings. When the owner lands here (shared link, curiosity),
-  // point them back rather than leaving them stuck in a view they can't edit.
-  const ownerNudge = isOwner ? (
-    <Link
-      href="/rankings"
-      className="mb-6 flex items-center justify-between gap-2 rounded-lg border border-gray-700/40 bg-gray-800/20 px-4 py-2.5 text-xs text-gray-400 hover:text-yellow-300 hover:border-gray-600/60 transition-colors"
-    >
-      <span>Viewing your public page</span>
-      <span className="inline-flex items-center gap-1 font-medium">
-        Edit in Rankings <ArrowRight className="w-3 h-3" />
-      </span>
-    </Link>
-  ) : null;
-
   if (moviesWithRankings.length === 0) {
     return (
       <div>
-        {ownerNudge}
         <div className="text-center py-16">
           <h3 className="text-lg font-semibold text-white mb-2">No rankings yet</h3>
           <p className="text-gray-400 text-sm">@{username} hasn&apos;t rated any movies yet.</p>
@@ -146,7 +137,6 @@ export default function ProfileRankingsPage() {
 
   return (
     <div>
-      {ownerNudge}
       {/* Tab Navigation — matching MeepleGo style */}
       <div className="mb-6 flex gap-2 border-b border-gray-700">
         <button

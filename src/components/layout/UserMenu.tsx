@@ -3,40 +3,71 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Activity, Bookmark, Film, Layers, LogOut, Moon, Monitor, Plus, Settings, Star, Sun, Trophy, User, Users, List } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { Activity, Bookmark, Film, Layers, LogOut, Plus, Settings, Star, Trophy, User, Users, List } from 'lucide-react';
 import { useProfile } from '@/contexts/ProfileContext';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import type { Database } from '@/types/supabase';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { signOutEverywhere } from '@/utils/signOut';
 import { useAuthState } from '@/hooks/useAuthState';
+import { isNativeApp } from '@/lib/platform';
 
-const THEME_OPTIONS = [
-  { value: 'light', icon: Sun, label: 'Light mode' },
-  { value: 'system', icon: Monitor, label: 'System theme' },
-  { value: 'dark', icon: Moon, label: 'Dark mode' },
-] as const;
+const VIEW_MODE_OPTIONS = [
+  { value: 'personal' as const, label: 'You' },
+  { value: 'public' as const, label: 'Preview' },
+];
 
-function ThemeSwitcher({ theme, setTheme }: { theme: string | undefined; setTheme: (theme: string) => void }) {
+// Sits at the bottom of the menu, below Sign Out — same slot the
+// light/dark theme switcher used to occupy before it was pulled (light
+// mode isn't polished yet, so there was no theme choice worth exposing).
+// Lets the owner flip their own [username]/* pages between the blank
+// "personal" render (default — no header, no tab strip, since the nav
+// links above already cover that navigation) and "public", the exact
+// page a visitor sees.
+function ProfileViewToggle({
+  viewMode,
+  onChange,
+}: {
+  viewMode: 'personal' | 'public';
+  onChange: (mode: 'personal' | 'public') => void;
+}) {
   return (
-    <div className="flex items-center justify-center px-4 py-3">
-      <div className="flex items-center gap-1 p-1 border border-gray-700 rounded-full bg-gray-900/60">
-        {THEME_OPTIONS.map(({ value, icon: Icon, label }) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setTheme(value)}
-            aria-label={label}
-            aria-pressed={theme === value}
-            className={`flex items-center justify-center w-12 h-9 rounded-full transition-colors ${
-              theme === value ? 'bg-gray-700 text-gold-300' : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            <Icon className="w-4 h-4" />
-          </button>
-        ))}
-      </div>
+    <div className="flex items-center gap-1 p-1 border border-gray-700 rounded-full bg-gray-900/60">
+      {VIEW_MODE_OPTIONS.map(({ value, label }) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() => onChange(value)}
+          aria-pressed={viewMode === value}
+          className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+            viewMode === value ? 'bg-gray-700 text-gold-300' : 'text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Free-tier only — same gold-pill treatment as the logged-out Sign Up button
+// and the Settings page's own "Unlock Premium" CTA, so this reads as an
+// action, not another nav row. Links to /premium rather than posting straight
+// to Stripe Checkout itself, so that page's own state handling (already
+// signed in, has a Stripe customer, native app) stays the single place that
+// logic lives — this button doesn't duplicate it. Hidden in the native app
+// the same way every other premium CTA in the app is (isNativeApp()) — no
+// in-app purchase flow exists yet.
+function UnlockPremiumButton({ onClick }: { onClick: () => void }) {
+  return (
+    <div className="px-4 pt-3">
+      <Link
+        href="/premium"
+        onClick={onClick}
+        className="block w-full text-center px-4 py-2 text-sm font-medium text-black rounded-full border border-gold-300/40 bg-gold-500 shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 transition-colors"
+      >
+        Unlock Premium
+      </Link>
     </div>
   );
 }
@@ -70,9 +101,9 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown', on
   const router = useRouter();
   const supabase = useSupabaseClient<Database>();
   const { user, status: authStatus } = useAuthState();
-  const { theme, setTheme } = useTheme();
 
-  const { profile, loading: profileLoading, error: profileError } = useProfile();
+  const { profile, loading: profileLoading, error: profileError, isPremium, viewMode, setViewMode } = useProfile();
+  const isNative = isNativeApp();
 
   const handleLogin = () => {
     if (onLoginClick) {
@@ -186,14 +217,20 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown', on
   const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
   const u = profile?.username;
 
+  // Rankings/Films/Lists point at the global, editable workbench (/rankings,
+  // /films, /lists) rather than the read-only [username]/* copy — those two
+  // pages show the same content in "personal" view, and the workbench is the
+  // one you can actually act on. The [username]/* versions still exist for
+  // "public" preview and for visitors, reached via the profile's own tab
+  // strip rather than this menu.
   const navItems = u ? [
     { href: `/${u}`,             icon: User,     label: 'Profile'    },
     { href: `/${u}/awards`,      icon: Trophy,   label: 'Awards'     },
-    { href: `/${u}/rankings`,    icon: Star,     label: 'Ratings'    },
-    { href: `/${u}/films`,       icon: Film,     label: 'Films'      },
+    { href: `/rankings`,         icon: Star,     label: 'Ratings'    },
+    { href: `/films`,            icon: Film,     label: 'Films'      },
     { href: `/${u}/collections`, icon: Layers,   label: 'Collections'},
     { href: `/${u}/watchlist`,   icon: Bookmark, label: 'Watchlist'  },
-    { href: `/${u}/lists`,       icon: List,     label: 'Lists'      },
+    { href: `/lists`,            icon: List,     label: 'Lists'      },
     { href: `/${u}/activity`,    icon: Activity, label: 'Activity'   },
     { href: `/${u}/following`,   icon: Users,    label: 'Friends'    },
   ] : [];
@@ -248,8 +285,17 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown', on
             <LogOut className="w-4 h-4" />
             Sign Out
           </button>
+          {!isPremium && !isNative && (
+            <UnlockPremiumButton onClick={() => onNavigate?.()} />
+          )}
           <div className="my-1 border-t border-gray-700" />
-          <ThemeSwitcher theme={theme} setTheme={setTheme} />
+          <div className="flex items-center justify-center gap-2 px-4 py-3">
+            <span className="text-xs text-gray-400">Profile:</span>
+            <ProfileViewToggle
+              viewMode={viewMode}
+              onChange={(mode) => { setViewMode(mode); onNavigate?.(); }}
+            />
+          </div>
         </div>
       </div>
     );
@@ -310,9 +356,19 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown', on
               Sign Out
             </button>
 
+            {!isPremium && !isNative && (
+              <UnlockPremiumButton onClick={() => setOpen(false)} />
+            )}
+
             <div className="my-1 border-t border-gray-700" />
 
-            <ThemeSwitcher theme={theme} setTheme={setTheme} />
+            <div className="flex items-center justify-center gap-2 px-4 py-3">
+              <span className="text-xs text-gray-400">Profile:</span>
+              <ProfileViewToggle
+                viewMode={viewMode}
+                onChange={(mode) => { setViewMode(mode); setOpen(false); }}
+              />
+            </div>
           </div>
         </div>
       )}

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { Plus } from "lucide-react";
 import MovieCard from "@/components/award/MovieCard";
 import MovieDetailModal from "@/components/movie/MovieDetailModal";
@@ -266,12 +265,6 @@ function FilmsPageContent() {
 				<h1 className="text-2xl font-bold text-white font-unbounded">
 					{showMine ? "My films" : "All films"}
 				</h1>
-				<Link
-					href="/films/collections"
-					className="text-sm text-gold-500 hover:text-yellow-400 transition-colors whitespace-nowrap"
-				>
-					Browse collections
-				</Link>
 			</div>
 
 			<div className="mb-4 inline-flex self-start rounded-full border border-white/10 bg-white/5 p-0.5">

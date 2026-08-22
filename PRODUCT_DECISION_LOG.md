@@ -4,6 +4,34 @@ Purpose: Record WHY major product direction decisions were made to prevent futur
 
 ---
 
+## August 2026 — Ready-Made List Saving Reclassified as a Premium Scope Expansion
+
+### Decision
+
+Saving a Ready-Made list (director/actor/genre/decade auto-collection) as a persistent, editable list is a premium feature. Detecting and previewing the suggestion — the full generated list, posters, and movies — stays free once the investment threshold is met (10 seen films for director/actor/genre, 12 for decade). Only the save/publish step, which turns a one-time preview into an ongoing `movie_lists` row, requires premium.
+
+This corrects the July 2026 entry below, whose "What Did NOT Change" section states "Ready-Made Lists remain earned by investment, not payment" — that line no longer matches what's shipped and is superseded by this entry.
+
+### Reason
+
+The investment threshold still fully gates whether a suggestion exists to look at: a user with no real directorial/actor/genre affinity never sees a locked card, only users who already did the watching do. Premium sits one layer downstream of that gate — it governs whether an already-earned suggestion can be persisted as a real list, not whether it can be earned or previewed. That keeps the "bigger, not faster" spirit intact (nobody can pay to skip the investment), while still being a genuine premium scope expansion the July decision's blanket free-forever framing didn't anticipate.
+
+### What Changed
+
+- Ready-Made list save/publish is premium-gated, enforced at three independent layers: UI (`PremiumLockBadge` swaps in for the Save/Publish action in `src/app/lists/ready-made/page.tsx` and `.../[slug]/page.tsx`), server actions (`saveList`/`saveActorList`/`saveGenreList`/`saveDecadeList` re-check entitlement and redirect to `/premium`), and the API route (`POST /api/lists/ready-made/save` returns 403 for non-premium).
+
+### What Did NOT Change
+
+- The investment threshold itself is unchanged and ungated — reaching it is free and required regardless of tier.
+- Previewing an earned Ready-Made suggestion remains free for everyone.
+- Everything else in the July 2026 entry below (Alternate Oscar History spec, Academy-category comparison rules) is unaffected.
+
+### Reversal Conditions
+
+Re-evaluate if this gate suppresses the investment mechanic itself — e.g. users stop rating toward a director/actor because saving is locked regardless — which would mean the payment gate is acting as a skip-the-investment deterrent rather than a downstream scope expansion, the thing the July decision explicitly ruled out.
+
+---
+
 ## July 2026 — Premium Tier Direction: Scope-and-Reflection Model; First Feature Is Your Alternate Oscar History
 
 ### Decision
@@ -49,7 +77,7 @@ The three-state model (Upheld/Reawarded/Unscreened), rather than a binary, exist
 
 - Watch → Rate → ReAward remains fully free and ungated, all tiers.
 - Best Picture, unlimited years, remains free — only *other* categories beyond Best Picture and pre-recency-window historical range are premium scope expansions.
-- Ready-Made Lists remain earned by investment, not payment.
+- ~~Ready-Made Lists remain earned by investment, not payment.~~ Superseded August 2026 — see entry above: previewing stays earned-by-investment, but saving is now premium.
 - Laws 1–8 govern as before; nothing about ballot formation, emergence, or user ownership changes for any tier.
 
 ### Reversal Conditions
