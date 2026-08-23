@@ -22,6 +22,20 @@ const nextConfig = {
         destination: '/films/:slug/:id',
         permanent: true,
       },
+      // The importer moved out of Settings to its own entry path at /import.
+      // This has to live here rather than as a `permanentRedirect()` in
+      // src/app/settings/import/page.tsx: that page prerenders as static, and
+      // a static page cannot emit a runtime 308 — Next bakes the redirect into
+      // an RSC payload that only the client router acts on. Production was
+      // returning HTTP 200 with zero redirects, so browsers landed correctly
+      // but crawlers and any non-JS client got an app shell, and none of the
+      // old path's SEO signal transferred. A config redirect is a real 308 at
+      // the edge, before filesystem routing, with no server invocation.
+      {
+        source: '/settings/import',
+        destination: '/import',
+        permanent: true,
+      },
     ];
   },
   eslint: {
