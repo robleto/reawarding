@@ -662,7 +662,7 @@ export default function SettingsPage() {
             </div>
           </div>
           <Link
-            href="/settings/import"
+            href="/import"
             className="text-sm font-medium text-gold-300 hover:text-gold-400 transition-colors"
           >
             Import →

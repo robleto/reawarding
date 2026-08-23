@@ -99,11 +99,19 @@ export default function PremiumPage() {
             Save Ready-Made Lists — the director, actor, genre, and decade collections
             you&apos;ve already earned by watching, instead of losing them when you close the tab
           </li>
-          <li>
-            Unlimited import — free imports your first 50 titles from Letterboxd or IMDb;
-            Premium removes the cap and lets you re-import anytime your history changes
-          </li>
         </ul>
+        {/* Import used to be sold here ("free imports your first 50 titles").
+            It isn't any more: importing your whole history is free and
+            uncapped, because a 50-film library makes the lifetime record above
+            statistically meaningless — the cap was throttling the demo for the
+            thing this page is actually selling. */}
+        <p className="mt-3 text-sm text-gray-500">
+          Importing your library isn&apos;t part of this —{" "}
+          <Link href="/import" className="text-gold-400 hover:underline">
+            bringing your whole history over
+          </Link>{" "}
+          is free, uncapped, and always will be.
+        </p>
       </div>
 
       {status === "loading" ? null : !isAuthenticated ? (
