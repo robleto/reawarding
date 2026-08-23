@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
-import { isPremiumUser } from "@/lib/premium";
 import { findTmdbIdByImdbId, importTmdbMovie, searchTmdbMovies } from "@/lib/tmdbImport";
 import { ensureUserWatchlist } from "@/utils/watchlist";
 
@@ -13,11 +12,22 @@ export type ImportRow = {
   rating: number | null;
   /** IMDb tt-id, used for precise matching when available */
   imdbId?: string;
+  /**
+   * TMDB id. Highest-precision match available: our catalog is keyed on
+   * tmdb_id, so a row carrying one needs no title matching and no search —
+   * present in TMDB's own exports and in plenty of home-grown spreadsheets.
+   */
+  tmdbId?: number;
   /** true = Watch (seen_it); false = Watchlist only */
   watched: boolean;
 };
 
-export type ImportSource = "letterboxd" | "imdb";
+/**
+ * Where the rows came from. Informational only — the server treats every row
+ * the same, because scale conversion and column mapping happen client-side
+ * (src/lib/csvImport.ts) where the user can see and correct them.
+ */
+export type ImportSource = "letterboxd" | "imdb" | "tmdb" | "custom";
 
 export type ImportRequestBody = {
   rows: ImportRow[];
@@ -50,16 +60,30 @@ export type ImportResult = {
   failedToSave?: string[];
   /** Set when more unmatched rows existed than the live-backfill cap could attempt this request. */
   backfillCapped?: number;
-  /** Set when a non-premium user submitted more rows than FREE_IMPORT_ROW_CAP — the excess was never processed. */
-  premiumCapped?: number;
+  /**
+   * Set when the request carried more rows than MAX_ROWS_PER_REQUEST — the
+   * excess was not processed. A technical batch ceiling, not an entitlement:
+   * the client uploads a whole export as a sequence of batches, so a normal
+   * import never sees this.
+   */
+  batchCapped?: number;
 };
 
-// Free users can import up to this many rows per request so anyone can
-// experience their history in Reawarding before being asked to pay; larger
-// or repeat imports are the premium "automation" pillar (IMP-1 —
-// docs/audits/2026-08-21-launch-readiness.md — the prior all-or-nothing
-// paywall blocked exactly the pre-conversion users onboarding sends here).
-const FREE_IMPORT_ROW_CAP = 50;
+/**
+ * Rows processed per request. Purely a wall-clock ceiling: unmatched titles
+ * each cost a live TMDB round trip (LIVE_BACKFILL_CAP below) and serverless
+ * functions get killed, not extended, when they run long. The client splits
+ * any export into batches under this size (IMPORT_BATCH_SIZE in
+ * src/lib/csvImport.ts) and uploads them in sequence, so file size affects how
+ * many round trips an import takes, never whether it can finish.
+ *
+ * Import used to be capped at 50 rows for free accounts, with the rest sold as
+ * a premium "automation" pillar. That's gone: import is activation, not a
+ * feature — a capped library makes the paid product (a lifetime record against
+ * the Academy's) statistically meaningless, and the cap was per-request anyway,
+ * so anyone who split their own CSV bypassed it while everyone else bounced.
+ */
+const MAX_ROWS_PER_REQUEST = 300;
 
 // Netlify function time limits make unbounded sequential TMDB calls risky for
 // large Letterboxd exports — cap how many unmatched rows get a live lookup
@@ -97,7 +121,8 @@ function normalizeTitle(title: string): string {
   return folded.replace(/^(the|a|an)\s+/, "");
 }
 
-function rowKey(row: Pick<ImportRow, "title" | "year" | "imdbId">) {
+function rowKey(row: Pick<ImportRow, "title" | "year" | "imdbId" | "tmdbId">) {
+  if (row.tmdbId) return `tmdb:${row.tmdbId}`;
   return row.imdbId || `${normalizeTitle(row.title)}::${row.year}`;
 }
 
@@ -117,46 +142,60 @@ export async function POST(req: NextRequest) {
   // don't need TS to re-prove `user` is non-null across a function boundary.
   const userId = user.id;
 
-  // Importing your watch history is free up to FREE_IMPORT_ROW_CAP rows so
-  // any new user can bring their history in before being asked to pay;
-  // importing more than that (or re-importing later) is the "automation"
-  // premium pillar. Only the row count is gated — never an all-or-nothing
-  // block (see FREE_IMPORT_ROW_CAP comment above).
-  const premium = await isPremiumUser(supabase, userId);
-
+  // Importing is free and uncapped for every account — see
+  // MAX_ROWS_PER_REQUEST above for why a per-request ceiling still exists.
   const body = (await req.json()) as ImportRequestBody;
-  const { rows: submittedRows, source } = body;
+  const { rows: submittedRows } = body;
 
   if (!Array.isArray(submittedRows) || submittedRows.length === 0) {
     return NextResponse.json({ error: "No rows provided" }, { status: 400 });
   }
 
-  const premiumCapped =
-    !premium && submittedRows.length > FREE_IMPORT_ROW_CAP
-      ? submittedRows.length - FREE_IMPORT_ROW_CAP
-      : 0;
-  const rows = premiumCapped > 0 ? submittedRows.slice(0, FREE_IMPORT_ROW_CAP) : submittedRows;
+  const batchCapped = Math.max(0, submittedRows.length - MAX_ROWS_PER_REQUEST);
+  const rows = batchCapped > 0 ? submittedRows.slice(0, MAX_ROWS_PER_REQUEST) : submittedRows;
 
   const importedAt = new Date().toISOString();
 
-  // ── 1. Collect IMDb IDs and (title, year) pairs for batch lookup ──
+  // ── 1. Collect ids and (title, year) pairs for batch lookup ──
+  const tmdbIds = rows
+    .map((r) => r.tmdbId)
+    .filter((id): id is number => typeof id === "number" && id > 0);
+
   const imdbIds = rows
+    .filter((r) => !r.tmdbId)
     .map((r) => r.imdbId)
     .filter((id): id is string => Boolean(id));
 
+  // Only fall back to fuzzy title+year matching for rows carrying no id at all.
   const titleYearPairs = rows
-    .filter((r) => !r.imdbId)
+    .filter((r) => !r.tmdbId && !r.imdbId)
     .map((r) => ({ title: normalizeTitle(r.title), year: r.year }));
 
   // ── 2. Batch fetch matching movie rows ──
-  type MovieMatch = { id: string; title: string; release_year: number; imdb_id: string | null };
+  type MovieMatch = {
+    id: string;
+    title: string;
+    release_year: number;
+    imdb_id: string | null;
+    tmdb_id?: number | null;
+  };
   const matchedMovies: MovieMatch[] = [];
 
-  // Fetch by IMDb ID first (highest precision)
+  // Fetch by TMDB ID first — our catalog is keyed on it, so this is an exact
+  // match with no title normalization involved.
+  if (tmdbIds.length > 0) {
+    const { data } = await supabase
+      .from("movies")
+      .select("id, title, release_year, imdb_id, tmdb_id")
+      .in("tmdb_id", tmdbIds);
+    if (data) matchedMovies.push(...(data as MovieMatch[]));
+  }
+
+  // Then by IMDb ID (also exact)
   if (imdbIds.length > 0) {
     const { data } = await supabase
       .from("movies")
-      .select("id, title, release_year, imdb_id")
+      .select("id, title, release_year, imdb_id, tmdb_id")
       .in("imdb_id", imdbIds);
     if (data) matchedMovies.push(...(data as MovieMatch[]));
   }
@@ -178,7 +217,7 @@ export async function POST(req: NextRequest) {
     for (;;) {
       const { data, error } = await supabase
         .from("movies")
-        .select("id, title, release_year, imdb_id")
+        .select("id, title, release_year, imdb_id, tmdb_id")
         .in("release_year", years)
         .order("id", { ascending: true })
         .range(offset, offset + PAGE_SIZE - 1);
@@ -208,6 +247,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Build lookup maps
+  const byTmdbId = new Map<number, MovieMatch>(
+    matchedMovies.filter((m) => m.tmdb_id).map((m) => [m.tmdb_id!, m])
+  );
   const byImdbId = new Map<string, MovieMatch>(
     matchedMovies.filter((m) => m.imdb_id).map((m) => [m.imdb_id!, m])
   );
@@ -218,8 +260,15 @@ export async function POST(req: NextRequest) {
     ])
   );
 
-  const findLocalMatch = (row: ImportRow) =>
-    row.imdbId ? byImdbId.get(row.imdbId) : byTitleYear.get(rowKey(row));
+  // Precision order: TMDB id, then IMDb id, then normalized title+year. A row
+  // with an id that isn't in our catalog yet deliberately falls through to the
+  // live backfill (step 5) rather than to a fuzzy title match, which could
+  // otherwise attach a rating to the wrong film.
+  const findLocalMatch = (row: ImportRow) => {
+    if (row.tmdbId) return byTmdbId.get(row.tmdbId);
+    if (row.imdbId) return byImdbId.get(row.imdbId);
+    return byTitleYear.get(rowKey(row));
+  };
 
   // ── 2.5 Split rows into "already matched locally" (can be written right
   // away) vs. "needs a live TMDB backfill lookup" — the backfill loop below
@@ -494,7 +543,11 @@ export async function POST(req: NextRequest) {
     async function backfillRow(row: ImportRow) {
       try {
         let tmdbId: number | null = null;
-        if (row.imdbId) {
+        if (row.tmdbId) {
+          // Already the id we'd be looking for — no lookup, no search, and no
+          // chance of matching the wrong film.
+          tmdbId = row.tmdbId;
+        } else if (row.imdbId) {
           tmdbId = await findTmdbIdByImdbId(row.imdbId);
         } else {
           const hits = await searchTmdbMovies(row.title);
@@ -542,6 +595,7 @@ export async function POST(req: NextRequest) {
           title: imported.title,
           release_year: imported.release_year ?? row.year,
           imdb_id: row.imdbId ?? null,
+          tmdb_id: tmdbId,
         });
       } catch (e) {
         console.error(`Live backfill failed for "${row.title}" (${row.year})`, e);
@@ -586,7 +640,7 @@ export async function POST(req: NextRequest) {
       failed,
       failedToSave: failedToSave.length > 0 ? failedToSave : undefined,
       backfillCapped: backfillCapped > 0 ? backfillCapped : undefined,
-      premiumCapped: premiumCapped > 0 ? premiumCapped : undefined,
+      batchCapped: batchCapped > 0 ? batchCapped : undefined,
     } satisfies ImportResult);
   } catch (e) {
     if (e instanceof RankingsGuardError) {

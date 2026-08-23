@@ -35,6 +35,12 @@ export default function Footer() {
 					{/* Links + copyright */}
 					<div className="flex flex-col items-start md:items-end gap-2">
 						<div className="flex flex-wrap gap-4">
+							{/* Permanent public entry to /import — the one path that converts
+							    someone who already logs films elsewhere without asking them to
+							    switch, so it can't only be reachable from inside Settings. */}
+							<Link href="/import" className="text-sm text-gray-400 hover:text-gray-200 transition-colors">
+								Import from Letterboxd
+							</Link>
 							<Link href="/help" className="text-sm text-gray-400 hover:text-gray-200 transition-colors">
 								Help
 							</Link>

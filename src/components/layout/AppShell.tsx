@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import HeaderNav from '@/components/layout/HeaderNav';
 import Footer from '@/components/layout/Footer';
 import MobileTabBar from '@/components/layout/MobileTabBar';
@@ -10,8 +11,24 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
+/**
+ * Marketing routes that render bare — no nav, no tab bar, no footer.
+ *
+ * These are the landing-test pages (docs/validation/landing-page-test.md).
+ * They're measuring whether a promise converts, so any app chrome around them
+ * turns the test into a test of the app. A route group can't help here: nested
+ * layouts always wrap in the root layout, which mounts this shell, so the
+ * bypass has to live in the shell itself.
+ */
+const BARE_ROUTES = ['/oscar-tracker', '/your-awards'];
+
 export default function AppShell({ children }: AppShellProps) {
   const { isAuthenticated } = useAuthState();
+  const pathname = usePathname();
+
+  if (pathname && BARE_ROUTES.includes(pathname)) {
+    return <>{children}</>;
+  }
 
   return (
     // overflow-x-hidden as a permanent safety net: nothing on any page should

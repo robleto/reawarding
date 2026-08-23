@@ -28,7 +28,17 @@ export default function RankingsEmptyState({ onSelectMovie }: RankingsEmptyState
           placeholder="Add a movie you've watched…"
           className="w-full"
         />
-        <p className="mt-6 text-xs text-gray-500">
+        {/* An empty rankings page is the highest-intent moment there is for
+            import: the user came here expecting films and found none, and they
+            may well have hundreds logged elsewhere. */}
+        <p className="mt-6 text-sm text-gray-400">
+          Already rate films on Letterboxd or IMDb?{" "}
+          <Link href="/import" className="text-yellow-400 hover:text-yellow-300 font-medium">
+            Import your history
+          </Link>{" "}
+          instead of starting over.
+        </p>
+        <p className="mt-2 text-xs text-gray-500">
           or{" "}
           <Link href="/" className="text-yellow-400 hover:text-yellow-300 font-medium">
             go back home
