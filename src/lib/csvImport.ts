@@ -355,9 +355,15 @@ export function detectFormat(parsed: ParsedCsv, fileName: string): FormatDetecti
     return {
       id: "letterboxd",
       label: "Letterboxd export",
-      note: rating
-        ? "Ratings read as half-stars (0.5–5) and doubled onto the 1–10 scale."
-        : "No rating column — these rows import as watched, without ratings.",
+      // The note has to agree with treatAs. It previously always said
+      // "import as watched", which on a real watchlist.csv told the user the
+      // opposite of what the importer was about to do.
+      note:
+        treatAs === "watchlist"
+          ? "Read as a watchlist — these films go to your watchlist unrated, not your watched history."
+          : rating
+            ? "Ratings read as half-stars (0.5–5) and doubled onto the 1–10 scale."
+            : "No rating column — these rows import as watched, without ratings.",
       recognised: true,
       mapping: {
         title: findHeader(headers, ["Name"]) ?? findHeader(headers, SYNONYMS.title),

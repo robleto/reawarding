@@ -65,6 +65,10 @@ const lbWatchlist = `Date,Name,Year,Letterboxd URI
   const { detection, built } = run("Letterboxd watchlist", lbWatchlist, "watchlist.csv");
   check("lb-wl: treatAs from filename", detection.mapping.treatAs, "watchlist");
   check("lb-wl: row is watchlist", built.rows[0].watched, false);
+  // Regression: the banner used to say "import as watched" on a real
+  // watchlist.csv — telling the user the opposite of what would happen.
+  check("lb-wl: note agrees with treatAs", detection.note.includes("watchlist"), true);
+  check("lb-wl: note does not promise watched", /import as watched/.test(detection.note), false);
 }
 {
   const { detection } = run("Letterboxd watched (same headers)", lbWatchlist, "watched.csv");
