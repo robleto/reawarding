@@ -1,0 +1,854 @@
+{
+  "source": "https://en.wikipedia.org/wiki/98th%20Academy%20Awards",
+  "ceremony": {
+    "number": 98,
+    "film_year": 2025,
+    "event_date": "2026-03-15",
+    "official_name": "98th Academy Awards",
+    "short_name": "98th Oscars",
+    "location": "Dolby Theatre, Hollywood, Los Angeles, California, U.S."
+  },
+  "categories": [
+    {
+      "canonical_slug": "best-picture",
+      "display_name": "Best Picture",
+      "category_type": "work",
+      "ordinal": 1,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "One Battle After Another",
+          "is_winner": true,
+          "notes": "''One Battle After Another'' – Adam Somner (List of posthumous Academy Award winners and nominees|), Sara Murphy, and Paul Thomas Anderson, producers"
+        },
+        {
+          "work_title": "Bugonia",
+          "is_winner": false,
+          "notes": "''Bugonia'' – Ed Guiney, Andrew Lowe, Yorgos Lanthimos, Emma Stone, and Lars Knudsen, producers"
+        },
+        {
+          "work_title": "F1",
+          "is_winner": false,
+          "notes": "''F1'' – Chad Oman, Brad Pitt, Dede Gardner, Jeremy Kleiner, Joseph Kosinski, and Jerry Bruckheimer, producers"
+        },
+        {
+          "work_title": "Frankenstein",
+          "is_winner": false,
+          "notes": "''Frankenstein'' – Guillermo del Toro, J. Miles Dale, and Scott Stuber, producers"
+        },
+        {
+          "work_title": "Hamnet",
+          "is_winner": false,
+          "notes": "''Hamnet'' – Liza Marshall, Pippa Harris, Nicolas Gonda, Steven Spielberg, and Sam Mendes, producers"
+        },
+        {
+          "work_title": "Marty Supreme",
+          "is_winner": false,
+          "notes": "''Marty Supreme'' – Eli Bush, Ronald Bronstein, Josh Safdie, Anthony Katagas, and Timothée Chalamet, producers"
+        },
+        {
+          "work_title": "The Secret Agent",
+          "is_winner": false,
+          "notes": "''The Secret Agent'' – Emilie Lesclaux, producer"
+        },
+        {
+          "work_title": "Sentimental Value",
+          "is_winner": false,
+          "notes": "''Sentimental Value'' – Maria Ekerhovd and Andrea Berentsen Ottmar, producers"
+        },
+        {
+          "work_title": "Sinners",
+          "is_winner": false,
+          "notes": "''Sinners'' – Zinzi Coogler, Sev Ohanian, and Ryan Coogler, producers"
+        },
+        {
+          "work_title": "Train Dreams",
+          "is_winner": false,
+          "notes": "''Train Dreams'' – Marissa McMahon, Teddy Schwarzman, Will Janowitz, Ashley Schlaifer, and Michael Heimler, producers"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-director",
+      "display_name": "Best Directing",
+      "category_type": "person",
+      "ordinal": 2,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "One Battle After Another",
+          "is_winner": true,
+          "notes": "Paul Thomas Anderson – ''One Battle After Another''"
+        },
+        {
+          "work_title": "Hamnet",
+          "is_winner": false,
+          "notes": "Chloé Zhao – ''Hamnet''"
+        },
+        {
+          "work_title": "Marty Supreme",
+          "is_winner": false,
+          "notes": "Josh Safdie – ''Marty Supreme''"
+        },
+        {
+          "work_title": "Sentimental Value",
+          "is_winner": false,
+          "notes": "Joachim Trier – ''Sentimental Value''"
+        },
+        {
+          "work_title": "Sinners",
+          "is_winner": false,
+          "notes": "Ryan Coogler – ''Sinners''"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-actor",
+      "display_name": "Best Actor in a Leading Role",
+      "category_type": "person",
+      "ordinal": 3,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "Sinners",
+          "is_winner": true,
+          "notes": "Michael B. Jordan – ''Sinners'' as Elijah \"Smoke\" Moore / Elias \"Stack\" Moore"
+        },
+        {
+          "work_title": "Marty Supreme",
+          "is_winner": false,
+          "notes": "Timothée Chalamet – ''Marty Supreme'' as Marty Mauser"
+        },
+        {
+          "work_title": "One Battle After Another",
+          "is_winner": false,
+          "notes": "Leonardo DiCaprio – ''One Battle After Another'' as Bob Ferguson"
+        },
+        {
+          "work_title": "Blue Moon",
+          "is_winner": false,
+          "notes": "Ethan Hawke – ''Blue Moon'' as Lorenz Hart"
+        },
+        {
+          "work_title": "The Secret Agent",
+          "is_winner": false,
+          "notes": "Wagner Moura – ''The Secret Agent'' as Armando Solimões / Marcelo Alves / Fernando Solimões"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-actress",
+      "display_name": "Best Actress in a Leading Role",
+      "category_type": "person",
+      "ordinal": 4,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "Hamnet",
+          "is_winner": true,
+          "notes": "Jessie Buckley – ''Hamnet'' as Agnes Shakespeare"
+        },
+        {
+          "work_title": "If I Had Legs I'd Kick You",
+          "is_winner": false,
+          "notes": "Rose Byrne – ''If I Had Legs I'd Kick You'' as Linda"
+        },
+        {
+          "work_title": "Song Sung Blue",
+          "is_winner": false,
+          "notes": "Kate Hudson – ''Song Sung Blue'' as Claire Sardina"
+        },
+        {
+          "work_title": "Sentimental Value",
+          "is_winner": false,
+          "notes": "Renate Reinsve – ''Sentimental Value'' as Nora Borg"
+        },
+        {
+          "work_title": "Bugonia",
+          "is_winner": false,
+          "notes": "Emma Stone – ''Bugonia'' as Michelle Fuller"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-supporting-actor",
+      "display_name": "Best Actor in a Supporting Role",
+      "category_type": "person",
+      "ordinal": 5,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "One Battle After Another",
+          "is_winner": true,
+          "notes": "Sean Penn – ''One Battle After Another'' as Col. Steven J. Lockjaw"
+        },
+        {
+          "work_title": "One Battle After Another",
+          "is_winner": false,
+          "notes": "Benicio del Toro – ''One Battle After Another'' as Sensei Sergio St. Carlos"
+        },
+        {
+          "work_title": "Frankenstein",
+          "is_winner": false,
+          "notes": "Jacob Elordi – ''Frankenstein'' as The Creature"
+        },
+        {
+          "work_title": "Sinners",
+          "is_winner": false,
+          "notes": "Delroy Lindo – ''Sinners'' as Delta Slim"
+        },
+        {
+          "work_title": "Sentimental Value",
+          "is_winner": false,
+          "notes": "Stellan Skarsgård – ''Sentimental Value'' as Gustav Borg"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-supporting-actress",
+      "display_name": "Best Actress in a Supporting Role",
+      "category_type": "person",
+      "ordinal": 6,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "Weapons",
+          "is_winner": true,
+          "notes": "Amy Madigan – ''Weapons'' as Aunt Gladys"
+        },
+        {
+          "work_title": "Sentimental Value",
+          "is_winner": false,
+          "notes": "Elle Fanning – ''Sentimental Value'' as Rachel Kemp"
+        },
+        {
+          "work_title": "Sentimental Value",
+          "is_winner": false,
+          "notes": "Inga Ibsdotter Lilleaas – ''Sentimental Value'' as Agnes Borg Pettersen"
+        },
+        {
+          "work_title": "Sinners",
+          "is_winner": false,
+          "notes": "Wunmi Mosaku – ''Sinners'' as Annie"
+        },
+        {
+          "work_title": "One Battle After Another",
+          "is_winner": false,
+          "notes": "Teyana Taylor – ''One Battle After Another'' as Perfidia Beverly Hills"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-original-screenplay",
+      "display_name": "Best Writing (Original Screenplay)",
+      "category_type": "person",
+      "ordinal": 7,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "Sinners",
+          "is_winner": true,
+          "notes": "''Sinners'' – Ryan Coogler"
+        },
+        {
+          "work_title": "Blue Moon",
+          "is_winner": false,
+          "notes": "''Blue Moon'' – Robert Kaplow"
+        },
+        {
+          "work_title": "It Was Just an Accident",
+          "is_winner": false,
+          "notes": "''It Was Just an Accident'' – Jafar Panahi; in collaboration with Nader Saïvar, Shadmehr Rastin, and Mehdi Mahmoudian"
+        },
+        {
+          "work_title": "Marty Supreme",
+          "is_winner": false,
+          "notes": "''Marty Supreme'' – Ronald Bronstein and Josh Safdie"
+        },
+        {
+          "work_title": "Sentimental Value",
+          "is_winner": false,
+          "notes": "''Sentimental Value'' – Eskil Vogt and Joachim Trier"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-adapted-screenplay",
+      "display_name": "Best Writing (Adapted Screenplay)",
+      "category_type": "person",
+      "ordinal": 8,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "One Battle After Another",
+          "is_winner": true,
+          "notes": "''One Battle After Another'' – Paul Thomas Anderson; based on the novel ''Vineland'' by Thomas Pynchon"
+        },
+        {
+          "work_title": "Bugonia",
+          "is_winner": false,
+          "notes": "''Bugonia'' – Will Tracy; based on the film ''Save the Green Planet!'' by Jang Joon-hwan"
+        },
+        {
+          "work_title": "Frankenstein",
+          "is_winner": false,
+          "notes": "''Frankenstein'' – Guillermo del Toro; based on the novel by Mary Shelley"
+        },
+        {
+          "work_title": "Hamnet",
+          "is_winner": false,
+          "notes": "''Hamnet'' – Chloé Zhao and Maggie O'Farrell; based on the novel by Maggie O'Farrell"
+        },
+        {
+          "work_title": "Train Dreams",
+          "is_winner": false,
+          "notes": "''Train Dreams'' – Clint Bentley and Greg Kwedar; based on the novella by Denis Johnson"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-animated",
+      "display_name": "Best Animated Feature Film",
+      "category_type": "work",
+      "ordinal": 9,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "KPop Demon Hunters",
+          "is_winner": true,
+          "notes": "''KPop Demon Hunters'' – Maggie Kang, Chris Appelhans, and Michelle L.M. Wong"
+        },
+        {
+          "work_title": "Arco",
+          "is_winner": false,
+          "notes": "''Arco'' – Ugo Bienvenu, Félix de Givry, Sophie Mas, and Natalie Portman"
+        },
+        {
+          "work_title": "Elio",
+          "is_winner": false,
+          "notes": "''Elio'' – Madeline Sharafian, Domee Shi, Adrian Molina, and Mary Alice Drumm"
+        },
+        {
+          "work_title": "Little Amélie or the Character of Rain",
+          "is_winner": false,
+          "notes": "''Little Amélie or the Character of Rain'' – Maïlys Vallade, Liane-Cho Han, Nidia Santiago, and Henri Magalon"
+        },
+        {
+          "work_title": "Zootopia 2",
+          "is_winner": false,
+          "notes": "''Zootopia 2'' – Jared Bush, Byron Howard, and Yvett Merino"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-international",
+      "display_name": "Best International Feature Film",
+      "category_type": "work",
+      "ordinal": 10,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "Sentimental Value",
+          "is_winner": true,
+          "notes": "''Sentimental Value'' (Norway) in Norwegian, Swedish, and English – directed by Joachim Trier"
+        },
+        {
+          "work_title": "It Was Just an Accident",
+          "is_winner": false,
+          "notes": "''It Was Just an Accident'' (France) in Persian and Azerbaijani – directed by Jafar Panahi"
+        },
+        {
+          "work_title": "The Secret Agent",
+          "is_winner": false,
+          "notes": "''The Secret Agent'' (Brazil) in Portuguese and German – directed by Kleber Mendonça Filho"
+        },
+        {
+          "work_title": "Sirāt",
+          "is_winner": false,
+          "notes": "''Sirāt'' (Spain) in Spanish, French, and Arabic – directed by Oliver Laxe"
+        },
+        {
+          "work_title": "The Voice of Hind Rajab",
+          "is_winner": false,
+          "notes": "''The Voice of Hind Rajab'' (Tunisia) in Arabic – directed by Kaouther Ben Hania"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-documentary",
+      "display_name": "Best Documentary Feature Film",
+      "category_type": "work",
+      "ordinal": 11,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "Mr Nobody Against Putin",
+          "is_winner": true,
+          "notes": "''Mr Nobody Against Putin'' – David Borenstein, Pavel Talankin, Helle Faber, and Alžběta Karásková"
+        },
+        {
+          "work_title": "The Alabama Solution",
+          "is_winner": false,
+          "notes": "''The Alabama Solution'' – Andrew Jarecki and Charlotte Kaufman"
+        },
+        {
+          "work_title": "Come See Me in the Good Light",
+          "is_winner": false,
+          "notes": "''Come See Me in the Good Light'' – Ryan White, Jessica Hargrave, Tig Notaro, and Stef Willen"
+        },
+        {
+          "work_title": "Cutting Through Rocks",
+          "is_winner": false,
+          "notes": "''Cutting Through Rocks'' – Sara Khaki and Mohammadreza Eyni"
+        },
+        {
+          "work_title": "The Perfect Neighbor",
+          "is_winner": false,
+          "notes": "''The Perfect Neighbor'' – Geeta Gandbhir, Alisa Payne, Nikon Kwantu, and Sam Bisbee"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-documentary-short",
+      "display_name": "Best Documentary Short Film",
+      "category_type": "work",
+      "ordinal": 12,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "All the Empty Rooms",
+          "is_winner": true,
+          "notes": "''All the Empty Rooms'' – Joshua Seftel and Conall Jones"
+        },
+        {
+          "work_title": "Armed Only with a Camera: The Life and Death of Brent Renaud",
+          "is_winner": false,
+          "notes": "''Armed Only with a Camera: The Life and Death of Brent Renaud'' – Craig Renaud and Juan Arredondo"
+        },
+        {
+          "work_title": "Children No More: \"Were and Are Gone\"",
+          "is_winner": false,
+          "notes": "''Children No More: \"Were and Are Gone\"'' – Hilla Medalia and Sheila Nevins"
+        },
+        {
+          "work_title": "The Devil Is Busy",
+          "is_winner": false,
+          "notes": "''The Devil Is Busy'' – Christalyn Hampton and Geeta Gandbhir"
+        },
+        {
+          "work_title": "Perfectly a Strangeness",
+          "is_winner": false,
+          "notes": "''Perfectly a Strangeness'' – Alison McAlpine"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-live-action-short",
+      "display_name": "Best Live Action Short Film",
+      "category_type": "work",
+      "ordinal": 13,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "The Singers",
+          "is_winner": true,
+          "notes": "''The Singers'' – Sam A. Davis and Jack Piatt"
+        },
+        {
+          "work_title": "Two People Exchanging Saliva",
+          "is_winner": true,
+          "notes": "''Two People Exchanging Saliva'' – Alexandre Singh and Natalie Musteata"
+        },
+        {
+          "work_title": "Butcher's Stain",
+          "is_winner": false,
+          "notes": "''Butcher's Stain'' – Meyer Levinson-Blount and Oron Caspi"
+        },
+        {
+          "work_title": "A Friend of Dorothy",
+          "is_winner": false,
+          "notes": "''A Friend of Dorothy'' – Lee Knight and James Dean"
+        },
+        {
+          "work_title": "Jane Austen's Period Drama",
+          "is_winner": false,
+          "notes": "''Jane Austen's Period Drama'' – Julia Aks and Steve Pinder"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-animated-short",
+      "display_name": "Best Animated Short Film",
+      "category_type": "work",
+      "ordinal": 14,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "The Girl Who Cried Pearls",
+          "is_winner": true,
+          "notes": "''The Girl Who Cried Pearls'' – Chris Lavis and Maciek Szczerbowski"
+        },
+        {
+          "work_title": "Butterfly",
+          "is_winner": false,
+          "notes": "''Butterfly'' – Florence Miailhe and Ron Dyens"
+        },
+        {
+          "work_title": "Forevergreen",
+          "is_winner": false,
+          "notes": "''Forevergreen'' – Nathan Engelhardt and Jeremy Spears"
+        },
+        {
+          "work_title": "Retirement Plan",
+          "is_winner": false,
+          "notes": "''Retirement Plan'' – John Kelly and Andrew Freedman"
+        },
+        {
+          "work_title": "The Three Sisters",
+          "is_winner": false,
+          "notes": "''The Three Sisters'' – Konstantin Bronzit"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-original-score",
+      "display_name": "Best Music (Original Score)",
+      "category_type": "person",
+      "ordinal": 15,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "Sinners",
+          "is_winner": true,
+          "notes": "''Sinners'' – Ludwig Göransson"
+        },
+        {
+          "work_title": "Bugonia",
+          "is_winner": false,
+          "notes": "''Bugonia'' – Jerskin Fendrix"
+        },
+        {
+          "work_title": "Frankenstein",
+          "is_winner": false,
+          "notes": "''Frankenstein'' – Alexandre Desplat"
+        },
+        {
+          "work_title": "Hamnet",
+          "is_winner": false,
+          "notes": "''Hamnet'' – Max Richter"
+        },
+        {
+          "work_title": "One Battle After Another",
+          "is_winner": false,
+          "notes": "''One Battle After Another'' – Jonny Greenwood"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-original-song",
+      "display_name": "Best Music (Original Song)",
+      "category_type": "person",
+      "ordinal": 16,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "KPop Demon Hunters",
+          "is_winner": true,
+          "notes": "\"Golden\" from ''KPop Demon Hunters'' – Music and lyrics by Ejae, Mark Sonnenblick, Joong Gyu Kwak, Yu Han Lee, Hee Dong Nam, Jeong Hoon Seo, and Teddy Park"
+        },
+        {
+          "work_title": "Diane Warren: Relentless",
+          "is_winner": false,
+          "notes": "\"Dear Me\" from ''Diane Warren: Relentless'' – Music and lyrics by Diane Warren"
+        },
+        {
+          "work_title": "Sinners",
+          "is_winner": false,
+          "notes": "\"I Lied to You\" from ''Sinners'' – Music and lyrics by Raphael Saadiq and Ludwig Göransson"
+        },
+        {
+          "work_title": "Viva Verdi!",
+          "is_winner": false,
+          "notes": "\"Sweet Dreams of Joy\" from ''Viva Verdi!'' – Music and lyrics by Nicholas Pike"
+        },
+        {
+          "work_title": "Train Dreams",
+          "is_winner": false,
+          "notes": "\"Train Dreams\" from ''Train Dreams'' – Music by Nick Cave and Bryce Dessner; lyrics by Nick Cave"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-sound",
+      "display_name": "Best Sound",
+      "category_type": "person",
+      "ordinal": 17,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "F1",
+          "is_winner": true,
+          "notes": "''F1'' – Gareth John, Al Nelson, Gwendolyn Yates Whittle, Gary A. Rizzo, and Juan Peralta"
+        },
+        {
+          "work_title": "Frankenstein",
+          "is_winner": false,
+          "notes": "''Frankenstein'' – Greg Chapman, Nathan Robitaille, Nelson Ferreira, Christian Cooke, and Brad Zoern"
+        },
+        {
+          "work_title": "One Battle After Another",
+          "is_winner": false,
+          "notes": "''One Battle After Another'' – José Antonio García, Christopher Scarabosio, and Tony Villaflor"
+        },
+        {
+          "work_title": "Sinners",
+          "is_winner": false,
+          "notes": "''Sinners'' – Chris Welcker, Benjamin A. Burtt, Felipe Pacheco, Brandon Proctor, and Steve Boeddeker"
+        },
+        {
+          "work_title": "Sirāt",
+          "is_winner": false,
+          "notes": "''Sirāt'' – Amanda Villavieja, Laia Casanovas, and Yasmina Praderas"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-casting",
+      "display_name": "Best Casting",
+      "category_type": "person",
+      "ordinal": 18,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "One Battle After Another",
+          "is_winner": true,
+          "notes": "''One Battle After Another'' – Cassandra Kulukundis"
+        },
+        {
+          "work_title": "Hamnet",
+          "is_winner": false,
+          "notes": "''Hamnet'' – Nina Gold"
+        },
+        {
+          "work_title": "Marty Supreme",
+          "is_winner": false,
+          "notes": "''Marty Supreme'' – Jennifer Venditti"
+        },
+        {
+          "work_title": "The Secret Agent",
+          "is_winner": false,
+          "notes": "''The Secret Agent'' – Gabriel Domingues"
+        },
+        {
+          "work_title": "Sinners",
+          "is_winner": false,
+          "notes": "''Sinners'' – Francine Maisler"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-production-design",
+      "display_name": "Best Production Design",
+      "category_type": "person",
+      "ordinal": 19,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "Frankenstein",
+          "is_winner": true,
+          "notes": "''Frankenstein'' – Production Design: Tamara Deverell; Set Decoration: Shane Vieau"
+        },
+        {
+          "work_title": "Hamnet",
+          "is_winner": false,
+          "notes": "''Hamnet'' – Production Design: Fiona Crombie; Set Decoration: Alice Felton"
+        },
+        {
+          "work_title": "Marty Supreme",
+          "is_winner": false,
+          "notes": "''Marty Supreme'' – Production Design: Jack Fisk; Set Decoration: Adam Willis"
+        },
+        {
+          "work_title": "One Battle After Another",
+          "is_winner": false,
+          "notes": "''One Battle After Another'' – Production Design: Florencia Martin; Set Decoration: Anthony Carlino"
+        },
+        {
+          "work_title": "Sinners",
+          "is_winner": false,
+          "notes": "''Sinners'' – Production Design: Hannah Beachler; Set Decoration: Monique Champagne"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-cinematography",
+      "display_name": "Best Cinematography",
+      "category_type": "person",
+      "ordinal": 20,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "Sinners",
+          "is_winner": true,
+          "notes": "''Sinners'' – Autumn Durald Arkapaw"
+        },
+        {
+          "work_title": "Frankenstein",
+          "is_winner": false,
+          "notes": "''Frankenstein'' – Dan Laustsen"
+        },
+        {
+          "work_title": "Marty Supreme",
+          "is_winner": false,
+          "notes": "''Marty Supreme'' – Darius Khondji"
+        },
+        {
+          "work_title": "One Battle After Another",
+          "is_winner": false,
+          "notes": "''One Battle After Another'' – Michael Bauman"
+        },
+        {
+          "work_title": "Train Dreams",
+          "is_winner": false,
+          "notes": "''Train Dreams'' – Adolpho Veloso"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-makeup-hairstyling",
+      "display_name": "Best Makeup and Hairstyling",
+      "category_type": "person",
+      "ordinal": 21,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "Frankenstein",
+          "is_winner": true,
+          "notes": "''Frankenstein'' – Mike Hill, Jordan Samuel, and Cliona Furey"
+        },
+        {
+          "work_title": "Kokuho",
+          "is_winner": false,
+          "notes": "''Kokuho'' – Kyoko Toyokawa, Naomi Hibino, and Tadashi Nishimatsu"
+        },
+        {
+          "work_title": "Sinners",
+          "is_winner": false,
+          "notes": "''Sinners'' – Ken Diaz, Mike Fontaine, and Shunika Terry"
+        },
+        {
+          "work_title": "The Smashing Machine",
+          "is_winner": false,
+          "notes": "''The Smashing Machine'' – Kazu Hiro, Glen Griffin, and Bjoern Rehbein"
+        },
+        {
+          "work_title": "The Ugly Stepsister",
+          "is_winner": false,
+          "notes": "''The Ugly Stepsister'' – Thomas Foldberg and Anne Cathrine Sauerberg"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-costume-design",
+      "display_name": "Best Costume Design",
+      "category_type": "person",
+      "ordinal": 22,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "Frankenstein",
+          "is_winner": true,
+          "notes": "''Frankenstein'' – Kate Hawley"
+        },
+        {
+          "work_title": "Avatar: Fire and Ash",
+          "is_winner": false,
+          "notes": "''Avatar: Fire and Ash'' – Deborah L. Scott"
+        },
+        {
+          "work_title": "Hamnet",
+          "is_winner": false,
+          "notes": "''Hamnet'' – Malgosia Turzanska"
+        },
+        {
+          "work_title": "Marty Supreme",
+          "is_winner": false,
+          "notes": "''Marty Supreme'' – Miyako Bellizzi"
+        },
+        {
+          "work_title": "Sinners",
+          "is_winner": false,
+          "notes": "''Sinners'' – Ruth E. Carter"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-film-editing",
+      "display_name": "Best Film Editing",
+      "category_type": "person",
+      "ordinal": 23,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "One Battle After Another",
+          "is_winner": true,
+          "notes": "''One Battle After Another'' – Andy Jurgensen"
+        },
+        {
+          "work_title": "F1",
+          "is_winner": false,
+          "notes": "''F1'' – Stephen Mirrione"
+        },
+        {
+          "work_title": "Marty Supreme",
+          "is_winner": false,
+          "notes": "''Marty Supreme'' – Ronald Bronstein and Josh Safdie"
+        },
+        {
+          "work_title": "Sentimental Value",
+          "is_winner": false,
+          "notes": "''Sentimental Value'' – Olivier Bugge Coutté"
+        },
+        {
+          "work_title": "Sinners",
+          "is_winner": false,
+          "notes": "''Sinners'' – Michael P. Shawver"
+        }
+      ]
+    },
+    {
+      "canonical_slug": "best-visual-effects",
+      "display_name": "Best Visual Effects",
+      "category_type": "person",
+      "ordinal": 24,
+      "recognized": true,
+      "nominations": [
+        {
+          "work_title": "Avatar: Fire and Ash",
+          "is_winner": true,
+          "notes": "''Avatar: Fire and Ash'' – Joe Letteri, Richard Baneham, Eric Saindon, and Daniel Barrett"
+        },
+        {
+          "work_title": "F1",
+          "is_winner": false,
+          "notes": "''F1'' – Ryan Tudhope, Nicolas Chevallier, Robert Harrington, and Keith Dawson"
+        },
+        {
+          "work_title": "Jurassic World Rebirth",
+          "is_winner": false,
+          "notes": "''Jurassic World Rebirth'' – David Vickery, Stephen Aplin, Charmaine Chan, and Neil Corbould"
+        },
+        {
+          "work_title": "The Lost Bus",
+          "is_winner": false,
+          "notes": "''The Lost Bus'' – Charlie Noble, David Zaretti, Russell Bowen, and Brandon K. McLaughlin"
+        },
+        {
+          "work_title": "Sinners",
+          "is_winner": false,
+          "notes": "''Sinners'' – Michael Ralla, Espen Nordahl, Guido Wolter, and Donnie Dean"
+        }
+      ]
+    }
+  ]
+}
