@@ -31,6 +31,40 @@ if [ -z "$REPO" ] || [ ! -f "$REPO/package.json" ]; then
 fi
 cd "$REPO"
 
+# Xcode Cloud's macOS images do not ship Node.js, so `npm ci` below died with
+# exit code 127 (command not found) — which cascaded into the real symptom in
+# the build log: "Could not resolve package dependencies: the package at
+# /Volumes/workspace/repository/node_modules/@capacitor/haptics ... doesn't
+# exist in file system". node_modules was never created because npm was never
+# available to create it.
+#
+# Homebrew IS preinstalled on Xcode Cloud, and on Apple Silicon runners it
+# lives at /opt/homebrew, which isn't necessarily on PATH for this shell.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+if ! command -v npm >/dev/null 2>&1; then
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "ci_post_clone: neither npm nor brew is available; cannot install Node."
+    echo "  PATH=$PATH"
+    exit 1
+  fi
+  echo "ci_post_clone: npm not found, installing Node via Homebrew..."
+  # No version is pinned deliberately: the project has no `engines` field,
+  # no .nvmrc, and no NODE_VERSION for Netlify, so it tracks current Node
+  # (v26 locally). Pin here and in those places together, or not at all.
+  brew install node
+  # zsh caches command lookups; force it to see the new binary.
+  rehash 2>/dev/null || true
+fi
+
+command -v npm >/dev/null 2>&1 || {
+  echo "ci_post_clone: npm still missing after install attempt."
+  echo "  PATH=$PATH"
+  exit 1
+}
+
+echo "ci_post_clone: node $(node --version), npm $(npm --version)"
+
 npm ci
 
 # Capacitor copies `webDir` (public/, per capacitor.config.ts) into
