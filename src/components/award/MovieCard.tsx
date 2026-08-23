@@ -692,7 +692,6 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 				<div className="flex-1 min-w-0">
 					<h3 className="text-base font-semibold text-white leading-snug truncate">{movie.title}</h3>
 					{showYear && <p className="text-sm text-gray-400">{movie.release_year}</p>}
-					{incomplete && <p className="text-xs text-gray-500">Seen, not rated yet</p>}
 				</div>
 				<div className="flex items-center gap-2">
 					{showHotTakeIndicator ? (
@@ -738,6 +737,11 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 						<RankingDropdown ranking={rating || null} onChange={handleRatingSelect} native={native} />
 						{ratingLabel && (
 							<span className="mt-0.5 text-xs leading-tight text-gray-400">{ratingLabel}</span>
+						)}
+						{(seenIt ?? false) && !rating && !ratingLabel && (
+							<span className="mt-0.5 text-[10px] leading-tight text-blue-400/70 whitespace-nowrap">
+								7+ joins ballot
+							</span>
 						)}
 					</div>
 				</div>
@@ -786,7 +790,6 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 						<div className="flex-1 min-w-0">
 							<h3 className="text-sm font-semibold text-white leading-tight line-clamp-2 break-words">{movie.title}</h3>
 							{showYear && <p className="text-xs text-gray-400">{movie.release_year}</p>}
-							{incomplete && <p className="text-xs text-gray-500">Seen, not rated yet</p>}
 						</div>
 						{/* gap-4 (16px), not gap-2 — SeenIt's compact hit-area (before:-inset-1.5,
 						    6px/side) plus this bookmark's before:-inset-2 (8px/side) need 14px of
@@ -827,6 +830,11 @@ function CompactCard({ movie, rating, thumbSrc, rank, isWinner, onClick, showYea
 								<RankingDropdown ranking={rating || null} onChange={handleRatingSelect} native={native} />
 								{ratingLabel && (
 									<span className="mt-0.5 text-xs leading-tight text-gray-400">{ratingLabel}</span>
+								)}
+								{(seenIt ?? false) && !rating && !ratingLabel && (
+									<span className="mt-0.5 text-[10px] leading-tight text-blue-400/70 whitespace-nowrap">
+										7+ joins ballot
+									</span>
 								)}
 							</div>
 						</div>

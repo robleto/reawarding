@@ -40,6 +40,7 @@ export default function PanelReassurance({ reducedMotion }: PanelReassuranceProp
   // Pinned scroll — cards reveal one at a time as user scrolls
   useEffect(() => {
     if (reducedMotion) return;
+    if (window.innerWidth < 640) return; // no pin on mobile viewports
     gsap.registerPlugin(ScrollTrigger);
 
     const section = sectionRef.current;

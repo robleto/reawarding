@@ -84,6 +84,8 @@ export default function MovieDetailModal({
   const [ranking, setRanking] = useState(initialRanking);
   const [isLoading, setIsLoading] = useState(false);
   const [hasValidImage, setHasValidImage] = useState(true);
+  const [healedPosterUrl, setHealedPosterUrl] = useState<string | null>(null);
+  const [healedBackdropUrl, setHealedBackdropUrl] = useState<string | null>(null);
   const [copiedTmdb, setCopiedTmdb] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [details, setDetails] = useState<Partial<Movie> | null>(null);
@@ -120,6 +122,31 @@ export default function MovieDetailModal({
   // Hydrated row wins once it matches this movie; prop fills the gap meanwhile
   const hydrated = details && details.id === movie.id ? details : null;
   const film: Movie = { ...movie, ...(hydrated ?? {}) };
+
+  // On-demand poster/backdrop heal — fires silently when the poster failed
+  // to load and the DB row has a tmdb_id to look it up from. Only requires
+  // any authenticated user, not admin (see /api/heal-movie-poster).
+  useEffect(() => {
+    if (!isOpen || hasValidImage || !film.tmdb_id || !user) return;
+    let cancelled = false;
+    fetch("/api/heal-movie-poster", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dbId: movie.id, tmdbId: film.tmdb_id }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data.poster_url) setHealedPosterUrl(data.poster_url);
+        if (data.backdrop_url) setHealedBackdropUrl(data.backdrop_url);
+      })
+      .catch(() => {
+        // Non-critical — poster stays as fallback tile
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, hasValidImage, movie.id, film.tmdb_id, user]);
 
   // The user's expression row, read-only here — editing lives on the film page
   // (YourTake panel) to keep the modal a pure Viewing surface. Keyed by movie
@@ -463,11 +490,11 @@ export default function MovieDetailModal({
             moment in an otherwise quiet sheet. */}
         <div className="relative">
           <div className="relative h-36 w-full overflow-hidden bg-gradient-to-br from-charcoal-700 to-charcoal-900 sm:h-48">
-            {film.backdrop_url ? (
+            {(healedBackdropUrl ?? film.backdrop_url) ? (
               <>
                 <div
                   className="absolute inset-0 bg-cover bg-center"
-                  style={{ backgroundImage: `url(${film.backdrop_url})` }}
+                  style={{ backgroundImage: `url(${healedBackdropUrl ?? film.backdrop_url})` }}
                   aria-hidden="true"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-charcoal-900 via-charcoal-900/25 to-black/20" aria-hidden="true" />
@@ -480,9 +507,10 @@ export default function MovieDetailModal({
           <div className="relative flex items-end gap-3 px-4 pb-4 -mt-10 sm:gap-4 sm:px-6 sm:-mt-12">
             <div className="relative w-24 flex-shrink-0 sm:w-28">
               <div className="aspect-[2/3] relative overflow-hidden rounded-lg bg-gray-900 shadow-2xl ring-2 ring-charcoal-900">
-                {hasValidImage ? (
+                {hasValidImage || healedPosterUrl ? (
                   <Image
-                    src={normalizeImageUrl((movie.poster_url || '').trim())}
+                    key={healedPosterUrl ?? "original"}
+                    src={normalizeImageUrl(healedPosterUrl ?? (movie.poster_url || "").trim())}
                     alt={movie.title}
                     fill
                     sizes="(min-width: 640px) 112px, 96px"

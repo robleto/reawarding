@@ -604,7 +604,13 @@ export default function HomePage() {
     isEstablished &&
     (setBallotCount >= 3 || depthYears.length >= 5 || ratedMovies.length >= 50);
 
-  const userState: "new" | "building" | "established" | "mature" = !hasStartedBallots
+  // New requires BOTH 0 years touched AND < 5 rated (CLAUDE.md "Homepage
+  // states") — hasStartedBallots alone flips true after a single rating
+  // (any rated movie belongs to some year), so without the ratedMovies arm
+  // a user with 1-4 ratings in one year skips straight to "building" a
+  // state early for someone who's barely engaged yet.
+  const isNewUserState = !hasStartedBallots || ratedMovies.length < 5;
+  const userState: "new" | "building" | "established" | "mature" = isNewUserState
     ? "new"
     : isMature
     ? "mature"

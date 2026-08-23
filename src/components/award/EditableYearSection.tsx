@@ -1063,6 +1063,23 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
   const defaultWinnerId = winner?.id ?? movies[0]?.id ?? null;
   const activeWorkshopNominees = isWorkshop ? nominees : displayNominees;
   const activeWorkshopWinner = isWorkshop ? selectedWinner : displayWinner;
+  // Rating-integrity warning (docs/design/ballot-card-states.md): a saved
+  // ballot is "living" per Law 6 — ratings can drop below the 7 auto-nominate
+  // threshold after the ballot was set, leaving a nominee or winner on the
+  // ballot that no longer reflects the user's current opinion. Only applies
+  // to a saved/custom ballot — the auto-assembled default view is always
+  // live-filtered from current ratings, so nothing on it can go stale.
+  const staleNomineeIds = isUsingCustomView
+    ? new Set(
+        activeWorkshopNominees
+          .filter((m) => (m.rankings?.[0]?.ranking ?? 0) < 7)
+          .map((m) => m.id)
+      )
+    : new Set<string>();
+  const winnerIsBelowThreshold =
+    isUsingCustomView &&
+    activeWorkshopWinner != null &&
+    (activeWorkshopWinner.rankings?.[0]?.ranking ?? 0) < 7;
   const workshopOrderDiffers =
     activeWorkshopNominees.length !== defaultNomineeIds.length ||
     activeWorkshopNominees.some((movie, index) => movie.id !== defaultNomineeIds[index]);
@@ -1558,10 +1575,24 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         onShare={profileUsername ? () => setIsShareOpen(true) : undefined}
                       />
                     </div>
+                    {winnerIsBelowThreshold && (
+                      <p className="md:hidden mb-4 -mt-2 text-center text-xs text-amber-400/80 leading-snug">
+                        Re-rated below 7 — still your pick.{" "}
+                        <button
+                          type="button"
+                          onClick={onEditRequest ?? handleStartEditing}
+                          className="underline hover:text-amber-300 transition-colors"
+                        >
+                          Update ballot
+                        </button>{" "}
+                        if that&apos;s changed.
+                      </p>
+                    )}
                     <NomineeCardCarousel
                       nominees={displayNominees}
                       winnerId={displayWinner.id}
                       onSelect={handleOpenModal}
+                      staleIds={staleNomineeIds}
                     />
                     {/* Desktop: same gilt-frame ceremony as the mobile artifact
                         above (previously a plain FeaturedCard via WinnerCard —
@@ -1587,10 +1618,35 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                         onShare={profileUsername ? () => setIsShareOpen(true) : undefined}
                       />
                     </div>
+                    {winnerIsBelowThreshold && (
+                      <p className="hidden md:block mt-2 text-center text-xs text-amber-400/80 leading-snug">
+                        Re-rated below 7 — still your pick.{" "}
+                        <button
+                          type="button"
+                          onClick={onEditRequest ?? handleStartEditing}
+                          className="underline hover:text-amber-300 transition-colors"
+                        >
+                          Update ballot
+                        </button>{" "}
+                        if that&apos;s changed.
+                      </p>
+                    )}
                   </>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    No winner selected yet.
+                  <div className="flex flex-col items-start gap-3 py-2">
+                    <p className="text-sm text-gray-400 leading-relaxed">
+                      Your nominees are set. Who wins?
+                    </p>
+                    {user && (
+                      <button
+                        type="button"
+                        onClick={onEditRequest ?? handleStartEditing}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gold-300/80 border border-gold-500/30 rounded-md hover:text-gold-200 hover:border-gold-400/60 hover:bg-gold-500/5 transition-all"
+                      >
+                        <Trophy className="w-3 h-3" />
+                        Pick your winner
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -1707,15 +1763,24 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                     >
                       <div className="space-y-1" data-tour-grid="nominees">
                         {activeWorkshopNominees.map((movie, index) => (
-                          <WorkshopNomineeRow
+                          <div
                             key={movie.id}
-                            movie={movie}
-                            rank={index + 1}
-                            isWinner={activeWorkshopWinner?.id === movie.id}
-                            onSetWinner={() => handleWorkshopWinner(movie)}
-                            onRemove={() => handleWorkshopRemove(movie.id)}
-                            onRankingChange={(value) => handleWorkshopRankingChange(movie.id, value)}
-                          />
+                            className={staleNomineeIds.has(movie.id) ? "rounded-lg ring-1 ring-amber-700/40 overflow-hidden" : undefined}
+                          >
+                            <WorkshopNomineeRow
+                              movie={movie}
+                              rank={index + 1}
+                              isWinner={activeWorkshopWinner?.id === movie.id}
+                              onSetWinner={() => handleWorkshopWinner(movie)}
+                              onRemove={() => handleWorkshopRemove(movie.id)}
+                              onRankingChange={(value) => handleWorkshopRankingChange(movie.id, value)}
+                            />
+                            {staleNomineeIds.has(movie.id) && (
+                              <p className="px-3 pb-1.5 text-[9px] text-amber-400/70">
+                                Rated below 7 — remove to update your ballot.
+                              </p>
+                            )}
+                          </div>
                         ))}
                         {activeWorkshopNominees.length < 10 && (() => {
                           const remaining = 10 - activeWorkshopNominees.length;
@@ -1751,13 +1816,19 @@ const EditableYearSection = forwardRef<EditableYearSectionHandle, EditableYearSe
                       {[...displayNominees]
                         .sort((a, b) => a.title.localeCompare(b.title))
                         .map((movie) => (
-                          <MovieCard
-                            key={movie.id}
-                            movie={movie}
-                            variant="grid"
-                            isWinner={displayWinner?.id === movie.id}
-                            onClick={() => handleOpenModal(movie)}
-                          />
+                          <div key={movie.id}>
+                            <MovieCard
+                              movie={movie}
+                              variant="grid"
+                              isWinner={displayWinner?.id === movie.id}
+                              onClick={() => handleOpenModal(movie)}
+                            />
+                            {staleNomineeIds.has(movie.id) && (
+                              <p className="mt-0.5 text-center text-[9px] font-medium text-amber-400/80">
+                                Rated below 7
+                              </p>
+                            )}
+                          </div>
                         ))}
                     </div>
                     {/* Mobile nominees now live in the shelf above (see the
