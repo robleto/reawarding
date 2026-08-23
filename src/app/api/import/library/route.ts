@@ -180,6 +180,13 @@ export async function POST(req: NextRequest) {
     tmdb_id?: number | null;
   };
   const matchedMovies: MovieMatch[] = [];
+  /**
+   * Rows matched to a catalog film whose release_year differs by
+   * BACKFILL_YEAR_TOLERANCE. Keyed by the ROW's `normalizedTitle::rowYear`,
+   * because the byTitleYear map below is keyed by the MOVIE's year and would
+   * never see these.
+   */
+  const nearYearMatches = new Map<string, MovieMatch>();
 
   // Fetch by TMDB ID first — our catalog is keyed on it, so this is an exact
   // match with no title normalization involved.
@@ -210,7 +217,25 @@ export async function POST(req: NextRequest) {
   // through with an explicit, stable order until a page comes back short
   // of max_rows, which is the only reliable "no more rows" signal.
   if (titleYearPairs.length > 0) {
-    const years = [...new Set(titleYearPairs.map((p) => p.year))];
+    // Widen to +/-BACKFILL_YEAR_TOLERANCE around each wanted year. Festival
+    // premiere vs. wide release routinely puts our catalog's release_year one
+    // off from Letterboxd's — measured against a real 1,104-film export, 12 of
+    // its 86 "not in our catalog" misses were films we already had, one year
+    // apart (300, Nomadland, Split, Kingsman...). Exact-year matching sent each
+    // of those to the live TMDB backfill, which then applied this same
+    // tolerance, found the film, and re-imported a row we already owned —
+    // burning one of only LIVE_BACKFILL_CAP lookups per request to do it.
+    const years = [
+      ...new Set(
+        titleYearPairs.flatMap((p) => {
+          const span: number[] = [];
+          for (let y = p.year - BACKFILL_YEAR_TOLERANCE; y <= p.year + BACKFILL_YEAR_TOLERANCE; y++) {
+            span.push(y);
+          }
+          return span;
+        })
+      ),
+    ];
     const PAGE_SIZE = 1000;
     let offset = 0;
     const yearMatches: MovieMatch[] = [];
@@ -235,14 +260,43 @@ export async function POST(req: NextRequest) {
       offset += PAGE_SIZE;
     }
 
-    // Filter client-side for title match to avoid N+1 queries
+    // Filter client-side for title match to avoid N+1 queries. Exact year
+    // wins; a neighbouring year is accepted only as a fallback, and only when
+    // the normalized title agrees exactly — the same rule the live backfill
+    // uses. Never year-only: without a title anchor, a +/-1 year check could
+    // attach a rating to an unrelated film released around the same time.
     const byYearTitle = new Map<string, MovieMatch>();
+    const byTitle = new Map<string, MovieMatch[]>();
     for (const m of yearMatches) {
-      byYearTitle.set(`${normalizeTitle(m.title)}::${m.release_year}`, m);
+      const normalized = normalizeTitle(m.title);
+      byYearTitle.set(`${normalized}::${m.release_year}`, m);
+      const bucket = byTitle.get(normalized);
+      if (bucket) bucket.push(m);
+      else byTitle.set(normalized, [m]);
     }
     for (const p of titleYearPairs) {
-      const hit = byYearTitle.get(`${p.title}::${p.year}`);
-      if (hit) matchedMovies.push(hit);
+      const exact = byYearTitle.get(`${p.title}::${p.year}`);
+      if (exact) {
+        matchedMovies.push(exact);
+        continue;
+      }
+      // Prefer the closest year among same-title candidates, so a title with
+      // both a -1 and a +1 neighbour resolves deterministically rather than by
+      // catalog insertion order.
+      const near = (byTitle.get(p.title) ?? [])
+        .filter(
+          (m) =>
+            m.release_year != null &&
+            Math.abs(m.release_year - p.year) <= BACKFILL_YEAR_TOLERANCE
+        )
+        .sort((a, b) => Math.abs(a.release_year - p.year) - Math.abs(b.release_year - p.year))[0];
+      if (near) {
+        matchedMovies.push(near);
+        // The lookup map below is keyed on the movie's OWN release_year, so a
+        // near match would be invisible to a row carrying the other year.
+        // Record the row's key -> movie mapping explicitly.
+        nearYearMatches.set(`${p.title}::${p.year}`, near);
+      }
     }
   }
 
@@ -267,7 +321,8 @@ export async function POST(req: NextRequest) {
   const findLocalMatch = (row: ImportRow) => {
     if (row.tmdbId) return byTmdbId.get(row.tmdbId);
     if (row.imdbId) return byImdbId.get(row.imdbId);
-    return byTitleYear.get(rowKey(row));
+    const key = rowKey(row);
+    return byTitleYear.get(key) ?? nearYearMatches.get(key);
   };
 
   // ── 2.5 Split rows into "already matched locally" (can be written right

@@ -9,6 +9,20 @@
  *   node scripts/ingest-oscar-nominations.mjs scripts/data/oscar-nominations-2025.json --apply
  *   node scripts/ingest-oscar-nominations.mjs scripts/data/oscar-nominations-2025.json --apply --replace
  *
+ * Third mode — re-link only, no JSON needed:
+ *
+ *   node scripts/ingest-oscar-nominations.mjs --relink-only 2025
+ *   node scripts/ingest-oscar-nominations.mjs --relink-only 2025 --apply
+ *
+ * A nomination whose film had no `movies` row at ingest time is stored with a
+ * null tmdb_id — the nomination is real, it just is not yet checkable against
+ * `rankings.seen_it`. Importing the film later (scripts/resolve-nomination-tmdb.mjs
+ * finds the TMDB ids, scripts/import-specific-movies.ts imports them) does NOT
+ * backfill that link on its own. --relink-only closes the gap: it re-runs the
+ * title match for the ceremony's still-unlinked nominations and fills in the
+ * ones that now resolve. Expect to need it repeatedly during a live season, as
+ * TMDB catches up with the short-film categories.
+ *
  * The ceremony row and the category rows upsert cleanly (both have natural
  * unique keys). Nominations do not — a category can legitimately hold two
  * nominations for the same film (the 98th's Best Supporting Actor has two
@@ -108,13 +122,120 @@ function pickMatch(title, year, candidates) {
   return ties > 0 ? null : best;
 }
 
+/**
+ * Fill in tmdb_id for a ceremony's still-unlinked nominations, using the same
+ * matcher the initial ingest uses. Never clears an existing link and never
+ * touches any other column, so it is safe to re-run at any point in a season.
+ */
+async function relinkOnly(filmYear, apply) {
+  const client = await connect();
+  try {
+    const { rows: unlinked } = await client.query(
+      `SELECT n.id, n.work_title, n.work_year, ac.canonical_slug, ac.ordinal
+         FROM nominations n
+         JOIN award_categories ac ON ac.id = n.category_id
+         JOIN ceremonies c ON c.id = ac.ceremony_id
+        WHERE c.domain = 'film' AND c.year = $1
+          AND n.tmdb_id IS NULL
+          AND n.work_title IS NOT NULL
+        ORDER BY ac.ordinal, n.work_title`,
+      [filmYear]
+    );
+
+    const { rows: totals } = await client.query(
+      `SELECT count(*)::int AS total, count(n.tmdb_id)::int AS linked
+         FROM nominations n
+         JOIN award_categories ac ON ac.id = n.category_id
+         JOIN ceremonies c ON c.id = ac.ceremony_id
+        WHERE c.domain = 'film' AND c.year = $1`,
+      [filmYear]
+    );
+    const { total, linked } = totals[0];
+
+    if (!total) {
+      console.log(`No nominations stored for film year ${filmYear}. Nothing to re-link.`);
+      return;
+    }
+    console.log(`film year ${filmYear}: ${linked}/${total} nominations linked, ${unlinked.length} unlinked\n`);
+    if (!unlinked.length) return;
+
+    const { rows: candidates } = await client.query(
+      "SELECT tmdb_id, title, original_title, release_year FROM movies WHERE release_year BETWEEN $1 AND $2",
+      [filmYear - 1, filmYear + 1]
+    );
+
+    const resolved = [];
+    const stillMissing = [];
+    for (const nom of unlinked) {
+      const hit = pickMatch(nom.work_title, nom.work_year ?? filmYear, candidates);
+      if (hit) resolved.push({ ...nom, tmdb_id: hit.tmdb_id, matchedTitle: hit.title });
+      else stillMissing.push(nom);
+    }
+
+    if (resolved.length) {
+      console.log(`newly resolvable: ${resolved.length}`);
+      for (const r of resolved) {
+        const rename = r.matchedTitle !== r.work_title ? `  (movies row: "${r.matchedTitle}")` : "";
+        console.log(`  ${String(r.tmdb_id).padStart(7)}  ${r.canonical_slug}  ${r.work_title}${rename}`);
+      }
+    }
+    if (stillMissing.length) {
+      console.log(`\nstill no movies row: ${stillMissing.length}`);
+      for (const m of stillMissing) console.log(`           ${m.canonical_slug}  ${m.work_title}`);
+      console.log("  -> node scripts/resolve-nomination-tmdb.mjs " + filmYear);
+    }
+
+    if (!apply) {
+      console.log("\nDry run — nothing written. Re-run with --apply to write.");
+      return;
+    }
+    if (!resolved.length) {
+      console.log("\nNothing to write.");
+      return;
+    }
+
+    await client.query("BEGIN");
+    try {
+      for (const r of resolved) {
+        // The tmdb_id IS NULL guard makes a concurrent re-run a no-op rather
+        // than a double write.
+        await client.query("UPDATE nominations SET tmdb_id = $1 WHERE id = $2 AND tmdb_id IS NULL", [
+          r.tmdb_id,
+          r.id,
+        ]);
+      }
+      await client.query("COMMIT");
+    } catch (err) {
+      await client.query("ROLLBACK").catch(() => {});
+      throw err;
+    }
+    console.log(`\nLinked ${resolved.length} nomination(s). Now ${linked + resolved.length}/${total}.`);
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
+
 async function main() {
-  const filePath = process.argv[2];
   const apply = process.argv.includes("--apply");
   const replace = process.argv.includes("--replace");
+  const relink = process.argv.includes("--relink-only");
 
+  if (relink) {
+    const filmYear = Number(process.argv.find((a) => /^\d{4}$/.test(a)));
+    if (!filmYear) {
+      console.error("Usage: node scripts/ingest-oscar-nominations.mjs --relink-only <filmYear> [--apply]");
+      process.exit(1);
+    }
+    await relinkOnly(filmYear, apply);
+    return;
+  }
+
+  const filePath = process.argv[2];
   if (!filePath) {
-    console.error("Usage: node scripts/ingest-oscar-nominations.mjs <json> [--apply] [--replace]");
+    console.error(
+      "Usage: node scripts/ingest-oscar-nominations.mjs <json> [--apply] [--replace]\n" +
+        "       node scripts/ingest-oscar-nominations.mjs --relink-only <filmYear> [--apply]"
+    );
     process.exit(1);
   }
 
