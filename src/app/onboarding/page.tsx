@@ -332,7 +332,7 @@ export default function OnboardingPage() {
           <p className="text-xs text-gray-600">
             Already on Letterboxd or IMDb?{" "}
             <Link
-              href="/settings/import"
+              href="/import"
               className="font-medium text-gold-400 underline underline-offset-2 decoration-gold-400/30 hover:text-gold-300"
             >
               Bring your ratings in

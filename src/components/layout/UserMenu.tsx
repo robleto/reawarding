@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Activity, Bookmark, Film, Layers, LogOut, Plus, Settings, Star, Trophy, User, Users, List } from 'lucide-react';
+import { Activity, Bookmark, Film, Layers, LogOut, Plus, Settings, Star, Trophy, Upload, User, Users, List } from 'lucide-react';
 import { useProfile } from '@/contexts/ProfileContext';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import type { Database } from '@/types/supabase';
@@ -261,6 +261,18 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown', on
             </Link>
           ))}
           <div className="my-1 border-t border-gray-700" />
+          {/* Import sits with Settings rather than in the nav list above: it's
+              not a place your films live, it's how they get here. Findable in
+              one tap all the same — it used to be two levels deep in
+              Settings. */}
+          <Link
+            href="/import"
+            onClick={() => onNavigate?.()}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-800"
+          >
+            <Upload className="w-4 h-4" />
+            Import films
+          </Link>
           <Link
             href="/settings"
             onClick={() => onNavigate?.()}
@@ -338,6 +350,15 @@ export function UserMenu({ onLoginClick, onSignupClick, variant = 'dropdown', on
             ))}
 
             <div className="my-1 border-t border-gray-700" />
+
+            <Link
+              href="/import"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-gray-700"
+              onClick={() => setOpen(false)}
+            >
+              <Upload className="w-4 h-4" />
+              Import films
+            </Link>
 
             <Link
               href="/settings"

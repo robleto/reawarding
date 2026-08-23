@@ -35,8 +35,8 @@ const reawardingWins: { icon: LucideIcon; title: string; body: string }[] = [
   },
   {
     icon: Upload,
-    title: "One-click import",
-    body: "Paste your Letterboxd export — half-star ratings convert to the 1–10 scale automatically (×2). Safe to re-run any time.",
+    title: "Import that isn't a migration",
+    body: "Upload your Letterboxd export — half-star ratings convert to the 1–10 scale automatically (×2). Free, no film limit, safe to re-run, and your Letterboxd account is untouched.",
   },
   {
     icon: UserRound,
@@ -83,7 +83,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: "Can I re-run the import later?",
-    a: "Yes — it's safe to re-import. Existing ratings are updated, not duplicated.",
+    a: "Yes, as often as you like — imports only fill gaps, so a rating you've set in Reawarding is never overwritten and nothing gets duplicated.",
   },
 ];
 
@@ -109,7 +109,7 @@ export default function ReawardingVsLetterboxdPage() {
           Pick a movie you love
         </Link>
         <Link
-          href="/settings/import"
+          href="/import"
           className="inline-block px-6 py-3 rounded-xl border border-gold-500/40 text-gold-400 font-unbounded font-semibold hover:bg-gold-500/10 transition-colors"
         >
           Import from Letterboxd
@@ -222,7 +222,7 @@ export default function ReawardingVsLetterboxdPage() {
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <Link
-            href="/settings/import"
+            href="/import"
             className="inline-block px-6 py-3 rounded-xl bg-gradient-to-br from-always-gold-400 to-always-gold-600 text-always-black font-unbounded font-semibold shadow-lg hover:from-always-gold-300 hover:to-always-gold-600 transition-colors"
           >
             Import from Letterboxd

@@ -14,6 +14,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "lint": "next lint",
+    "test:csv-import": "tsx scripts/verify-csv-import.ts",
     "test:e2e": "playwright test",
     "test:e2e:launch-gate": "playwright test --workers=1 --project=auth-session --project=persistence-boundary --project=fail-closed-screens",
     "test:e2e:launch-gate:extended": "playwright test --workers=1 --project=auth-session --project=persistence-boundary --project=fail-closed-screens --project=core-loop",

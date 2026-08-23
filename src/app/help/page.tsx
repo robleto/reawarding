@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { RefreshCw, Plus, HelpCircle, User, MessageCircle } from "lucide-react";
+import { RefreshCw, Plus, HelpCircle, Upload, User, MessageCircle } from "lucide-react";
 
 export default function HelpPage() {
   return (
@@ -15,6 +15,28 @@ export default function HelpPage() {
 
       {/* Utilities Grid */}
       <div className="grid gap-6 md:grid-cols-2 mb-8">
+        {/* Import — first in the grid because it's the highest-leverage thing
+            a new arrival can do, and it used to be buried in Settings. */}
+        <Link
+          href="/import"
+          className="group bg-gray-900/60 border border-yellow-500/20 rounded-xl p-6 hover:border-yellow-500/40 transition-all"
+        >
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-yellow-500/10 rounded-lg group-hover:bg-yellow-500/20 transition-colors">
+              <Upload className="w-6 h-6 text-yellow-400" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-yellow-400 mb-2">
+                Import Your Library
+              </h2>
+              <p className="text-sm text-gray-400">
+                Bring your ratings and watch history from Letterboxd, IMDb, TMDB, or your own
+                spreadsheet. Free, uncapped, and your Letterboxd account stays exactly as it is.
+              </p>
+            </div>
+          </div>
+        </Link>
+
         {/* Guest Mode Guide */}
         <Link
           href="/help/guest-mode"
