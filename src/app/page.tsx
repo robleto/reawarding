@@ -835,6 +835,10 @@ export default function HomePage() {
           onPickForYear={({ id, title, year }) =>
             void createAward({ id, title, release_year: year })
           }
+          // Act 4: /onboarding/[year] already is the depth surface — year-scoped
+          // grid with a 5-nominee threshold. It was never wrong, just wired as
+          // the step right after the first rating, where depth is the wrong ask.
+          onDeepenYear={(year) => router.push(`/onboarding/${year}`)}
           // Breadth, not "has rated anything" — one rating used to swap the
           // whole screen out from under the ledger they'd just filled.
           showArchive={yearLeaders.length >= 2 || setBallotCount >= 1}

@@ -142,9 +142,40 @@ export const WALK = {
   skip: (year: number) => `Haven't seen enough of ${year}`,
   /** Advances the walk. Explicit tap, so the filled ledger isn't yanked away. */
   next: (year: number) => `Next: ${year}`,
-  /** Shown when the walk runs out of years or the visitor stops. */
-  doneTitle: (count: number) =>
-    `You've reawarded ${count} ${count === 1 ? "year" : "years"}.`,
+} as const;
+
+/**
+ * Act 3 — the save moment, shown once the walk ends.
+ *
+ * Headline counts *verdicts*, not reawards: agreeing with the Academy is a
+ * real decision, and "you've reawarded 6 years" would be false for anyone who
+ * agreed with some of them.
+ *
+ * Language stays provisional throughout — "picks", never "awards". A year with
+ * one pick is a preference, not a ballot (Law 2), and Law 4 keeps thin ballots
+ * provisional until they've earned authority. Act 4 is where they become
+ * ballots.
+ */
+export const WALK_DONE = {
+  title: (count: number) =>
+    `${count} ${count === 1 ? "year" : "years"} on the record.`,
+  breakdown: (reawarded: number, agreed: number) => {
+    if (reawarded > 0 && agreed > 0) {
+      return `You reawarded ${reawarded}, and agreed with the Academy on ${agreed}.`;
+    }
+    if (agreed === 0) {
+      return reawarded === 1
+        ? "You overruled the Academy."
+        : "You overruled the Academy every time.";
+    }
+    return agreed === 1
+      ? "You and the Academy agreed."
+      : "You and the Academy agreed on all of them.";
+  },
+  reawardedTag: "Reawarded",
+  agreedTag: "Agreed",
+  /** The onward step. Act 4 turns a preference into a ballot. */
+  keepGoing: "Rate more films to turn these into ballots",
 } as const;
 
 /**

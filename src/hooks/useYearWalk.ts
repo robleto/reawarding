@@ -28,6 +28,8 @@ export interface YearWalkState {
   decidedYears: number[];
   /** True once the walk has ended — hand off to the save step. */
   finished: boolean;
+  /** Ended AND there is something to show for it. Gates Act 3. */
+  done: boolean;
   skip: (year: number) => void;
 }
 
@@ -101,5 +103,11 @@ export function useYearWalk(): YearWalkState {
     return next?.year ?? null;
   }, [finished, decidedYears, skipped]);
 
-  return { currentYear, decidedYears, finished, skip };
+  return {
+    currentYear,
+    decidedYears,
+    finished,
+    done: decidedCount > 0 && currentYear === null,
+    skip,
+  };
 }

@@ -36,9 +36,12 @@ import {
   NATIVE_FIRST_OPEN,
   NATIVE_RETURNING,
   WALK,
+  WALK_DONE,
 } from "@/copy/loggedOutHome";
 import YearWalkStrip from "@/app/components/home/YearWalkStrip";
+import WalkSummary from "@/app/components/home/WalkSummary";
 import { useYearWalk } from "@/hooks/useYearWalk";
+import { useGuestPicksSummary } from "@/hooks/useGuestPicksSummary";
 import { useYearCandidates } from "@/hooks/useYearCandidates";
 import { useAcademyPickForYear } from "@/hooks/useAcademyPickForYear";
 import type { Movie } from "@/types/types";
@@ -94,6 +97,8 @@ interface NativeGuestHomeProps {
   movies: Movie[];
   /** Records a walk verdict as a guest award (`seed_pick`), not a rating. */
   onPickForYear: (pick: { id: string; title: string; year: number }) => void;
+  /** Act 4 door — the year-scoped depth page that turns picks into ballots. */
+  onDeepenYear: (year: number) => void;
   /**
    * Whether the guest has enough breadth to warrant the archive view.
    *
@@ -115,6 +120,7 @@ export default function NativeGuestHome({
   ledger,
   movies,
   onPickForYear,
+  onDeepenYear,
   showArchive,
 }: NativeGuestHomeProps) {
   return (
@@ -134,6 +140,7 @@ export default function NativeGuestHome({
           ledger={ledger}
           movies={movies}
           onPickForYear={onPickForYear}
+          onDeepenYear={onDeepenYear}
         />
       )}
     </div>
@@ -152,12 +159,14 @@ function FirstOpen({
   ledger,
   movies,
   onPickForYear,
+  onDeepenYear,
 }: {
   reducedMotion: boolean;
   onSelectMovie: (movie: Movie) => void;
   ledger: NativeLedgerState;
   movies: Movie[];
   onPickForYear: (pick: { id: string; title: string; year: number }) => void;
+  onDeepenYear: (year: number) => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const arrived = useMotionReveal(reducedMotion, cardRef);
@@ -175,6 +184,9 @@ function FirstOpen({
 
   const showFirstResult = ledger.yours !== null && !ackedFirst && !result;
   const askingYear = !showFirstResult && !result ? walk.currentYear : null;
+  /** Act 3: the walk is over and there's a stack of verdicts to show for it. */
+  const showSummary = walk.done && !result && !showFirstResult;
+  const summary = useGuestPicksSummary();
 
   const walkAcademy = useAcademyPickForYear(askingYear, movies);
   const candidates = useYearCandidates(askingYear, walkAcademy?.movieId ?? null);
@@ -210,7 +222,7 @@ function FirstOpen({
           one that changes if the Wedge/Ritual test flips. Small on purpose:
           they already downloaded, so this nods at why rather than arguing it.
           Retired once they've acted: the pitch has done its job. */}
-      {!filled && !askingYear && (
+      {!filled && !askingYear && !showSummary && (
         <p className="font-unbounded text-[13px] leading-snug text-gold-400">
           {NATIVE_FIRST_OPEN.promise}
         </p>
@@ -222,11 +234,13 @@ function FirstOpen({
         data-testid="home-headline"
         className={`font-unbounded text-[26px] font-semibold leading-[1.15] tracking-tight text-white ${filled || askingYear ? "" : "mt-2"}`}
       >
-        {filled
-          ? NATIVE_FIRST_OPEN.filledInstruction(shownLedger.academy.year)
-          : askingYear
-            ? WALK.askHeadline(askingYear)
-            : NATIVE_FIRST_OPEN.instruction}
+        {showSummary
+          ? WALK_DONE.title(summary.picks.length)
+          : filled
+            ? NATIVE_FIRST_OPEN.filledInstruction(shownLedger.academy.year)
+            : askingYear
+              ? WALK.askHeadline(askingYear)
+              : NATIVE_FIRST_OPEN.instruction}
       </h1>
 
       {/* MECHANIC — the 7+ rule before, Law 2's preference-vs-ballot after.
@@ -234,9 +248,11 @@ function FirstOpen({
           question, and repeating it here just crowds the year. */}
       {!askingYear && (
         <p className="mt-3 text-sm leading-relaxed text-gray-400">
-          {filled
-            ? NATIVE_FIRST_OPEN.filledMechanic(shownLedger.academy.year)
-            : NATIVE_FIRST_OPEN.mechanic}
+          {showSummary
+            ? WALK_DONE.breakdown(summary.reawardedCount, summary.agreedCount)
+            : filled
+              ? NATIVE_FIRST_OPEN.filledMechanic(shownLedger.academy.year)
+              : NATIVE_FIRST_OPEN.mechanic}
         </p>
       )}
 
@@ -259,12 +275,19 @@ function FirstOpen({
         ref={cardRef}
         className={`mt-8 border-t border-white/10 pt-4 award-year-enter ${arrived ? "award-year-arrived" : ""}`}
       >
-        <AcademyLedger
-          academy={shownLedger.academy}
-          yours={shownLedger.yours}
-          agreed={shownLedger.agreed}
-          emptyPrompt={askingYear ? WALK.slotPrompt : undefined}
-        />
+        {showSummary ? (
+          <WalkSummary
+            summary={summary}
+            onKeepGoing={() => onDeepenYear(summary.picks[0]?.year ?? shownLedger.academy.year)}
+          />
+        ) : (
+          <AcademyLedger
+            academy={shownLedger.academy}
+            yours={shownLedger.yours}
+            agreed={shownLedger.agreed}
+            emptyPrompt={askingYear ? WALK.slotPrompt : undefined}
+          />
+        )}
 
         {/* THE WALK (Act 2) — one year at a time, below the ledger it fills.
             Advancing is an explicit tap rather than a timer: the filled ledger
