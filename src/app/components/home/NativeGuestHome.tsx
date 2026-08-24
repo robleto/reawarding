@@ -27,7 +27,9 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
 import AwardCard from "@/components/home/AwardCard";
-import AcademyLedger from "@/components/home/AcademyLedger";
+import AcademyLedger, {
+  type AcademyLedgerPick,
+} from "@/components/home/AcademyLedger";
 import { useMotionReveal } from "@/hooks/useMotionReveal";
 import {
   GUEST_SAVE,
@@ -67,14 +69,32 @@ export interface NativeAcademyReference {
   posterUrl: string;
 }
 
+/** What the ledger should render right now. */
+export interface NativeLedgerState {
+  academy: NativeAcademyReference;
+  /** Null until the visitor has a pick for `academy.year`. */
+  yours: AcademyLedgerPick | null;
+  agreed: boolean;
+}
+
 interface NativeGuestHomeProps {
   reducedMotion: boolean;
   onSelectMovie: (movie: Movie) => void;
-  /** Number of films the guest has rated. 0 → first-open screen. */
+  /** Number of films the guest has rated. */
   ratedCount: number;
   nextYear: NativeNextYear | null;
   topBallot: NativeTopBallot | null;
-  academy: NativeAcademyReference;
+  ledger: NativeLedgerState;
+  /**
+   * Whether the guest has enough breadth to warrant the archive view.
+   *
+   * NOT `ratedCount > 0`. That was the bug: one rating swapped this whole
+   * screen out for a different layout, so the ledger the visitor had just
+   * filled vanished and they landed on what reads as an awards page. The
+   * screen now evolves in place and only hands off once there's genuinely
+   * something to browse. See docs/design/first-rating-payoff.md.
+   */
+  showArchive: boolean;
 }
 
 export default function NativeGuestHome({
@@ -83,13 +103,12 @@ export default function NativeGuestHome({
   ratedCount,
   nextYear,
   topBallot,
-  academy,
+  ledger,
+  showArchive,
 }: NativeGuestHomeProps) {
-  const isReturning = ratedCount > 0;
-
   return (
     <div className="w-full min-w-0 px-4 pt-6 pb-24">
-      {isReturning ? (
+      {showArchive ? (
         <ReturningGuest
           reducedMotion={reducedMotion}
           onSelectMovie={onSelectMovie}
@@ -101,7 +120,7 @@ export default function NativeGuestHome({
         <FirstOpen
           reducedMotion={reducedMotion}
           onSelectMovie={onSelectMovie}
-          academy={academy}
+          ledger={ledger}
         />
       )}
     </div>
@@ -109,43 +128,53 @@ export default function NativeGuestHome({
 }
 
 /* ────────────────────────────────────────────────────────────────────────
-   First open — no ratings yet
+   First open — before and after the first pick.
+   One screen that evolves, not two that swap (Law 3: ballots form, never
+   appear — a layout swap hides the formation).
    ──────────────────────────────────────────────────────────────────── */
 
 function FirstOpen({
   reducedMotion,
   onSelectMovie,
-  academy,
+  ledger,
 }: {
   reducedMotion: boolean;
   onSelectMovie: (movie: Movie) => void;
-  academy: NativeAcademyReference;
+  ledger: NativeLedgerState;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const arrived = useMotionReveal(reducedMotion, cardRef);
   const [showSteps, setShowSteps] = useState(false);
+  const filled = ledger.yours !== null;
 
   return (
     <div className="mx-auto max-w-md">
       {/* PROMISE — the only positioning string on this screen, and the only
           one that changes if the Wedge/Ritual test flips. Small on purpose:
-          they already downloaded, so this nods at why rather than arguing it. */}
-      <p className="font-unbounded text-[13px] leading-snug text-gold-400">
-        {NATIVE_FIRST_OPEN.promise}
-      </p>
+          they already downloaded, so this nods at why rather than arguing it.
+          Retired once they've acted: the pitch has done its job. */}
+      {!filled && (
+        <p className="font-unbounded text-[13px] leading-snug text-gold-400">
+          {NATIVE_FIRST_OPEN.promise}
+        </p>
+      )}
 
-      {/* INSTRUCTION — the largest thing on the screen. An imperative, not a
-          claim. This is the inversion the whole spec turns on. */}
+      {/* INSTRUCTION — the largest thing on the screen. An imperative before
+          they act; a reflection of what they did after. */}
       <h1
         data-testid="home-headline"
-        className="mt-2 font-unbounded text-[26px] font-semibold leading-[1.15] tracking-tight text-white"
+        className={`font-unbounded text-[26px] font-semibold leading-[1.15] tracking-tight text-white ${filled ? "" : "mt-2"}`}
       >
-        {NATIVE_FIRST_OPEN.instruction}
+        {filled
+          ? NATIVE_FIRST_OPEN.filledInstruction(ledger.academy.year)
+          : NATIVE_FIRST_OPEN.instruction}
       </h1>
 
-      {/* MECHANIC — states the 7+ rule the web hero leaves to be inferred. */}
+      {/* MECHANIC — the 7+ rule before, Law 2's preference-vs-ballot after. */}
       <p className="mt-3 text-sm leading-relaxed text-gray-400">
-        {NATIVE_FIRST_OPEN.mechanic}
+        {filled
+          ? NATIVE_FIRST_OPEN.filledMechanic(ledger.academy.year)
+          : NATIVE_FIRST_OPEN.mechanic}
       </p>
 
       {/* ACTION — deliberately not autofocused. Popping the keyboard on cold
@@ -167,7 +196,11 @@ function FirstOpen({
         ref={cardRef}
         className={`mt-8 border-t border-white/10 pt-4 award-year-enter ${arrived ? "award-year-arrived" : ""}`}
       >
-        <AcademyLedger academy={academy} />
+        <AcademyLedger
+          academy={ledger.academy}
+          yours={ledger.yours}
+          agreed={ledger.agreed}
+        />
       </div>
 
       {/* ESCAPE — how-it-works stops being four mandatory screens and becomes

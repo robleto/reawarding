@@ -49,6 +49,18 @@ export const NATIVE_FIRST_OPEN = {
   searchPlaceholder: "Search a film you've watched",
   assurance: "No account needed.",
   escape: "How Reawarding works",
+
+  /**
+   * Once the ledger is filled, the screen stops instructing and starts
+   * reflecting. The sub-line is Law 2 stated plainly — "a single movie is a
+   * preference; a field of movies is a ballot" — which is the honest next ask.
+   *
+   * Deliberately not "{year} needs 4 more to set a ballot": that's completion
+   * framing, and Law 8 measures progress in meaning rather than completeness.
+   */
+  filledInstruction: (year: number) => `${year} is yours.`,
+  filledMechanic: (year: number) =>
+    `One film is a preference. Add a few more and ${year} becomes a ballot.`,
 } as const;
 
 /**
@@ -75,6 +87,18 @@ export const NATIVE_LEDGER = {
   /** Sits in the empty slot, naming the action that fills it. */
   emptyPrompt: "Rate one film to fill this",
   foot: "This year is still open. So is every year back to 1927.",
+
+  /**
+   * Filled states. Agreement is a real verdict, not a failure to disagree — if
+   * the visitor's pick matches the Academy's, say so plainly rather than
+   * manufacturing a disagreement. "Agreed" is the compare-tool spec's word for
+   * this; don't invent a synonym.
+   */
+  agreedLabel: "Agreed",
+  footReawarded: (year: number) =>
+    `${year} is yours now. Every year back to 1927 is still open.`,
+  footAgreed: (year: number) =>
+    `You and the Academy agree on ${year}. Plenty of years left to disagree.`,
 } as const;
 
 /** Native, returning guest — has ratings, no account. Never re-pitch. */

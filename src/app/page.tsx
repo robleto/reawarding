@@ -9,10 +9,12 @@ import HeroReveal, { ACADEMY_REFERENCE } from "@/app/components/home/HeroReveal"
 import HowItWorksSection from "@/app/components/home/HowItWorksSection";
 import PanelFinalCTA from "@/app/components/home/PanelFinalCTA";
 import NativeGuestHome, {
+  type NativeLedgerState,
   type NativeNextYear,
   type NativeTopBallot,
 } from "@/app/components/home/NativeGuestHome";
 import { useIsNativeApp } from "@/hooks/useIsNativeApp";
+import { useAcademyPickForYear } from "@/hooks/useAcademyPickForYear";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
 import { useProfile } from "@/contexts/ProfileContext";
 import { scrollToElementById, usePrefersReducedMotion } from "@/lib/motion";
@@ -548,6 +550,19 @@ export default function HomePage() {
       : null;
   }, [yearLeaders]);
 
+  /**
+   * Ledger state for the native logged-out screen (Act 1 of
+   * docs/design/first-rating-payoff.md).
+   *
+   * Gated: `nativeLedgerYear` is null until the guest actually has a pick, so
+   * `useAcademyPickForYear` never fires on a cold open — first paint stays on
+   * the `ACADEMY_REFERENCE` constant with no round trip.
+   *
+   * While the fetch is in flight the empty constant ledger keeps rendering, so
+   * a guest who rates a much older film sees the default year briefly before it
+   * re-keys. The settle animation covers it. If that ever reads badly, the fix
+   * is a per-year placeholder, not removing the gate.
+   */
   /** Their most-formed year, as AwardCard data. Reuses the archive's own shape. */
   const nativeTopBallot = useMemo<NativeTopBallot | null>(() => {
     const best = [...formattedYears].sort(
@@ -562,6 +577,27 @@ export default function HomePage() {
       nomineeCount: best.nominees.length,
     };
   }, [formattedYears]);
+
+  const academyForLedger = useAcademyPickForYear(
+    isGuest ? (nativeTopBallot?.year ?? null) : null,
+    movies
+  );
+
+  /** Empty until both their pick and that year's Academy winner have resolved. */
+  const nativeLedger = useMemo<NativeLedgerState>(() => {
+    const empty = { academy: ACADEMY_REFERENCE, yours: null, agreed: false };
+    if (!nativeTopBallot || !academyForLedger) return empty;
+    return {
+      academy: academyForLedger.reference,
+      yours: {
+        title: nativeTopBallot.winnerTitle,
+        posterUrl: nativeTopBallot.winnerPoster ?? "",
+      },
+      agreed:
+        academyForLedger.movieId != null &&
+        String(academyForLedger.movieId) === String(nativeTopBallot.winnerMovieId),
+    };
+  }, [nativeTopBallot, academyForLedger]);
 
   // ── Actionable years — years where the user has an unrated-but-seen film
   // or a watchlisted film, i.e. a real next step. A forming year with no
@@ -789,7 +825,10 @@ export default function HomePage() {
           ratedCount={ratedMovies.length}
           nextYear={nativeNextYear}
           topBallot={nativeTopBallot}
-          academy={ACADEMY_REFERENCE}
+          ledger={nativeLedger}
+          // Breadth, not "has rated anything" — one rating used to swap the
+          // whole screen out from under the ledger they'd just filled.
+          showArchive={yearLeaders.length >= 2 || setBallotCount >= 1}
         />
       ) : showGuestPanels ? (
         /* ── Web guest: three-panel funnel (was six) ── */
