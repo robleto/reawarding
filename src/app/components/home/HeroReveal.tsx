@@ -94,7 +94,7 @@ export default function HeroReveal({
     decide,
     advance,
     walk,
-  } = useLedgerWalk(ledger, movies, onPickForYear);
+  } = useLedgerWalk(ledger, movies, onPickForYear, "web");
 
   return (
     <div className="flex flex-col">

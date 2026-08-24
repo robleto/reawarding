@@ -1,12 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useYearWalk } from "@/hooks/useYearWalk";
 import { useAcademyPickForYear } from "@/hooks/useAcademyPickForYear";
 import { useYearCandidates } from "@/hooks/useYearCandidates";
 import { useGuestPicksSummary } from "@/hooks/useGuestPicksSummary";
+import { useWalkTelemetry, type WalkSurface } from "@/hooks/useWalkTelemetry";
+import { CONTESTED_YEARS } from "@/data/contestedYears";
 import type { AcademyLedgerPick } from "@/components/home/AcademyLedger";
 import type { Movie } from "@/types/types";
+
+/**
+ * 0-based index in CONTESTED_YEARS. `useYearWalk` only ever draws its
+ * `currentYear` from this list (no other year can reach here as of this
+ * writing), so this should never return null in practice; null is handled
+ * anyway as a defensive fallback, not a real case being designed for.
+ */
+function contestedPosition(year: number | null): number | null {
+  if (year == null) return null;
+  const i = CONTESTED_YEARS.findIndex((c) => c.year === year);
+  return i === -1 ? null : i;
+}
 
 export interface LedgerState {
   academy: { year: number; title: string; posterUrl: string };
@@ -27,8 +41,10 @@ export interface LedgerState {
 export function useLedgerWalk(
   ledger: LedgerState,
   movies: Movie[],
-  onPickForYear: (pick: { id: string; title: string; year: number }) => void
+  onPickForYear: (pick: { id: string; title: string; year: number }) => void,
+  surface: WalkSurface
 ) {
+  const track = useWalkTelemetry(surface);
   const walk = useYearWalk();
   // Holds a just-decided verdict so the visitor sees their pick land before
   // anything advances. Without it the walk would swallow its own payoff — the
@@ -67,6 +83,27 @@ export function useLedgerWalk(
   const walkAcademy = useAcademyPickForYear(askingYear, movies);
   const candidates = useYearCandidates(askingYear, walkAcademy?.movieId ?? null);
 
+  // year_offered — once per year actually shown, not once per render. A ref
+  // rather than a Set: the walk only ever moves forward through
+  // CONTESTED_YEARS, so "last year offered" is enough to dedupe re-renders
+  // without accumulating an ever-growing collection for a ~10-year walk.
+  const lastOfferedRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (askingYear == null || lastOfferedRef.current === askingYear) return;
+    lastOfferedRef.current = askingYear;
+    track("year_offered", { year: askingYear, position: contestedPosition(askingYear) ?? undefined });
+  }, [askingYear, track]);
+
+  // walk_completed — once per session. Guarded the same way rather than
+  // relying on `showSummary` alone, which stays true across every re-render
+  // for as long as the summary screen is on-canvas.
+  const completedFiredRef = useRef(false);
+  useEffect(() => {
+    if (!showSummary || completedFiredRef.current) return;
+    completedFiredRef.current = true;
+    track("walk_completed");
+  }, [showSummary, track]);
+
   // What the ledger renders right now: a fresh verdict, the year being asked
   // about, or the caller's own ledger before the walk has started.
   const shownLedger: LedgerState =
@@ -80,6 +117,10 @@ export function useLedgerWalk(
   const decide = (pick: AcademyLedgerPick & { id: string }, agreed: boolean) => {
     if (askingYear == null || !walkAcademy) return;
     onPickForYear({ id: pick.id, title: pick.title, year: askingYear });
+    track(agreed ? "year_agreed" : "year_reawarded", {
+      year: askingYear,
+      position: contestedPosition(askingYear) ?? undefined,
+    });
     setResult({
       academy: walkAcademy.reference,
       yours: { title: pick.title, posterUrl: pick.posterUrl },
@@ -92,8 +133,19 @@ export function useLedgerWalk(
     setAckedFirst(true);
   };
 
+  // Instrumented wrapper. Callers already invoke `walk.skip(askingYear)`
+  // directly (native's FirstOpen, HeroReveal) — replacing that with this
+  // object's own `skip` keeps the call site unchanged while adding the event.
+  const instrumentedWalk = {
+    ...walk,
+    skip: (year: number) => {
+      track("year_skipped", { year, position: contestedPosition(year) ?? undefined });
+      walk.skip(year);
+    },
+  };
+
   return {
-    walk,
+    walk: instrumentedWalk,
     showSummary,
     askingYear,
     walkAcademy,

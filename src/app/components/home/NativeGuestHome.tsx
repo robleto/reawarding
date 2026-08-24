@@ -176,7 +176,7 @@ function FirstOpen({
     decide,
     advance,
     walk,
-  } = useLedgerWalk(ledger, movies, onPickForYear);
+  } = useLedgerWalk(ledger, movies, onPickForYear, "native");
 
   return (
     <div className="mx-auto max-w-md">
