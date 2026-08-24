@@ -24,5 +24,6 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "supabase/functions/**/*", "scripts/**/*", "src/stories/**/*"]
+  "//exclude-delete": "delete/ is the project's hold-for-review folder (never rm; move here instead). Untracked, so CI never sees it — but the **/*.ts include glob compiled whatever landed there, breaking local tsc for every session with errors from files that are already trash.",
+  "exclude": ["node_modules", "supabase/functions/**/*", "scripts/**/*", "src/stories/**/*", "delete/**/*"]
 }
