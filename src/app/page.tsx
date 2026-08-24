@@ -15,6 +15,7 @@ import NativeGuestHome, {
 } from "@/app/components/home/NativeGuestHome";
 import { useIsNativeApp } from "@/hooks/useIsNativeApp";
 import { useAcademyPickForYear } from "@/hooks/useAcademyPickForYear";
+import { useAwardFilms } from "@/hooks/useAwardFilms";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
 import { useProfile } from "@/contexts/ProfileContext";
 import { scrollToElementById, usePrefersReducedMotion } from "@/lib/motion";
@@ -191,6 +192,10 @@ export default function HomePage() {
     recordOnboardingSession();
   }, [recordOnboardingSession]);
 
+  // Films referenced by an award but missing from the client movie window —
+  // without these, award-only years resolve no winner and stay invisible.
+  const awardFilms = useAwardFilms(awards, movies);
+
   // Full year timeline (ported from /awards) — every year with at least one
   // rated film, rendered as an editable ballot section. This is what makes
   // Home the actual archive rather than a preview of it.
@@ -210,6 +215,18 @@ export default function HomePage() {
       acc[year].push(movie);
       return acc;
     }, {});
+
+    // Years the user has an award for but has rated nothing in still belong
+    // here. Grouping by rated films alone made the entire output of the guest
+    // year-walk invisible the moment someone signed up to keep it — a verdict
+    // there is a preference, not a rating (Fork B in
+    // docs/design/first-rating-payoff.md), so those years have an award and no
+    // rankings at all. "Sign up to keep your picks" led straight to a home that
+    // showed none of them.
+    for (const award of awards) {
+      const year = String(award.year);
+      if (!groupedByYear[year]) groupedByYear[year] = [];
+    }
 
     return Object.entries(groupedByYear)
       .map(([year, moviesInYear]) => {
@@ -232,15 +249,23 @@ export default function HomePage() {
 
         // Movie ids are UUID strings at runtime; Number(uuid) → NaN, which
         // silently breaks saved-winner/nominee lookups. Compare as strings.
+        //
+        // Falls back to `awardFilms` because an awarded film need not be in
+        // `sorted` (which holds only this year's *rated* films) or even in
+        // `movies` at all — the client list is a 3000-of-4400 window and its
+        // rescue only back-fills rated films, never picked-but-unrated ones.
+        const resolve = (id: string | number): Movie | null =>
+          sorted.find((m) => String(m.id) === String(id)) ??
+          awardFilms.get(String(id)) ??
+          null;
+
         const savedNominees = savedAward?.nomineeIds?.length
-          ? (savedAward.nomineeIds
-              .map((id) => sorted.find((m) => String(m.id) === String(id)))
-              .filter((m): m is Movie => Boolean(m)))
+          ? savedAward.nomineeIds
+              .map(resolve)
+              .filter((m): m is Movie => Boolean(m))
           : null;
 
-        const savedWinner = savedAward?.winnerId
-          ? (sorted.find((m) => String(m.id) === String(savedAward.winnerId)) ?? null)
-          : null;
+        const savedWinner = savedAward?.winnerId ? resolve(savedAward.winnerId) : null;
 
         return {
           year,
@@ -249,9 +274,11 @@ export default function HomePage() {
           allMovies: sorted,
         };
       })
-      .filter((yearData) => yearData.allMovies.length >= 1)
+      // A year earns a place with either a rated film or a resolved winner.
+      // Requiring a rated film is what hid award-only years.
+      .filter((yearData) => yearData.allMovies.length >= 1 || Boolean(yearData.winner))
       .sort((a, b) => Number(b.year) - Number(a.year));
-  }, [movies, awards]);
+  }, [movies, awards, awardFilms]);
 
   // Render order for the archive below. The scrubber itself stays
   // chronological in both modes — it's a timeline, and its connectors (solid
@@ -653,7 +680,14 @@ export default function HomePage() {
   // (any rated movie belongs to some year), so without the ratedMovies arm
   // a user with 1-4 ratings in one year skips straight to "building" a
   // state early for someone who's barely engaged yet.
-  const isNewUserState = !hasStartedBallots || ratedMovies.length < 5;
+  // The `awards.length < 3` arm is what stops someone who walked eight years
+  // as a guest from being re-classified "new" the moment they sign up. The
+  // ratings arm exists because hasStartedBallots flips true after a single
+  // rating; walk verdicts are awards without ratings, so they need their own
+  // threshold or breadth reads as nothing. Three picks is the same "more than
+  // an accidental first tap" bar the 5-ratings arm draws.
+  const isNewUserState =
+    !hasStartedBallots || (ratedMovies.length < 5 && awards.length < 3);
   const userState: "new" | "building" | "established" | "mature" = isNewUserState
     ? "new"
     : isMature

@@ -182,10 +182,16 @@ function FirstOpen({
   /** The props-derived first result (from the search flow) needs one ack too. */
   const [ackedFirst, setAckedFirst] = useState(false);
 
-  const showFirstResult = ledger.yours !== null && !ackedFirst && !result;
-  const askingYear = !showFirstResult && !result ? walk.currentYear : null;
+  // Precedence matters and is easy to get backwards. The summary is checked
+  // first because `ledger.yours` is non-null for *any* award — including all
+  // eight from a finished walk — so a "first result" test that ran first would
+  // swallow Act 3 and show a single year instead of the stack.
   /** Act 3: the walk is over and there's a stack of verdicts to show for it. */
-  const showSummary = walk.done && !result && !showFirstResult;
+  const showSummary = walk.done && !result;
+  const showFirstResult =
+    !showSummary && ledger.yours !== null && !ackedFirst && !result;
+  const askingYear =
+    !showSummary && !showFirstResult && !result ? walk.currentYear : null;
   const summary = useGuestPicksSummary();
 
   const walkAcademy = useAcademyPickForYear(askingYear, movies);
