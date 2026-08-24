@@ -1,51 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Lock, Sparkles } from "lucide-react";
 import { useAuthState } from "@/hooks/useAuthState";
 import { useProfile } from "@/contexts/ProfileContext";
 import { isNativeApp } from "@/lib/platform";
-import { supabase } from "@/lib/supabaseBrowser";
+import { hasLiveSubscription } from "@/lib/subscription";
 
 export default function PremiumPage() {
-  const { status, isAuthenticated, user } = useAuthState();
-  const { isPremium } = useProfile();
+  const { status, isAuthenticated } = useAuthState();
+  const { profile, loading: profileLoading, isPremium } = useProfile();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
   const isNative = isNativeApp();
 
-  useEffect(() => {
-    if (!user?.id) {
-      setHasStripeCustomer(false);
-      return;
-    }
-    let cancelled = false;
-    supabase
-      .from("profiles_self")
-      .select("stripe_customer_id")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (!cancelled) {
-          setHasStripeCustomer(Boolean(data?.stripe_customer_id));
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
+  // Keyed on subscription_status, NOT stripe_customer_id. The customer id is
+  // created before the Checkout Session (see api/stripe/checkout/route.ts), so
+  // anyone who abandoned their first checkout has one without ever having had
+  // a subscription — branching on it here left them staring at "Manage
+  // billing" forever, with no way to actually buy. See src/lib/subscription.ts.
+  //
+  // Read off the shared ProfileContext row rather than issuing a second query:
+  // isPremium below already comes from it, so a separate fetch could only
+  // disagree with itself mid-load.
+  const hasSubscription = hasLiveSubscription(profile?.subscription_status);
 
   const handleUpgrade = async () => {
     setLoading(true);
     setError(null);
     try {
-      // A past_due/unpaid subscriber already has a Stripe customer (and a
-      // live subscription) even though isPremium is false — route them to
-      // the Billing Portal instead of Checkout, or they'd end up with a
-      // second concurrent subscription (audit PAY-2).
-      const endpoint = hasStripeCustomer ? "/api/stripe/portal" : "/api/stripe/checkout";
+      // A past_due/unpaid subscriber has a live subscription even though
+      // isPremium is false — route them to the Billing Portal instead of
+      // Checkout, or they'd end up with a second concurrent subscription
+      // (audit PAY-2).
+      const endpoint = hasSubscription ? "/api/stripe/portal" : "/api/stripe/checkout";
       const res = await fetch(endpoint, { method: "POST" });
       const data = await res.json();
       if (data.url) {
@@ -114,7 +103,7 @@ export default function PremiumPage() {
         </p>
       </div>
 
-      {status === "loading" ? null : !isAuthenticated ? (
+      {status === "loading" || (isAuthenticated && profileLoading) ? null : !isAuthenticated ? (
         <div className="text-center">
           <Link
             href="/login"
@@ -136,9 +125,9 @@ export default function PremiumPage() {
             .
           </p>
         </div>
-      ) : isNative && !hasStripeCustomer ? null : (
+      ) : isNative && !hasSubscription ? null : (
         // PAY-4 (docs/audits/2026-08-21-launch-readiness-round3.md): a
-        // native user who already has a Stripe customer (past_due/unpaid,
+        // native user who already has a live subscription (past_due/unpaid,
         // not a fresh purchase) still needs a way to reach the Billing
         // Portal to fix their card — hiding this entirely stranded them.
         <div className="text-center">
@@ -148,9 +137,9 @@ export default function PremiumPage() {
             className="inline-flex items-center gap-2 px-6 py-3 text-black bg-gold-500 rounded-full border border-gold-300/40 shadow-lg shadow-gold-500/25 hover:bg-gold-400 hover:shadow-gold-400/35 disabled:opacity-50 font-medium transition-colors"
           >
             <Lock className="w-4 h-4" />
-            {loading ? "Redirecting…" : hasStripeCustomer ? "Manage billing" : "Unlock Premium — $19/yr"}
+            {loading ? "Redirecting…" : hasSubscription ? "Manage billing" : "Unlock Premium — $19/yr"}
           </button>
-          {!hasStripeCustomer && (
+          {!hasSubscription && (
             <p className="mt-3 text-xs text-gray-500">
               Less than two movie tickets, for something you&apos;ll check every awards season.
             </p>
