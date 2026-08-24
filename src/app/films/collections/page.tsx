@@ -62,6 +62,9 @@ export default function CollectionsPage() {
   }, [activeCategory]);
 
 
+  const showsReadiness =
+    activeCategory === 'featured' || activeCategory === 'all' || activeCategory === 'awards';
+
   return (
     <div className="min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -94,17 +97,39 @@ export default function CollectionsPage() {
           </div>
         </div>
 
-        {/* Collections Grid */}
+        {/* Collections Grid.
+
+            Oscar Night Readiness is a collection in every sense the user cares
+            about, but it can't be a `film_collections` row — those are fixed
+            lists of TMDB ids, and this one is derived from the nominations
+            tables and changes as each slate is announced. So it's pinned as the
+            first card by hand rather than coming back from the query, on the
+            tabs it belongs to. It shares the grid rather than sitting in one of
+            its own, which would leave three empty cells beside it. */}
         {collectionsLoading ? (
           <div className="flex justify-center items-center min-h-[400px]">
             <Loader />
           </div>
-        ) : collections.length === 0 ? (
+        ) : collections.length === 0 && !showsReadiness ? (
           <div className="text-center py-12 text-gray-400">
             No collections found in this category.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {showsReadiness && (
+              <CollectionCard
+                collection={{
+                  slug: 'readiness',
+                  title: 'Oscar Night Readiness',
+                  description:
+                    'Every category, every nominee, counted for you — with the ceremony clock running.',
+                  icon: 'ListChecks',
+                  color: 'gold',
+                  category: 'awards',
+                  featured: true,
+                }}
+              />
+            )}
             {collections.map((collection) => (
               <CollectionCard
                 key={collection.slug}
