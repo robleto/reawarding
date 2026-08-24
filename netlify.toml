@@ -12,7 +12,16 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[[plugins]]
+# Lighthouse is scoped to production rather than declared under a bare
+# [[plugins]] block, which would run it on every deploy preview too. Previews
+# exist to check that a branch builds and renders; a performance audit of a
+# preview URL isn't acted on, so it was pure build-minute overhead on every PR.
+#
+# Verify after the next preview deploy: the plugin should appear in the
+# production deploy log and be absent from preview logs. If it shows up in
+# neither, this context syntax isn't being honored — move it back to a plain
+# [[plugins]] block and accept the cost, or drop the plugin.
+[[context.production.plugins]]
   package = "@netlify/plugin-lighthouse"
 
 [[headers]]
