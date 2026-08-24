@@ -70,18 +70,22 @@ const REAWARDED_STATUS: AcademyStatusResult = {
 };
 
 /**
- * The settled "reawarded" state of the demo year, as plain data.
+ * The Academy's real Best Picture winner for the demo year — the left half of
+ * the native screen's open ledger (see NATIVE_LEDGER in src/copy/loggedOutHome).
  *
- * NativeGuestHome renders the same 2025 card as its proof slot but without the
- * crossfade (one screen, no scroll choreography). Exported so the demo year is
- * defined once rather than drifting between the web hero and the native screen.
+ * Deliberately a constant rather than a `fetchOfficialAwardWinners()` call.
+ * That data exists and is per-year correct, but it's a Supabase round trip, and
+ * this renders on the logged-out first-open screen — the one surface where a
+ * loading state costs the most. The ledger names its year explicitly, so a
+ * constant can go stale but can never be *wrong*: it stays an accurate
+ * statement about 2025 even after the next ceremony.
+ *
+ * Refresh after each ceremony to keep it current.
  */
-export const HERO_DEMO_PROOF = {
+export const ACADEMY_REFERENCE = {
   year: 2025,
-  winnerTitle: SINNERS.title,
-  winnerPoster: SINNERS.poster_url,
-  winnerMovieId: SINNERS.id,
-  nomineeCount: NOMINEES.length,
+  title: ONE_BATTLE.title,
+  posterUrl: ONE_BATTLE.poster_url,
 } as const;
 
 const HOLD_MS = 1100;
