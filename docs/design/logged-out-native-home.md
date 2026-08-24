@@ -176,22 +176,41 @@ permanence, until there's an account.
 
 ---
 
-## Also broken: two dead tabs on first open
+## Guest navigation
 
-Not strictly this screen, but it's the first thing a logged-out native user can
-tap and it's worth fixing in the same pass.
+**Correction (2026-08-23).** This section originally claimed guests saw two dead
+tabs — that tapping the lit **Awards** tab on the logged-out home threw a login
+wall. **That bug did not exist.** `AppShell.tsx` gated `<MobileTabBar/>` on
+`isAuthenticated`, so guests had no tab bar at all and no tab to tap. The
+`GUEST_TABS` lineup shipped in the first pass was unreachable dead code until
+the gate was changed. Caught in review; recorded here because the original
+framing is in the commit message for `0a9430d`.
 
-`MobileTabBar.tsx:65–68` renders **Awards · Films · Rankings · Lists** to
-everyone. But `middleware.ts` protects `/awards` and `/rankings` — both bounce a
-guest to `/login`.
+What's true, and what the code now does:
 
-Worse: the **Awards** tab matches `p === "/"`, so on the logged-out home the
-highlighted active tab is Awards — and tapping the tab you're apparently already
-on throws up a login wall.
+- `MobileTabBar.tsx` renders **Awards · Films · Rankings · Lists**, and
+  `middleware.ts` protects `/awards` and `/rankings`. Those two would bounce a
+  guest to `/login` *if a guest ever saw them* — so the guest lineup is
+  **Home · Films · Lists**, all public.
+- The real change is **granting** guests navigation, which is a product
+  decision, not a bugfix.
 
-**Fix:** for guests, either hide the two protected tabs or route them to the
-public equivalent. A first-time user should not hit a login wall by tapping the
-tab that's already lit.
+**The rule:** signed in → always. Guest → only once they've rated something.
+
+The logged-out first-open screen is a single activation surface — one
+instruction, one search box — and a bottom nav there is three more things to tap
+instead of the one that matters. Once a guest has rated a film, `NativeGuestHome`
+swaps to its returning-guest state and navigation starts earning its place. The
+predicate is deliberately the same one driving that swap (a numeric rating, not
+`seenIt` or `hasInteracted`), so the bar appears exactly when the screen changes.
+
+Implemented in `src/hooks/useShowMobileTabBar.ts`, which is the single source for
+all three things that key off it — the bar, `main`'s bottom padding, and
+`BackToTopButton`'s offset. They must agree or the layout reserves space for a
+bar that isn't there.
+
+Covered by two tests in `tests/prelogin.spec.ts` — absent on first open, present
+after a seeded rating.
 
 ---
 
