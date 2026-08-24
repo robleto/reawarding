@@ -26,7 +26,6 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
-import AwardCard from "@/components/home/AwardCard";
 import AcademyLedger, {
   type AcademyLedgerPick,
 } from "@/components/home/AcademyLedger";
@@ -54,14 +53,12 @@ const STEPS = [
   { number: 4, title: "Change anything you disagree with.", body: "Your Academy. Your final say." },
 ] as const;
 
-/** The user's closest-to-set year, for the returning-guest "next" line. */
-export interface NativeNextYear {
-  year: number;
-  /** Films still needed to reach a set ballot (5 nominees). */
-  remaining: number;
-}
-
-/** Their top forming ballot, rendered with the canonical AwardCard. */
+/**
+ * Their top forming ballot. Not rendered on this screen — the gilt AwardCard
+ * treatment it fed was retired below (see "Fix the returning-guest screen" in
+ * docs/design/first-rating-payoff.md) — but page.tsx still derives
+ * NativeLedgerState from it, so the type stays exported.
+ */
 export interface NativeTopBallot {
   year: number;
   winnerTitle: string;
@@ -90,8 +87,6 @@ interface NativeGuestHomeProps {
   onSelectMovie: (movie: Movie) => void;
   /** Number of films the guest has rated. */
   ratedCount: number;
-  nextYear: NativeNextYear | null;
-  topBallot: NativeTopBallot | null;
   ledger: NativeLedgerState;
   /** Client movie set — lets the walk resolve posters without refetching. */
   movies: Movie[];
@@ -115,8 +110,6 @@ export default function NativeGuestHome({
   reducedMotion,
   onSelectMovie,
   ratedCount,
-  nextYear,
-  topBallot,
   ledger,
   movies,
   onPickForYear,
@@ -127,11 +120,9 @@ export default function NativeGuestHome({
     <div className="w-full min-w-0 px-4 pt-6 pb-24">
       {showArchive ? (
         <ReturningGuest
-          reducedMotion={reducedMotion}
           onSelectMovie={onSelectMovie}
           ratedCount={ratedCount}
-          nextYear={nextYear}
-          topBallot={topBallot}
+          onDeepenYear={onDeepenYear}
         />
       ) : (
         <FirstOpen
@@ -413,41 +404,40 @@ function FirstOpen({
    ──────────────────────────────────────────────────────────────────── */
 
 function ReturningGuest({
-  reducedMotion,
   onSelectMovie,
   ratedCount,
-  nextYear,
-  topBallot,
+  onDeepenYear,
 }: {
-  reducedMotion: boolean;
   onSelectMovie: (movie: Movie) => void;
   ratedCount: number;
-  nextYear: NativeNextYear | null;
-  topBallot: NativeTopBallot | null;
+  onDeepenYear: (year: number) => void;
 }) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const arrived = useMotionReveal(reducedMotion, cardRef);
+  const summary = useGuestPicksSummary();
+  const hasRecord = summary.picks.length > 0;
 
   return (
     <div className="mx-auto max-w-md">
-      {/* STATE — their own progress is the headline. No promise, no mechanic,
-          no proof: they've seen the proof, they made some. */}
+      {/* Counts verdicts, not ratings. "2 films rated" was badly wrong for
+          anyone who came through the year walk — eight picks plus a couple of
+          ratings read as almost nothing, because walk verdicts are awards
+          rather than ratings (Fork B). Same phrasing as the end of the walk,
+          so the number never appears to reset between screens. */}
       <h1
         data-testid="home-headline"
         className="font-unbounded text-[24px] font-semibold leading-tight tracking-tight text-white"
       >
-        {NATIVE_RETURNING.state(ratedCount)}
+        {hasRecord
+          ? WALK_DONE.title(summary.picks.length)
+          : NATIVE_RETURNING.state(ratedCount)}
       </h1>
 
+      {/* Was "{year} needs 4 more to set a ballot" — completion framing, which
+          Law 8 pushes against: progress is measured in meaning, not
+          completeness. The breakdown says what they actually did instead. */}
       <p className="mt-2 text-sm leading-relaxed text-gray-400">
-        {nextYear ? (
-          <>
-            <span className="font-semibold text-gold-300">{nextYear.year}</span>
-            {NATIVE_RETURNING.nextWithYear(nextYear.remaining)}
-          </>
-        ) : (
-          NATIVE_RETURNING.nextGeneric
-        )}
+        {hasRecord
+          ? WALK_DONE.breakdown(summary.reawardedCount, summary.agreedCount)
+          : NATIVE_RETURNING.nextGeneric}
       </p>
 
       <div className="mt-5">
@@ -458,40 +448,40 @@ function ReturningGuest({
         />
       </div>
 
-      {/* THEIR WORK — their own forming ballot, same canonical card. */}
-      {topBallot && (
+      {/* THEIR WORK — the same provisional strip the walk ends on, not the gilt
+          AwardCard this screen used to lead with.
+
+          Two reasons the card was wrong here. It's the trophy treatment removed
+          from first open, so it reintroduced the gamification everywhere else
+          rejects. And it presented whatever year happened to be strongest as a
+          finished award even when it held one or two nominees — Law 4 keeps
+          thin ballots provisional, and authority is earned rather than
+          assigned. Ceremony for a genuinely set ballot belongs on the archive
+          after signup, where the ballot is canonical. */}
+      {hasRecord ? (
         <div className="mt-8">
-          <div
-            ref={cardRef}
-            className={`award-year-enter ${arrived ? "award-year-arrived" : ""}`}
+          <WalkSummary
+            summary={summary}
+            onKeepGoing={() => onDeepenYear(summary.picks[0].year)}
+          />
+        </div>
+      ) : (
+        // WalkSummary carries the save prompt, so this branch needs its own.
+        // Reachable: rating a film outside the home flow (e.g. from /films)
+        // writes a ranking without creating an award, so a guest can have rated
+        // years and no record. Without this they'd have no way to save at all.
+        <div className="mt-8 flex items-center gap-3 rounded-xl border border-gold-500/30 bg-gold-500/[0.06] px-4 py-3">
+          <p className="min-w-0 flex-1 text-xs leading-relaxed text-gray-300">
+            {GUEST_SAVE.bar}
+          </p>
+          <Link
+            href="/login"
+            className="inline-flex min-h-[36px] flex-none items-center justify-center rounded-lg bg-gold-500 px-3.5 text-xs font-semibold text-black transition-colors hover:bg-gold-400"
           >
-            <AwardCard
-              year={topBallot.year}
-              winnerTitle={topBallot.winnerTitle}
-              winnerPoster={topBallot.winnerPoster}
-              winnerMovieId={topBallot.winnerMovieId}
-              nomineeCount={topBallot.nomineeCount}
-              fullWidth
-              academyStatus={null}
-            />
-          </div>
+            {GUEST_SAVE.cta}
+          </Link>
         </div>
       )}
-
-      {/* SAVE — portable, never permanent. Guest ratings really do migrate on
-          signup (useAuthMigration in providers.tsx), so this claim is true as
-          written; "Forever / Permanent" was not. */}
-      <div className="mt-8 flex items-center gap-3 rounded-xl border border-gold-500/30 bg-gold-500/[0.06] px-4 py-3">
-        <p className="min-w-0 flex-1 text-xs leading-relaxed text-gray-300">
-          {GUEST_SAVE.bar}
-        </p>
-        <Link
-          href="/login"
-          className="inline-flex min-h-[36px] flex-none items-center justify-center rounded-lg bg-gold-500 px-3.5 text-xs font-semibold text-black transition-colors hover:bg-gold-400"
-        >
-          {GUEST_SAVE.cta}
-        </Link>
-      </div>
     </div>
   );
 }

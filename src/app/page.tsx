@@ -10,7 +10,6 @@ import HowItWorksSection from "@/app/components/home/HowItWorksSection";
 import PanelFinalCTA from "@/app/components/home/PanelFinalCTA";
 import NativeGuestHome, {
   type NativeLedgerState,
-  type NativeNextYear,
   type NativeTopBallot,
 } from "@/app/components/home/NativeGuestHome";
 import { useIsNativeApp } from "@/hooks/useIsNativeApp";
@@ -562,20 +561,12 @@ export default function HomePage() {
   const yearLeaders = useMemo(() => getYearLeaders(ratedMovies), [ratedMovies]);
 
   // ── Native logged-out screen inputs ────────────────────────────────────
-  // The returning-guest state leads with the user's own progress instead of
-  // re-pitching them, so it needs two things: the year closest to setting a
-  // ballot, and their strongest forming ballot to render.
-
-  /** Closest-to-set year (1–4 nominees), nearest first. Null when none apply. */
-  const nativeNextYear = useMemo<NativeNextYear | null>(() => {
-    const candidates = yearLeaders
-      .filter((yl) => yl.nomineeCount > 0 && yl.nomineeCount < 5)
-      .sort((a, b) => b.nomineeCount - a.nomineeCount);
-    const closest = candidates[0];
-    return closest
-      ? { year: closest.year, remaining: 5 - closest.nomineeCount }
-      : null;
-  }, [yearLeaders]);
+  // The returning-guest state used to lead with "{year} needs N more to set a
+  // ballot", fed by nativeNextYear below. That was completion framing (Law 8)
+  // and it's gone — the screen now shows the walk's own breakdown copy instead
+  // (docs/design/first-rating-payoff.md, "Fix the returning-guest screen").
+  // nativeNextYear went with it; removed rather than left computing an unused
+  // value.
 
   /**
    * Ledger state for the native logged-out screen (Act 1 of
@@ -857,8 +848,6 @@ export default function HomePage() {
           reducedMotion={reducedMotion}
           onSelectMovie={handleSelectMovie}
           ratedCount={ratedMovies.length}
-          nextYear={nativeNextYear}
-          topBallot={nativeTopBallot}
           ledger={nativeLedger}
           movies={movies}
           // A walk verdict is a preference, not a rating (Fork B in
@@ -875,7 +864,14 @@ export default function HomePage() {
           onDeepenYear={(year) => router.push(`/onboarding/${year}`)}
           // Breadth, not "has rated anything" — one rating used to swap the
           // whole screen out from under the ledger they'd just filled.
-          showArchive={yearLeaders.length >= 2 || setBallotCount >= 1}
+          // yearLeaders is built from ratedMovies, and walk verdicts carry no
+          // rating (Fork B) — so awards.length is the only signal breadth from
+          // the walk alone can ever set. Without it a guest who only ever
+          // walked years, never rated anything through search, could earn
+          // eight picks and still never reach ReturningGuest.
+          showArchive={
+            yearLeaders.length >= 2 || setBallotCount >= 1 || awards.length >= 2
+          }
         />
       ) : showGuestPanels ? (
         /* ── Web guest: three-panel funnel (was six) ── */
