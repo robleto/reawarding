@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import HeroReveal from "@/app/components/home/HeroReveal";
+import HeroReveal, { HERO_DEMO_PROOF } from "@/app/components/home/HeroReveal";
 import HowItWorksSection from "@/app/components/home/HowItWorksSection";
-import PanelHook from "@/app/components/home/PanelHook";
-import PanelTimeline from "@/app/components/home/PanelTimeline";
-import PanelReassurance from "@/app/components/home/PanelReassurance";
 import PanelFinalCTA from "@/app/components/home/PanelFinalCTA";
+import NativeGuestHome, {
+  type NativeNextYear,
+  type NativeTopBallot,
+} from "@/app/components/home/NativeGuestHome";
+import { useIsNativeApp } from "@/hooks/useIsNativeApp";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
 import { useProfile } from "@/contexts/ProfileContext";
 import { scrollToElementById, usePrefersReducedMotion } from "@/lib/motion";
@@ -37,14 +39,15 @@ import { useWatchlistContext } from "@/contexts/WatchlistContext";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const PANEL_IDS = [
-  "panel-premise",
-  "panel-how-it-works",
-  "panel-hook",
-  "panel-timeline",
-  "panel-reassurance",
-  "panel-final-cta",
-] as const;
+// Web guest funnel, cut from six panels to three
+// (docs/design/logged-out-native-home.md). The retired panels — PanelHook,
+// PanelTimeline, PanelReassurance — each made a *different* argument, so six
+// panels landed none of them; a visitor couldn't repeat back what the app
+// does. The components still exist and are unwired, not deleted. PanelHook's
+// one persuasive line now lives in the hero as social proof.
+//
+// The PANEL_IDS list that used to sit here fed the scroll-progress dot rail,
+// removed along with it.
 
 /**
  * Returns the "active" Oscar year.
@@ -82,13 +85,14 @@ type ArchiveSort = "chronological" | "strength";
 export default function HomePage() {
   const router = useRouter();
   const reducedMotion = usePrefersReducedMotion();
+  // `null` until the client resolves it — the guest branch below holds its
+  // render rather than flashing the web funnel inside the native shell.
+  const isNative = useIsNativeApp();
   const { status: authStatus, isAuthenticated, user } = useAuthState();
   const { movies, userId, updateMovieRanking, isGuest, loading, authChecked, error: moviesError } = useMovieDataWithGuest();
   const { createAward } = useCreateAward();
   const { profile } = useProfile();
   const { awards, loading: awardsLoading, error: awardsError } = useUserAwards();
-  const [activePanelId, setActivePanelId] = useState<string>(PANEL_IDS[0]);
-  const [showIndicator, setShowIndicator] = useState(false);
   // New onboarding flow — modal-first Watch → Rate sequence for new users.
   // Replaces the "drop them into YearExplorer with auto-seed + tour" approach.
   const [onboardingPickFlowMovie, setOnboardingPickFlowMovie] = useState<Movie | null>(null);
@@ -514,38 +518,11 @@ export default function HomePage() {
     };
   }, [sortedYears, reducedMotion]);
 
-  // GSAP panel tracking for guest onboarding
-  useEffect(() => {
-    if (reducedMotion) {
-      setShowIndicator(true);
-      return;
-    }
-    const sections = PANEL_IDS.map((id) => document.getElementById(id)).filter(
-      (node): node is HTMLElement => node instanceof HTMLElement
-    );
-    if (!sections.length) return;
-    const ratios = new Map<string, number>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => { ratios.set(entry.target.id, entry.intersectionRatio); });
-        let candidate: (typeof PANEL_IDS)[number] = PANEL_IDS[0];
-        let maxRatio = 0;
-        PANEL_IDS.forEach((id) => {
-          const ratio = ratios.get(id) ?? 0;
-          if (ratio > maxRatio) { maxRatio = ratio; candidate = id; }
-        });
-        if (maxRatio > 0.24) { setActivePanelId(candidate); setShowIndicator(true); }
-      },
-      { threshold: [0.2, 0.35, 0.5, 0.65, 0.8] }
-    );
-    sections.forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
-  }, [reducedMotion]);
-
-  const indicatorItems = useMemo(
-    () => PANEL_IDS.map((id, index) => ({ id, label: `Panel ${index + 1}` })),
-    []
-  );
+  // The guest scroll-progress rail and its panel-tracking observer lived here.
+  // Both are gone with the funnel cut to three panels: a dot rail is a
+  // long-scroll website affordance, and it never fully worked anyway — the
+  // first entry, "panel-premise", has no element to observe, so its dot was
+  // permanently dead. See docs/design/logged-out-native-home.md.
 
   // Year leaders from rated movies
   const ratedMovies = useMemo(
@@ -554,6 +531,37 @@ export default function HomePage() {
   );
   const tasteProfile = useMemo(() => buildTasteProfile(ratedMovies), [ratedMovies]);
   const yearLeaders = useMemo(() => getYearLeaders(ratedMovies), [ratedMovies]);
+
+  // ── Native logged-out screen inputs ────────────────────────────────────
+  // The returning-guest state leads with the user's own progress instead of
+  // re-pitching them, so it needs two things: the year closest to setting a
+  // ballot, and their strongest forming ballot to render.
+
+  /** Closest-to-set year (1–4 nominees), nearest first. Null when none apply. */
+  const nativeNextYear = useMemo<NativeNextYear | null>(() => {
+    const candidates = yearLeaders
+      .filter((yl) => yl.nomineeCount > 0 && yl.nomineeCount < 5)
+      .sort((a, b) => b.nomineeCount - a.nomineeCount);
+    const closest = candidates[0];
+    return closest
+      ? { year: closest.year, remaining: 5 - closest.nomineeCount }
+      : null;
+  }, [yearLeaders]);
+
+  /** Their most-formed year, as AwardCard data. Reuses the archive's own shape. */
+  const nativeTopBallot = useMemo<NativeTopBallot | null>(() => {
+    const best = [...formattedYears].sort(
+      (a, b) => b.nominees.length - a.nominees.length
+    )[0];
+    if (!best?.winner) return null;
+    return {
+      year: Number(best.year),
+      winnerTitle: best.winner.title,
+      winnerPoster: best.winner.poster_url,
+      winnerMovieId: best.winner.id,
+      nomineeCount: best.nominees.length,
+    };
+  }, [formattedYears]);
 
   // ── Actionable years — years where the user has an unrated-but-seen film
   // or a watchlisted film, i.e. a real next step. A forming year with no
@@ -731,7 +739,11 @@ export default function HomePage() {
   // ══════════════════════════════════════════════════════════════
   // For guests: once auth resolves we know they're unauthenticated — don't wait on authChecked.
   // For authenticated users: wait for both authChecked and data hooks.
-  const dataStillLoading = authStatus === "loading" || (!authChecked && isAuthenticated) || (isAuthenticated && (loading || awardsLoading));
+  // `isNative === null` is included because the guest branch renders two
+  // completely different surfaces depending on it — resolving it one tick
+  // later would flash the web funnel inside the native shell on every cold
+  // start. It settles in the same effect pass as auth, so this costs nothing.
+  const dataStillLoading = authStatus === "loading" || isNative === null || (!authChecked && isAuthenticated) || (isAuthenticated && (loading || awardsLoading));
   const homepageDataError = moviesError || (isAuthenticated ? awardsError : null);
   if (dataStillLoading) {
     return (
@@ -764,25 +776,24 @@ export default function HomePage() {
 
   return (
     <div className="home-shell">
-      {showGuestPanels ? (
-        /* ── Guest: show GSAP scroll onboarding panels ── */
+      {showGuestPanels && isNative ? (
+        /* ══════════════════════════════════════════════════════════
+           NATIVE GUEST — one activation screen, no funnel.
+           They already downloaded the app; re-selling them the decision
+           they've made costs six viewport-heights and breaks
+           PROJECT_CONTEXT.md §5. See docs/design/logged-out-native-home.md.
+           ═══════════════════════════════════════════════════════ */
+        <NativeGuestHome
+          reducedMotion={reducedMotion}
+          onSelectMovie={handleSelectMovie}
+          ratedCount={ratedMovies.length}
+          nextYear={nativeNextYear}
+          topBallot={nativeTopBallot}
+          proof={HERO_DEMO_PROOF}
+        />
+      ) : showGuestPanels ? (
+        /* ── Web guest: three-panel funnel (was six) ── */
         <>
-          <aside
-            className={`home-progress ${showIndicator ? "home-progress--visible" : ""}`}
-            aria-label="Panel progress"
-          >
-            {indicatorItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`home-progress__dot ${activePanelId === item.id ? "is-active" : ""}`}
-                aria-label={item.label}
-                title={item.label}
-                onClick={() => scrollToElementById(item.id, reducedMotion)}
-              />
-            ))}
-          </aside>
-
             {/* ── Returning-guest surface: save prompt ──────────
               Gates on ratedMovies.length > 0. Returning guests see this
               before the hero so they land on context, not a marketing
@@ -802,13 +813,6 @@ export default function HomePage() {
           <HeroReveal reducedMotion={reducedMotion} onSelectMovie={handleSelectMovie} />
 
           <HowItWorksSection reducedMotion={reducedMotion} />
-          <PanelHook reducedMotion={reducedMotion} />
-          <PanelTimeline reducedMotion={reducedMotion} />
-          <PanelReassurance reducedMotion={reducedMotion} />
-          {/* Extra bottom breathing room — panel-reassurance's leftover
-              100vh whitespace above reads as a gap before this panel, while
-              the panel itself hugged the footer below with barely any room,
-              leaving the closing CTA feeling bottom-heavy rather than centered. */}
           <div className="pb-16 md:pb-28">
             <PanelFinalCTA
               reducedMotion={reducedMotion}

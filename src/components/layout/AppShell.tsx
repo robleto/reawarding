@@ -5,7 +5,7 @@ import HeaderNav from '@/components/layout/HeaderNav';
 import Footer from '@/components/layout/Footer';
 import MobileTabBar from '@/components/layout/MobileTabBar';
 import BackToTopButton from '@/components/ui/BackToTopButton';
-import { useAuthState } from '@/hooks/useAuthState';
+import { useShowMobileTabBar } from '@/hooks/useShowMobileTabBar';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -23,8 +23,12 @@ interface AppShellProps {
 const BARE_ROUTES = ['/oscar-tracker', '/your-awards'];
 
 export default function AppShell({ children }: AppShellProps) {
-  const { isAuthenticated } = useAuthState();
   const pathname = usePathname();
+
+  // Signed in → always. Guest → only once they've rated something, so the
+  // logged-out first-open screen stays a single activation surface. See
+  // useShowMobileTabBar for the full rule and why guests get tabs at all.
+  const showTabBar = useShowMobileTabBar();
 
   if (pathname && BARE_ROUTES.includes(pathname)) {
     return <>{children}</>;
@@ -43,13 +47,13 @@ export default function AppShell({ children }: AppShellProps) {
           the document flow, so main no longer needs to guess that height for
           clearance (that guess drifted out of sync three separate times).
           This padding is pure breathing room, nothing more. */}
-      <main className={`flex-1 flex flex-col pt-4 px-4 sm:px-6 w-full max-w-screen-xl mx-auto ${isAuthenticated ? 'pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8' : 'pb-8'}`}>
+      <main className={`flex-1 flex flex-col pt-4 px-4 sm:px-6 w-full max-w-screen-xl mx-auto ${showTabBar ? 'pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8' : 'pb-8'}`}>
         {children}
       </main>
-      {isAuthenticated && <MobileTabBar />}
+      {showTabBar && <MobileTabBar />}
       <BackToTopButton
         className={
-          isAuthenticated
+          showTabBar
             ? 'bottom-[calc(6rem+env(safe-area-inset-bottom)+12px)] right-4 md:bottom-6 md:right-6'
             : 'bottom-6 right-4 md:right-6'
         }

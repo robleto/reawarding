@@ -9,6 +9,7 @@ import type { Database } from "@/types/supabase";
 import { signOutEverywhere } from "@/utils/signOut";
 import { useAuthState } from "@/hooks/useAuthState";
 import { isNativeApp } from "@/lib/platform";
+import { hasLiveSubscription } from "@/lib/subscription";
 import UserAvatar from "@/components/ui/UserAvatar";
 import BuildInfo from "@/components/settings/BuildInfo";
 
@@ -237,22 +238,27 @@ export default function SettingsPage() {
   );
   const isNative = isNativeApp();
   // PAY-4 (docs/audits/2026-08-21-launch-readiness-round3.md): a native user
-  // with a Stripe customer already (e.g. past_due/unpaid, not a fresh
+  // with a live subscription already (e.g. past_due/unpaid, not a fresh
   // purchase) still needs a way to reach the Billing Portal to fix their
   // card — only a native user who's never had a subscription at all is the
   // "would require IAP" case this gate exists to hide.
-  const hasStripeCustomer = Boolean(profile?.stripe_customer_id);
+  //
+  // Keyed on subscription_status, NOT stripe_customer_id: the customer id is
+  // created before the Checkout Session, so an abandoned first checkout would
+  // otherwise look identical to a real past_due subscriber here. See
+  // src/lib/subscription.ts.
+  const hasSubscription = hasLiveSubscription(profile?.subscription_status);
 
   const handleManageBilling = async () => {
     setBillingLoading(true);
     setBillingError(null);
     try {
-      // Route to the Billing Portal whenever a Stripe customer already
-      // exists, regardless of current subscription_status — a past_due or
-      // unpaid subscriber still has a live subscription (and stripe_customer_id)
-      // even though isPremium is false, and sending them to Checkout instead
-      // would create a duplicate concurrent subscription (audit PAY-2).
-      const endpoint = Boolean(profile?.stripe_customer_id)
+      // Route to the Billing Portal whenever a live subscription exists,
+      // regardless of whether it currently entitles premium — a past_due or
+      // unpaid subscriber still has a subscription to repair even though
+      // isPremium is false, and sending them to Checkout instead would create
+      // a duplicate concurrent subscription (audit PAY-2).
+      const endpoint = hasSubscription
         ? "/api/stripe/portal"
         : "/api/stripe/checkout";
       const res = await fetch(endpoint, { method: "POST" });
@@ -631,7 +637,7 @@ export default function SettingsPage() {
               </>
             )}
           </div>
-          {!(isNative && !isPremium && !hasStripeCustomer) && (
+          {!(isNative && !isPremium && !hasSubscription) && (
             <button
               onClick={handleManageBilling}
               disabled={billingLoading}
@@ -641,7 +647,7 @@ export default function SettingsPage() {
                 ? "Redirecting…"
                 : isPremium
                   ? "Manage subscription"
-                  : hasStripeCustomer
+                  : hasSubscription
                     ? "Manage billing"
                     : "Unlock Premium — $19/yr"}
             </button>
