@@ -48,8 +48,33 @@ export const NATIVE_FIRST_OPEN = {
     "Rate it 1–10. Anything you score 7 or higher becomes a nominee — and that year's ballot starts forming.",
   searchPlaceholder: "Search a film you've watched",
   assurance: "No account needed.",
-  proofCaption: "One year, once it's formed:",
   escape: "How Reawarding works",
+} as const;
+
+/**
+ * The open ledger — the proof slot on the native first-open screen.
+ *
+ * Replaced a single large AwardCard showing one film with a trophy badge. That
+ * card was the *end state* of the web hero's crossfade with the "before"
+ * removed, so it showed a winner with nothing to have won against — while the
+ * eyebrow directly above it promised a disagreement ("The Academy had its say.
+ * Now so do you."). It also dominated the screen and out-weighed the search box.
+ *
+ * This shows the Academy's real pick beside an empty slot. Two rules it follows:
+ *
+ * 1. **Never fabricate the visitor's pick.** They haven't chosen anything, so
+ *    nothing on screen may imply they have. The blank is the honest state and
+ *    it doubles as the invitation — it points back at the search field.
+ * 2. **Amend, don't award.** The product edits the record; it doesn't hand out
+ *    prizes. No trophies, no laurels, no badges.
+ */
+export const NATIVE_LEDGER = {
+  category: "Best Picture",
+  academyLabel: "Academy",
+  yoursLabel: "Yours",
+  /** Sits in the empty slot, naming the action that fills it. */
+  emptyPrompt: "Rate one film to fill this",
+  foot: "This year is still open. So is every year back to 1927.",
 } as const;
 
 /** Native, returning guest — has ratings, no account. Never re-pitch. */

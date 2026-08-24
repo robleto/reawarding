@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import HeroReveal, { HERO_DEMO_PROOF } from "@/app/components/home/HeroReveal";
+import HeroReveal, { ACADEMY_REFERENCE } from "@/app/components/home/HeroReveal";
 import HowItWorksSection from "@/app/components/home/HowItWorksSection";
 import PanelFinalCTA from "@/app/components/home/PanelFinalCTA";
 import NativeGuestHome, {
@@ -789,7 +789,7 @@ export default function HomePage() {
           ratedCount={ratedMovies.length}
           nextYear={nativeNextYear}
           topBallot={nativeTopBallot}
-          proof={HERO_DEMO_PROOF}
+          academy={ACADEMY_REFERENCE}
         />
       ) : showGuestPanels ? (
         /* ── Web guest: three-panel funnel (was six) ── */
