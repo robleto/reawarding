@@ -444,6 +444,57 @@ async function fetchMoviesForKey(
 			} as Movie;
 		});
 
+		// Rescue-fetch guest-rated films that fall outside the 3000-row window
+		// above, mirroring what the authenticated path already does for its own
+		// rankings further down.
+		//
+		// Without this, a guest could rate a film and watch nothing happen: the
+		// rating lands in the Zustand store (so the tab bar and rated counts
+		// react) but the film itself never enters `movies`, so it's absent from
+		// formattedYears, the ledger, and the archive. The data isn't lost —
+		// signing up migrates it and the authenticated path's rescue picks it up
+		// — but for a logged-out visitor the whole Watch → Rate → ReAward loop
+		// silently no-ops.
+		//
+		// The window is 3000 of 4415 rows and `.range()` carries no `.order()`,
+		// so *which* films are missing is arbitrary and not stable between
+		// requests. That makes this a coin flip per rating, not an edge case.
+		const presentIds = new Set(data.map((m) => m.id));
+		const missingRatedIds = Object.keys(guestState.rankings).filter(
+			(id) => !presentIds.has(id)
+		);
+		if (missingRatedIds.length > 0) {
+			const RESCUE_CHUNK_SIZE = 50;
+			for (let i = 0; i < missingRatedIds.length; i += RESCUE_CHUNK_SIZE) {
+				const chunk = missingRatedIds.slice(i, i + RESCUE_CHUNK_SIZE);
+				const { data: extraMovies, error: rescueError } = await supabase
+					.from("movies")
+					.select(MOVIE_LIST_FIELDS)
+					.in("id", chunk);
+				if (rescueError) {
+					console.warn("Guest rescue fetch failed:", rescueError.message, chunk);
+					continue;
+				}
+				for (const movie of extraMovies ?? []) {
+					const guestRanking = guestState.getRanking(movie.id);
+					moviesWithGuestData.push({
+						...movie,
+						rankings: guestRanking
+							? [
+									{
+										id: `guest_${movie.id}`,
+										user_id: "guest",
+										ranking: guestRanking.ranking,
+										seen_it: guestRanking.seenIt,
+									},
+							  ]
+							: [],
+						thumb_url: movie.thumb_url ?? "",
+					} as Movie);
+				}
+			}
+		}
+
 		return { movies: moviesWithGuestData, error: null };
 	}
 
