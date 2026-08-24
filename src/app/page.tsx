@@ -826,6 +826,15 @@ export default function HomePage() {
           nextYear={nativeNextYear}
           topBallot={nativeTopBallot}
           ledger={nativeLedger}
+          movies={movies}
+          // A walk verdict is a preference, not a rating (Fork B in
+          // docs/design/first-rating-payoff.md). createAward already records
+          // guest awards with source "seed_pick", which is exactly that — and
+          // because it isn't a rating, it can't inflate setBallotCount and
+          // make a one-pick year masquerade as a set ballot.
+          onPickForYear={({ id, title, year }) =>
+            void createAward({ id, title, release_year: year })
+          }
           // Breadth, not "has rated anything" — one rating used to swap the
           // whole screen out from under the ledger they'd just filled.
           showArchive={yearLeaders.length >= 2 || setBallotCount >= 1}

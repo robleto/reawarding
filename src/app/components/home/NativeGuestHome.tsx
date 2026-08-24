@@ -24,7 +24,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
 import AwardCard from "@/components/home/AwardCard";
 import AcademyLedger, {
@@ -35,7 +35,12 @@ import {
   GUEST_SAVE,
   NATIVE_FIRST_OPEN,
   NATIVE_RETURNING,
+  WALK,
 } from "@/copy/loggedOutHome";
+import YearWalkStrip from "@/app/components/home/YearWalkStrip";
+import { useYearWalk } from "@/hooks/useYearWalk";
+import { useYearCandidates } from "@/hooks/useYearCandidates";
+import { useAcademyPickForYear } from "@/hooks/useAcademyPickForYear";
 import type { Movie } from "@/types/types";
 
 /** The four how-it-works steps, mirrored from HowItWorksSection. */
@@ -85,6 +90,10 @@ interface NativeGuestHomeProps {
   nextYear: NativeNextYear | null;
   topBallot: NativeTopBallot | null;
   ledger: NativeLedgerState;
+  /** Client movie set — lets the walk resolve posters without refetching. */
+  movies: Movie[];
+  /** Records a walk verdict as a guest award (`seed_pick`), not a rating. */
+  onPickForYear: (pick: { id: string; title: string; year: number }) => void;
   /**
    * Whether the guest has enough breadth to warrant the archive view.
    *
@@ -104,6 +113,8 @@ export default function NativeGuestHome({
   nextYear,
   topBallot,
   ledger,
+  movies,
+  onPickForYear,
   showArchive,
 }: NativeGuestHomeProps) {
   return (
@@ -121,6 +132,8 @@ export default function NativeGuestHome({
           reducedMotion={reducedMotion}
           onSelectMovie={onSelectMovie}
           ledger={ledger}
+          movies={movies}
+          onPickForYear={onPickForYear}
         />
       )}
     </div>
@@ -137,15 +150,59 @@ function FirstOpen({
   reducedMotion,
   onSelectMovie,
   ledger,
+  movies,
+  onPickForYear,
 }: {
   reducedMotion: boolean;
   onSelectMovie: (movie: Movie) => void;
   ledger: NativeLedgerState;
+  movies: Movie[];
+  onPickForYear: (pick: { id: string; title: string; year: number }) => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const arrived = useMotionReveal(reducedMotion, cardRef);
   const [showSteps, setShowSteps] = useState(false);
-  const filled = ledger.yours !== null;
+
+  // ── The walk (Act 2) ──────────────────────────────────────────────────
+  // `result` holds a just-decided year so the visitor sees their pick land
+  // before anything advances. Without it the walk would swallow its own
+  // payoff — the award is recorded instantly, so the next year would replace
+  // the filled ledger in the same frame.
+  const walk = useYearWalk();
+  const [result, setResult] = useState<NativeLedgerState | null>(null);
+  /** The props-derived first result (from the search flow) needs one ack too. */
+  const [ackedFirst, setAckedFirst] = useState(false);
+
+  const showFirstResult = ledger.yours !== null && !ackedFirst && !result;
+  const askingYear = !showFirstResult && !result ? walk.currentYear : null;
+
+  const walkAcademy = useAcademyPickForYear(askingYear, movies);
+  const candidates = useYearCandidates(askingYear, walkAcademy?.movieId ?? null);
+
+  // What the ledger renders right now: a fresh verdict, the year being asked
+  // about, or the props ledger before the walk has started.
+  const shownLedger: NativeLedgerState =
+    result ??
+    (askingYear && walkAcademy
+      ? { academy: walkAcademy.reference, yours: null, agreed: false }
+      : ledger);
+
+  const filled = shownLedger.yours !== null;
+
+  const decide = (pick: AcademyLedgerPick & { id: string }, agreed: boolean) => {
+    if (askingYear == null || !walkAcademy) return;
+    onPickForYear({ id: pick.id, title: pick.title, year: askingYear });
+    setResult({
+      academy: walkAcademy.reference,
+      yours: { title: pick.title, posterUrl: pick.posterUrl },
+      agreed,
+    });
+  };
+
+  const advance = () => {
+    setResult(null);
+    setAckedFirst(true);
+  };
 
   return (
     <div className="mx-auto max-w-md">
@@ -153,7 +210,7 @@ function FirstOpen({
           one that changes if the Wedge/Ritual test flips. Small on purpose:
           they already downloaded, so this nods at why rather than arguing it.
           Retired once they've acted: the pitch has done its job. */}
-      {!filled && (
+      {!filled && !askingYear && (
         <p className="font-unbounded text-[13px] leading-snug text-gold-400">
           {NATIVE_FIRST_OPEN.promise}
         </p>
@@ -163,19 +220,25 @@ function FirstOpen({
           they act; a reflection of what they did after. */}
       <h1
         data-testid="home-headline"
-        className={`font-unbounded text-[26px] font-semibold leading-[1.15] tracking-tight text-white ${filled ? "" : "mt-2"}`}
+        className={`font-unbounded text-[26px] font-semibold leading-[1.15] tracking-tight text-white ${filled || askingYear ? "" : "mt-2"}`}
       >
         {filled
-          ? NATIVE_FIRST_OPEN.filledInstruction(ledger.academy.year)
-          : NATIVE_FIRST_OPEN.instruction}
+          ? NATIVE_FIRST_OPEN.filledInstruction(shownLedger.academy.year)
+          : askingYear
+            ? WALK.askHeadline(askingYear)
+            : NATIVE_FIRST_OPEN.instruction}
       </h1>
 
-      {/* MECHANIC — the 7+ rule before, Law 2's preference-vs-ballot after. */}
-      <p className="mt-3 text-sm leading-relaxed text-gray-400">
-        {filled
-          ? NATIVE_FIRST_OPEN.filledMechanic(ledger.academy.year)
-          : NATIVE_FIRST_OPEN.mechanic}
-      </p>
+      {/* MECHANIC — the 7+ rule before, Law 2's preference-vs-ballot after.
+          Suppressed mid-walk: the strip below the ledger already asks the
+          question, and repeating it here just crowds the year. */}
+      {!askingYear && (
+        <p className="mt-3 text-sm leading-relaxed text-gray-400">
+          {filled
+            ? NATIVE_FIRST_OPEN.filledMechanic(shownLedger.academy.year)
+            : NATIVE_FIRST_OPEN.mechanic}
+        </p>
+      )}
 
       {/* ACTION — deliberately not autofocused. Popping the keyboard on cold
           app open covers the proof card below and reads as aggressive on iOS. */}
@@ -197,10 +260,50 @@ function FirstOpen({
         className={`mt-8 border-t border-white/10 pt-4 award-year-enter ${arrived ? "award-year-arrived" : ""}`}
       >
         <AcademyLedger
-          academy={ledger.academy}
-          yours={ledger.yours}
-          agreed={ledger.agreed}
+          academy={shownLedger.academy}
+          yours={shownLedger.yours}
+          agreed={shownLedger.agreed}
+          emptyPrompt={askingYear ? WALK.slotPrompt : undefined}
         />
+
+        {/* THE WALK (Act 2) — one year at a time, below the ledger it fills.
+            Advancing is an explicit tap rather than a timer: the filled ledger
+            is the reward, and pulling it away after a beat undercuts it. It
+            also avoids content shifting under a finger mid-tap. */}
+        {askingYear && walkAcademy && (
+          <YearWalkStrip
+            year={askingYear}
+            academyTitle={walkAcademy.reference.title}
+            candidates={candidates}
+            onPick={(c) =>
+              decide({ id: c.id, title: c.title, posterUrl: c.posterUrl }, false)
+            }
+            onAgree={() =>
+              walkAcademy.movieId
+                ? decide(
+                    {
+                      id: walkAcademy.movieId,
+                      title: walkAcademy.reference.title,
+                      posterUrl: walkAcademy.reference.posterUrl,
+                    },
+                    true
+                  )
+                : undefined
+            }
+            onSkip={() => walk.skip(askingYear)}
+          />
+        )}
+
+        {filled && walk.currentYear !== null && (
+          <button
+            type="button"
+            onClick={advance}
+            className="mt-4 flex w-full items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-left text-xs font-medium text-gray-200 transition-colors hover:bg-white/[0.07] active:scale-[0.99]"
+          >
+            {WALK.next(walk.currentYear)}
+            <ArrowRight className="h-3.5 w-3.5 flex-none text-[#D9694E]" aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       {/* ESCAPE — how-it-works stops being four mandatory screens and becomes

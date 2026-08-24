@@ -120,6 +120,34 @@ export const NATIVE_RETURNING = {
 } as const;
 
 /**
+ * The year walk — Act 2 of docs/design/first-rating-payoff.md.
+ *
+ * One question per year, and the question is deliberately not "name five films
+ * from 1994." That's work. "Should something else have won?" is an opinion
+ * people already hold, fully formed — the walk harvests those rather than
+ * asking anyone to construct new ones.
+ */
+export const WALK = {
+  /** Headline while asking. The first-open instruction is wrong here — they've
+   *  already started, and re-telling them to start reads as a reset. */
+  askHeadline: (year: number) => `What about ${year}?`,
+  /** Replaces the ledger's default empty prompt: during the walk the action is
+   *  tapping a poster, not rating a film. */
+  slotPrompt: "Pick one below",
+  prompt: (academyTitle: string) =>
+    `The Academy gave it to ${academyTitle}. Seen something better?`,
+  /** Agreement is a verdict, not a non-answer. Equal weight with picking. */
+  agree: "The Academy got this one right",
+  /** Must never read as failure — it's the honest answer most of the time. */
+  skip: (year: number) => `Haven't seen enough of ${year}`,
+  /** Advances the walk. Explicit tap, so the filled ledger isn't yanked away. */
+  next: (year: number) => `Next: ${year}`,
+  /** Shown when the walk runs out of years or the visitor stops. */
+  doneTitle: (count: number) =>
+    `You've reawarded ${count} ${count === 1 ? "year" : "years"}.`,
+} as const;
+
+/**
  * Guest save prompts — portable, never permanent.
  *
  * `PanelReassurance` used to promise "Forever … Permanent." to a user with no

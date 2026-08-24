@@ -31,6 +31,12 @@ interface AcademyLedgerProps {
    * compare-tool spec already calls it "Agreed".
    */
   agreed?: boolean;
+  /**
+   * Overrides the empty slot's caption. The default names rating as the action,
+   * which is right on the first-open screen but wrong during the year walk,
+   * where the action is tapping a poster from the row below.
+   */
+  emptyPrompt?: string;
 }
 
 /**
@@ -46,6 +52,7 @@ export default function AcademyLedger({
   academy,
   yours = null,
   agreed = false,
+  emptyPrompt = NATIVE_LEDGER.emptyPrompt,
 }: AcademyLedgerProps) {
   return (
     <div>
@@ -132,7 +139,7 @@ export default function AcademyLedger({
                 <span className="font-mono text-xl text-[#D9694E]">?</span>
               </div>
               <p className="mt-1.5 text-[11px] italic leading-snug text-[#D9694E]">
-                {NATIVE_LEDGER.emptyPrompt}
+                {emptyPrompt}
               </p>
             </>
           )}
