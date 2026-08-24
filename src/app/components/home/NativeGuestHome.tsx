@@ -264,15 +264,48 @@ function FirstOpen({
 
       {/* ACTION — deliberately not autofocused. Popping the keyboard on cold
           app open covers the proof card below and reads as aggressive on iOS. */}
+      {/* Mid-walk the search narrows to the year on screen and records a
+          verdict for it, rather than staying global and running the general
+          rate flow. Two things were wrong before:
+
+          - The question and the record disagreed. Searching a 1970 film while
+            the walk asked about 1994 created an award for 1970.
+          - It could eject you. `showArchive` keys off rated years, so rating a
+            second film from another year replaced the entire walk surface
+            mid-flow. A verdict is an award, not a rating (Fork B), so a scoped
+            pick can't trip that.
+
+          Kept rather than hidden: the four tiles won't always hold the film
+          someone has in mind, and that's the whole point of the year. */}
       <div className="mt-5">
         <MovieSearchPicker
-          onSelect={onSelectMovie}
-          placeholder={NATIVE_FIRST_OPEN.searchPlaceholder}
+          key={askingYear ?? "global"}
+          onSelect={(movie) =>
+            askingYear
+              ? decide(
+                  {
+                    id: String(movie.id),
+                    title: movie.title,
+                    posterUrl: movie.poster_url ?? "",
+                  },
+                  walkAcademy?.movieId != null &&
+                    String(walkAcademy.movieId) === String(movie.id)
+                )
+              : onSelectMovie(movie)
+          }
+          placeholder={
+            askingYear
+              ? WALK.searchPlaceholder(askingYear)
+              : NATIVE_FIRST_OPEN.searchPlaceholder
+          }
+          filterByYear={askingYear ?? undefined}
           variant="hero"
         />
-        <p className="mt-2 text-center text-xs text-gray-500">
-          {NATIVE_FIRST_OPEN.assurance}
-        </p>
+        {!askingYear && (
+          <p className="mt-2 text-center text-xs text-gray-500">
+            {NATIVE_FIRST_OPEN.assurance}
+          </p>
+        )}
       </div>
 
       {/* PROOF — the open ledger, now shared with the web hero (see

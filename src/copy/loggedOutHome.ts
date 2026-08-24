@@ -134,6 +134,9 @@ export const WALK = {
   /** Replaces the ledger's default empty prompt: during the walk the action is
    *  tapping a poster, not rating a film. */
   slotPrompt: "Pick one below",
+  /** The search narrows to the year on screen, so the placeholder must say so —
+   *  otherwise results silently exclude everything else and look broken. */
+  searchPlaceholder: (year: number) => `Search ${year} films`,
   prompt: (academyTitle: string) =>
     `The Academy gave it to ${academyTitle}. Seen something better?`,
   /** Agreement is a verdict, not a non-answer. Equal weight with picking. */
