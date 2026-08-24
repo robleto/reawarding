@@ -73,9 +73,17 @@ export function NetflixGlow() {
   const themeKnown = isDarkMode !== null;
   const colors = isDarkMode ? DARK_COLORS : LIGHT_COLORS;
   const glowHidden = themeKnown && !isDarkMode && lightGlowMode === 'off';
-  // Light mode wants an ambient tint, not a color block — keep it quiet.
+  // Both themes want an ambient tint, not a color block — keep it quiet.
   // Opacity 0 until the theme is known (first client paint).
-  const activeOpacity = !themeKnown ? 0 : isDarkMode ? 1 : 0.55;
+  //
+  // Dark mode ran at a flat 1.0 until 2026-08-24. The gradient is saturated
+  // (#D4AF37 at -38.52%, transparent by 50.26%), so at full strength it laid a
+  // solid gold wash over the top half of every viewport. That went unnoticed
+  // while the busiest surfaces were dense, full-bleed panels that covered most
+  // of it; the logged-out native home (docs/design/logged-out-native-home.md)
+  // is deliberately sparse — one headline, one search field, one card — and
+  // exposed it immediately on an iPhone-sized viewport.
+  const activeOpacity = !themeKnown ? 0 : isDarkMode ? 0.35 : 0.55;
 
   // Set the correct color index after mount (client-side)
   useEffect(() => {
