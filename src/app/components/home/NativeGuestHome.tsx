@@ -39,10 +39,8 @@ import {
 } from "@/copy/loggedOutHome";
 import YearWalkStrip from "@/app/components/home/YearWalkStrip";
 import WalkSummary from "@/app/components/home/WalkSummary";
-import { useYearWalk } from "@/hooks/useYearWalk";
+import { useLedgerWalk } from "@/hooks/useLedgerWalk";
 import { useGuestPicksSummary } from "@/hooks/useGuestPicksSummary";
-import { useYearCandidates } from "@/hooks/useYearCandidates";
-import { useAcademyPickForYear } from "@/hooks/useAcademyPickForYear";
 import type { Movie } from "@/types/types";
 
 /** The four how-it-works steps, mirrored from HowItWorksSection. */
@@ -163,55 +161,22 @@ function FirstOpen({
   const arrived = useMotionReveal(reducedMotion, cardRef);
   const [showSteps, setShowSteps] = useState(false);
 
-  // ── The walk (Act 2) ──────────────────────────────────────────────────
-  // `result` holds a just-decided year so the visitor sees their pick land
-  // before anything advances. Without it the walk would swallow its own
-  // payoff — the award is recorded instantly, so the next year would replace
-  // the filled ledger in the same frame.
-  const walk = useYearWalk();
-  const [result, setResult] = useState<NativeLedgerState | null>(null);
-  /** The props-derived first result (from the search flow) needs one ack too. */
-  const [ackedFirst, setAckedFirst] = useState(false);
-
-  // Precedence matters and is easy to get backwards. The summary is checked
-  // first because `ledger.yours` is non-null for *any* award — including all
-  // eight from a finished walk — so a "first result" test that ran first would
-  // swallow Act 3 and show a single year instead of the stack.
-  /** Act 3: the walk is over and there's a stack of verdicts to show for it. */
-  const showSummary = walk.done && !result;
-  const showFirstResult =
-    !showSummary && ledger.yours !== null && !ackedFirst && !result;
-  const askingYear =
-    !showSummary && !showFirstResult && !result ? walk.currentYear : null;
-  const summary = useGuestPicksSummary();
-
-  const walkAcademy = useAcademyPickForYear(askingYear, movies);
-  const candidates = useYearCandidates(askingYear, walkAcademy?.movieId ?? null);
-
-  // What the ledger renders right now: a fresh verdict, the year being asked
-  // about, or the props ledger before the walk has started.
-  const shownLedger: NativeLedgerState =
-    result ??
-    (askingYear && walkAcademy
-      ? { academy: walkAcademy.reference, yours: null, agreed: false }
-      : ledger);
-
-  const filled = shownLedger.yours !== null;
-
-  const decide = (pick: AcademyLedgerPick & { id: string }, agreed: boolean) => {
-    if (askingYear == null || !walkAcademy) return;
-    onPickForYear({ id: pick.id, title: pick.title, year: askingYear });
-    setResult({
-      academy: walkAcademy.reference,
-      yours: { title: pick.title, posterUrl: pick.posterUrl },
-      agreed,
-    });
-  };
-
-  const advance = () => {
-    setResult(null);
-    setAckedFirst(true);
-  };
+  // Acts 1–3 (fill / walk / summary) are shared with the web hero via this
+  // hook — see docs/design/first-rating-payoff.md, "Wire the walk into the
+  // web guest ledger too". Behavior is identical on both surfaces by
+  // construction; only the surrounding copy and layout differ per screen.
+  const {
+    askingYear,
+    walkAcademy,
+    candidates,
+    shownLedger,
+    filled,
+    showSummary,
+    summary,
+    decide,
+    advance,
+    walk,
+  } = useLedgerWalk(ledger, movies, onPickForYear);
 
   return (
     <div className="mx-auto max-w-md">

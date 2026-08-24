@@ -22,17 +22,36 @@ import type { GuestPicksSummary } from "@/hooks/useGuestPicksSummary";
 export default function WalkSummary({
   summary,
   onKeepGoing,
+  showHeading = false,
 }: {
   summary: GuestPicksSummary;
   onKeepGoing: () => void;
+  /**
+   * Native's FirstOpen renders the title/breakdown itself, in its own h1/sub,
+   * so this stays false there — the screen keeps one heading hierarchy and one
+   * `home-headline` testid across all its states. Surfaces with no such H1 to
+   * borrow (the web hero, whose top headline is a fixed brand tagline, not a
+   * state machine) set this true so the breakdown sentence still renders
+   * somewhere; without it "You reawarded 7…" would simply be missing on web.
+   * Deliberately an `h2`, not `h1` — it must never compete for the testid.
+   */
+  showHeading?: boolean;
 }) {
-  const { picks } = summary;
+  const { picks, reawardedCount, agreedCount } = summary;
   if (picks.length === 0) return null;
 
-  // The title and breakdown live in FirstOpen's h1/sub so the screen keeps one
-  // heading hierarchy (and one `home-headline` testid) across all its states.
   return (
     <div>
+      {showHeading && (
+        <div className="mb-4">
+          <h2 className="font-unbounded text-[20px] font-semibold leading-tight tracking-tight text-white">
+            {WALK_DONE.title(picks.length)}
+          </h2>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-gray-400">
+            {WALK_DONE.breakdown(reawardedCount, agreedCount)}
+          </p>
+        </div>
+      )}
       <ul className="divide-y divide-white/[0.07] border-y border-white/[0.07]">
         {picks.map((p) => (
           <li key={p.year} className="flex items-center gap-3 py-2">

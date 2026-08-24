@@ -892,7 +892,20 @@ export default function HomePage() {
             </div>
           )}
 
-          <HeroReveal reducedMotion={reducedMotion} onSelectMovie={handleSelectMovie} />
+          {/* Same ledger, movies, and pick/deepen handlers already computed
+              above for the native screen — the walk (Acts 1-3) is shared, not
+              native-exclusive. See "Wire the walk into the web guest ledger
+              too" in docs/design/first-rating-payoff.md. */}
+          <HeroReveal
+            reducedMotion={reducedMotion}
+            onSelectMovie={handleSelectMovie}
+            ledger={nativeLedger}
+            movies={movies}
+            onPickForYear={({ id, title, year }) =>
+              void createAward({ id, title, release_year: year })
+            }
+            onDeepenYear={(year) => router.push(`/onboarding/${year}`)}
+          />
 
           <HowItWorksSection reducedMotion={reducedMotion} />
           <div className="pb-16 md:pb-28">
