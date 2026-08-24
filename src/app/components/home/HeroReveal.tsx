@@ -69,6 +69,21 @@ const REAWARDED_STATUS: AcademyStatusResult = {
   officialTitle: "One Battle After Another",
 };
 
+/**
+ * The settled "reawarded" state of the demo year, as plain data.
+ *
+ * NativeGuestHome renders the same 2025 card as its proof slot but without the
+ * crossfade (one screen, no scroll choreography). Exported so the demo year is
+ * defined once rather than drifting between the web hero and the native screen.
+ */
+export const HERO_DEMO_PROOF = {
+  year: 2025,
+  winnerTitle: SINNERS.title,
+  winnerPoster: SINNERS.poster_url,
+  winnerMovieId: SINNERS.id,
+  nomineeCount: NOMINEES.length,
+} as const;
+
 const HOLD_MS = 1100;
 const CROSSFADE_MS = 550;
 
@@ -103,7 +118,13 @@ export default function HeroReveal({ reducedMotion, onSelectMovie }: HeroRevealP
         >
           Ever disagree with the Academy?
         </h2>
+        {/* tests/prelogin.spec.ts asserts on this testid. It used to live only
+            in HomeHero/HomeEmptyState, both of which are orphaned (zero call
+            sites), so the assertion had been failing against a component the
+            guest path never renders. It belongs on whatever is actually the
+            logged-out H1 — here for web, NativeGuestHome for native. */}
         <h1
+          data-testid="home-headline"
           className="home-headline font-unbounded sm:whitespace-nowrap mt-2"
           style={{ fontSize: "clamp(1.75rem, 4vw, 2.75rem)" }}
         >
@@ -116,6 +137,13 @@ export default function HeroReveal({ reducedMotion, onSelectMovie }: HeroRevealP
         <p className="mt-4 max-w-2xl mx-auto text-base text-white/80">
           Rate the films you&apos;ve seen, reaward your own nominees — and your
           own winner.
+        </p>
+        {/* Social proof, folded up from the retired PanelHook — the one line
+            in that panel making an argument the hero doesn't already make.
+            See docs/design/logged-out-native-home.md (web funnel, 6 → 3). */}
+        <p className="mt-3 max-w-xl mx-auto text-sm text-gray-500">
+          The 2010 Academy chose <em className="not-italic text-gray-400">The King&apos;s Speech</em>.
+          Most of the internet disagreed.
         </p>
       </div>
 

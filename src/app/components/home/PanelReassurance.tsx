@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useMotionReveal } from "@/hooks/useMotionReveal";
+import { GUEST_SAVE } from "@/copy/loggedOutHome";
 
 type PanelReassuranceProps = {
   reducedMotion: boolean;
@@ -25,10 +26,16 @@ const CARDS = [
     label: "Start immediately",
     sub: "One film. That's all it takes.",
   },
+  // Was "Forever / Your canon, on record / Your picks. Your history.
+  // Permanent." — a permanence promise made to a visitor with no account,
+  // which the app itself contradicts downstream ("These don't auto-save").
+  // What's actually true is portability: guest ratings migrate to the account
+  // on signup via useAuthMigration (wired in providers.tsx). Claim that
+  // instead. See docs/design/logged-out-native-home.md.
   {
-    stat: "Forever",
-    label: "Your canon, on record",
-    sub: "Your picks. Your history. Permanent.",
+    stat: GUEST_SAVE.stat,
+    label: GUEST_SAVE.label,
+    sub: GUEST_SAVE.sub,
   },
 ];
 

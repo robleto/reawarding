@@ -49,8 +49,11 @@ export default function PanelFinalCTA({
             onSelect={onSelectMovie}
             placeholder="Search for a film you've watched"
           />
+          {/* Carries the portability promise that PanelReassurance used to
+              state (incorrectly) as permanence — that panel is no longer in
+              the funnel. See docs/design/logged-out-native-home.md. */}
           <p className="final-cta-microcopy">
-            No account needed. Your call, your canon.
+            No account needed. Your picks come with you when you sign up.
           </p>
         </div>
       </div>

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reawarding — Logged-Out Native Home, wireframe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0C0A08;
+    --panel:#15120E;
+    --charcoal-900:#2E2A24;
+    --charcoal-800:#3D3831;
+    --gold-300:#DFC066;
+    --gold-400:#D6AD33;
+    --gold-500:#D4AF37;
+    --gray-300:#D5CFC5;
+    --gray-400:#A69D90;
+    --gray-500:#7C7265;
+    --line:rgba(255,255,255,.10);
+    --line-soft:rgba(255,255,255,.06);
+    --red:#E4674F;
+    --green:#6FBF8B;
+    --head:'Unbounded','Trebuchet MS',sans-serif;
+    --body:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--gray-300);
+    font-family:var(--body);
+    line-height:1.55;
+    padding:48px 24px 96px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+
+  /* ── doc header ── */
+  .doc-head{border-bottom:1px solid var(--line);padding-bottom:28px;margin-bottom:52px}
+  .kicker{font-family:var(--head);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-400);margin-bottom:14px}
+  h1{font-family:var(--head);font-size:clamp(1.6rem,3.4vw,2.3rem);color:#fff;font-weight:600;letter-spacing:-.01em;line-height:1.2}
+  .doc-head p{margin-top:14px;max-width:62ch;color:var(--gray-400);font-size:15px}
+
+  /* ── sections ── */
+  section{margin-bottom:72px}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}
+  .sec-num{font-family:var(--head);font-size:12px;color:var(--gold-500);letter-spacing:.12em;flex:none}
+  h2{font-family:var(--head);font-size:1.18rem;color:#fff;font-weight:600;letter-spacing:-.005em}
+  .sec-sub{color:var(--gray-400);font-size:14.5px;max-width:70ch;margin-bottom:30px}
+  .sec-sub code{font-family:ui-monospace,monospace;font-size:12.5px;color:var(--gold-300);background:rgba(212,175,55,.08);padding:1px 5px;border-radius:4px}
+
+  /* ── phone rail ── */
+  .rail{display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start}
+  .col{flex:1 1 290px;min-width:270px;max-width:330px}
+  .col-cap{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .tag{font-family:var(--head);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;padding:3px 8px;border-radius:20px;border:1px solid;white-space:nowrap}
+  .tag.bad{color:var(--red);border-color:rgba(228,103,79,.4);background:rgba(228,103,79,.08)}
+  .tag.good{color:var(--green);border-color:rgba(111,191,139,.4);background:rgba(111,191,139,.08)}
+  .col-cap b{font-family:var(--head);font-size:12.5px;color:#fff;font-weight:600}
+  .col-note{font-size:13px;color:var(--gray-500);margin-top:14px;padding-left:2px}
+
+  .phone{
+    border:1px solid var(--line);border-radius:30px;background:var(--bg);
+    padding:9px;box-shadow:0 24px 60px -20px rgba(0,0,0,.9);
+  }
+  .screen{
+    border-radius:22px;overflow:hidden;background:var(--bg);
+    height:600px;display:flex;flex-direction:column;position:relative;
+  }
+  .statusbar{height:26px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:9.5px;color:var(--gray-500);font-variant-numeric:tabular-nums}
+  .appbar{height:38px;flex:none;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line-soft)}
+  .logo{font-family:var(--head);font-size:12px;color:var(--gold-400);letter-spacing:.04em;font-weight:600}
+  .body{flex:1;overflow:hidden;position:relative}
+  .pad{padding:18px 16px}
+
+  /* ── tab bar ── */
+  .tabbar{height:46px;flex:none;display:flex;border-top:1px solid var(--line-soft);background:rgba(255,255,255,.02)}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:8px;color:var(--gray-500);position:relative}
+  .tab .ico{width:13px;height:13px;border:1.4px solid currentColor;border-radius:3px}
+  .tab.on{color:var(--gold-400)}
+  .tab.dead::after{content:"";position:absolute;inset:6px 4px;border-radius:6px;background:repeating-linear-gradient(45deg,rgba(228,103,79,.16) 0 4px,transparent 4px 8px)}
+
+  /* ── slot labels ── */
+  .slot{position:relative;border-left:2px solid rgba(212,175,55,.22);padding-left:11px;margin-bottom:15px}
+  .slot-l{font-family:var(--head);font-size:8px;letter-spacing:.16em;color:var(--gold-500);opacity:.75;text-transform:uppercase;display:block;margin-bottom:5px}
+
+  /* ── screen type ── */
+  .eyebrow{font-family:var(--head);font-size:9.5px;color:var(--gold-400);line-height:1.4}
+  .h1s{font-family:var(--head);font-size:20px;color:#fff;font-weight:600;line-height:1.2;letter-spacing:-.01em}
+  .h1s.sm{font-size:17px}
+  .mech{font-size:11px;color:var(--gray-400);line-height:1.5;margin-top:7px}
+  .search{
+    display:flex;align-items:center;gap:8px;border:1px solid rgba(212,175,55,.35);
+    background:rgba(212,175,55,.05);border-radius:11px;padding:11px 12px;font-size:11.5px;color:var(--gray-400);
+  }
+  .search .mag{width:11px;height:11px;border:1.4px solid var(--gold-400);border-radius:50%;flex:none}
+  .micro{font-size:9.5px;color:var(--gray-500);margin-top:7px;text-align:center}
+  .caption{font-size:9.5px;color:var(--gray-500);margin-bottom:8px;font-style:italic}
+  .esc{font-size:10.5px;color:var(--gray-400);text-decoration:underline;text-underline-offset:3px;text-align:center;display:block;margin-top:4px}
+
+  /* ── award proof card ── */
+  .awardcard{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);padding:11px;display:flex;gap:11px}
+  .poster{width:52px;flex:none;aspect-ratio:2/3;border-radius:5px;background:linear-gradient(160deg,#3a3228,#211c16);border:1px solid rgba(212,175,55,.45);position:relative}
+  .poster::after{content:"";position:absolute;inset:4px;border:1px solid rgba(212,175,55,.18);border-radius:3px}
+  .ac-meta{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px}
+  .ac-lab{font-family:var(--head);font-size:7.5px;letter-spacing:.18em;color:var(--gold-500);opacity:.8;text-transform:uppercase}
+  .ac-title{font-family:var(--head);font-size:11px;color:#fff;font-weight:600;line-height:1.25}
+  .stamp{display:inline-block;font-family:var(--head);font-size:7px;letter-spacing:.1em;color:var(--gold-300);border:1px solid rgba(223,192,102,.5);border-radius:3px;padding:2px 5px;transform:rotate(-4deg);text-transform:uppercase;align-self:flex-start}
+  .noms{display:flex;gap:4px;margin-top:9px}
+  .nom{flex:1;aspect-ratio:2/3;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid var(--line-soft)}
+
+  /* ── BEFORE: stacked marketing panels ── */
+  .mkt{border:1px dashed rgba(228,103,79,.3);border-radius:9px;padding:12px 11px;margin-bottom:8px;background:rgba(228,103,79,.03)}
+  .mkt-n{font-family:var(--head);font-size:7.5px;letter-spacing:.14em;color:var(--red);opacity:.8;text-transform:uppercase;margin-bottom:5px}
+  .mkt-h{font-family:var(--head);font-size:11px;color:#fff;line-height:1.25;font-weight:600}
+  .mkt-p{font-size:9.5px;color:var(--gray-500);margin-top:4px;line-height:1.4}
+  .fade{position:absolute;left:0;right:0;bottom:0;height:80px;background:linear-gradient(transparent,var(--bg));pointer-events:none;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px}
+  .fade span{font-size:9px;color:var(--red);font-family:var(--head);letter-spacing:.1em}
+  .dots{position:absolute;right:7px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;z-index:3}
+  .dots i{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.22);display:block}
+  .dots i.on{background:var(--gold-400)}
+
+  /* ── returning guest ── */
+  .statline{font-family:var(--head);font-size:19px;color:#fff;font-weight:600}
+  .statline em{color:var(--gold-300);font-style:normal}
+  .savebar{border:1px solid rgba(212,175,55,.3);background:rgba(212,175,55,.06);border-radius:10px;padding:10px 11px;display:flex;align-items:center;gap:9px}
+  .savebar p{font-size:10px;color:var(--gray-300);flex:1;line-height:1.4}
+  .btn{font-family:var(--head);font-size:9px;background:var(--gold-500);color:#1a1409;padding:6px 10px;border-radius:7px;font-weight:600;white-space:nowrap}
+
+  /* ── funnel diagram ── */
+  .funnel{display:flex;flex-direction:column;gap:22px}
+  .frow{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .frow-l{font-family:var(--head);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;width:62px;flex:none;color:var(--gray-500)}
+  .fp{border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-width:118px;background:rgba(255,255,255,.02)}
+  .fp b{display:block;font-family:var(--head);font-size:10px;color:#fff;font-weight:600;margin-bottom:3px}
+  .fp span{font-size:9.5px;color:var(--gray-500);font-style:italic;line-height:1.35;display:block}
+  .fp.keep{border-color:rgba(111,191,139,.4);background:rgba(111,191,139,.05)}
+  .fp.cut{border-color:rgba(228,103,79,.3);background:rgba(228,103,79,.04);opacity:.6}
+  .fp.cut b{text-decoration:line-through;text-decoration-color:rgba(228,103,79,.7)}
+
+  /* ── forever fix table ── */
+  .fix{display:flex;gap:20px;flex-wrap:wrap}
+  .fixcard{flex:1 1 240px;border:1px solid var(--line);border-radius:12px;padding:18px;background:rgba(255,255,255,.02)}
+  .fixcard.b{border-color:rgba(228,103,79,.3)}
+  .fixcard.a{border-color:rgba(111,191,139,.35)}
+  .fx-stat{font-family:var(--head);font-size:21px;color:var(--gold-300);font-weight:600;letter-spacing:-.01em}
+  .fx-lab{font-size:13px;color:#fff;margin-top:5px;font-weight:500}
+  .fx-sub{font-size:12.5px;color:var(--gray-500);margin-top:3px}
+  .fx-v{font-family:var(--head);font-size:9px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:13px}
+  .fixcard.b .fx-v{color:var(--red)}
+  .fixcard.a .fx-v{color:var(--green)}
+  .contra{margin-top:14px;padding-top:12px;border-top:1px solid var(--line-soft);font-size:11.5px;color:var(--gray-500);line-height:1.5}
+  .contra b{color:var(--red);font-weight:500}
+
+  .callout{border-left:2px solid var(--gold-500);padding:2px 0 2px 16px;margin-top:26px;font-size:14px;color:var(--gray-300);max-width:74ch}
+  .callout b{color:#fff;font-weight:600}
+  code{font-family:ui-monospace,monospace;font-size:12.5px;color:var(--gold-300)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-head">
+    <div class="kicker">Reawarding · Spec Wireframe · 2026-08-23</div>
+    <h1>Logged-out home — native vs. web</h1>
+    <p>The iOS WebView loads <code>reawarding.com</code>, so someone who already downloaded the app is served the cold-visitor sales funnel. This splits the surface: web converts, native activates.</p>
+  </div>
+
+  <!-- ══ 1 ══ -->
+  <section>
+    <div class="sec-head"><span class="sec-num">01</span><h2>Native first open — before &amp; after</h2></div>
+    <p class="sec-sub">Same content budget, inverted hierarchy. The pitch becomes an eyebrow; the instruction becomes the headline.</p>
+
+    <div class="rail">
+
+      <!-- BEFORE -->
+      <div class="col">
+        <div class="col-cap"><span class="tag bad">Today</span><b>Six marketing panels</b></div>
+        <div class="phone"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span>▮▮▮</span></div>
+          <div class="appbar"><span class="logo">REAWARDING</span></div>
+          <div class="body">
+            <div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="pad" style="padding-bottom:0">
+              <div style="text-align:center;margin-bottom:12px">
+                <div class="eyebrow" style="font-size:10px">Ever disagree with the Academy?</div>
+                <div class="h1s" style="margin-top:6px;font-size:16px">The Academy had its say.<br>Now so do you.</div>
+                <div class="mech">Rate the films you've seen, reaward your own nominees — and your own winner.</div>
+              </div>
+              <div class="search"><span class="mag"></span>Search for a film you've watched</div>
+              <div class="micro">No account needed to get started.</div>
+              <div style="margin-top:14px">
+                <div class="mkt"><div class="mkt-n">Panel 2 · How it works</div><div class="mkt-h">Just rate movies.</div><div class="mkt-p">The rest forms around you.</div></div>
+                <div class="mkt"><div class="mkt-n">Panel 3 · Hook</div><div class="mkt-h">It's not just you.</div><div class="mkt-p">The 2010 Academy chose The King's Speech…</div></div>
+                <div class="mkt"><div class="mkt-n">Panel 4 · Timeline</div><div class="mkt-h">Build your timeline.</div></div>
+              </div>
+            </div>
+            <div class="fade"><span>+ 2 more panels ↓</span></div>
+          </div>
+          <div class="tabbar">
+            <div class="tab on dead"><span class="ico"></span>Awards</div>
+            <div class="tab"><span class="ico"></span>Films</div>
+            <div class="tab dead"><span class="ico"></span>Rankings</div>
+            <div class="tab"><span class="ico"></span>Lists</div>
+          </div>
+        </div></div>
+        <p class="col-note">Six panels make six different arguments. Hatched tabs bounce a guest to <code>/login</code> — including the lit one.</p>
+      </div>
+
+      <!-- AFTER -->
+      <div class="col">
+        <div class="col-cap"><span class="tag good">Proposed</span><b>One screen, five slots</b></div>
+        <div class="phone"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span>▮▮▮</span></div>
+          <div class="appbar"><span class="logo">REAWARDING</span></div>
+          <div class="body"><div class="pad">
+            <div class="slot"><span class="slot-l">Promise · flippable</span>
+              <div class="eyebrow">The Academy had its say. Now so do you.</div></div>
+            <div class="slot"><span class="slot-l">Instruction</span>
+              <div class="h1s">Start with a film you've seen.</div></div>
+            <div class="slot"><span class="slot-l">Mechanic</span>
+              <div class="mech" style="margin-top:0">Rate it 1–10. Anything you score 7 or higher becomes a nominee — and that year's ballot starts forming.</div></div>
+            <div class="slot"><span class="slot-l">Action</span>
+              <div class="search"><span class="mag"></span>Search a film you've watched</div>
+              <div class="micro">No account needed.</div></div>
+            <div class="slot" style="margin-bottom:8px"><span class="slot-l">Proof</span>
+              <div class="caption">One year, once it's formed:</div>
+              <div class="awardcard">
+                <div class="poster"></div>
+                <div class="ac-meta">
+                  <div class="ac-lab">Best Picture · 2025</div>
+                  <div class="ac-title">Sinners</div>
+                  <span class="stamp">Reawarded</span>
+                </div>
+              </div>
+              <div class="noms"><div class="nom"></div><div class="nom"></div><div class="nom"></div><div class="nom"></div><div class="nom"></div></div>
+            </div>
+            <span class="esc">How Reawarding works</span>
+          </div></div>
+          <div class="tabbar">
+            <div class="tab on"><span class="ico"></span>Home</div>
+            <div class="tab"><span class="ico"></span>Films</div>
+            <div class="tab"><span class="ico"></span>Lists</div>
+          </div>
+        </div></div>
+        <p class="col-note">No scroll-jacking, no progress rail. The existing <code>HeroReveal</code> card and its one crossfade beat carry the proof.</p>
+      </div>
+
+      <!-- RETURNING -->
+      <div class="col">
+        <div class="col-cap"><span class="tag good">Proposed</span><b>Returning guest</b></div>
+        <div class="phone"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span>▮▮▮</span></div>
+          <div class="appbar"><span class="logo">REAWARDING</span></div>
+          <div class="body"><div class="pad">
+            <div class="slot"><span class="slot-l">State</span>
+              <div class="statline">3 films rated.</div></div>
+            <div class="slot"><span class="slot-l">Next</span>
+              <div class="mech" style="margin-top:0"><em style="color:var(--gold-300);font-style:normal">2025</em> needs 2 more to set a ballot.</div></div>
+            <div class="slot"><span class="slot-l">Action</span>
+              <div class="search"><span class="mag"></span>Search a film you've watched</div></div>
+            <div class="slot"><span class="slot-l">Their work</span>
+              <div class="awardcard">
+                <div class="poster"></div>
+                <div class="ac-meta">
+                  <div class="ac-lab">Best Picture · 2025</div>
+                  <div class="ac-title">Sinners</div>
+                  <div style="font-size:8.5px;color:var(--gray-500)">3 nominees · forming</div>
+                </div>
+              </div>
+              <div class="noms"><div class="nom"></div><div class="nom"></div><div class="nom"></div><div class="nom" style="opacity:.3"></div><div class="nom" style="opacity:.3"></div></div>
+            </div>
+            <div class="slot" style="border-color:rgba(212,175,55,.5)"><span class="slot-l">Save · portable, not permanent</span>
+              <div class="savebar"><p>Yours to keep — your picks come with you when you sign up.</p><span class="btn">Sign up</span></div>
+            </div>
+          </div></div>
+          <div class="tabbar">
+            <div class="tab on"><span class="ico"></span>Home</div>
+            <div class="tab"><span class="ico"></span>Films</div>
+            <div class="tab"><span class="ico"></span>Lists</div>
+          </div>
+        </div></div>
+        <p class="col-note">Today a returning guest gets a save banner <em>and then the whole funnel again</em>. They already said yes — show their work instead.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══ 2 ══ -->
+  <section>
+    <div class="sec-head"><span class="sec-num">02</span><h2>The "Forever" contradiction</h2></div>
+    <p class="sec-sub">A promise the product contradicts three screens later. Fix this regardless of what else ships.</p>
+    <div class="fix">
+      <div class="fixcard b">
+        <div class="fx-v">Today · PanelReassurance</div>
+        <div class="fx-stat">Forever</div>
+        <div class="fx-lab">Your canon, on record</div>
+        <div class="fx-sub">Your picks. Your history. Permanent.</div>
+        <div class="contra">Shown to a user with <b>no account</b>. The app itself says <b>"These don't auto-save"</b> three screens later.</div>
+      </div>
+      <div class="fixcard a">
+        <div class="fx-v">Proposed</div>
+        <div class="fx-stat">Yours to keep</div>
+        <div class="fx-lab">Sign up whenever</div>
+        <div class="fx-sub">Your picks come with you when you do.</div>
+        <div class="contra">True as written: guest ratings migrate on signup via <code>useAuthMigration</code>, wired globally in <code>providers.tsx</code>. Promise <b style="color:var(--green)">portability</b>, never permanence.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 3 ══ -->
+  <section>
+    <div class="sec-head"><span class="sec-num">03</span><h2>Web funnel — six panels to three</h2></div>
+    <p class="sec-sub">Cold traffic still needs a funnel. But six panels make six arguments and land none — a visitor can't repeat back what the app does.</p>
+    <div class="funnel">
+      <div class="frow">
+        <span class="frow-l">Today</span>
+        <div class="fp"><b>Hero</b><span>"disagree with the Academy"</span></div>
+        <div class="fp"><b>How it works</b><span>"just rate movies"</span></div>
+        <div class="fp"><b>Hook</b><span>"it's not just you"</span></div>
+        <div class="fp"><b>Timeline</b><span>"build your timeline"</span></div>
+        <div class="fp"><b>Reassurance</b><span>"no rules"</span></div>
+        <div class="fp"><b>Final CTA</b><span>"the record doesn't write itself"</span></div>
+      </div>
+      <div class="frow">
+        <span class="frow-l">Proposed</span>
+        <div class="fp keep"><b>Hero</b><span>unchanged — it works</span></div>
+        <div class="fp keep"><b>How it works</b><span>4 steps, no pinned scroll</span></div>
+        <div class="fp cut"><b>Hook</b><span>fold the King's Speech line into hero</span></div>
+        <div class="fp cut"><b>Timeline</b><span>cut</span></div>
+        <div class="fp cut"><b>Reassurance</b><span>cut — copy fix moves to CTA</span></div>
+        <div class="fp keep"><b>Final CTA</b><span>corrected assurance copy</span></div>
+      </div>
+    </div>
+    <div class="callout"><b>Why the pinned panels don't port.</b> <code>PanelReassurance</code> already bails out of its progressive reveal below 640px — on a phone it's four static cards, i.e. the desktop design with the interesting part removed. Scroll-jacked pinning reads as broken scrolling inside a WKWebView with rubber-banding.</div>
+  </section>
+
+  <!-- ══ 4 ══ -->
+  <section>
+    <div class="sec-head"><span class="sec-num">04</span><h2>One string carries the positioning</h2></div>
+    <p class="sec-sub">The Wedge-vs-Ritual A/B test is unresolved and doesn't gate this work — native users already cleared the acquisition hurdle. But build it to flip in one line when January's Wave 2 reports.</p>
+    <div class="fix">
+      <div class="fixcard">
+        <div class="fx-v" style="color:var(--gold-400)">Ritual · ship with this</div>
+        <div class="fx-lab" style="font-family:var(--head);font-size:14px">The Academy had its say. Now so do you.</div>
+        <div class="contra">Current voice. Zero search demand, but these users already downloaded — they aren't searching.</div>
+      </div>
+      <div class="fixcard">
+        <div class="fx-v" style="color:var(--gold-400)">Wedge · flip if Wave 2 wins</div>
+        <div class="fx-lab" style="font-family:var(--head);font-size:14px">Every nominee. Every category. Counted.</div>
+        <div class="contra">Documented search demand. Swap the <code>PROMISE_LINE</code> constant — no redesign.</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
