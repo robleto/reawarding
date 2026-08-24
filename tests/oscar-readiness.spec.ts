@@ -17,9 +17,15 @@ import { test, expect, type Page } from '@playwright/test';
 
 const READINESS_URL = '/films/collections/readiness';
 
-/** "Best Picture 3 of 10" -> { seen: 3, total: 10 } */
+/**
+ * "Best Picture 3 of 10" -> { seen: 3, total: 10 }
+ *
+ * `\s*`, not `\s+`: the label and the count are adjacent spans with no text
+ * node between them, so `hasText` sees "Best Picture0 of 10" with no gap. The
+ * accessible name has a space, but textContent does not.
+ */
 async function readRow(page: Page, category: string) {
-  const row = page.locator('li').filter({ hasText: new RegExp(`${category}\\s+\\d+ of \\d+`) }).first();
+  const row = page.locator('li').filter({ hasText: new RegExp(`${category}\\s*\\d+ of \\d+`) }).first();
   const text = (await row.innerText()).replace(/\s+/g, ' ');
   const m = text.match(/(\d+) of (\d+)/);
   if (!m) throw new Error(`No "X of Y" in row for ${category}: ${text}`);
@@ -33,8 +39,10 @@ test.describe('Oscar Night Readiness', () => {
     await expect(page.getByRole('heading', { name: 'Oscar Night Readiness' })).toBeVisible();
 
     // Countdown to the next ceremony, whether or not that cycle has nominees.
+    // The number and its unit share one paragraph ("203days" in textContent),
+    // so match the pair rather than a bare integer.
     await expect(page.getByText(/ceremony in/i)).toBeVisible();
-    await expect(page.locator('text=/^\\d+$/').first()).toBeVisible();
+    await expect(page.getByText(/\d+\s*days/).first()).toBeVisible();
 
     // Every competitive category of the slate, none dropped.
     const rows = page.locator('li').filter({ hasText: /\d+ of \d+/ });

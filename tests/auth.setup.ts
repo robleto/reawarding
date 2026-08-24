@@ -22,17 +22,35 @@ setup('authenticate test user', async ({ page, baseURL }) => {
     waitUntil: 'domcontentloaded',
   });
 
-  await page.fill('#email', email!);
-  await page.fill('#password', password!);
+  // Wait for hydration before touching the form. `domcontentloaded` fires long
+  // before React attaches in dev, and `fill()` on a controlled input that isn't
+  // hydrated yet sets the DOM value without updating component state — the form
+  // then submits empty, Supabase is never called, and the page just sits on
+  // /login. That produced a confusing "user-menu-trigger not found" 30s later
+  // and looked exactly like bad credentials.
+  await page.waitForLoadState('networkidle');
+
+  const emailInput = page.locator('#email');
+  await emailInput.waitFor({ state: 'visible' });
+  await emailInput.fill(email!);
+  await page.locator('#password').fill(password!);
+
+  // Confirm React actually took the values before submitting, so a hydration
+  // race fails here with a clear message instead of downstream.
+  await expect(emailInput).toHaveValue(email!);
+
   await page.click('button[type="submit"]');
 
+  // Must actually LEAVE /login. The previous check was
+  // `.poll(() => page.url()).toContain('/')`, which every URL satisfies — so a
+  // failed sign-in sailed past it.
   await expect
-    .poll(async () => page.url(), { timeout: 30_000 })
-    .toContain('/');
+    .poll(async () => new URL(page.url()).pathname, { timeout: 30_000 })
+    .not.toBe('/login');
 
-  await expect(
-    page.getByTestId('user-menu-trigger').or(page.locator('[data-testid="home-headline"]')).first()
-  ).toBeVisible({ timeout: 30_000 });
+  // `home-headline` is only a CSS class now, not a test id, so the old
+  // `.or(...)` branch could never match. The user menu is the real signal.
+  await expect(page.getByTestId('user-menu-trigger')).toBeVisible({ timeout: 30_000 });
 
   await page.context().storageState({ path: authFile });
 });
