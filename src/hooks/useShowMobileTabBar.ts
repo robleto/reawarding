@@ -1,7 +1,6 @@
 "use client";
 
 import { useAuthState } from "@/hooks/useAuthState";
-import useGuestRankingStore from "@/hooks/useGuestRankingStore";
 
 /**
  * Whether the bottom tab bar should render.
@@ -10,36 +9,20 @@ import useGuestRankingStore from "@/hooks/useGuestRankingStore";
  * the tab bar itself, `main`'s bottom padding, and BackToTopButton's offset —
  * and they must agree, or the layout reserves space for a bar that isn't there.
  *
- * The rule (docs/design/logged-out-native-home.md):
- *   - signed in            → always
- *   - guest, has rated     → yes; they're past first open and need to navigate
- *   - guest, nothing rated → no
- *   - auth still resolving → no
+ * The rule: **signed in only.** Guests get no tab bar, at any point.
  *
- * That last guest case is the point. The logged-out first-open screen is a
- * single activation surface — one instruction, one search box — and a bottom
- * nav there is three more things to tap instead of the one that matters. Once
- * they've rated something, NativeGuestHome swaps to the returning-guest state
- * and navigation starts earning its place; the predicate below is deliberately
- * the same one that drives that swap (a numeric rating, not merely `seenIt`
- * or `hasInteracted`), so the bar appears exactly when that screen changes.
+ * Reverted 2026-08-24. This briefly showed guests a tab bar once they'd rated
+ * something, on the theory that they'd earned navigation. In practice it broke
+ * the year-walk (docs/design/first-rating-payoff.md): the fixed bar sits over
+ * the bottom of the ledger region and hid the "Next: {year}" button the walk
+ * depends on to advance. Explicit call: not for a not-logged-in user, at least
+ * not yet — a guest's path forward is the search box and the walk, not a nav
+ * bar to Films/Lists.
  *
- * Guests were previously shown no tab bar at all — `AppShell` gated it on
- * `isAuthenticated`. Note the history: the "two dead tabs" this was originally
- * written up as fixing (tapping guest Awards/Rankings hitting a login wall)
- * could not actually happen, because guests had no tabs to tap. The real
- * change here is *granting* guests navigation, and only after first open.
+ * If this comes back, it needs the ledger region to reserve real bottom
+ * padding for the bar first, not just a rating-count trigger.
  */
 export function useShowMobileTabBar(): boolean {
-  const { status, isAuthenticated } = useAuthState();
-
-  // Zustand persist rehydrates from localStorage after mount, so this reads
-  // false on the very first client render for a returning guest. That errs
-  // toward hiding the bar for a frame, which is the safe direction here.
-  const guestHasRated = useGuestRankingStore((state) =>
-    Object.values(state.rankings).some((r) => typeof r.ranking === "number")
-  );
-
-  if (status === "loading") return false;
-  return isAuthenticated || guestHasRated;
+  const { isAuthenticated } = useAuthState();
+  return isAuthenticated;
 }
