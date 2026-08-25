@@ -33,6 +33,14 @@ export const ACTIVE_PROMISE: PromiseFraming = "ritual";
 
 /** Native, first open — no ratings yet. Job of the screen: activate, not sell. */
 export const NATIVE_FIRST_OPEN = {
+  /**
+   * The small kicker above `promise`, matching web's own two-tier header
+   * (HeroReveal.tsx: a small "Ever disagree..." line, then the bold
+   * headline). Kept as a separate, non-A/B-tested string on purpose: it's a
+   * framing question that reads fine ahead of either PROMISE_LINE variant,
+   * so it doesn't need to flip when Wave 2 does.
+   */
+  kicker: "Ever disagree with the Academy?",
   promise: PROMISE_LINE[ACTIVE_PROMISE],
   /**
    * An imperative, not a claim. This is the inversion the spec is built on:

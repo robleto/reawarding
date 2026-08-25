@@ -203,20 +203,27 @@ function FirstOpen({
   return (
     <div className="mx-auto max-w-md">
       {isPristine ? (
-        // The only positioning string on this screen, and the only one that
-        // changes if the Wedge/Ritual test flips (docs/design/
-        // logged-out-native-home.md). Promoted from a small eyebrow to the
-        // actual headline — with the instruction and ledger both gone, it's
-        // the one thing this state has to say, so it should read like it.
-        // Sized up from web's H1 clamp but not copied verbatim: native has
-        // roughly a third of web's width, and web's clamp wraps this same
-        // line across 2-3 lines even there.
-        <h1
-          data-testid="home-headline"
-          className="font-unbounded text-[22px] font-semibold leading-[1.25] tracking-tight text-gold-400"
-        >
-          {NATIVE_FIRST_OPEN.promise}
-        </h1>
+        // Two-tier header, matching web's own pattern (HeroReveal.tsx: a
+        // small "Ever disagree..." kicker, then a bold headline) rather than
+        // one line at one size. Earlier pass put `promise` alone at 22px in
+        // gold — a large block of saturated color has less contrast against
+        // a dark background than white does, and it broke a rule the rest of
+        // this screen already follows: gold is the accent/label colour
+        // (AcademyLedger's "ACADEMY" caption, the year), white is the
+        // primary content. The H1 below reuses the *exact* className every
+        // other state on this screen already uses, so pristine isn't a
+        // one-off style — it's the same system, different words.
+        <>
+          <p className="font-unbounded text-[13px] leading-snug text-gold-400">
+            {NATIVE_FIRST_OPEN.kicker}
+          </p>
+          <h1
+            data-testid="home-headline"
+            className="mt-2 font-unbounded text-[26px] font-semibold leading-[1.15] tracking-tight text-white"
+          >
+            {NATIVE_FIRST_OPEN.promise}
+          </h1>
+        </>
       ) : (
         <>
           {/* INSTRUCTION — the largest thing on the screen. An imperative
