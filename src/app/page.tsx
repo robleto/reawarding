@@ -1533,6 +1533,14 @@ export default function HomePage() {
         }}
         onPickAnother={() => setOnboardingPickFlowMovie(null)}
         onClose={() => setOnboardingPickFlowMovie(null)}
+        // A guest's first pick can only ever reach this modal once — isNewUser
+        // flips false for good the moment any rating exists — so this closes
+        // straight back to the ledger they just filled instead of showing the
+        // "forming" screen's CTAs, which predate and don't mention the walk
+        // (docs/design/first-rating-payoff.md). Logged-in new users still get
+        // the full three-step flow: they have no ledger of their own to land
+        // back on.
+        autoCloseAfterRate={isGuest}
       />
 
     </div>
