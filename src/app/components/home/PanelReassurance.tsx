@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useMotionReveal } from "@/hooks/useMotionReveal";
+import { GUEST_SAVE } from "@/copy/loggedOutHome";
 
 type PanelReassuranceProps = {
   reducedMotion: boolean;
@@ -25,10 +26,16 @@ const CARDS = [
     label: "Start immediately",
     sub: "One film. That's all it takes.",
   },
+  // Was "Forever / Your canon, on record / Your picks. Your history.
+  // Permanent." — a permanence promise made to a visitor with no account,
+  // which the app itself contradicts downstream ("These don't auto-save").
+  // What's actually true is portability: guest ratings migrate to the account
+  // on signup via useAuthMigration (wired in providers.tsx). Claim that
+  // instead. See docs/design/logged-out-native-home.md.
   {
-    stat: "Forever",
-    label: "Your canon, on record",
-    sub: "Your picks. Your history. Permanent.",
+    stat: GUEST_SAVE.stat,
+    label: GUEST_SAVE.label,
+    sub: GUEST_SAVE.sub,
   },
 ];
 
@@ -37,9 +44,15 @@ export default function PanelReassurance({ reducedMotion }: PanelReassuranceProp
   const gridRef = useRef<HTMLDivElement | null>(null);
   const isVisible = useMotionReveal(reducedMotion, sectionRef);
 
-  // Pinned scroll — cards reveal one at a time as user scrolls
+  // Pinned scroll — cards reveal one at a time as user scrolls. Desktop only:
+  // below 640px the cards skip the pin choreography entirely and instead
+  // fade in together via the section's own `motion-reveal` (isVisible),
+  // same as the header above them — otherwise they inherited the pin
+  // animation's opacity:0 start state with nothing left to ever set it back
+  // to 1, leaving them permanently invisible on mobile.
   useEffect(() => {
     if (reducedMotion) return;
+    if (window.innerWidth < 640) return; // no pin on mobile viewports
     gsap.registerPlugin(ScrollTrigger);
 
     const section = sectionRef.current;
@@ -50,6 +63,15 @@ export default function PanelReassurance({ reducedMotion }: PanelReassuranceProp
       grid.querySelectorAll<HTMLElement>("[data-reassurance-card]")
     );
     const count = cards.length;
+
+    // Hand opacity control to GSAP alone — the cards also carry the
+    // `motion-reveal` CSS class (for the mobile fallback below), and its
+    // transition/fallback-animation would otherwise fight the scrub-linked
+    // tween below with a laggy double-animation.
+    cards.forEach((card) => {
+      card.style.transition = "none";
+      card.style.animation = "none";
+    });
 
     // Start all cards invisible
     gsap.set(cards, { opacity: 0, y: 18, scale: 0.93 });
@@ -142,8 +164,7 @@ export default function PanelReassurance({ reducedMotion }: PanelReassuranceProp
             <div
               key={card.stat}
               data-reassurance-card=""
-              className="reassurance-card"
-              style={{ opacity: reducedMotion ? 1 : 0, transform: reducedMotion ? "none" : undefined }}
+              className={`reassurance-card motion-reveal ${isVisible ? "motion-reveal--visible" : ""}`}
             >
               <span className="reassurance-card__stat">{card.stat}</span>
               <span className="reassurance-card__label">{card.label}</span>

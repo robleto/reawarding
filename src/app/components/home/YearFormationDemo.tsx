@@ -65,6 +65,7 @@ export default function YearFormationDemo({
 
   useLayoutEffect(() => {
     if (reducedMotion || !rootRef.current) return;
+    if (window.innerWidth < 640) return; // no pin on mobile viewports
 
     gsap.registerPlugin(ScrollTrigger);
 

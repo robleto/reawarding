@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Trophy, Film, List, LineChart } from "lucide-react";
+import { Trophy, Film, List, LineChart, Home } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
+import { useAuthState } from "@/hooks/useAuthState";
 
 // Bottom-nav destinations are intentionally 4: Awards, Films, Rankings, Lists —
 // the surfaces someone returns to daily. Home is still reachable via the
@@ -68,13 +69,33 @@ const TABS = [
   { href: "/lists", label: "Lists", icon: List, match: (p: string) => p.startsWith("/lists") },
 ];
 
+// Guests get a different lineup because two of the four above are behind the
+// auth wall: middleware.ts protects /awards and /rankings, so tapping either
+// bounced a logged-out user to /login. Worse, the Awards tab matches "/" — so
+// on the logged-out home the *lit* tab threw a login wall when tapped, which
+// is the first thing a new App Store install can touch.
+// Awards becomes a plain Home link (public, same destination) and Rankings
+// drops out until there's an account to rank against.
+// See docs/design/logged-out-native-home.md.
+const GUEST_TABS = [
+  { href: "/", label: "Home", icon: Home, match: (p: string) => p === "/" },
+  { href: "/films", label: "Films", icon: Film, match: (p: string) => p.startsWith("/films") },
+  { href: "/lists", label: "Lists", icon: List, match: (p: string) => p.startsWith("/lists") },
+];
+
 export default function MobileTabBar() {
   const pathname = usePathname() || "/";
   const hidden = useAutoHideOnScroll(pathname);
   const tabRefs = useRef<(HTMLLIElement | null)[]>([]);
   const [pillStyle, setPillStyle] = useState<{ left: number; width: number } | null>(null);
+  const { status } = useAuthState();
 
-  const activeIndex = TABS.findIndex((t) => t.match(pathname));
+  // Only swap once auth is definitively resolved — treating the "loading" tick
+  // as a guest would pop two tabs out and back in on every signed-in load,
+  // which is the far more common case.
+  const tabs = status === "unauthenticated" ? GUEST_TABS : TABS;
+
+  const activeIndex = tabs.findIndex((t) => t.match(pathname));
 
   // Sliding active-pill indicator — the same technique HeaderNav's desktop
   // nav-bubble uses (measure the active item's rect against its parent),
@@ -113,7 +134,7 @@ export default function MobileTabBar() {
             aria-hidden="true"
           />
         )}
-        {TABS.map(({ href, label, icon: Icon, match }, i) => {
+        {tabs.map(({ href, label, icon: Icon, match }, i) => {
           const active = match(pathname);
           return (
             <li

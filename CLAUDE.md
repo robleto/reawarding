@@ -107,10 +107,43 @@ Keep these thresholds in sync if changed.
 
 ## Branch strategy
 
-- P0–P2 done: `feature/adaptive-homepage-phase1-3` (product docs, Storybook, feature restore)
-- P3 Onboarding: `feature/onboarding`
-- P4 Adaptive homepage: `feature/adaptive-homepage` (LAST — after P3)
-- P5 Import, P6 Friends, P7 Export: one branch each
+**Reality as of 2026-08-23** — the phased plan below this line used to name
+`feature/adaptive-homepage-phase1-3`, `feature/onboarding`,
+`feature/adaptive-homepage`, and one branch each for import/friends/export.
+None of those branches were ever created. What actually happened: nearly all
+of it — product docs, Storybook, feature restore, the adaptive homepage
+described above in "Homepage states," onboarding fixes, import fixes
+(commits tagged `IMP-1`/`IMP-2`), plus a long tail of `AUTH`/`PAY`/`LOOP`/
+`PERF`/`CC` fixes — landed through one long-lived branch,
+`feature/lists-fullscreen-pager`, merged into `main` via PR #17
+(2026-08-22). Don't plan against the phase names below; they don't map to
+any branch that exists.
+
+Current branches and their actual state:
+- `feature/lists-fullscreen-pager` — merged into `main` (PR #17). Still
+  exists locally/on origin post-merge but has nothing further to contribute.
+- `explore/awards-alt-layout`, `explore/awards-as-home`, `feature/iphone-feel`,
+  `feature/light-mode` — 0 commits ahead of `main`. No unique work; safe to
+  ignore or delete.
+- `codex/pre-strip-backup-2026-02-11`, `codex/snapshot-before-rewind-20260212`
+  — safety snapshots, not active feature work (names describe what they
+  preserve — state from before a strip/rewind). Do not merge; doing so would
+  fight changes `main` made on purpose since.
+- `feat/social-leaderboard-friends` — the closest thing to a "Friends"
+  branch, but 182 commits behind `main` as of 2026-08-23. Merging surfaces a
+  24-file conflict set including generated `src/types/supabase.ts` (needs
+  regeneration from current schema, not a hand merge) and a modify/delete
+  conflict on `guestDataMigration.ts`, which `main` has since removed
+  entirely. Needs a dedicated integration pass — punted for now.
+- `feature/design-team-review` — 109 commits behind `main`. Conflicts
+  include this file's own component table: this branch treats
+  `ExpandableYearCard` as the canonical live year/ballot card, while current
+  `main` documents it as orphaned (see "Component reuse mandate" above).
+  Resolving this means picking a direction, not merging text — punted for
+  now.
+- `feature/reenable-best-animated-tab`, `fix/stripe-client-lazy-init` —
+  appeared on origin 2026-08-23, after the audit above; not yet assessed
+  against `main`.
 
 ---
 

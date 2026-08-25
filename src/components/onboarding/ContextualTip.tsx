@@ -31,7 +31,7 @@ export const CONTEXTUAL_TIPS: Record<ContextualTipId, TipDefinition> = {
     id: "incomplete-year",
     title: "This year is still taking shape",
     message:
-      "A few more ratings from this year will sharpen the contenders and make the current winner feel more earned.",
+      "A few more ratings from this year will sharpen the nominees and make the current winner feel more earned.",
   },
   disagreement: {
     id: "disagreement",

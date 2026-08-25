@@ -69,6 +69,25 @@ const REAWARDED_STATUS: AcademyStatusResult = {
   officialTitle: "One Battle After Another",
 };
 
+/**
+ * The Academy's real Best Picture winner for the demo year — the left half of
+ * the native screen's open ledger (see NATIVE_LEDGER in src/copy/loggedOutHome).
+ *
+ * Deliberately a constant rather than a `fetchOfficialAwardWinners()` call.
+ * That data exists and is per-year correct, but it's a Supabase round trip, and
+ * this renders on the logged-out first-open screen — the one surface where a
+ * loading state costs the most. The ledger names its year explicitly, so a
+ * constant can go stale but can never be *wrong*: it stays an accurate
+ * statement about 2025 even after the next ceremony.
+ *
+ * Refresh after each ceremony to keep it current.
+ */
+export const ACADEMY_REFERENCE = {
+  year: 2025,
+  title: ONE_BATTLE.title,
+  posterUrl: ONE_BATTLE.poster_url,
+} as const;
+
 const HOLD_MS = 1100;
 const CROSSFADE_MS = 550;
 
@@ -103,7 +122,13 @@ export default function HeroReveal({ reducedMotion, onSelectMovie }: HeroRevealP
         >
           Ever disagree with the Academy?
         </h2>
+        {/* tests/prelogin.spec.ts asserts on this testid. It used to live only
+            in HomeHero/HomeEmptyState, both of which are orphaned (zero call
+            sites), so the assertion had been failing against a component the
+            guest path never renders. It belongs on whatever is actually the
+            logged-out H1 — here for web, NativeGuestHome for native. */}
         <h1
+          data-testid="home-headline"
           className="home-headline font-unbounded sm:whitespace-nowrap mt-2"
           style={{ fontSize: "clamp(1.75rem, 4vw, 2.75rem)" }}
         >
@@ -116,6 +141,13 @@ export default function HeroReveal({ reducedMotion, onSelectMovie }: HeroRevealP
         <p className="mt-4 max-w-2xl mx-auto text-base text-white/80">
           Rate the films you&apos;ve seen, reaward your own nominees — and your
           own winner.
+        </p>
+        {/* Social proof, folded up from the retired PanelHook — the one line
+            in that panel making an argument the hero doesn't already make.
+            See docs/design/logged-out-native-home.md (web funnel, 6 → 3). */}
+        <p className="mt-3 max-w-xl mx-auto text-sm text-gray-500">
+          The 2010 Academy chose <em className="not-italic text-gray-400">The King&apos;s Speech</em>.
+          Most of the internet disagreed.
         </p>
       </div>
 

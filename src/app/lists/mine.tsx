@@ -111,7 +111,7 @@ export default function MyListsPage() {
       <ScreenState
         testId="screen-state-auth-required"
         title="Sign in to view your lists"
-        message="Your private lists are account-specific. Sign in before this page renders them."
+        message="Your lists are tied to your account. Sign in to see them."
         primaryAction={{ label: "Sign In", href: "/login" }}
         secondaryAction={{ label: "Back to Lists", href: "/lists" }}
       />
@@ -124,7 +124,7 @@ export default function MyListsPage() {
         testId="screen-state-fetch-failure"
         tone="error"
         title="Couldn't load your lists"
-        message="We couldn't verify your list data, so this page is staying closed instead of showing partial results."
+        message="Your lists didn't load. Head back and try again."
         primaryAction={{ label: "Back to Lists", href: "/lists" }}
       />
     );

@@ -8,6 +8,11 @@ interface Props {
   nominees: Movie[];
   winnerId?: string;
   onSelect: (movie: Movie) => void;
+  /** Nominee ids whose rating has since dropped below 7 on a saved ballot —
+      see docs/design/ballot-card-states.md. Renders a small caption instead
+      of removing the film, since a stale nominee is still a real choice
+      until the user updates the ballot. */
+  staleIds?: Set<string | number>;
 }
 
 /**
@@ -20,7 +25,7 @@ interface Props {
  * films page's "Recently added" shelf, native momentum scroll, no dots,
  * no height changes as you scroll.
  */
-export default function NomineeCardCarousel({ nominees, winnerId, onSelect }: Props) {
+export default function NomineeCardCarousel({ nominees, winnerId, onSelect, staleIds }: Props) {
   const sortedNominees = [...nominees].sort((a, b) => a.title.localeCompare(b.title));
 
   if (sortedNominees.length === 0) return null;
@@ -40,6 +45,11 @@ export default function NomineeCardCarousel({ nominees, winnerId, onSelect }: Pr
               winnerLabel
               onClick={() => onSelect(movie)}
             />
+            {staleIds?.has(movie.id) && (
+              <p className="mt-0.5 text-center text-[9px] font-medium text-amber-400/80">
+                Rated below 7
+              </p>
+            )}
           </div>
         ))}
       </div>

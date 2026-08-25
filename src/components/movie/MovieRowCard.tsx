@@ -182,6 +182,11 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
                 {ratingLabel}
               </span>
             )}
+            {seenIt && ranking === null && !ratingLabel && (
+              <span className="mt-0.5 text-[10px] leading-tight text-blue-400/70 whitespace-nowrap">
+                7+ joins ballot
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -259,6 +264,11 @@ export default function MovieRowCard({ movie, currentUserId, onUpdate, ranking, 
                 {ratingLabel && (
                   <span className="mt-0.5 text-xs leading-tight text-gray-400">
                     {ratingLabel}
+                  </span>
+                )}
+                {seenIt && ranking === null && !ratingLabel && (
+                  <span className="mt-0.5 text-[10px] leading-tight text-blue-400/70 whitespace-nowrap">
+                    7+ joins ballot
                   </span>
                 )}
               </div>

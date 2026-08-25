@@ -1,0 +1,27 @@
+-- Let signed-out visitors read the collections index.
+--
+-- `/films/collections` queries `film_collections_with_counts`, but that view
+-- was only ever granted to `authenticated`. Signed-out visitors got
+-- `42501 permission denied for view film_collections_with_counts`, the query
+-- failed, and the page rendered zero collections — on a public marketing
+-- surface. Confirmed 2026-08-23 by querying the view with the anon key, and in
+-- the browser (the index logged "Error fetching collections" and listed
+-- nothing).
+--
+-- Base-table RLS is untouched and remains the real gate: `film_collections`
+-- and `film_collection_items` each have RLS enabled with a public SELECT
+-- policy, which is what already lets anon read them directly.
+--
+-- This is safe specifically because the view is defined with
+-- `security_invoker=true` (verified against pg_class.reloptions). It therefore
+-- evaluates base-table RLS as the *calling* role rather than the view owner
+-- (postgres), so this grant exposes nothing anon could not already select from
+-- the underlying tables. Were the view security-definer, this same grant would
+-- bypass RLS and would not be safe.
+--
+-- SELECT only, deliberately. `authenticated` carries the full default Supabase
+-- grant set on this view (INSERT/UPDATE/DELETE/...); there is no reason to
+-- copy that for anon, and the view is a read-only aggregate.
+--
+-- Idempotent: re-granting an existing privilege is a no-op.
+GRANT SELECT ON public.film_collections_with_counts TO anon;

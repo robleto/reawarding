@@ -12,8 +12,17 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[[plugins]]
-  package = "@netlify/plugin-lighthouse"
+# @netlify/plugin-lighthouse was removed 2026-08-24 to cut build minutes. It
+# ran on every deploy preview as well as production, and nobody was acting on a
+# performance audit of a preview URL.
+#
+# Scoping it to production instead was tried first, via
+# [[context.production.plugins]], and Netlify failed the deploy on it — that
+# syntax isn't supported for plugins. Don't retry that approach.
+#
+# To bring Lighthouse back, restore a plain [[plugins]] block and accept that
+# it runs in every context. For a one-off audit, run Lighthouse locally against
+# a deploy URL instead.
 
 [[headers]]
   for = "/_next/static/*"
