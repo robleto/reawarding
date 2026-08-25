@@ -284,11 +284,33 @@ function FirstOpen({
           </h1>
 
           {/* MECHANIC — Law 2's preference-vs-ballot line once filled, the
-              walk's breakdown once summarized. Suppressed mid-walk: the strip
-              below the ledger already asks the question, and repeating it
-              here just crowds the year. Never the 7+ rule — see isPristine's
-              comment for why that's gone from this screen entirely. */}
-          {!askingYear && (
+              walk's breakdown once summarized. Never the 7+ rule — see
+              isPristine's comment for why that's gone from this screen
+              entirely.
+
+              Suppressed mid-walk (`!askingYear`): the strip below the ledger
+              already asks the question, and repeating it here just crowds the
+              year.
+
+              Also suppressed whenever the walk still has a year to offer, which
+              is the same reasoning applied one step earlier. `filledMechanic`
+              is "add a few more and {year} becomes a ballot" — that's Act 4's
+              ask (depth in one year), and docs/design/first-rating-payoff.md
+              orders depth *after* Act 3's save moment, deliberately. Showing it
+              on the filled screen put it in direct competition with Act 2: the
+              headline asked the visitor to flesh out the year they just filled
+              while the button below offered the next year, and those are
+              opposite motions. Breadth wins that contest on effort alone — one
+              tap on a curated poster versus recalling and rating four more
+              films from a single year, with no payoff until the fifth.
+
+              The condition is the exact complement of the "Next: {year}" button
+              below (`filled && walk.currentYear !== null`), so precisely one of
+              the two is ever on screen. Once the walk runs out of years, depth
+              genuinely is the next action and this line comes back to name it.
+
+              The summary branch is unaffected — Act 3's breakdown always shows. */}
+          {!askingYear && (showSummary || walk.currentYear === null) && (
             <p className="mt-3 text-sm leading-relaxed text-gray-400">
               {showSummary
                 ? WALK_DONE.breakdown(summary.reawardedCount, summary.agreedCount)
