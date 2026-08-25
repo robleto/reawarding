@@ -18,12 +18,14 @@ export const CATEGORY_LABELS: Record<AwardsTabKey, string> = {
 };
 
 export function AwardsTabs({ value, onChange }: { value: AwardsTabKey; onChange: (v: AwardsTabKey) => void }) {
-  // Best Animated is built (category-aware data layer, eligibility filter,
-  // ShareSheet/OG category label) but hidden from the tab strip until the
-  // remaining gaps are closed — see docs/FEATURE-STATUS.md. Re-add
-  // { key: "best-animated", label: "Best Animated" } to switch it back on.
+  // Re-enabled 2026-08-23 — see docs/FEATURE-STATUS.md for the known,
+  // still-open gaps (no dedicated add-film flow for this category, no
+  // per-category homepage maturity state, Alternate Oscar History still
+  // best-picture-only). Shipping as-is: derived nominees, editing/saving,
+  // and sharing all work correctly, it's just not feature-complete yet.
   const tabs: { key: AwardsTabKey; label: string; separator?: boolean }[] = [
     { key: "best-picture", label: "Best Picture" },
+    { key: "best-animated", label: "Best Animated" },
   ];
 
   return (
