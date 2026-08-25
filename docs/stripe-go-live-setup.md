@@ -3,6 +3,33 @@
 Temporary note, not a permanent doc. Delete once premium is confirmed working
 for real, paying users.
 
+## Status as of 2026-08-25
+
+Steps 1–4 below are done. Steps 5–7 (Netlify env vars, redeploy, one real
+verification transaction) are what's left.
+
+- **Step 1 (production URL)**: confirmed `https://reawarding.com` — hardcoded
+  throughout the app (capacitor.config.ts, native OAuth bridge, OG images,
+  offline.html) and live (200 on `curl`).
+- **Steps 2–3 (live product + secret key)**: turned out to already exist —
+  live product `prod_Uw0u8GHDv29wzp` ("Reawarding Premium") with price
+  `price_1Tw8sLAGq6wUZ95iqNhgoB9f` ($19.00/yr USD recurring), created the
+  same session as the test-mode product, just never finished being wired up.
+  No new product/price was created — reused these. Live secret key was added
+  to this machine's `.env.local` as `STRIPE_SECRET_KEY_LIVE` (kept separate
+  from the test `STRIPE_SECRET_KEY` used for local dev).
+- **Step 4 (live webhook endpoint)**: created —
+  `we_1U8A5zAGq6wUZ95iwODUzzFX` → `https://reawarding.com/api/stripe/webhook`,
+  all 6 events the handler expects (the original 4 below plus
+  `charge.refunded` and `invoice.payment_failed`, added for the refund-revokes-
+  entitlement and payment-failed-observability handlers in
+  `webhook/route.ts`). Signing secret written to
+  `scripts/.tmp-stripe-live-secrets.json` (gitignored, not committed) —
+  needed for step 5 below, then delete the file.
+- The only pre-existing live webhook endpoint on the account
+  (`we_1SU6D6AGq6wUZ95i1DDONEH2`) belongs to a different app
+  (`awardsapi.netlify.app`) — left untouched.
+
 ## Where things stand
 
 Everything is built and verified in Stripe **test mode**: checkout, webhook
