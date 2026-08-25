@@ -178,44 +178,75 @@ function FirstOpen({
     walk,
   } = useLedgerWalk(ledger, movies, onPickForYear, "native");
 
+  // True first open: nothing filled, no walk in progress, no summary. Cut
+  // down 2026-08-24 per direct feedback on the running app — the empty ledger
+  // (Academy pick + a dashed "Yours" slot for 2025) implied a tap-to-fill
+  // mechanic that doesn't actually exist for the current year: every other
+  // year in the walk offers a curated row of real contenders to tap
+  // (CONTESTED_YEARS' pinned rival + rating-ordered fill), but 2025 has no
+  // settled consensus yet to curate from — checked directly, imdb_rating
+  // ordering for 2025 returns anime and international titles with high
+  // ratings but no Best Picture relevance, unlike the aged catalogs that make
+  // the walk's chooser rows work. Building that mechanic for the current year
+  // isn't viable right now, so showing its empty slot was a promise the
+  // screen couldn't keep. It also implied "pick a 2025 film" when the product
+  // doesn't actually care what year they start with — any film re-keys the
+  // ledger correctly (proven live: a guest's first-ever pick was a 1994 film,
+  // and the ledger correctly filled 1994 against Forrest Gump, not 2025).
+  //
+  // The 7+ mechanic line is cut too, not just moved: RatingModal and the
+  // rating step of OnboardingPickFlow already state "rate 7 or higher to
+  // nominate" at the moment someone is actually about to do it. Explaining it
+  // here first was pure duplicate exposition.
+  const isPristine = !filled && !askingYear && !showSummary;
+
   return (
     <div className="mx-auto max-w-md">
-      {/* PROMISE — the only positioning string on this screen, and the only
-          one that changes if the Wedge/Ritual test flips. Small on purpose:
-          they already downloaded, so this nods at why rather than arguing it.
-          Retired once they've acted: the pitch has done its job. */}
-      {!filled && !askingYear && !showSummary && (
-        <p className="font-unbounded text-[13px] leading-snug text-gold-400">
+      {isPristine ? (
+        // The only positioning string on this screen, and the only one that
+        // changes if the Wedge/Ritual test flips (docs/design/
+        // logged-out-native-home.md). Promoted from a small eyebrow to the
+        // actual headline — with the instruction and ledger both gone, it's
+        // the one thing this state has to say, so it should read like it.
+        // Sized up from web's H1 clamp but not copied verbatim: native has
+        // roughly a third of web's width, and web's clamp wraps this same
+        // line across 2-3 lines even there.
+        <h1
+          data-testid="home-headline"
+          className="font-unbounded text-[22px] font-semibold leading-[1.25] tracking-tight text-gold-400"
+        >
           {NATIVE_FIRST_OPEN.promise}
-        </p>
-      )}
+        </h1>
+      ) : (
+        <>
+          {/* INSTRUCTION — the largest thing on the screen. An imperative
+              before they act; a reflection of what they did after. */}
+          <h1
+            data-testid="home-headline"
+            className={`font-unbounded text-[26px] font-semibold leading-[1.15] tracking-tight text-white ${filled || askingYear ? "" : "mt-2"}`}
+          >
+            {showSummary
+              ? WALK_DONE.title(summary.picks.length)
+              : filled
+                ? NATIVE_FIRST_OPEN.filledInstruction(shownLedger.academy.year)
+                : askingYear
+                  ? WALK.askHeadline(askingYear)
+                  : NATIVE_FIRST_OPEN.instruction}
+          </h1>
 
-      {/* INSTRUCTION — the largest thing on the screen. An imperative before
-          they act; a reflection of what they did after. */}
-      <h1
-        data-testid="home-headline"
-        className={`font-unbounded text-[26px] font-semibold leading-[1.15] tracking-tight text-white ${filled || askingYear ? "" : "mt-2"}`}
-      >
-        {showSummary
-          ? WALK_DONE.title(summary.picks.length)
-          : filled
-            ? NATIVE_FIRST_OPEN.filledInstruction(shownLedger.academy.year)
-            : askingYear
-              ? WALK.askHeadline(askingYear)
-              : NATIVE_FIRST_OPEN.instruction}
-      </h1>
-
-      {/* MECHANIC — the 7+ rule before, Law 2's preference-vs-ballot after.
-          Suppressed mid-walk: the strip below the ledger already asks the
-          question, and repeating it here just crowds the year. */}
-      {!askingYear && (
-        <p className="mt-3 text-sm leading-relaxed text-gray-400">
-          {showSummary
-            ? WALK_DONE.breakdown(summary.reawardedCount, summary.agreedCount)
-            : filled
-              ? NATIVE_FIRST_OPEN.filledMechanic(shownLedger.academy.year)
-              : NATIVE_FIRST_OPEN.mechanic}
-        </p>
+          {/* MECHANIC — Law 2's preference-vs-ballot line once filled, the
+              walk's breakdown once summarized. Suppressed mid-walk: the strip
+              below the ledger already asks the question, and repeating it
+              here just crowds the year. Never the 7+ rule — see isPristine's
+              comment for why that's gone from this screen entirely. */}
+          {!askingYear && (
+            <p className="mt-3 text-sm leading-relaxed text-gray-400">
+              {showSummary
+                ? WALK_DONE.breakdown(summary.reawardedCount, summary.agreedCount)
+                : NATIVE_FIRST_OPEN.filledMechanic(shownLedger.academy.year)}
+            </p>
+          )}
+        </>
       )}
 
       {/* ACTION — deliberately not autofocused. Popping the keyboard on cold
@@ -265,7 +296,12 @@ function FirstOpen({
       </div>
 
       {/* PROOF — the open ledger, now shared with the web hero (see
-          AcademyLedger for the two rules it follows and what it replaced). */}
+          AcademyLedger for the two rules it follows and what it replaced).
+          Absent entirely while isPristine — see that flag's comment above
+          for why the empty-2025-slot version of this was cut, not just
+          restyled. It appears the moment there's something real to show:
+          filled, mid-walk, or the save summary. */}
+      {!isPristine && (
       <div
         ref={cardRef}
         className={`mt-8 border-t border-white/10 pt-4 award-year-enter ${arrived ? "award-year-arrived" : ""}`}
@@ -323,6 +359,7 @@ function FirstOpen({
           </button>
         )}
       </div>
+      )}
 
       {/* ESCAPE — how-it-works stops being four mandatory screens and becomes
           one optional tap. Inline disclosure rather than a route, so the user
