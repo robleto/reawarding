@@ -40,6 +40,7 @@ import {
 import YearWalkStrip from "@/app/components/home/YearWalkStrip";
 import WalkSummary from "@/app/components/home/WalkSummary";
 import { useLedgerWalk } from "@/hooks/useLedgerWalk";
+import { useYearWalk } from "@/hooks/useYearWalk";
 import { useGuestPicksSummary } from "@/hooks/useGuestPicksSummary";
 import type { Movie } from "@/types/types";
 
@@ -114,6 +115,38 @@ export default function NativeGuestHome({
   onDeepenYear,
   showArchive,
 }: NativeGuestHomeProps) {
+  // The walk owns this screen until it's actually out of years.
+  //
+  // `showArchive` alone used to decide this, and it flips mid-flow: its arms
+  // are `yearLeaders.length >= 2 || setBallotCount >= 1 || awards.length >= 2`
+  // (page.tsx), and Act 1's own rating already contributes an award. So the
+  // first walk verdict took `awards.length` to 2, `showArchive` flipped, and
+  // this component swapped FirstOpen out for ReturningGuest — unmounting the
+  // walk and destroying its in-flight `result` state. Ratings in two different
+  // years tripped the `yearLeaders` arm the same way, before the walk even
+  // started.
+  //
+  // It wasn't a hiccup: `showArchive` derives from the persisted guest store,
+  // so once flipped it stays flipped, and the walk became permanently
+  // unreachable after one verdict. Both screens render `WALK_DONE.title`, so
+  // it read as "the walk finished after 1 year" rather than as a broken swap.
+  //
+  // Gating on the walk instead of on accumulated breadth means ReturningGuest
+  // is what a guest comes back to *after* the walk is done — 8 decided years or
+  // two consecutive skips — which is the Act 1→4 ordering in
+  // docs/design/first-rating-payoff.md. A guest who arrives mid-walk resumes it
+  // rather than being retired from it.
+  //
+  // Its own `useYearWalk` instance rather than a callback out of FirstOpen: the
+  // hook is a pure derivation over the guest store plus the sessionStorage skip
+  // list, both shared, so this needs no plumbing and cannot loop. The one value
+  // that is local to each instance is `consecutiveSkips`, which only ever ends
+  // the walk *early* — this instance keeps offering the next unskipped year
+  // while FirstOpen shows Act 3 off its own instance, so the summary still wins
+  // the screen. That's the behaviour we want, not a divergence to fix.
+  const walkGate = useYearWalk();
+  const walkHasYearLeft = walkGate.currentYear !== null;
+
   return (
     // `flex flex-1 flex-col` continues the height chain from page.tsx's
     // .home-shell down to FirstOpen, which is what actually centers the
@@ -135,7 +168,7 @@ export default function NativeGuestHome({
     // that do scroll (walk, summary, returning guest). Worth revisiting only
     // if pristine gets a bottom element of its own.
     <div className="flex w-full min-w-0 flex-1 flex-col px-4 pt-6 pb-24">
-      {showArchive ? (
+      {showArchive && !walkHasYearLeft ? (
         <ReturningGuest
           onSelectMovie={onSelectMovie}
           ratedCount={ratedCount}
