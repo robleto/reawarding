@@ -1,6 +1,6 @@
 -- Social: friendships + activity events
 
--- Friendships
+-- Friendshipscan
 CREATE TABLE IF NOT EXISTS public.friendships (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   requester_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,

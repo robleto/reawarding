@@ -12,9 +12,6 @@ const nextConfig = {
     NEXT_PUBLIC_BUILD_ID: BUILD_ID,
   },
   generateBuildId: () => BUILD_ID,
-  experimental: {
-    instrumentationHook: true,
-  },
   async redirects() {
     return [
       {
