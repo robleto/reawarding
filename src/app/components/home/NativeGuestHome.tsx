@@ -115,7 +115,26 @@ export default function NativeGuestHome({
   showArchive,
 }: NativeGuestHomeProps) {
   return (
-    <div className="w-full min-w-0 px-4 pt-6 pb-24">
+    // `flex flex-1 flex-col` continues the height chain from page.tsx's
+    // .home-shell down to FirstOpen, which is what actually centers the
+    // pristine screen. Without it this div is a `display: block` island: the
+    // `flex-1` on FirstOpen's root has no flex context to grow into, so it
+    // collapsed to content height and `justify-center` centered the block
+    // inside itself — a no-op. Verified in the DOM, not assumed.
+    //
+    // Safe for both branches: FirstOpen and ReturningGuest are both
+    // `mx-auto max-w-md`, so `mx-auto` wins over flex's cross-axis stretch and
+    // they stay width-capped and centered, and only FirstOpen's pristine state
+    // ever asks to grow — ReturningGuest keeps `flex-grow: 0` and sits at the
+    // top exactly as before.
+    //
+    // The `pb-24` here is 4x the `pt-6` above it, so the centered block lands
+    // meaningfully above true center — measured at 390x844, ~208px of space
+    // above it and ~307px below. Left alone: it errs in the direction optical
+    // centering wants anyway, and the padding is real clearance for the states
+    // that do scroll (walk, summary, returning guest). Worth revisiting only
+    // if pristine gets a bottom element of its own.
+    <div className="flex w-full min-w-0 flex-1 flex-col px-4 pt-6 pb-24">
       {showArchive ? (
         <ReturningGuest
           onSelectMovie={onSelectMovie}
@@ -201,7 +220,30 @@ function FirstOpen({
   const isPristine = !filled && !askingYear && !showSummary;
 
   return (
-    <div className="mx-auto max-w-md">
+    // Pristine centers in the frame; every other state stays top-anchored.
+    //
+    // The pristine screen is six short elements — kicker, headline, search,
+    // assurance, rule, "How Reawarding works" — and top-anchoring them in a
+    // phone-height frame left roughly the bottom half empty. That read as an
+    // unfinished screen rather than as restraint, which is the actual reason
+    // it "looked basic": a composition problem, not a missing-content one.
+    // Centering distributes the same emptiness above and below, where it
+    // frames the block instead of trailing off it, and it costs nothing —
+    // no new element, and no claim the screen can't keep (the reason the
+    // empty 2025 ledger had to go in a79d76b).
+    //
+    // It also moves the search box down into thumb reach. That matters more
+    // than it looks: the box is deliberately not autofocused (see the ACTION
+    // comment below), so reaching it is a real tap, and it was sitting near
+    // the top of the screen.
+    //
+    // `flex-1` over any `min-h-[100dvh-...]`: the parent chain (AppShell main
+    // → page.tsx's .home-shell) is flex-column all the way up, so this
+    // inherits the true leftover height. Content taller than that space — big
+    // accessibility text, say — still can't be clipped, because a flex item's
+    // `min-height` is `auto`, so it grows the document and scrolls normally
+    // instead of centering past the top edge.
+    <div className={`mx-auto max-w-md ${isPristine ? "flex flex-1 flex-col justify-center" : ""}`}>
       {isPristine ? (
         // Two-tier header, matching web's own pattern (HeroReveal.tsx: a
         // small "Ever disagree..." kicker, then a bold headline) rather than

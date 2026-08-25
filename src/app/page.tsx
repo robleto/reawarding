@@ -836,7 +836,21 @@ export default function HomePage() {
   const canonicalYearCount = formattedYears.filter((y) => y.nominees.length >= 5).length;
 
   return (
-    <div className="home-shell">
+    // The native guest path gets a real height chain rather than a `dvh`
+    // calculation: `main` in AppShell is already `flex-1 flex flex-col`, so
+    // `flex-1` here inherits the leftover viewport height with no magic number
+    // for HeaderNav's height or main's padding (AppShell's own comment records
+    // that guess drifting out of sync three separate times). NativeGuestHome
+    // then decides internally whether to center in that space (pristine) or
+    // sit at the top (every other state) — page.tsx can't know which, since
+    // the flag depends on useLedgerWalk inside the component.
+    //
+    // Applied only on this path: every other home state is content-tall
+    // already and gains nothing from filling, so this can't change their
+    // layout. Side benefit — .home-shell::before is an inset-0 grain overlay,
+    // which now covers the full frame instead of stopping at the short
+    // pristine block's bottom edge.
+    <div className={`home-shell ${showGuestPanels && isNative ? "flex flex-1 flex-col" : ""}`}>
       {showGuestPanels && isNative ? (
         /* ══════════════════════════════════════════════════════════
            NATIVE GUEST — one activation screen, no funnel.
