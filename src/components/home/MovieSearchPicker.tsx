@@ -212,7 +212,8 @@ export default function MovieSearchPicker({
             <li
               key={m.id}
               className="px-3 py-2.5 cursor-pointer hover:bg-gray-800 border-b last:border-b-0 border-gray-800"
-              onPointerDown={() => handleSelect(m)}
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={() => handleSelect(m)}
             >
               <div className="flex items-center gap-3">
                 {m.thumb_url || m.poster_url ? (
@@ -245,8 +246,8 @@ export default function MovieSearchPicker({
                   <li
                     key={`tmdb-${hit.tmdbId}`}
                     className="px-3 py-2.5 cursor-pointer hover:bg-gray-800 border-b last:border-b-0 border-gray-800"
-                    onPointerDown={(e) => {
-                      e.preventDefault();
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={() => {
                       if (!isImporting) void handleSelectRemote(hit);
                     }}
                   >

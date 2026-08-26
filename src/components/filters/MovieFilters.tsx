@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { SORT_OPTIONS, GROUP_OPTIONS } from "@/utils/sharedMovieUtils";
 import type { SortKey, GroupKey, SortOrder } from "@/utils/sharedMovieUtils";
 import { supabase } from "@/lib/supabaseBrowser";
+import { searchMoviesRanked } from "@/lib/movieSearch";
 import type { Movie } from "@/types/types";
 import { Search, Filter, SortAsc, SortDesc, Grid3X3, List, X, ChevronDown, ArrowUpDown } from "lucide-react";
 
@@ -109,23 +110,28 @@ export default function MovieFilters({
     }
     
     if (localSearchMode) {
-      // Local search: filter within availableMovies
-      const filtered = availableMovies.filter(movie =>
-        movie.title.toLowerCase().includes(value.toLowerCase())
-      ).slice(0, 7);
-      setSuggestions(filtered);
+      // Local search: filter within availableMovies, ranked exact > prefix >
+      // substring so a franchise original isn't crowded out by its sequels
+      // (all of which match the same substring with no natural ordering).
+      const lower = value.toLowerCase();
+      const exact = availableMovies.filter(m => m.title.toLowerCase() === lower);
+      const prefix = availableMovies.filter(m =>
+        !exact.includes(m) && m.title.toLowerCase().startsWith(lower)
+      );
+      const substring = availableMovies.filter(m =>
+        !exact.includes(m) && !prefix.includes(m) && m.title.toLowerCase().includes(lower)
+      );
+      setSuggestions([...exact, ...prefix, ...substring].slice(0, 7));
       setFilterType("search");
       setFilterValue(value);
     } else {
       // Global search: query database
       searchTimeout.current = setTimeout(async () => {
-        const { data, error } = await supabase
-          .from("movies")
-          .select("id, title, release_year, poster_url, thumb_url")
-          .ilike("title", `%${value}%`)
-          .limit(7);
-        if (!error && data) setSuggestions(data as Movie[]);
-        else setSuggestions([]);
+        const results = await searchMoviesRanked<Movie>(supabase, value, {
+          select: "id, title, release_year, poster_url, thumb_url",
+          limit: 7,
+        });
+        setSuggestions(results);
       }, 200);
     }
   };
@@ -224,7 +230,8 @@ export default function MovieFilters({
                 <li
                   key={movie.id}
                   className="px-4 py-3 cursor-pointer hover:bg-gray-800 border-b border-gray-700 last:border-b-0"
-                  onMouseDown={() => handleSuggestionClick(movie)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleSuggestionClick(movie)}
                 >
                   <div className="flex items-center gap-3">
                     {movie.poster_url && (

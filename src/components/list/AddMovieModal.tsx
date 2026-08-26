@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import type { Database } from "@/types/supabase";
 import type { Movie } from "@/types/types";
+import { searchMoviesRanked } from "@/lib/movieSearch";
 import { Search, X, Film } from "lucide-react";
 
 // Fallback component for missing images
@@ -65,31 +66,23 @@ export default function AddMovieModal({
 
     const searchMovies = async () => {
       setLoading(true);
-      
-      let query = supabase
-        .from("movies")
-        .select("*")
-        .ilike("title", `%${searchTerm}%`)
-        .limit(10);
 
-      // Only add the exclusion filter if there are existing movies
-      if (existingMovieIds.length > 0) {
-        query = query.not("id", "in", `(${existingMovieIds.join(",")})`);
-      }
+      const results = await searchMoviesRanked<Movie>(supabase, searchTerm, {
+        select: "*",
+        limit: 10,
+        // Only add the exclusion filter if there are existing movies
+        filter: (q) =>
+          existingMovieIds.length > 0
+            ? q.not("id", "in", `(${existingMovieIds.join(",")})`)
+            : q,
+      });
 
-      const { data, error } = await query;
-
-      if (error) {
-        console.error("Error searching movies:", error.message);
-        setSuggestions([]);
-      } else {
-        const moviesWithEmptyRankings = (data || []).map(movie => ({
-          ...movie,
-          rankings: [],
-          thumb_url: movie.thumb_url || "",
-        })) as unknown as Movie[];
-        setSuggestions(moviesWithEmptyRankings);
-      }
+      const moviesWithEmptyRankings = results.map(movie => ({
+        ...movie,
+        rankings: [],
+        thumb_url: movie.thumb_url || "",
+      })) as unknown as Movie[];
+      setSuggestions(moviesWithEmptyRankings);
       setLoading(false);
     };
 
@@ -232,7 +225,8 @@ export default function AddMovieModal({
                           ? "bg-blue-900/20" 
                           : "hover:bg-gray-700"
                       }`}
-                      onMouseDown={() => handleSuggestionClick(movie)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleSuggestionClick(movie)}
                     >
                       {/* Movie Thumbnail */}
                       <div className="flex-shrink-0">
