@@ -144,6 +144,23 @@ export default function NativeGuestHome({
   // the walk *early* — this instance keeps offering the next unskipped year
   // while FirstOpen shows Act 3 off its own instance, so the summary still wins
   // the screen. That's the behaviour we want, not a divergence to fix.
+  // KNOWN GAP, deliberately not papered over here: this makes FirstOpen's own
+  // Act 3 branch (`showSummary` → its WalkSummary) unreachable. Completing the
+  // walk is exactly what nulls `currentYear`, so the eighth verdict flips this
+  // gate in the same render that would have shown the summary, and
+  // ReturningGuest takes the screen instead.
+  //
+  // It went unnoticed because ReturningGuest renders the same WalkSummary, so
+  // the tally, the pivot line and the save ask all still appear — only the
+  // surrounding chrome differs. Both "1 year on the record" and "8 years on the
+  // record" as seen on device were this screen, not Act 3.
+  //
+  // Distinguishing them needs a "summary already acknowledged" flag scoped to
+  // the session (sessionStorage, like the walk's own skip list), so Act 3 shows
+  // once when the walk finishes and ReturningGuest takes over on the next cold
+  // open. Not worth the state until the two screens actually diverge — but
+  // FirstOpen's summary branch is dead code until then, so don't tune it and
+  // expect to see the result.
   const walkGate = useYearWalk();
   const walkHasYearLeft = walkGate.currentYear !== null;
 
@@ -353,52 +370,6 @@ function FirstOpen({
         </>
       )}
 
-      {/* ACTION — deliberately not autofocused. Popping the keyboard on cold
-          app open covers the proof card below and reads as aggressive on iOS. */}
-      {/* Mid-walk the search narrows to the year on screen and records a
-          verdict for it, rather than staying global and running the general
-          rate flow. Two things were wrong before:
-
-          - The question and the record disagreed. Searching a 1970 film while
-            the walk asked about 1994 created an award for 1970.
-          - It could eject you. `showArchive` keys off rated years, so rating a
-            second film from another year replaced the entire walk surface
-            mid-flow. A verdict is an award, not a rating (Fork B), so a scoped
-            pick can't trip that.
-
-          Kept rather than hidden: the four tiles won't always hold the film
-          someone has in mind, and that's the whole point of the year. */}
-      <div className="mt-5">
-        <MovieSearchPicker
-          key={askingYear ?? "global"}
-          onSelect={(movie) =>
-            askingYear
-              ? decide(
-                  {
-                    id: String(movie.id),
-                    title: movie.title,
-                    posterUrl: movie.poster_url ?? "",
-                  },
-                  walkAcademy?.movieId != null &&
-                    String(walkAcademy.movieId) === String(movie.id)
-                )
-              : onSelectMovie(movie)
-          }
-          placeholder={
-            askingYear
-              ? WALK.searchPlaceholder(askingYear)
-              : NATIVE_FIRST_OPEN.searchPlaceholder
-          }
-          filterByYear={askingYear ?? undefined}
-          variant="hero"
-        />
-        {!askingYear && (
-          <p className="mt-2 text-center text-xs text-gray-500">
-            {NATIVE_FIRST_OPEN.assurance}
-          </p>
-        )}
-      </div>
-
       {/* PROOF — the open ledger, now shared with the web hero (see
           AcademyLedger for the two rules it follows and what it replaced).
           Absent entirely while isPristine — see that flag's comment above
@@ -452,18 +423,96 @@ function FirstOpen({
           />
         )}
 
+        {/* Styled as the primary action, because it is one. It used to render
+            at `text-xs` on `bg-white/[0.03]` — quieter than every other
+            interactive thing on the screen — directly below a hero-sized
+            search box. So the emphasis argued for depth (rate another film)
+            while the copy and the spec both argue for breadth. Removing
+            `filledMechanic` fixed the competing sentence; this fixes the
+            competing weight.
+
+            Not gold: gold is the accent and the signup CTA (GUEST_SAVE), and
+            spending it here would make advancing the walk look like the same
+            magnitude of commitment as creating an account. White-on-glass at
+            full weight outranks the compact search below it without doing
+            that. */}
         {filled && walk.currentYear !== null && (
           <button
             type="button"
             onClick={advance}
-            className="mt-4 flex w-full items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-left text-xs font-medium text-gray-200 transition-colors hover:bg-white/[0.07] active:scale-[0.99]"
+            className="mt-5 flex w-full items-center justify-between gap-2 rounded-xl border border-white/20 bg-white/[0.07] px-4 py-3.5 text-left text-sm font-semibold text-white transition-colors hover:bg-white/[0.12] active:scale-[0.99]"
           >
             {WALK.next(walk.currentYear)}
-            <ArrowRight className="h-3.5 w-3.5 flex-none text-[#D9694E]" aria-hidden="true" />
+            <ArrowRight className="h-4 w-4 flex-none text-[#D9694E]" aria-hidden="true" />
           </button>
         )}
       </div>
       )}
+
+      {/* ACTION — below the proof, not above it.
+          Deliberately not autofocused: popping the keyboard on cold app open
+          covers the proof card and reads as aggressive on iOS.
+
+          It used to sit between the headline and the ledger, hero-styled, which
+          put an input in the middle of claim → proof and made the loudest
+          element on the screen the one action we'd decided was secondary.
+          Reading order is now claim → proof → next step → "or search a film",
+          which is also the order of decreasing commitment.
+
+          `hero` only while pristine, where it genuinely is the page's one CTA.
+          Everywhere else `compact` — MovieSearchPicker's own doc describes that
+          variant as "a secondary tool sitting next to other controls, not the
+          page's one CTA", which is exactly the job here.
+
+          Mid-walk the search narrows to the year on screen and records a
+          verdict for it, rather than staying global and running the general
+          rate flow. Two things were wrong before:
+
+          - The question and the record disagreed. Searching a 1970 film while
+            the walk asked about 1994 created an award for 1970.
+          - It could eject you. `showArchive` keys off rated years, so rating a
+            second film from another year replaced the entire walk surface
+            mid-flow. A verdict is an award, not a rating (Fork B), so a scoped
+            pick can't trip that.
+
+          Kept rather than hidden: the four tiles won't always hold the film
+          someone has in mind, and that's the whole point of the year. Below the
+          strip it reads as the fallback it is. */}
+      <div className={isPristine ? "mt-5" : "mt-6"}>
+        <MovieSearchPicker
+          key={askingYear ?? "global"}
+          onSelect={(movie) =>
+            askingYear
+              ? decide(
+                  {
+                    id: String(movie.id),
+                    title: movie.title,
+                    posterUrl: movie.poster_url ?? "",
+                  },
+                  walkAcademy?.movieId != null &&
+                    String(walkAcademy.movieId) === String(movie.id)
+                )
+              : onSelectMovie(movie)
+          }
+          placeholder={
+            askingYear
+              ? WALK.searchPlaceholder(askingYear)
+              : NATIVE_FIRST_OPEN.searchPlaceholder
+          }
+          filterByYear={askingYear ?? undefined}
+          variant={isPristine ? "hero" : "compact"}
+        />
+        {/* Pristine only. It answers "what will this cost me?" for someone who
+            hasn't acted yet; once they have, nothing was asked of them, so the
+            line reassures against a fear they no longer hold — and it anchored
+            the search box as primary. The save story has its own earned moment
+            in Act 3 (GUEST_SAVE.bar), against real work. */}
+        {isPristine && (
+          <p className="mt-2 text-center text-xs text-gray-500">
+            {NATIVE_FIRST_OPEN.assurance}
+          </p>
+        )}
+      </div>
 
       {/* ESCAPE — how-it-works stops being four mandatory screens and becomes
           one optional tap. Inline disclosure rather than a route, so the user
@@ -546,14 +595,6 @@ function ReturningGuest({
           : NATIVE_RETURNING.nextGeneric}
       </p>
 
-      <div className="mt-5">
-        <MovieSearchPicker
-          onSelect={onSelectMovie}
-          placeholder={NATIVE_RETURNING.searchPlaceholder}
-          variant="hero"
-        />
-      </div>
-
       {/* THEIR WORK — the same provisional strip the walk ends on, not the gilt
           AwardCard this screen used to lead with.
 
@@ -588,6 +629,24 @@ function ReturningGuest({
           </Link>
         </div>
       )}
+
+      {/* ACTION — last, and compact, for the same reason as FirstOpen's.
+          This screen's own content is the point: the record above, then the
+          save ask inside WalkSummary. A hero search sat between the tally and
+          the record, which put an input in the middle of claim → proof and gave
+          the loudest treatment on the page to a tool rather than to the ask.
+
+          This is also the screen a guest actually lands on when the walk ends —
+          see the note on `walkGate` above about FirstOpen's own Act 3 branch
+          being unreachable — so it has to carry the reorder, not just
+          FirstOpen. */}
+      <div className="mt-6">
+        <MovieSearchPicker
+          onSelect={onSelectMovie}
+          placeholder={NATIVE_RETURNING.searchPlaceholder}
+          variant="compact"
+        />
+      </div>
     </div>
   );
 }
