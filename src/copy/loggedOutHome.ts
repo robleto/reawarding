@@ -185,6 +185,30 @@ export const WALK_DONE = {
   },
   reawardedTag: "Reawarded",
   agreedTag: "Agreed",
+  /**
+   * The pivot from receipt to beginning, sat directly above the signup ask.
+   *
+   * Act 3 read as conclusive — "save your finished work" rather than "you've
+   * just started". Three things caused it: a summed tally, a receipt list of
+   * verdicts, and no mention anywhere of what comes next. The forward-looking
+   * line existed only on the *filled* screen (NATIVE_LEDGER.footReawarded,
+   * "Every year back to 1927 is still open"), which is backwards — the screen
+   * asking for an account is the one that has to show there's more coming.
+   *
+   * Deliberately not "8 down, 90 to go". Law 8 measures progress in meaning
+   * rather than completeness, which is the same reason the tally counts
+   * verdicts instead of coverage; a remaining-years counter would turn the
+   * walk into a chore with a denominator. "A century to disagree with" names
+   * the field as open without quantifying it — the register footReawarded
+   * already established.
+   *
+   * Every claim here is real: a year fills out into a ballot at 5+ nominees
+   * with a winner, and /lists and Collections both ship. No "and more" — a
+   * vague third promise is weaker than two concrete ones, and this screen has
+   * already been burned once by implying something it couldn't keep.
+   */
+  onward:
+    "A start, not a total — there's a century of Best Picture to disagree with. Fill these years out into full ballots, then into lists and collections of your own.",
   /** The onward step. Act 4 turns a preference into a ballot. */
   keepGoing: "Rate more films to turn these into ballots",
 } as const;

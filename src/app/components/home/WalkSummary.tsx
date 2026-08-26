@@ -75,8 +75,19 @@ export default function WalkSummary({
         ))}
       </ul>
 
+      {/* THE PIVOT — reframes the stack above as a beginning before the ask
+          below reads as "archive this and be done". Sits between them on
+          purpose: above the list it would be scrolled past (eight verdicts
+          push it well off a 390pt frame), and below the ask it would arrive
+          after the decision it exists to motivate. Renders on both surfaces,
+          unlike the title/breakdown — web has no H1 to borrow, but it has the
+          same conclusive problem. */}
+      <p className="mt-4 text-[13px] leading-relaxed text-gray-400">
+        {WALK_DONE.onward}
+      </p>
+
       {/* Portable, never permanent — the claim has to stay true pre-account. */}
-      <div className="mt-5 flex items-center gap-3 rounded-xl border border-gold-500/30 bg-gold-500/[0.06] px-4 py-3">
+      <div className="mt-4 flex items-center gap-3 rounded-xl border border-gold-500/30 bg-gold-500/[0.06] px-4 py-3">
         <p className="min-w-0 flex-1 text-xs leading-relaxed text-gray-300">
           {GUEST_SAVE.bar}
         </p>
