@@ -44,17 +44,19 @@ test.describe('Web guest funnel — 3 panels', () => {
 
 // docs/design/logged-out-native-home.md — guest tab bar.
 //
-// Two rules, and the first one is the easy one to regress: the logged-out
-// first-open screen is a single activation surface, so a guest who hasn't
-// rated anything gets NO bottom nav. It appears only once they've rated
-// something, which is the same moment the home screen swaps to its
-// returning-guest state.
+// Guests get no bottom nav, full stop — reverted 2026-08-24 after briefly
+// showing it once a guest had rated something. That broke the year-walk
+// (docs/design/first-rating-payoff.md): the fixed bar sits over the bottom
+// of the ledger region and hid the "Next: {year}" button the walk depends on
+// to advance. Explicit product call: not for a not-logged-in user, at least
+// not yet.
 //
-// Historical note for anyone reading the git log: this was originally written
-// up as fixing "two dead tabs" (guest Awards/Rankings bouncing to /login).
-// That bug could not actually occur — AppShell gated the tab bar on
-// isAuthenticated, so guests had no tabs at all. The real behaviour under
-// test is guests *gaining* navigation, and only after first open.
+// Historical note for anyone reading the git log: the tab-bar-for-guests
+// idea was originally written up as fixing "two dead tabs" (guest
+// Awards/Rankings bouncing to /login). That bug could not actually occur —
+// AppShell gated the tab bar on isAuthenticated, so guests had no tabs at
+// all. Both the "fix" and the bug it was fixing were never real; this test
+// now just guards the original, correct behaviour staying in place.
 test.describe('Guest mobile tab bar', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
@@ -67,7 +69,7 @@ test.describe('Guest mobile tab bar', () => {
     await expect(page.getByRole('navigation', { name: 'Primary' })).toHaveCount(0);
   });
 
-  test('appears once rated, showing Home/Films/Lists, never bouncing to /login', async ({ page }) => {
+  test('stays absent even after the guest has rated something', async ({ page }) => {
     await page.addInitScript(
       ([key, movieId]) => {
         window.localStorage.setItem(
@@ -88,15 +90,6 @@ test.describe('Guest mobile tab bar', () => {
     );
 
     await page.goto('/');
-    const nav = page.getByRole('navigation', { name: 'Primary' });
-    await expect(nav).toBeVisible();
-
-    const labels = await nav.locator('a span').allTextContents();
-    expect(labels).toEqual(['Home', 'Films', 'Lists']);
-
-    for (const label of ['Films', 'Lists', 'Home']) {
-      await nav.getByRole('link', { name: new RegExp(label) }).click();
-      await expect(page).not.toHaveURL(/\/login$/);
-    }
+    await expect(page.getByRole('navigation', { name: 'Primary' })).toHaveCount(0);
   });
 });

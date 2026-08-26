@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { supabase } from "@/lib/supabaseBrowser";
 import { movieSlug } from "@/utils/slug";
+import { searchMoviesRanked } from "@/lib/movieSearch";
 
 type NavMovieSuggestion = {
   id: string;
@@ -51,12 +52,11 @@ export default function NavSearch({ className = "", variant = "inline", autoFocu
       setSuggestions([]);
       return;
     }
-    const { data, error } = await supabase
-      .from("movies")
-      .select("id, title, release_year, thumb_url, poster_url")
-      .ilike("title", `%${value}%`)
-      .limit(7);
-    if (!error) setSuggestions((data || []) as NavMovieSuggestion[]);
+    const results = await searchMoviesRanked<NavMovieSuggestion>(supabase, value, {
+      select: "id, title, release_year, thumb_url, poster_url",
+      limit: 7,
+    });
+    setSuggestions(results);
   };
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,7 +141,8 @@ export default function NavSearch({ className = "", variant = "inline", autoFocu
             <li
               key={m.id}
               className="px-3 py-2 cursor-pointer hover:bg-gray-800 border-b last:border-b-0 border-gray-800"
-              onMouseDown={() => onSelectMovie(m)}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onSelectMovie(m)}
             >
               <div className="flex items-center gap-3">
                 {m.thumb_url || m.poster_url ? (

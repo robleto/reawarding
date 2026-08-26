@@ -50,6 +50,26 @@ interface Props {
   onSeeStanding: () => void;
   onPickAnother: () => void;
   onClose: () => void;
+  /**
+   * Skip the "forming" step's eligibility/next-actions screen and close
+   * straight back to the caller once the rating lands.
+   *
+   * For a guest's very first pick on the home screen, that screen was a dead
+   * end: its CTAs (rate another / try another year / see standing / sign up)
+   * navigate to pages that predate the guest year-walk
+   * (docs/design/first-rating-payoff.md) and never once mention the ledger
+   * the visitor just filled — a guest who closed this modal by accident was
+   * the only way anyone actually reached the new flow. Watch and Rate stay
+   * exactly as they are; only the screen after Rate is skipped.
+   *
+   * Scoped narrowly: this modal can only ever open for a guest's first pick
+   * (isNewUser flips false forever after one rating, so no later guest pick
+   * reaches this component again), and the /onboarding/[year] depth page uses
+   * its own instance where "forming" still does real work. Default false so
+   * every other caller — including logged-in new users, who have no ledger
+   * of their own to fall back to — is unaffected.
+   */
+  autoCloseAfterRate?: boolean;
 }
 
 export default function OnboardingPickFlow({
@@ -64,6 +84,7 @@ export default function OnboardingPickFlow({
   onSeeStanding,
   onPickAnother,
   onClose,
+  autoCloseAfterRate = false,
 }: Props) {
   const [step, setStep] = useState<Step>("watch");
   const [watchConfirmed, setWatchConfirmed] = useState(false);
@@ -133,12 +154,18 @@ export default function OnboardingPickFlow({
       if (!movie) return;
       setSelectedRating(rating);
       onRate(movie.id, rating);
+      // Same dwell either way, so the rating visibly registers before
+      // anything changes underneath it — only the destination differs.
+      if (autoCloseAfterRate) {
+        window.setTimeout(onClose, 520);
+        return;
+      }
       // Advance to the forming step instead of closing — the user needs to see
       // eligibility, ballot progress, and a path forward (rate more, try a new
       // year, or save their work by signing up).
       window.setTimeout(() => setStep("forming"), 520);
     },
-    [movie, onRate]
+    [movie, onRate, autoCloseAfterRate, onClose]
   );
 
   if (!isOpen || !movie) return null;

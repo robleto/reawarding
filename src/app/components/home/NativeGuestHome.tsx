@@ -24,16 +24,24 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
-import AwardCard from "@/components/home/AwardCard";
+import AcademyLedger, {
+  type AcademyLedgerPick,
+} from "@/components/home/AcademyLedger";
 import { useMotionReveal } from "@/hooks/useMotionReveal";
 import {
   GUEST_SAVE,
   NATIVE_FIRST_OPEN,
-  NATIVE_LEDGER,
   NATIVE_RETURNING,
+  WALK,
+  WALK_DONE,
 } from "@/copy/loggedOutHome";
+import YearWalkStrip from "@/app/components/home/YearWalkStrip";
+import WalkSummary from "@/app/components/home/WalkSummary";
+import { useLedgerWalk } from "@/hooks/useLedgerWalk";
+import { useYearWalk } from "@/hooks/useYearWalk";
+import { useGuestPicksSummary } from "@/hooks/useGuestPicksSummary";
 import type { Movie } from "@/types/types";
 
 /** The four how-it-works steps, mirrored from HowItWorksSection. */
@@ -44,14 +52,12 @@ const STEPS = [
   { number: 4, title: "Change anything you disagree with.", body: "Your Academy. Your final say." },
 ] as const;
 
-/** The user's closest-to-set year, for the returning-guest "next" line. */
-export interface NativeNextYear {
-  year: number;
-  /** Films still needed to reach a set ballot (5 nominees). */
-  remaining: number;
-}
-
-/** Their top forming ballot, rendered with the canonical AwardCard. */
+/**
+ * Their top forming ballot. Not rendered on this screen — the gilt AwardCard
+ * treatment it fed was retired below (see "Fix the returning-guest screen" in
+ * docs/design/first-rating-payoff.md) — but page.tsx still derives
+ * NativeLedgerState from it, so the type stays exported.
+ */
 export interface NativeTopBallot {
   year: number;
   winnerTitle: string;
@@ -67,41 +73,132 @@ export interface NativeAcademyReference {
   posterUrl: string;
 }
 
+/** What the ledger should render right now. */
+export interface NativeLedgerState {
+  academy: NativeAcademyReference;
+  /** Null until the visitor has a pick for `academy.year`. */
+  yours: AcademyLedgerPick | null;
+  agreed: boolean;
+}
+
 interface NativeGuestHomeProps {
   reducedMotion: boolean;
   onSelectMovie: (movie: Movie) => void;
-  /** Number of films the guest has rated. 0 → first-open screen. */
+  /** Number of films the guest has rated. */
   ratedCount: number;
-  nextYear: NativeNextYear | null;
-  topBallot: NativeTopBallot | null;
-  academy: NativeAcademyReference;
+  ledger: NativeLedgerState;
+  /** Client movie set — lets the walk resolve posters without refetching. */
+  movies: Movie[];
+  /** Records a walk verdict as a guest award (`seed_pick`), not a rating. */
+  onPickForYear: (pick: { id: string; title: string; year: number }) => void;
+  /** Act 4 door — the year-scoped depth page that turns picks into ballots. */
+  onDeepenYear: (year: number) => void;
+  /**
+   * Whether the guest has enough breadth to warrant the archive view.
+   *
+   * NOT `ratedCount > 0`. That was the bug: one rating swapped this whole
+   * screen out for a different layout, so the ledger the visitor had just
+   * filled vanished and they landed on what reads as an awards page. The
+   * screen now evolves in place and only hands off once there's genuinely
+   * something to browse. See docs/design/first-rating-payoff.md.
+   */
+  showArchive: boolean;
 }
 
 export default function NativeGuestHome({
   reducedMotion,
   onSelectMovie,
   ratedCount,
-  nextYear,
-  topBallot,
-  academy,
+  ledger,
+  movies,
+  onPickForYear,
+  onDeepenYear,
+  showArchive,
 }: NativeGuestHomeProps) {
-  const isReturning = ratedCount > 0;
+  // The walk owns this screen until it's actually out of years.
+  //
+  // `showArchive` alone used to decide this, and it flips mid-flow: its arms
+  // are `yearLeaders.length >= 2 || setBallotCount >= 1 || awards.length >= 2`
+  // (page.tsx), and Act 1's own rating already contributes an award. So the
+  // first walk verdict took `awards.length` to 2, `showArchive` flipped, and
+  // this component swapped FirstOpen out for ReturningGuest — unmounting the
+  // walk and destroying its in-flight `result` state. Ratings in two different
+  // years tripped the `yearLeaders` arm the same way, before the walk even
+  // started.
+  //
+  // It wasn't a hiccup: `showArchive` derives from the persisted guest store,
+  // so once flipped it stays flipped, and the walk became permanently
+  // unreachable after one verdict. Both screens render `WALK_DONE.title`, so
+  // it read as "the walk finished after 1 year" rather than as a broken swap.
+  //
+  // Gating on the walk instead of on accumulated breadth means ReturningGuest
+  // is what a guest comes back to *after* the walk is done — 8 decided years or
+  // two consecutive skips — which is the Act 1→4 ordering in
+  // docs/design/first-rating-payoff.md. A guest who arrives mid-walk resumes it
+  // rather than being retired from it.
+  //
+  // Its own `useYearWalk` instance rather than a callback out of FirstOpen: the
+  // hook is a pure derivation over the guest store plus the sessionStorage skip
+  // list, both shared, so this needs no plumbing and cannot loop. The one value
+  // that is local to each instance is `consecutiveSkips`, which only ever ends
+  // the walk *early* — this instance keeps offering the next unskipped year
+  // while FirstOpen shows Act 3 off its own instance, so the summary still wins
+  // the screen. That's the behaviour we want, not a divergence to fix.
+  // KNOWN GAP, deliberately not papered over here: this makes FirstOpen's own
+  // Act 3 branch (`showSummary` → its WalkSummary) unreachable. Completing the
+  // walk is exactly what nulls `currentYear`, so the eighth verdict flips this
+  // gate in the same render that would have shown the summary, and
+  // ReturningGuest takes the screen instead.
+  //
+  // It went unnoticed because ReturningGuest renders the same WalkSummary, so
+  // the tally, the pivot line and the save ask all still appear — only the
+  // surrounding chrome differs. Both "1 year on the record" and "8 years on the
+  // record" as seen on device were this screen, not Act 3.
+  //
+  // Distinguishing them needs a "summary already acknowledged" flag scoped to
+  // the session (sessionStorage, like the walk's own skip list), so Act 3 shows
+  // once when the walk finishes and ReturningGuest takes over on the next cold
+  // open. Not worth the state until the two screens actually diverge — but
+  // FirstOpen's summary branch is dead code until then, so don't tune it and
+  // expect to see the result.
+  const walkGate = useYearWalk();
+  const walkHasYearLeft = walkGate.currentYear !== null;
 
   return (
-    <div className="w-full min-w-0 px-4 pt-6 pb-24">
-      {isReturning ? (
+    // `flex flex-1 flex-col` continues the height chain from page.tsx's
+    // .home-shell down to FirstOpen, which is what actually centers the
+    // pristine screen. Without it this div is a `display: block` island: the
+    // `flex-1` on FirstOpen's root has no flex context to grow into, so it
+    // collapsed to content height and `justify-center` centered the block
+    // inside itself — a no-op. Verified in the DOM, not assumed.
+    //
+    // Safe for both branches: FirstOpen and ReturningGuest are both
+    // `mx-auto max-w-md`, so `mx-auto` wins over flex's cross-axis stretch and
+    // they stay width-capped and centered, and only FirstOpen's pristine state
+    // ever asks to grow — ReturningGuest keeps `flex-grow: 0` and sits at the
+    // top exactly as before.
+    //
+    // The `pb-24` here is 4x the `pt-6` above it, so the centered block lands
+    // meaningfully above true center — measured at 390x844, ~208px of space
+    // above it and ~307px below. Left alone: it errs in the direction optical
+    // centering wants anyway, and the padding is real clearance for the states
+    // that do scroll (walk, summary, returning guest). Worth revisiting only
+    // if pristine gets a bottom element of its own.
+    <div className="flex w-full min-w-0 flex-1 flex-col px-4 pt-6 pb-24">
+      {showArchive && !walkHasYearLeft ? (
         <ReturningGuest
-          reducedMotion={reducedMotion}
           onSelectMovie={onSelectMovie}
           ratedCount={ratedCount}
-          nextYear={nextYear}
-          topBallot={topBallot}
+          onDeepenYear={onDeepenYear}
         />
       ) : (
         <FirstOpen
           reducedMotion={reducedMotion}
           onSelectMovie={onSelectMovie}
-          academy={academy}
+          ledger={ledger}
+          movies={movies}
+          onPickForYear={onPickForYear}
+          onDeepenYear={onDeepenYear}
         />
       )}
     </div>
@@ -109,126 +206,312 @@ export default function NativeGuestHome({
 }
 
 /* ────────────────────────────────────────────────────────────────────────
-   First open — no ratings yet
+   First open — before and after the first pick.
+   One screen that evolves, not two that swap (Law 3: ballots form, never
+   appear — a layout swap hides the formation).
    ──────────────────────────────────────────────────────────────────── */
 
 function FirstOpen({
   reducedMotion,
   onSelectMovie,
-  academy,
+  ledger,
+  movies,
+  onPickForYear,
+  onDeepenYear,
 }: {
   reducedMotion: boolean;
   onSelectMovie: (movie: Movie) => void;
-  academy: NativeAcademyReference;
+  ledger: NativeLedgerState;
+  movies: Movie[];
+  onPickForYear: (pick: { id: string; title: string; year: number }) => void;
+  onDeepenYear: (year: number) => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const arrived = useMotionReveal(reducedMotion, cardRef);
   const [showSteps, setShowSteps] = useState(false);
 
+  // Acts 1–3 (fill / walk / summary) are shared with the web hero via this
+  // hook — see docs/design/first-rating-payoff.md, "Wire the walk into the
+  // web guest ledger too". Behavior is identical on both surfaces by
+  // construction; only the surrounding copy and layout differ per screen.
+  const {
+    askingYear,
+    walkAcademy,
+    candidates,
+    shownLedger,
+    filled,
+    showSummary,
+    summary,
+    decide,
+    advance,
+    walk,
+  } = useLedgerWalk(ledger, movies, onPickForYear, "native");
+
+  // True first open: nothing filled, no walk in progress, no summary. Cut
+  // down 2026-08-24 per direct feedback on the running app — the empty ledger
+  // (Academy pick + a dashed "Yours" slot for 2025) implied a tap-to-fill
+  // mechanic that doesn't actually exist for the current year: every other
+  // year in the walk offers a curated row of real contenders to tap
+  // (CONTESTED_YEARS' pinned rival + rating-ordered fill), but 2025 has no
+  // settled consensus yet to curate from — checked directly, imdb_rating
+  // ordering for 2025 returns anime and international titles with high
+  // ratings but no Best Picture relevance, unlike the aged catalogs that make
+  // the walk's chooser rows work. Building that mechanic for the current year
+  // isn't viable right now, so showing its empty slot was a promise the
+  // screen couldn't keep. It also implied "pick a 2025 film" when the product
+  // doesn't actually care what year they start with — any film re-keys the
+  // ledger correctly (proven live: a guest's first-ever pick was a 1994 film,
+  // and the ledger correctly filled 1994 against Forrest Gump, not 2025).
+  //
+  // The 7+ mechanic line is cut too, not just moved: RatingModal and the
+  // rating step of OnboardingPickFlow already state "rate 7 or higher to
+  // nominate" at the moment someone is actually about to do it. Explaining it
+  // here first was pure duplicate exposition.
+  const isPristine = !filled && !askingYear && !showSummary;
+
   return (
-    <div className="mx-auto max-w-md">
-      {/* PROMISE — the only positioning string on this screen, and the only
-          one that changes if the Wedge/Ritual test flips. Small on purpose:
-          they already downloaded, so this nods at why rather than arguing it. */}
-      <p className="font-unbounded text-[13px] leading-snug text-gold-400">
-        {NATIVE_FIRST_OPEN.promise}
-      </p>
+    // Pristine centers in the frame; every other state stays top-anchored.
+    //
+    // The pristine screen is six short elements — kicker, headline, search,
+    // assurance, rule, "How Reawarding works" — and top-anchoring them in a
+    // phone-height frame left roughly the bottom half empty. That read as an
+    // unfinished screen rather than as restraint, which is the actual reason
+    // it "looked basic": a composition problem, not a missing-content one.
+    // Centering distributes the same emptiness above and below, where it
+    // frames the block instead of trailing off it, and it costs nothing —
+    // no new element, and no claim the screen can't keep (the reason the
+    // empty 2025 ledger had to go in a79d76b).
+    //
+    // It also moves the search box down into thumb reach. That matters more
+    // than it looks: the box is deliberately not autofocused (see the ACTION
+    // comment below), so reaching it is a real tap, and it was sitting near
+    // the top of the screen.
+    //
+    // `flex-1` over any `min-h-[100dvh-...]`: the parent chain (AppShell main
+    // → page.tsx's .home-shell) is flex-column all the way up, so this
+    // inherits the true leftover height. Content taller than that space — big
+    // accessibility text, say — still can't be clipped, because a flex item's
+    // `min-height` is `auto`, so it grows the document and scrolls normally
+    // instead of centering past the top edge.
+    <div className={`mx-auto max-w-md ${isPristine ? "flex flex-1 flex-col justify-center" : ""}`}>
+      {isPristine ? (
+        // Two-tier header, matching web's own pattern (HeroReveal.tsx: a
+        // small "Ever disagree..." kicker, then a bold headline) rather than
+        // one line at one size. Earlier pass put `promise` alone at 22px in
+        // gold — a large block of saturated color has less contrast against
+        // a dark background than white does, and it broke a rule the rest of
+        // this screen already follows: gold is the accent/label colour
+        // (AcademyLedger's "ACADEMY" caption, the year), white is the
+        // primary content. The H1 below reuses the *exact* className every
+        // other state on this screen already uses, so pristine isn't a
+        // one-off style — it's the same system, different words.
+        <>
+          <p className="font-unbounded text-[13px] leading-snug text-gold-400">
+            {NATIVE_FIRST_OPEN.kicker}
+          </p>
+          <h1
+            data-testid="home-headline"
+            className="mt-2 font-unbounded text-[26px] font-semibold leading-[1.15] tracking-tight text-white"
+          >
+            {NATIVE_FIRST_OPEN.promise}
+          </h1>
+        </>
+      ) : (
+        <>
+          {/* INSTRUCTION — the largest thing on the screen. An imperative
+              before they act; a reflection of what they did after. */}
+          <h1
+            data-testid="home-headline"
+            className={`font-unbounded text-[26px] font-semibold leading-[1.15] tracking-tight text-white ${filled || askingYear ? "" : "mt-2"}`}
+          >
+            {showSummary
+              ? WALK_DONE.title(summary.picks.length)
+              : filled
+                ? NATIVE_FIRST_OPEN.filledInstruction(shownLedger.academy.year)
+                : askingYear
+                  ? WALK.askHeadline(askingYear)
+                  : NATIVE_FIRST_OPEN.instruction}
+          </h1>
 
-      {/* INSTRUCTION — the largest thing on the screen. An imperative, not a
-          claim. This is the inversion the whole spec turns on. */}
-      <h1
-        data-testid="home-headline"
-        className="mt-2 font-unbounded text-[26px] font-semibold leading-[1.15] tracking-tight text-white"
-      >
-        {NATIVE_FIRST_OPEN.instruction}
-      </h1>
+          {/* MECHANIC — Law 2's preference-vs-ballot line once filled, the
+              walk's breakdown once summarized. Never the 7+ rule — see
+              isPristine's comment for why that's gone from this screen
+              entirely.
 
-      {/* MECHANIC — states the 7+ rule the web hero leaves to be inferred. */}
-      <p className="mt-3 text-sm leading-relaxed text-gray-400">
-        {NATIVE_FIRST_OPEN.mechanic}
-      </p>
+              Suppressed mid-walk (`!askingYear`): the strip below the ledger
+              already asks the question, and repeating it here just crowds the
+              year.
 
-      {/* ACTION — deliberately not autofocused. Popping the keyboard on cold
-          app open covers the proof card below and reads as aggressive on iOS. */}
-      <div className="mt-5">
-        <MovieSearchPicker
-          onSelect={onSelectMovie}
-          placeholder={NATIVE_FIRST_OPEN.searchPlaceholder}
-          variant="hero"
-        />
-        <p className="mt-2 text-center text-xs text-gray-500">
-          {NATIVE_FIRST_OPEN.assurance}
-        </p>
-      </div>
+              Also suppressed whenever the walk still has a year to offer, which
+              is the same reasoning applied one step earlier. `filledMechanic`
+              is "add a few more and {year} becomes a ballot" — that's Act 4's
+              ask (depth in one year), and docs/design/first-rating-payoff.md
+              orders depth *after* Act 3's save moment, deliberately. Showing it
+              on the filled screen put it in direct competition with Act 2: the
+              headline asked the visitor to flesh out the year they just filled
+              while the button below offered the next year, and those are
+              opposite motions. Breadth wins that contest on effort alone — one
+              tap on a curated poster versus recalling and rating four more
+              films from a single year, with no payoff until the fifth.
 
-      {/* PROOF — the open ledger. See NATIVE_LEDGER for the two rules it
-          follows and what it replaced. */}
+              The condition is the exact complement of the "Next: {year}" button
+              below (`filled && walk.currentYear !== null`), so precisely one of
+              the two is ever on screen. Once the walk runs out of years, depth
+              genuinely is the next action and this line comes back to name it.
+
+              The summary branch is unaffected — Act 3's breakdown always shows. */}
+          {!askingYear && (showSummary || walk.currentYear === null) && (
+            <p className="mt-3 text-sm leading-relaxed text-gray-400">
+              {showSummary
+                ? WALK_DONE.breakdown(summary.reawardedCount, summary.agreedCount)
+                : NATIVE_FIRST_OPEN.filledMechanic(shownLedger.academy.year)}
+            </p>
+          )}
+        </>
+      )}
+
+      {/* PROOF — the open ledger, now shared with the web hero (see
+          AcademyLedger for the two rules it follows and what it replaced).
+          Absent entirely while isPristine — see that flag's comment above
+          for why the empty-2025-slot version of this was cut, not just
+          restyled. It appears the moment there's something real to show:
+          filled, mid-walk, or the save summary. */}
+      {!isPristine && (
       <div
         ref={cardRef}
         className={`mt-8 border-t border-white/10 pt-4 award-year-enter ${arrived ? "award-year-arrived" : ""}`}
       >
-        <div className="flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.19em] text-gray-500">
-          <span>{NATIVE_LEDGER.category}</span>
-          <span className="font-semibold text-gold-300">{academy.year}</span>
-        </div>
+        {showSummary ? (
+          <WalkSummary
+            summary={summary}
+            onKeepGoing={() => onDeepenYear(summary.picks[0]?.year ?? shownLedger.academy.year)}
+          />
+        ) : (
+          <AcademyLedger
+            academy={shownLedger.academy}
+            yours={shownLedger.yours}
+            agreed={shownLedger.agreed}
+            emptyPrompt={askingYear ? WALK.slotPrompt : undefined}
+          />
+        )}
 
-        {/* The two slots are a matched pair, so both are built the same way
-            rather than one being a MovieCard and the other a dashed box —
-            the comparison only reads if they're visually twins. This is a
-            two-slot figure on a marketing surface, not a movie list, so it
-            isn't the card proliferation the component mandate guards against
-            (CLAUDE.md, "Component reuse mandate"). */}
-        <div className="mt-3 grid grid-cols-2 items-start gap-3">
-          <div className="min-w-0">
-            <span className="mb-1.5 block font-mono text-[8.5px] uppercase tracking-[0.16em] text-gray-500">
-              {NATIVE_LEDGER.academyLabel}
-            </span>
-            <div className="aspect-[2/3] w-full overflow-hidden rounded-md border border-white/10 bg-charcoal-900">
-              {/* Plain <img>: remote R2 poster, served unoptimized like the
-                  app's other poster art. */}
-              <img
-                src={academy.posterUrl}
-                alt={`${academy.title} — the Academy's Best Picture winner for ${academy.year}`}
-                className="h-full w-full object-cover"
-              />
-            </div>
-            <p className="mt-1.5 text-[11px] font-medium leading-snug text-gray-300">
-              {academy.title}
-            </p>
-          </div>
+        {/* THE WALK (Act 2) — one year at a time, below the ledger it fills.
+            Advancing is an explicit tap rather than a timer: the filled ledger
+            is the reward, and pulling it away after a beat undercuts it. It
+            also avoids content shifting under a finger mid-tap. */}
+        {askingYear && walkAcademy && (
+          <YearWalkStrip
+            year={askingYear}
+            academyTitle={walkAcademy.reference.title}
+            candidates={candidates}
+            onPick={(c) =>
+              decide({ id: c.id, title: c.title, posterUrl: c.posterUrl }, false)
+            }
+            onAgree={() =>
+              walkAcademy.movieId
+                ? decide(
+                    {
+                      id: walkAcademy.movieId,
+                      title: walkAcademy.reference.title,
+                      posterUrl: walkAcademy.reference.posterUrl,
+                    },
+                    true
+                  )
+                : undefined
+            }
+            onSkip={() => walk.skip(askingYear)}
+          />
+        )}
 
-          {/* The empty half. Never pre-filled: the visitor hasn't picked
-              anything, so nothing here may imply they have. Oxblood rather
-              than gold on purpose — gold in this app reads as the Academy's,
-              and it's already the colour of the whole screen, so the slot
-              that belongs to the user has to sit outside it.
-              Two tones, and the split is a contrast requirement, not taste:
-              #B3452F is 3.58:1 on the canvas — fine for a border (WCAG UI
-              needs 3:1) but a fail for text (needs 4.5:1). Text uses #D9694E
-              at 5.72:1. Keep that split if either value is ever retuned. */}
-          <div className="min-w-0">
-            <span className="mb-1.5 block font-mono text-[8.5px] uppercase tracking-[0.16em] text-[#D9694E]">
-              {NATIVE_LEDGER.yoursLabel}
-            </span>
-            <div
-              className="flex aspect-[2/3] w-full items-center justify-center rounded-md border-[1.5px] border-dashed border-[#B3452F]/55"
-              style={{
-                backgroundImage:
-                  "repeating-linear-gradient(135deg, rgba(179,69,47,0.05) 0 7px, transparent 7px 14px)",
-              }}
-              aria-hidden="true"
-            >
-              <span className="font-mono text-xl text-[#D9694E]">?</span>
-            </div>
-            <p className="mt-1.5 text-[11px] italic leading-snug text-[#D9694E]">
-              {NATIVE_LEDGER.emptyPrompt}
-            </p>
-          </div>
-        </div>
+        {/* Styled as the primary action, because it is one. It used to render
+            at `text-xs` on `bg-white/[0.03]` — quieter than every other
+            interactive thing on the screen — directly below a hero-sized
+            search box. So the emphasis argued for depth (rate another film)
+            while the copy and the spec both argue for breadth. Removing
+            `filledMechanic` fixed the competing sentence; this fixes the
+            competing weight.
 
-        <p className="mt-2.5 text-[10px] leading-relaxed text-gray-500">
-          {NATIVE_LEDGER.foot}
-        </p>
+            Not gold: gold is the accent and the signup CTA (GUEST_SAVE), and
+            spending it here would make advancing the walk look like the same
+            magnitude of commitment as creating an account. White-on-glass at
+            full weight outranks the compact search below it without doing
+            that. */}
+        {filled && walk.currentYear !== null && (
+          <button
+            type="button"
+            onClick={advance}
+            className="mt-5 flex w-full items-center justify-between gap-2 rounded-xl border border-white/20 bg-white/[0.07] px-4 py-3.5 text-left text-sm font-semibold text-white transition-colors hover:bg-white/[0.12] active:scale-[0.99]"
+          >
+            {WALK.next(walk.currentYear)}
+            <ArrowRight className="h-4 w-4 flex-none text-[#D9694E]" aria-hidden="true" />
+          </button>
+        )}
+      </div>
+      )}
+
+      {/* ACTION — below the proof, not above it.
+          Deliberately not autofocused: popping the keyboard on cold app open
+          covers the proof card and reads as aggressive on iOS.
+
+          It used to sit between the headline and the ledger, hero-styled, which
+          put an input in the middle of claim → proof and made the loudest
+          element on the screen the one action we'd decided was secondary.
+          Reading order is now claim → proof → next step → "or search a film",
+          which is also the order of decreasing commitment.
+
+          `hero` only while pristine, where it genuinely is the page's one CTA.
+          Everywhere else `compact` — MovieSearchPicker's own doc describes that
+          variant as "a secondary tool sitting next to other controls, not the
+          page's one CTA", which is exactly the job here.
+
+          Mid-walk the search narrows to the year on screen and records a
+          verdict for it, rather than staying global and running the general
+          rate flow. Two things were wrong before:
+
+          - The question and the record disagreed. Searching a 1970 film while
+            the walk asked about 1994 created an award for 1970.
+          - It could eject you. `showArchive` keys off rated years, so rating a
+            second film from another year replaced the entire walk surface
+            mid-flow. A verdict is an award, not a rating (Fork B), so a scoped
+            pick can't trip that.
+
+          Kept rather than hidden: the four tiles won't always hold the film
+          someone has in mind, and that's the whole point of the year. Below the
+          strip it reads as the fallback it is. */}
+      <div className={isPristine ? "mt-5" : "mt-6"}>
+        <MovieSearchPicker
+          key={askingYear ?? "global"}
+          onSelect={(movie) =>
+            askingYear
+              ? decide(
+                  {
+                    id: String(movie.id),
+                    title: movie.title,
+                    posterUrl: movie.poster_url ?? "",
+                  },
+                  walkAcademy?.movieId != null &&
+                    String(walkAcademy.movieId) === String(movie.id)
+                )
+              : onSelectMovie(movie)
+          }
+          placeholder={
+            askingYear
+              ? WALK.searchPlaceholder(askingYear)
+              : NATIVE_FIRST_OPEN.searchPlaceholder
+          }
+          filterByYear={askingYear ?? undefined}
+          variant={isPristine ? "hero" : "compact"}
+        />
+        {/* Pristine only. It answers "what will this cost me?" for someone who
+            hasn't acted yet; once they have, nothing was asked of them, so the
+            line reassures against a fear they no longer hold — and it anchored
+            the search box as primary. The save story has its own earned moment
+            in Act 3 (GUEST_SAVE.bar), against real work. */}
+        {isPristine && (
+          <p className="mt-2 text-center text-xs text-gray-500">
+            {NATIVE_FIRST_OPEN.assurance}
+          </p>
+        )}
       </div>
 
       {/* ESCAPE — how-it-works stops being four mandatory screens and becomes
@@ -276,84 +559,93 @@ function FirstOpen({
    ──────────────────────────────────────────────────────────────────── */
 
 function ReturningGuest({
-  reducedMotion,
   onSelectMovie,
   ratedCount,
-  nextYear,
-  topBallot,
+  onDeepenYear,
 }: {
-  reducedMotion: boolean;
   onSelectMovie: (movie: Movie) => void;
   ratedCount: number;
-  nextYear: NativeNextYear | null;
-  topBallot: NativeTopBallot | null;
+  onDeepenYear: (year: number) => void;
 }) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const arrived = useMotionReveal(reducedMotion, cardRef);
+  const summary = useGuestPicksSummary();
+  const hasRecord = summary.picks.length > 0;
 
   return (
     <div className="mx-auto max-w-md">
-      {/* STATE — their own progress is the headline. No promise, no mechanic,
-          no proof: they've seen the proof, they made some. */}
+      {/* Counts verdicts, not ratings. "2 films rated" was badly wrong for
+          anyone who came through the year walk — eight picks plus a couple of
+          ratings read as almost nothing, because walk verdicts are awards
+          rather than ratings (Fork B). Same phrasing as the end of the walk,
+          so the number never appears to reset between screens. */}
       <h1
         data-testid="home-headline"
         className="font-unbounded text-[24px] font-semibold leading-tight tracking-tight text-white"
       >
-        {NATIVE_RETURNING.state(ratedCount)}
+        {hasRecord
+          ? WALK_DONE.title(summary.picks.length)
+          : NATIVE_RETURNING.state(ratedCount)}
       </h1>
 
+      {/* Was "{year} needs 4 more to set a ballot" — completion framing, which
+          Law 8 pushes against: progress is measured in meaning, not
+          completeness. The breakdown says what they actually did instead. */}
       <p className="mt-2 text-sm leading-relaxed text-gray-400">
-        {nextYear ? (
-          <>
-            <span className="font-semibold text-gold-300">{nextYear.year}</span>
-            {NATIVE_RETURNING.nextWithYear(nextYear.remaining)}
-          </>
-        ) : (
-          NATIVE_RETURNING.nextGeneric
-        )}
+        {hasRecord
+          ? WALK_DONE.breakdown(summary.reawardedCount, summary.agreedCount)
+          : NATIVE_RETURNING.nextGeneric}
       </p>
 
-      <div className="mt-5">
-        <MovieSearchPicker
-          onSelect={onSelectMovie}
-          placeholder={NATIVE_RETURNING.searchPlaceholder}
-          variant="hero"
-        />
-      </div>
+      {/* THEIR WORK — the same provisional strip the walk ends on, not the gilt
+          AwardCard this screen used to lead with.
 
-      {/* THEIR WORK — their own forming ballot, same canonical card. */}
-      {topBallot && (
+          Two reasons the card was wrong here. It's the trophy treatment removed
+          from first open, so it reintroduced the gamification everywhere else
+          rejects. And it presented whatever year happened to be strongest as a
+          finished award even when it held one or two nominees — Law 4 keeps
+          thin ballots provisional, and authority is earned rather than
+          assigned. Ceremony for a genuinely set ballot belongs on the archive
+          after signup, where the ballot is canonical. */}
+      {hasRecord ? (
         <div className="mt-8">
-          <div
-            ref={cardRef}
-            className={`award-year-enter ${arrived ? "award-year-arrived" : ""}`}
+          <WalkSummary
+            summary={summary}
+            onKeepGoing={() => onDeepenYear(summary.picks[0].year)}
+          />
+        </div>
+      ) : (
+        // WalkSummary carries the save prompt, so this branch needs its own.
+        // Reachable: rating a film outside the home flow (e.g. from /films)
+        // writes a ranking without creating an award, so a guest can have rated
+        // years and no record. Without this they'd have no way to save at all.
+        <div className="mt-8 flex items-center gap-3 rounded-xl border border-gold-500/30 bg-gold-500/[0.06] px-4 py-3">
+          <p className="min-w-0 flex-1 text-xs leading-relaxed text-gray-300">
+            {GUEST_SAVE.bar}
+          </p>
+          <Link
+            href="/login"
+            className="inline-flex min-h-[36px] flex-none items-center justify-center rounded-lg bg-gold-500 px-3.5 text-xs font-semibold text-black transition-colors hover:bg-gold-400"
           >
-            <AwardCard
-              year={topBallot.year}
-              winnerTitle={topBallot.winnerTitle}
-              winnerPoster={topBallot.winnerPoster}
-              winnerMovieId={topBallot.winnerMovieId}
-              nomineeCount={topBallot.nomineeCount}
-              fullWidth
-              academyStatus={null}
-            />
-          </div>
+            {GUEST_SAVE.cta}
+          </Link>
         </div>
       )}
 
-      {/* SAVE — portable, never permanent. Guest ratings really do migrate on
-          signup (useAuthMigration in providers.tsx), so this claim is true as
-          written; "Forever / Permanent" was not. */}
-      <div className="mt-8 flex items-center gap-3 rounded-xl border border-gold-500/30 bg-gold-500/[0.06] px-4 py-3">
-        <p className="min-w-0 flex-1 text-xs leading-relaxed text-gray-300">
-          {GUEST_SAVE.bar}
-        </p>
-        <Link
-          href="/login"
-          className="inline-flex min-h-[36px] flex-none items-center justify-center rounded-lg bg-gold-500 px-3.5 text-xs font-semibold text-black transition-colors hover:bg-gold-400"
-        >
-          {GUEST_SAVE.cta}
-        </Link>
+      {/* ACTION — last, and compact, for the same reason as FirstOpen's.
+          This screen's own content is the point: the record above, then the
+          save ask inside WalkSummary. A hero search sat between the tally and
+          the record, which put an input in the middle of claim → proof and gave
+          the loudest treatment on the page to a tool rather than to the ask.
+
+          This is also the screen a guest actually lands on when the walk ends —
+          see the note on `walkGate` above about FirstOpen's own Act 3 branch
+          being unreachable — so it has to carry the reorder, not just
+          FirstOpen. */}
+      <div className="mt-6">
+        <MovieSearchPicker
+          onSelect={onSelectMovie}
+          placeholder={NATIVE_RETURNING.searchPlaceholder}
+          variant="compact"
+        />
       </div>
     </div>
   );

@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { searchTmdbMovies, type TmdbSearchHit } from "@/lib/tmdbImport";
+import { searchMoviesRanked } from "@/lib/movieSearch";
+
+type LocalMovieHit = {
+  id: string;
+  title: string;
+  release_year: number | null;
+  thumb_url: string | null;
+  poster_url: string | null;
+  tmdb_id: number | null;
+};
 
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
@@ -10,29 +20,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ local: [], remote: [] });
   }
 
-  let localQuery = supabase
-    .from("movies")
-    .select("id, title, release_year, thumb_url, poster_url, tmdb_id")
-    .ilike("title", `%${query}%`);
-  if (year) {
-    localQuery = localQuery.eq("release_year", year);
-  }
-
-  const [{ data: local, error: localError }, remoteResult] = await Promise.all([
-    localQuery.limit(7),
+  const [local, remoteResult] = await Promise.all([
+    searchMoviesRanked<LocalMovieHit>(supabase, query, {
+      select: "id, title, release_year, thumb_url, poster_url, tmdb_id",
+      limit: 7,
+      filter: (q) => (year ? q.eq("release_year", year) : q),
+    }),
     searchTmdbMovies(query).catch((e) => {
       console.error("Live TMDB search failed", e);
       return [] as TmdbSearchHit[];
     }),
   ]);
 
-  if (localError) {
-    return NextResponse.json({ error: localError.message }, { status: 500 });
-  }
-
-  const localTmdbIds = new Set((local || []).map((m) => m.tmdb_id).filter(Boolean));
+  const localTmdbIds = new Set(local.map((m) => m.tmdb_id).filter(Boolean));
   const localTitleYears = new Set(
-    (local || []).map((m) => `${m.title.toLowerCase()}::${m.release_year}`)
+    local.map((m) => `${m.title.toLowerCase()}::${m.release_year}`)
   );
 
   const remote = remoteResult
@@ -40,5 +42,5 @@ export async function POST(req: NextRequest) {
     .filter((hit) => !localTitleYears.has(`${hit.title.toLowerCase()}::${hit.releaseYear}`))
     .slice(0, 7);
 
-  return NextResponse.json({ local: local || [], remote });
+  return NextResponse.json({ local, remote });
 }

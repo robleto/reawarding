@@ -406,6 +406,26 @@ function patchMovieCache(cacheKey: string, movieId: string, patch: (movie: Movie
 	entry.movies = entry.movies.map((m) => (m.id === movieId ? patch(m) : m));
 }
 
+/**
+ * Add a rescued film to a cache entry.
+ *
+ * `patchMovieCache` maps over the rows already there, so it cannot introduce a
+ * film the 3000-row window never held — which is exactly the case the live
+ * guest rescue in `useMovieDataWithGuest` has to handle.
+ *
+ * No-ops while the initial fetch is in flight: `entry.movies` is about to be
+ * overwritten wholesale, and `fetchMoviesForKey` reads the guest store *after*
+ * awaiting its own query, so its own rescue pass already covers this film.
+ * That's why this doesn't need the `pendingPatches` replay `patchMovieCache`
+ * uses — a queued patch keyed by movieId couldn't append anyway.
+ */
+function appendMovieToCache(cacheKey: string, movie: Movie) {
+	const entry = movieCache.get(cacheKey);
+	if (!entry || entry.fetchedAt === null) return;
+	if (entry.movies.some((m) => m.id === movie.id)) return;
+	entry.movies = [...entry.movies, movie];
+}
+
 async function fetchMoviesForKey(
 	supabase: SupabaseClient<Database>,
 	isGuest: boolean,
@@ -443,6 +463,57 @@ async function fetchMoviesForKey(
 				thumb_url: movie.thumb_url ?? "",
 			} as Movie;
 		});
+
+		// Rescue-fetch guest-rated films that fall outside the 3000-row window
+		// above, mirroring what the authenticated path already does for its own
+		// rankings further down.
+		//
+		// Without this, a guest could rate a film and watch nothing happen: the
+		// rating lands in the Zustand store (so the tab bar and rated counts
+		// react) but the film itself never enters `movies`, so it's absent from
+		// formattedYears, the ledger, and the archive. The data isn't lost —
+		// signing up migrates it and the authenticated path's rescue picks it up
+		// — but for a logged-out visitor the whole Watch → Rate → ReAward loop
+		// silently no-ops.
+		//
+		// The window is 3000 of 4415 rows and `.range()` carries no `.order()`,
+		// so *which* films are missing is arbitrary and not stable between
+		// requests. That makes this a coin flip per rating, not an edge case.
+		const presentIds = new Set(data.map((m) => m.id));
+		const missingRatedIds = Object.keys(guestState.rankings).filter(
+			(id) => !presentIds.has(id)
+		);
+		if (missingRatedIds.length > 0) {
+			const RESCUE_CHUNK_SIZE = 50;
+			for (let i = 0; i < missingRatedIds.length; i += RESCUE_CHUNK_SIZE) {
+				const chunk = missingRatedIds.slice(i, i + RESCUE_CHUNK_SIZE);
+				const { data: extraMovies, error: rescueError } = await supabase
+					.from("movies")
+					.select(MOVIE_LIST_FIELDS)
+					.in("id", chunk);
+				if (rescueError) {
+					console.warn("Guest rescue fetch failed:", rescueError.message, chunk);
+					continue;
+				}
+				for (const movie of extraMovies ?? []) {
+					const guestRanking = guestState.getRanking(movie.id);
+					moviesWithGuestData.push({
+						...movie,
+						rankings: guestRanking
+							? [
+									{
+										id: `guest_${movie.id}`,
+										user_id: "guest",
+										ranking: guestRanking.ranking,
+										seen_it: guestRanking.seenIt,
+									},
+							  ]
+							: [],
+						thumb_url: movie.thumb_url ?? "",
+					} as Movie);
+				}
+			}
+		}
 
 		return { movies: moviesWithGuestData, error: null };
 	}
@@ -685,6 +756,72 @@ export function useMovieDataWithGuest() {
 			setMovies((prevMovies) => prevMovies.map(applyGuestPatch));
 			if (cacheKeyRef.current) {
 				patchMovieCache(cacheKeyRef.current, movieId, applyGuestPatch);
+			}
+
+			// Live out-of-window rescue — the in-session half of the one
+			// fetchMoviesForKey already does on load.
+			//
+			// `applyGuestPatch` can only patch a film that is *already* in
+			// `movies`, and the guest window is 3000 of ~4415 rows with no
+			// ORDER BY, while MovieSearchPicker searches the full catalogue
+			// server-side (/api/movies/search-live). So a guest can rate a film
+			// the local window never held, and everything above silently
+			// no-ops: the rating reaches the store, but the film never enters
+			// `movies`, so formattedYears, the native ledger (Act 1 of
+			// docs/design/first-rating-payoff.md) and the archive all stay
+			// empty. Reproduced with The Batman (2022) — rated 9, store
+			// correct, screen still on the pristine first-open state, then
+			// correct immediately after a reload, because the load-time rescue
+			// picked it up.
+			//
+			// The reload recovery is what made this read as flaky rather than
+			// broken: per fetchMoviesForKey's window comment, which film is
+			// missing is arbitrary and unstable between requests, so it's a
+			// coin flip per rating.
+			if (!movies.some((m) => m.id === movieId)) {
+				const { data: rescued, error: rescueError } = await supabase
+					.from("movies")
+					.select(MOVIE_LIST_FIELDS)
+					.eq("id", movieId)
+					.maybeSingle();
+
+				// The store write above already succeeded, so the rating is not
+				// lost either way — only this session's view of it is short, and
+				// the next load's rescue will still catch it.
+				if (rescueError || !rescued) {
+					if (rescueError) {
+						console.warn("Guest live rescue fetch failed:", rescueError.message, movieId);
+					}
+					return true;
+				}
+
+				const rescuedRanking = guestStore.getRanking(movieId);
+				const rescuedMovie = {
+					...rescued,
+					rankings: rescuedRanking
+						? [
+								{
+									id: `guest_${movieId}`,
+									user_id: "guest",
+									ranking: rescuedRanking.ranking,
+									seen_it: rescuedRanking.seenIt,
+								},
+						  ]
+						: [],
+					thumb_url: rescued.thumb_url ?? "",
+				} as Movie;
+
+				// Re-check inside the updater: two ratings in quick succession
+				// both read the same closure `movies`, so the guard above can
+				// pass twice for one film.
+				setMovies((prevMovies) =>
+					prevMovies.some((m) => m.id === movieId)
+						? prevMovies
+						: [...prevMovies, rescuedMovie]
+				);
+				if (cacheKeyRef.current) {
+					appendMovieToCache(cacheKeyRef.current, rescuedMovie);
+				}
 			}
 			return true;
 		}

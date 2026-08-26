@@ -233,7 +233,16 @@ export default function OnboardingYearPage() {
         onRate={handleRate}
         onRateAnother={() => setPickedMovie(null)}
         onTryAnotherYear={() => {
-          router.push("/onboarding");
+          // Was router.push("/onboarding") — the unscoped era/genre picker,
+          // which gates guests to /login (src/app/onboarding/page.tsx). Every
+          // guest tapping "Try a different year" hit a login wall with no
+          // warning. /films is what the home page's own OnboardingPickFlow
+          // instance already sends guests to for the same CTA, and it's
+          // guest-safe. Pre-existing bug, not introduced today — just never
+          // reachable from the guest home flow until the walk's "Rate more
+          // films to turn these into ballots" link started sending guests to
+          // this page for the first time.
+          router.push("/films");
         }}
         onSignup={() => router.push("/login")}
         onSeeStanding={() => router.push(`/year/${year}`)}

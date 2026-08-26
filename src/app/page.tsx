@@ -9,10 +9,12 @@ import HeroReveal, { ACADEMY_REFERENCE } from "@/app/components/home/HeroReveal"
 import HowItWorksSection from "@/app/components/home/HowItWorksSection";
 import PanelFinalCTA from "@/app/components/home/PanelFinalCTA";
 import NativeGuestHome, {
-  type NativeNextYear,
+  type NativeLedgerState,
   type NativeTopBallot,
 } from "@/app/components/home/NativeGuestHome";
 import { useIsNativeApp } from "@/hooks/useIsNativeApp";
+import { useAcademyPickForYear } from "@/hooks/useAcademyPickForYear";
+import { useAwardFilms } from "@/hooks/useAwardFilms";
 import MovieSearchPicker from "@/components/home/MovieSearchPicker";
 import { useProfile } from "@/contexts/ProfileContext";
 import { scrollToElementById, usePrefersReducedMotion } from "@/lib/motion";
@@ -189,6 +191,10 @@ export default function HomePage() {
     recordOnboardingSession();
   }, [recordOnboardingSession]);
 
+  // Films referenced by an award but missing from the client movie window —
+  // without these, award-only years resolve no winner and stay invisible.
+  const awardFilms = useAwardFilms(awards, movies);
+
   // Full year timeline (ported from /awards) — every year with at least one
   // rated film, rendered as an editable ballot section. This is what makes
   // Home the actual archive rather than a preview of it.
@@ -208,6 +214,18 @@ export default function HomePage() {
       acc[year].push(movie);
       return acc;
     }, {});
+
+    // Years the user has an award for but has rated nothing in still belong
+    // here. Grouping by rated films alone made the entire output of the guest
+    // year-walk invisible the moment someone signed up to keep it — a verdict
+    // there is a preference, not a rating (Fork B in
+    // docs/design/first-rating-payoff.md), so those years have an award and no
+    // rankings at all. "Sign up to keep your picks" led straight to a home that
+    // showed none of them.
+    for (const award of awards) {
+      const year = String(award.year);
+      if (!groupedByYear[year]) groupedByYear[year] = [];
+    }
 
     return Object.entries(groupedByYear)
       .map(([year, moviesInYear]) => {
@@ -230,15 +248,23 @@ export default function HomePage() {
 
         // Movie ids are UUID strings at runtime; Number(uuid) → NaN, which
         // silently breaks saved-winner/nominee lookups. Compare as strings.
+        //
+        // Falls back to `awardFilms` because an awarded film need not be in
+        // `sorted` (which holds only this year's *rated* films) or even in
+        // `movies` at all — the client list is a 3000-of-4400 window and its
+        // rescue only back-fills rated films, never picked-but-unrated ones.
+        const resolve = (id: string | number): Movie | null =>
+          sorted.find((m) => String(m.id) === String(id)) ??
+          awardFilms.get(String(id)) ??
+          null;
+
         const savedNominees = savedAward?.nomineeIds?.length
-          ? (savedAward.nomineeIds
-              .map((id) => sorted.find((m) => String(m.id) === String(id)))
-              .filter((m): m is Movie => Boolean(m)))
+          ? savedAward.nomineeIds
+              .map(resolve)
+              .filter((m): m is Movie => Boolean(m))
           : null;
 
-        const savedWinner = savedAward?.winnerId
-          ? (sorted.find((m) => String(m.id) === String(savedAward.winnerId)) ?? null)
-          : null;
+        const savedWinner = savedAward?.winnerId ? resolve(savedAward.winnerId) : null;
 
         return {
           year,
@@ -247,9 +273,11 @@ export default function HomePage() {
           allMovies: sorted,
         };
       })
-      .filter((yearData) => yearData.allMovies.length >= 1)
+      // A year earns a place with either a rated film or a resolved winner.
+      // Requiring a rated film is what hid award-only years.
+      .filter((yearData) => yearData.allMovies.length >= 1 || Boolean(yearData.winner))
       .sort((a, b) => Number(b.year) - Number(a.year));
-  }, [movies, awards]);
+  }, [movies, awards, awardFilms]);
 
   // Render order for the archive below. The scrubber itself stays
   // chronological in both modes — it's a timeline, and its connectors (solid
@@ -533,21 +561,26 @@ export default function HomePage() {
   const yearLeaders = useMemo(() => getYearLeaders(ratedMovies), [ratedMovies]);
 
   // ── Native logged-out screen inputs ────────────────────────────────────
-  // The returning-guest state leads with the user's own progress instead of
-  // re-pitching them, so it needs two things: the year closest to setting a
-  // ballot, and their strongest forming ballot to render.
+  // The returning-guest state used to lead with "{year} needs N more to set a
+  // ballot", fed by nativeNextYear below. That was completion framing (Law 8)
+  // and it's gone — the screen now shows the walk's own breakdown copy instead
+  // (docs/design/first-rating-payoff.md, "Fix the returning-guest screen").
+  // nativeNextYear went with it; removed rather than left computing an unused
+  // value.
 
-  /** Closest-to-set year (1–4 nominees), nearest first. Null when none apply. */
-  const nativeNextYear = useMemo<NativeNextYear | null>(() => {
-    const candidates = yearLeaders
-      .filter((yl) => yl.nomineeCount > 0 && yl.nomineeCount < 5)
-      .sort((a, b) => b.nomineeCount - a.nomineeCount);
-    const closest = candidates[0];
-    return closest
-      ? { year: closest.year, remaining: 5 - closest.nomineeCount }
-      : null;
-  }, [yearLeaders]);
-
+  /**
+   * Ledger state for the native logged-out screen (Act 1 of
+   * docs/design/first-rating-payoff.md).
+   *
+   * Gated: `nativeLedgerYear` is null until the guest actually has a pick, so
+   * `useAcademyPickForYear` never fires on a cold open — first paint stays on
+   * the `ACADEMY_REFERENCE` constant with no round trip.
+   *
+   * While the fetch is in flight the empty constant ledger keeps rendering, so
+   * a guest who rates a much older film sees the default year briefly before it
+   * re-keys. The settle animation covers it. If that ever reads badly, the fix
+   * is a per-year placeholder, not removing the gate.
+   */
   /** Their most-formed year, as AwardCard data. Reuses the archive's own shape. */
   const nativeTopBallot = useMemo<NativeTopBallot | null>(() => {
     const best = [...formattedYears].sort(
@@ -562,6 +595,27 @@ export default function HomePage() {
       nomineeCount: best.nominees.length,
     };
   }, [formattedYears]);
+
+  const academyForLedger = useAcademyPickForYear(
+    isGuest ? (nativeTopBallot?.year ?? null) : null,
+    movies
+  );
+
+  /** Empty until both their pick and that year's Academy winner have resolved. */
+  const nativeLedger = useMemo<NativeLedgerState>(() => {
+    const empty = { academy: ACADEMY_REFERENCE, yours: null, agreed: false };
+    if (!nativeTopBallot || !academyForLedger) return empty;
+    return {
+      academy: academyForLedger.reference,
+      yours: {
+        title: nativeTopBallot.winnerTitle,
+        posterUrl: nativeTopBallot.winnerPoster ?? "",
+      },
+      agreed:
+        academyForLedger.movieId != null &&
+        String(academyForLedger.movieId) === String(nativeTopBallot.winnerMovieId),
+    };
+  }, [nativeTopBallot, academyForLedger]);
 
   // ── Actionable years — years where the user has an unrated-but-seen film
   // or a watchlisted film, i.e. a real next step. A forming year with no
@@ -617,7 +671,14 @@ export default function HomePage() {
   // (any rated movie belongs to some year), so without the ratedMovies arm
   // a user with 1-4 ratings in one year skips straight to "building" a
   // state early for someone who's barely engaged yet.
-  const isNewUserState = !hasStartedBallots || ratedMovies.length < 5;
+  // The `awards.length < 3` arm is what stops someone who walked eight years
+  // as a guest from being re-classified "new" the moment they sign up. The
+  // ratings arm exists because hasStartedBallots flips true after a single
+  // rating; walk verdicts are awards without ratings, so they need their own
+  // threshold or breadth reads as nothing. Three picks is the same "more than
+  // an accidental first tap" bar the 5-ratings arm draws.
+  const isNewUserState =
+    !hasStartedBallots || (ratedMovies.length < 5 && awards.length < 3);
   const userState: "new" | "building" | "established" | "mature" = isNewUserState
     ? "new"
     : isMature
@@ -775,7 +836,21 @@ export default function HomePage() {
   const canonicalYearCount = formattedYears.filter((y) => y.nominees.length >= 5).length;
 
   return (
-    <div className="home-shell">
+    // The native guest path gets a real height chain rather than a `dvh`
+    // calculation: `main` in AppShell is already `flex-1 flex flex-col`, so
+    // `flex-1` here inherits the leftover viewport height with no magic number
+    // for HeaderNav's height or main's padding (AppShell's own comment records
+    // that guess drifting out of sync three separate times). NativeGuestHome
+    // then decides internally whether to center in that space (pristine) or
+    // sit at the top (every other state) — page.tsx can't know which, since
+    // the flag depends on useLedgerWalk inside the component.
+    //
+    // Applied only on this path: every other home state is content-tall
+    // already and gains nothing from filling, so this can't change their
+    // layout. Side benefit — .home-shell::before is an inset-0 grain overlay,
+    // which now covers the full frame instead of stopping at the short
+    // pristine block's bottom edge.
+    <div className={`home-shell ${showGuestPanels && isNative ? "flex flex-1 flex-col" : ""}`}>
       {showGuestPanels && isNative ? (
         /* ══════════════════════════════════════════════════════════
            NATIVE GUEST — one activation screen, no funnel.
@@ -787,9 +862,30 @@ export default function HomePage() {
           reducedMotion={reducedMotion}
           onSelectMovie={handleSelectMovie}
           ratedCount={ratedMovies.length}
-          nextYear={nativeNextYear}
-          topBallot={nativeTopBallot}
-          academy={ACADEMY_REFERENCE}
+          ledger={nativeLedger}
+          movies={movies}
+          // A walk verdict is a preference, not a rating (Fork B in
+          // docs/design/first-rating-payoff.md). createAward already records
+          // guest awards with source "seed_pick", which is exactly that — and
+          // because it isn't a rating, it can't inflate setBallotCount and
+          // make a one-pick year masquerade as a set ballot.
+          onPickForYear={({ id, title, year }) =>
+            void createAward({ id, title, release_year: year })
+          }
+          // Act 4: /onboarding/[year] already is the depth surface — year-scoped
+          // grid with a 5-nominee threshold. It was never wrong, just wired as
+          // the step right after the first rating, where depth is the wrong ask.
+          onDeepenYear={(year) => router.push(`/onboarding/${year}`)}
+          // Breadth, not "has rated anything" — one rating used to swap the
+          // whole screen out from under the ledger they'd just filled.
+          // yearLeaders is built from ratedMovies, and walk verdicts carry no
+          // rating (Fork B) — so awards.length is the only signal breadth from
+          // the walk alone can ever set. Without it a guest who only ever
+          // walked years, never rated anything through search, could earn
+          // eight picks and still never reach ReturningGuest.
+          showArchive={
+            yearLeaders.length >= 2 || setBallotCount >= 1 || awards.length >= 2
+          }
         />
       ) : showGuestPanels ? (
         /* ── Web guest: three-panel funnel (was six) ── */
@@ -810,7 +906,20 @@ export default function HomePage() {
             </div>
           )}
 
-          <HeroReveal reducedMotion={reducedMotion} onSelectMovie={handleSelectMovie} />
+          {/* Same ledger, movies, and pick/deepen handlers already computed
+              above for the native screen — the walk (Acts 1-3) is shared, not
+              native-exclusive. See "Wire the walk into the web guest ledger
+              too" in docs/design/first-rating-payoff.md. */}
+          <HeroReveal
+            reducedMotion={reducedMotion}
+            onSelectMovie={handleSelectMovie}
+            ledger={nativeLedger}
+            movies={movies}
+            onPickForYear={({ id, title, year }) =>
+              void createAward({ id, title, release_year: year })
+            }
+            onDeepenYear={(year) => router.push(`/onboarding/${year}`)}
+          />
 
           <HowItWorksSection reducedMotion={reducedMotion} />
           <div className="pb-16 md:pb-28">
@@ -1438,6 +1547,14 @@ export default function HomePage() {
         }}
         onPickAnother={() => setOnboardingPickFlowMovie(null)}
         onClose={() => setOnboardingPickFlowMovie(null)}
+        // A guest's first pick can only ever reach this modal once — isNewUser
+        // flips false for good the moment any rating exists — so this closes
+        // straight back to the ledger they just filled instead of showing the
+        // "forming" screen's CTAs, which predate and don't mention the walk
+        // (docs/design/first-rating-payoff.md). Logged-in new users still get
+        // the full three-step flow: they have no ledger of their own to land
+        // back on.
+        autoCloseAfterRate={isGuest}
       />
 
     </div>
