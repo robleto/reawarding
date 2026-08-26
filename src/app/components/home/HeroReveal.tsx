@@ -38,6 +38,7 @@ import WalkSummary from "@/app/components/home/WalkSummary";
 import { useMotionReveal } from "@/hooks/useMotionReveal";
 import { useLedgerWalk, type LedgerState } from "@/hooks/useLedgerWalk";
 import { WALK } from "@/copy/loggedOutHome";
+import { WALK_SAVE_HINT_AFTER } from "@/data/contestedYears";
 import { ArrowRight } from "lucide-react";
 import type { Movie } from "@/types/types";
 
@@ -212,6 +213,7 @@ export default function HeroReveal({
                 : undefined
             }
             onSkip={() => walk.skip(askingYear)}
+            showSaveHint={walk.decidedYears.length >= WALK_SAVE_HINT_AFTER}
           />
         )}
 

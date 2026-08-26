@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { WALK } from "@/copy/loggedOutHome";
 import type { YearCandidate } from "@/hooks/useYearCandidates";
@@ -12,6 +13,13 @@ interface YearWalkStripProps {
   onPick: (candidate: YearCandidate) => void;
   onAgree: () => void;
   onSkip: () => void;
+  /**
+   * Show the quiet "sign up" mention below the Agree/Skip rows. Callers
+   * gate this on WALK_SAVE_HINT_AFTER (src/data/contestedYears.ts) — an
+   * early save option for visitors who stop mid-walk, well before Act 3's
+   * full ask fires at the walk's actual end.
+   */
+  showSaveHint?: boolean;
 }
 
 /**
@@ -31,6 +39,7 @@ export default function YearWalkStrip({
   onPick,
   onAgree,
   onSkip,
+  showSaveHint = false,
 }: YearWalkStripProps) {
   return (
     <div className="mt-5">
@@ -82,6 +91,18 @@ export default function YearWalkStrip({
           <ArrowRight className="h-3 w-3 flex-none text-gray-500" aria-hidden="true" />
         </button>
       </div>
+
+      {/* Quiet early out — Act 3's gold bar is still the main ask, so this
+          stays at the same muted weight as WalkSummary's "keep going" link
+          rather than competing with it. */}
+      {showSaveHint && (
+        <Link
+          href="/login"
+          className="mt-3 block text-center text-[11px] text-gray-500 underline decoration-white/20 underline-offset-4 transition-colors hover:text-gray-300"
+        >
+          {WALK.saveHint}
+        </Link>
+      )}
     </div>
   );
 }

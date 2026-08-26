@@ -72,3 +72,11 @@ export const WALK_MAX_YEARS = 8;
 
 /** Two skips in a row reads as "I'm done", not "ask me differently". */
 export const WALK_SKIP_LIMIT = 2;
+
+/**
+ * Show the quiet mid-walk "sign up" hint once this many years are decided —
+ * well before the walk's own end (WALK_MAX_YEARS) triggers the full Act 3
+ * ask. Some visitors stop after a handful of verdicts without exhausting the
+ * walk; without this they'd have no save option until then.
+ */
+export const WALK_SAVE_HINT_AFTER = 2;

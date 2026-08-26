@@ -41,6 +41,7 @@ import YearWalkStrip from "@/app/components/home/YearWalkStrip";
 import WalkSummary from "@/app/components/home/WalkSummary";
 import { useLedgerWalk } from "@/hooks/useLedgerWalk";
 import { useYearWalk } from "@/hooks/useYearWalk";
+import { WALK_SAVE_HINT_AFTER } from "@/data/contestedYears";
 import { useGuestPicksSummary } from "@/hooks/useGuestPicksSummary";
 import type { Movie } from "@/types/types";
 
@@ -420,6 +421,7 @@ function FirstOpen({
                 : undefined
             }
             onSkip={() => walk.skip(askingYear)}
+            showSaveHint={walk.decidedYears.length >= WALK_SAVE_HINT_AFTER}
           />
         )}
 
