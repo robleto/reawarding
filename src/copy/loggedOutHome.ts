@@ -153,6 +153,14 @@ export const WALK = {
   skip: (year: number) => `Haven't seen enough of ${year}`,
   /** Advances the walk. Explicit tap, so the filled ledger isn't yanked away. */
   next: (year: number) => `Next: ${year}`,
+  /**
+   * Quiet mid-walk mention, shown once WALK_SAVE_HINT_AFTER years are
+   * decided — an early out for anyone who wants to lock in progress before
+   * the walk itself ends. Deliberately smaller than GUEST_SAVE's gold bar:
+   * Act 3's ask against the full stack is still the main event, so this
+   * can't outweigh it or arrive as a second version of the same ask.
+   */
+  saveHint: "Sign up to save your progress",
 } as const;
 
 /**
