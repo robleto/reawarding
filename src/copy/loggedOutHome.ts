@@ -65,10 +65,29 @@ export const NATIVE_FIRST_OPEN = {
    *
    * Deliberately not "{year} needs 4 more to set a ballot": that's completion
    * framing, and Law 8 measures progress in meaning rather than completeness.
+   *
+   * Was `"${year} is yours."` — tested as confusing: it reads as a completed
+   * handoff of the Academy's own year, and says nothing about *why* it's
+   * theirs. "Reawarding" names the act already underway (one verdict in) and
+   * doubles as the product's own name, so the headline and the product state
+   * the same claim at once.
    */
-  filledInstruction: (year: number) => `${year} is yours.`,
+  filledInstruction: (year: number) => `Reawarding ${year}.`,
+  /**
+   * Sits right under the headline, always — unlike `filledMechanic` below it
+   * isn't an ask, so it never competes with the "Next: {year}" button for
+   * attention. Just a gut-check on the pick they just made, not a step.
+   */
+  filledReflection: "Better, right?",
   filledMechanic: (year: number) =>
     `One film is a preference. Add a few more and ${year} becomes a ballot.`,
+  /**
+   * The alternative to the "Next: {year}" button, named explicitly rather
+   * than left implicit — see WALK.nextPrompt for the button's own lead-in.
+   * Only shown alongside that button (same condition), so "or" always has
+   * something to be an alternative to.
+   */
+  orSearchPrompt: "Or find another movie you want to rank.",
 } as const;
 
 /**
@@ -103,8 +122,18 @@ export const NATIVE_LEDGER = {
    * this; don't invent a synonym.
    */
   agreedLabel: "Agreed",
-  footReawarded: (year: number) =>
-    `${year} is yours now. Every year back to 1927 is still open.`,
+  /**
+   * Was `"${year} is yours now. Every year back to 1927 is still open."` —
+   * same fix as NATIVE_FIRST_OPEN.filledInstruction: "is yours now" reads as
+   * a settled handoff, one film standing in for the whole year. "You've
+   * started reawarding" names it as underway, leaving room for the nominees
+   * this one pick hasn't touched yet (Act 4).
+   *
+   * The "every year back to 1927 is still open" half moved out: naming one
+   * concrete year beats a century-wide abstraction, and WALK.nextPrompt now
+   * does that job right above the button that actually goes there.
+   */
+  footReawarded: (year: number) => `You've started reawarding ${year}.`,
   footAgreed: (year: number) =>
     `You and the Academy agree on ${year}. Plenty of years left to disagree.`,
 } as const;
@@ -153,6 +182,14 @@ export const WALK = {
   skip: (year: number) => `Haven't seen enough of ${year}`,
   /** Advances the walk. Explicit tap, so the filled ledger isn't yanked away. */
   next: (year: number) => `Next: ${year}`,
+  /**
+   * Lead-in sat directly above the "Next: {year}" button — replaces the foot
+   * caption's old "every year back to 1927 is still open" (NATIVE_LEDGER),
+   * which named the whole century instead of the one year the button
+   * actually goes to. "Fixing" reuses AcademyLedger's own frame for this —
+   * "amend, don't award" — rather than inventing new language for the same idea.
+   */
+  nextPrompt: (year: number) => `${year} might need fixing too.`,
   /**
    * Quiet mid-walk mention, shown once WALK_SAVE_HINT_AFTER years are
    * decided — an early out for anyone who wants to lock in progress before

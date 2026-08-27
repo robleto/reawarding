@@ -592,6 +592,7 @@ export default function HomePage() {
       winnerTitle: best.winner.title,
       winnerPoster: best.winner.poster_url,
       winnerMovieId: best.winner.id,
+      winnerRating: best.winner.rankings?.[0]?.ranking,
       nomineeCount: best.nominees.length,
     };
   }, [formattedYears]);
@@ -610,6 +611,7 @@ export default function HomePage() {
       yours: {
         title: nativeTopBallot.winnerTitle,
         posterUrl: nativeTopBallot.winnerPoster ?? "",
+        rating: nativeTopBallot.winnerRating,
       },
       agreed:
         academyForLedger.movieId != null &&
