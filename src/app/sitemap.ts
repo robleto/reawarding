@@ -3,6 +3,23 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { siteUrl } from '@/lib/siteUrl';
 import { movieSlug } from '@/utils/slug';
 
+/**
+ * Regenerate at most once a day (ISR: the first request after expiry serves
+ * the cached copy and rebuilds in the background, so no visitor ever waits on
+ * the ~5 paged queries below).
+ *
+ * Without this the sitemap is frozen at build time, and films added after a
+ * deploy stay undiscoverable until the next one. Daily rather than hourly
+ * because the consumer is a crawler: search engines refetch sitemap.xml on
+ * their own schedule, roughly daily at best, so a shorter window would spend
+ * DB reads regenerating a file nobody has asked for yet.
+ *
+ * This does NOT remove the build-time dependency — the route still prerenders
+ * once during `next build`, so the Netlify build environment still needs
+ * NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
+ */
+export const revalidate = 86400;
+
 const STATIC_ROUTES = [
   '',
   '/films',
