@@ -1,6 +1,7 @@
 "use client";
 
 import { NATIVE_LEDGER } from "@/copy/loggedOutHome";
+import { RatingBadge } from "@/components/award/MovieCard";
 
 export interface AcademyLedgerReference {
   year: number;
@@ -12,6 +13,9 @@ export interface AcademyLedgerReference {
 export interface AcademyLedgerPick {
   title: string;
   posterUrl: string;
+  /** Their 1–10 rating for this film. Absent when the pick came from a
+   *  walk verdict (a preference, not a rating — see useLedgerWalk). */
+  rating?: number | null;
 }
 
 interface AcademyLedgerProps {
@@ -56,8 +60,12 @@ export default function AcademyLedger({
 }: AcademyLedgerProps) {
   return (
     <div>
-      <div className="flex items-baseline justify-between font-mono text-[9px] uppercase tracking-[0.19em] text-gray-500">
+      {/* Category and year read as one unit — "BEST PICTURE · 1989" — not as
+          two labels flanking opposite edges of the row. They name the same
+          ballot, so they sit together rather than pulling the eye apart. */}
+      <div className="flex items-baseline gap-1.5 font-mono text-[9px] uppercase tracking-[0.19em] text-gray-500">
         <span>{NATIVE_LEDGER.category}</span>
+        <span className="text-gray-600" aria-hidden="true">·</span>
         <span className="font-semibold text-gold-300">{academy.year}</span>
       </div>
 
@@ -111,7 +119,7 @@ export default function AcademyLedger({
                screen — the payoff settling into place. Reduced motion renders
                it already settled (see globals.css). */
             <>
-              <div className="ledger-pick-enter aspect-[2/3] w-full overflow-hidden rounded-md border-[1.5px] border-[#D9694E] bg-charcoal-900">
+              <div className="ledger-pick-enter relative aspect-[2/3] w-full overflow-hidden rounded-md border-[1.5px] border-[#D9694E] bg-charcoal-900">
                 <img
                   src={yours.posterUrl}
                   alt={
@@ -121,6 +129,12 @@ export default function AcademyLedger({
                   }
                   className="h-full w-full object-cover"
                 />
+                {yours.rating != null && (
+                  <RatingBadge
+                    rating={yours.rating}
+                    className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 text-[10px]"
+                  />
+                )}
               </div>
               <p className="mt-1.5 text-[11px] font-medium leading-snug text-[#D9694E]">
                 {yours.title}

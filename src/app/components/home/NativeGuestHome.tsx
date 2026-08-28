@@ -64,6 +64,7 @@ export interface NativeTopBallot {
   winnerTitle: string;
   winnerPoster?: string | null;
   winnerMovieId?: string | number | null;
+  winnerRating?: number | null;
   nomineeCount: number;
 }
 
@@ -269,6 +270,10 @@ function FirstOpen({
   // nominate" at the moment someone is actually about to do it. Explaining it
   // here first was pure duplicate exposition.
   const isPristine = !filled && !askingYear && !showSummary;
+  /** Exactly when the "Next: {year}" button shows — shared with its own
+   *  lead-in (WALK.nextPrompt) and the search box's "or" line below it, so
+   *  all three appear and disappear together. */
+  const showNextPrompt = filled && walk.currentYear !== null;
 
   return (
     // Pristine centers in the frame; every other state stays top-anchored.
@@ -333,6 +338,15 @@ function FirstOpen({
                   ? WALK.askHeadline(askingYear)
                   : NATIVE_FIRST_OPEN.instruction}
           </h1>
+
+          {/* REFLECTION — a gut-check on the pick just made, not a step, so
+              unlike MECHANIC below it isn't suppressed while the walk still
+              has a year to offer (see that comment for why MECHANIC is). */}
+          {filled && !askingYear && !showSummary && (
+            <p className="mt-2 text-sm leading-relaxed text-gray-400">
+              {NATIVE_FIRST_OPEN.filledReflection}
+            </p>
+          )}
 
           {/* MECHANIC — Law 2's preference-vs-ballot line once filled, the
               walk's breakdown once summarized. Never the 7+ rule — see
@@ -438,15 +452,23 @@ function FirstOpen({
             magnitude of commitment as creating an account. White-on-glass at
             full weight outranks the compact search below it without doing
             that. */}
-        {filled && walk.currentYear !== null && (
-          <button
-            type="button"
-            onClick={advance}
-            className="mt-5 flex w-full items-center justify-between gap-2 rounded-xl border border-white/20 bg-white/[0.07] px-4 py-3.5 text-left text-sm font-semibold text-white transition-colors hover:bg-white/[0.12] active:scale-[0.99]"
-          >
-            {WALK.next(walk.currentYear)}
-            <ArrowRight className="h-4 w-4 flex-none text-[#D9694E]" aria-hidden="true" />
-          </button>
+        {showNextPrompt && walk.currentYear !== null && (
+          <>
+            {/* Replaces the old "every year back to 1927 is still open" —
+                naming this one concrete year beats a century-wide abstraction,
+                right above the button that actually goes there. */}
+            <p className="mt-5 text-sm leading-relaxed text-gray-400">
+              {WALK.nextPrompt(walk.currentYear)}
+            </p>
+            <button
+              type="button"
+              onClick={advance}
+              className="mt-2 flex w-full items-center justify-between gap-2 rounded-xl border border-white/20 bg-white/[0.07] px-4 py-3.5 text-left text-sm font-semibold text-white transition-colors hover:bg-white/[0.12] active:scale-[0.99]"
+            >
+              {WALK.next(walk.currentYear)}
+              <ArrowRight className="h-4 w-4 flex-none text-[#D9694E]" aria-hidden="true" />
+            </button>
+          </>
         )}
       </div>
       )}
@@ -480,7 +502,16 @@ function FirstOpen({
           Kept rather than hidden: the four tiles won't always hold the film
           someone has in mind, and that's the whole point of the year. Below the
           strip it reads as the fallback it is. */}
-      <div className={isPristine ? "mt-5" : "mt-6"}>
+      {/* Names the search box as the explicit alternative to the button above
+          it, rather than leaving "or search a film" implicit in layout order
+          (see the ACTION comment above). Gated on `showNextPrompt` so it only
+          ever appears when there's a button for it to be an alternative to. */}
+      {showNextPrompt && (
+        <p className="mt-6 text-center text-xs text-gray-500">
+          {NATIVE_FIRST_OPEN.orSearchPrompt}
+        </p>
+      )}
+      <div className={isPristine ? "mt-5" : showNextPrompt ? "mt-2" : "mt-6"}>
         <MovieSearchPicker
           key={askingYear ?? "global"}
           onSelect={(movie) =>
