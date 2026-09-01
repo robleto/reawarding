@@ -50,7 +50,7 @@ export default defineConfig({
      */
     {
       name: 'authenticated',
-      testMatch: ['authenticated-features.spec.ts', 'oscar-readiness.spec.ts'],
+      testMatch: ['authenticated-features.spec.ts', 'oscar-readiness.spec.ts', 'awards-editor-live-sync.spec.ts'],
       dependencies: ['auth-setup'],
       use: {
         ...devices['Desktop Chrome'],

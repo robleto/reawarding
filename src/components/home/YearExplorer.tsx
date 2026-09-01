@@ -115,6 +115,11 @@ export default function YearExplorer({
   // Real-time workshop nominee IDs — kept in sync via onWorkshopNomineesChange callback
   const [workshopNomineeIds, setWorkshopNomineeIds] = useState<string[]>([]);
   const [workshopWinnerId, setWorkshopWinnerId] = useState<string | null>(null);
+  // True once the workshop has reported real-time data at least once — distinct
+  // from `workshopNomineeIds.length > 0`, which can't tell "no live data yet"
+  // apart from "live data legitimately dropped to zero" (e.g. cutting the last
+  // nominee), and would silently fall back to the stale prop-derived list.
+  const [hasWorkshopData, setHasWorkshopData] = useState(false);
   // Ballot completion milestone tracking (overlay/confetti disabled until UX finalized)
   const prevNomineeCountRef = useRef<number>(0);
   const milestoneStateInitializedRef = useRef(false);
@@ -183,8 +188,19 @@ export default function YearExplorer({
   const displayNominees = hasCanonicalBestPictureAward
     ? existingNomineeMovies
     : defaultNominees;
-  const displayNomineeCount = displayNominees.length;
-  const nomineesNeededForValidBallot = Math.max(0, 5 - (workshopNomineeIds.length > 0 ? workshopNomineeIds.length : displayNomineeCount));
+  // Real-time nominee list — prefers live workshop data (once it's reported at
+  // least once) over the lagging existingAward/defaultNominees prop, so
+  // add/remove during editing is reflected immediately everywhere in this
+  // component (sticky strip, badges, candidate-pool markers), not just inside
+  // EditableYearSection's own internal state.
+  const activeNomineeMovies = useMemo(() => {
+    if (!hasWorkshopData) return displayNominees;
+    return workshopNomineeIds
+      .map((id) => allMoviesForYear.find((m) => String(m.id) === String(id)))
+      .filter((m): m is Movie => Boolean(m));
+  }, [hasWorkshopData, workshopNomineeIds, allMoviesForYear, displayNominees]);
+  const liveNomineeCount = activeNomineeMovies.length;
+  const nomineesNeededForValidBallot = Math.max(0, 5 - liveNomineeCount);
   const canonicalWinnerMovie = hasCanonicalBestPictureAward
     ? (existingNomineeMovies.find((m) => String(m.id) === String(existingAward?.winnerId))
        // Fall back to highest-rated nominee, not arbitrary insertion order
@@ -210,15 +226,8 @@ export default function YearExplorer({
     ?? defaultWinner?.id
     ?? null;
   const activeNomineeIdSet = useMemo(
-    () => {
-      // Prefer real-time workshop nominee IDs (from onWorkshopNomineesChange callback)
-      // over the lagging existingAward prop which only updates after API refetch.
-      if (workshopNomineeIds.length > 0) {
-        return new Set(workshopNomineeIds.map(String));
-      }
-      return new Set(displayNominees.map((m) => String(m.id)));
-    },
-    [displayNominees, workshopNomineeIds]
+    () => new Set(activeNomineeMovies.map((m) => String(m.id))),
+    [activeNomineeMovies]
   );
 
   // Seed tour step once per onboarding session. After that, local state is the
@@ -431,7 +440,7 @@ export default function YearExplorer({
   const promoteToNominee = useCallback(
     (movie: Movie) => {
       onUpdateMovieRanking(movie.id, { ranking: 7, seen_it: true });
-      if (!activeNomineeIdSet.has(String(movie.id)) && (!hasCanonicalBestPictureAward || displayNomineeCount < 10)) {
+      if (!activeNomineeIdSet.has(String(movie.id)) && (!hasCanonicalBestPictureAward || liveNomineeCount < 10)) {
         // Flash confirmation before the card disappears from contenders
         setRecentlyNominated((prev) => new Set(prev).add(movie.id));
         setTimeout(() => {
@@ -451,7 +460,7 @@ export default function YearExplorer({
         }
       }
     },
-    [onUpdateMovieRanking, onCreateAward, activeNomineeIdSet, displayNomineeCount]
+    [onUpdateMovieRanking, onCreateAward, activeNomineeIdSet, hasCanonicalBestPictureAward, liveNomineeCount]
   );
 
   // Stable identity matters: EditableYearSection's workshop sync effect lists
@@ -470,14 +479,10 @@ export default function YearExplorer({
     (nomineeIds: string[], winnerId: string | null) => {
       setWorkshopNomineeIds(nomineeIds);
       setWorkshopWinnerId(winnerId);
+      setHasWorkshopData(true);
     },
     []
   );
-
-  // Live nominee count — prefers real-time workshop data over lagging existingAward prop
-  const liveNomineeCount = workshopNomineeIds.length > 0
-    ? workshopNomineeIds.length
-    : displayNomineeCount;
 
   // Resolve the current winner for milestone UI and summaries
   const liveWinnerMovie = useMemo(() => {
@@ -882,7 +887,7 @@ export default function YearExplorer({
           />
           <ContextualTip
             tipId="incomplete-year"
-            show={moviesWithRankings.length >= 3 && moviesWithRankings.length < 10 && displayNomineeCount < 5}
+            show={moviesWithRankings.length >= 3 && moviesWithRankings.length < 10 && liveNomineeCount < 5}
             position="below"
             autoDismissMs={10000}
           />
@@ -906,11 +911,11 @@ export default function YearExplorer({
           <div className="mt-6 lg:mt-0 relative" ref={rankingSectionRef}>
 
             {/* ─── Sticky nominee strip (mobile/tablet — ballot visible on lg+) ─── */}
-            {showStickyNominees && displayNominees.length > 0 && (
+            {showStickyNominees && activeNomineeMovies.length > 0 && (
               <div className="sticky top-0 z-40 -mx-4 px-4 py-2.5 bg-charcoal-900/95 backdrop-blur-sm border-b border-gray-700/40 lg:hidden">
                 <div className="flex items-center gap-2.5">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-500 shrink-0">
-                    Nominees ({displayNomineeCount}/10)
+                    Nominees ({liveNomineeCount}/10)
                   </span>
                   {/* touch-pan-x + overscroll-x-contain: swiping over this strip
                       scrolls only the strip, not the page underneath it — this
@@ -918,7 +923,7 @@ export default function YearExplorer({
                       flick here was ambiguous with the page's own vertical
                       scroll and easily "lost" to it. */}
                   <div className="flex gap-2 overflow-x-auto touch-pan-x overscroll-x-contain">
-                    {displayNominees.map((m) => {
+                    {activeNomineeMovies.map((m) => {
                       const isWinner = activeWinnerId != null && String(activeWinnerId) === String(m.id);
                       const isPickedMovie = pickedMovieId !== null && String(m.id) === String(pickedMovieId);
                       const stickyPoster = normalizeImageUrl(m.poster_url);
@@ -946,7 +951,7 @@ export default function YearExplorer({
                         </div>
                       );
                     })}
-                    {Array.from({ length: Math.max(0, 5 - displayNomineeCount) }).map((_, i) => (
+                    {Array.from({ length: Math.max(0, 5 - liveNomineeCount) }).map((_, i) => (
                       <div key={`empty-sticky-${i}`} className="w-10 h-[60px] rounded border border-dashed border-gray-700/40 bg-gray-800/30 shrink-0" />
                     ))}
                   </div>

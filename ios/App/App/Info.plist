@@ -14,6 +14,17 @@
 	     every upload (which otherwise blocks the build from reaching testers). -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- TEMPORARY — permits loading http://localhost:3000 in the simulator to
+	     keep testing the guest year-walk before it's deployed.
+	     NSAllowsLocalNetworking only exempts loopback/*.local addresses, not a
+	     general HTTP bypass. REVERT (delete this NSAppTransportSecurity block)
+	     before any real build or commit — this exact block was accidentally
+	     committed once already (1c7b7a1, reverted in 0755574). -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

@@ -84,7 +84,9 @@
   <div class="status" id="status" role="status"></div>
   <script>
     // Must match capacitor.config.ts server.url.
-    var APP_URL = "https://reawarding.com";
+    // TEMPORARY — local simulator testing. REVERT to "https://reawarding.com"
+    // before any commit (see capacitor.config.ts's matching comment).
+    var APP_URL = "http://localhost:3000";
     var retryBtn = document.getElementById("retry");
     var statusEl = document.getElementById("status");
     var checking = false;

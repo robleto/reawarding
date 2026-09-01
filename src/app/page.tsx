@@ -94,7 +94,7 @@ export default function HomePage() {
   const { movies, userId, updateMovieRanking, isGuest, loading, authChecked, error: moviesError } = useMovieDataWithGuest();
   const { createAward } = useCreateAward();
   const { profile } = useProfile();
-  const { awards, loading: awardsLoading, error: awardsError } = useUserAwards();
+  const { awards, loading: awardsLoading, error: awardsError, refetch: refetchAwards } = useUserAwards();
   // New onboarding flow — modal-first Watch → Rate sequence for new users.
   // Replaces the "drop them into YearExplorer with auto-seed + tour" approach.
   const [onboardingPickFlowMovie, setOnboardingPickFlowMovie] = useState<Movie | null>(null);
@@ -363,6 +363,15 @@ export default function HomePage() {
     },
     []
   );
+
+  // Workshop mode auto-saves to the API as the user edits, but `awards` here
+  // was only fetched once on mount — without a refetch on close, reopening
+  // the editor (or the archive section below it) kept showing the pre-edit
+  // snapshot even though the save itself succeeded.
+  const handleCloseBallotEditor = useCallback(() => {
+    setEditingYear(null);
+    void refetchAwards();
+  }, [refetchAwards]);
 
   const handleCreateAwardFromExplorer = useCallback(
     (movie: Movie) => {
@@ -1486,7 +1495,7 @@ export default function HomePage() {
           rather than re-fetching what that route's own page component fetches
           independently. */}
       {editingYear !== null && (
-        <BallotEditorOverlay onClose={() => setEditingYear(null)}>
+        <BallotEditorOverlay onClose={handleCloseBallotEditor}>
           <YearExplorer
             year={editingYear}
             allMovies={movies}
@@ -1494,7 +1503,7 @@ export default function HomePage() {
             existingAward={awards.find((a) => a.year === editingYear) ?? null}
             onCreateAward={handleCreateAwardFromExplorer}
             onUpdateMovieRanking={handleUpdateMovieRanking}
-            onClose={() => setEditingYear(null)}
+            onClose={handleCloseBallotEditor}
             hideBackButton
             isGuest={isGuest}
           />
